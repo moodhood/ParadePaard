@@ -5,15 +5,27 @@ import com.pm.authservice.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class UserService {
-    private final UserRepository userRepository;
 
-    public UserService(UserRepository userRepository){
-        this.userRepository = userRepository;
+    private final UserRepository repo;
+
+    public UserService(UserRepository repo) {
+        this.repo = repo;
     }
-    public Optional<User> findByEmail(String email){
-        return userRepository.findByEmail(email);
+
+    public Optional<User> findByEmail(String email) {
+        return repo.findByEmail(email);
     }
+
+    public Optional<User> findById(UUID id) {
+        return repo.findById(id);
+    }
+
+    public User save(User user) {
+        return repo.save(user);
+    }
+
 }

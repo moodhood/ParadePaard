@@ -1,14 +1,15 @@
 package com.pm.authservice.controller;
 
 import com.pm.authservice.dto.LoginRequestDTO;
-import com.pm.authservice.dto.LoginResponseDTO;
+import com.pm.authservice.dto.AuthResponseDTO;
+import com.pm.authservice.dto.RegisterRequestDTO;
 import com.pm.authservice.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import javax.management.remote.JMXAuthenticator;
 import java.util.Optional;
 
 @RestController
@@ -19,9 +20,18 @@ public class AuthController{
         this.authService = authService;
     }
 
+    @Operation(summary = "Register new user and return token")
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponseDTO> register(
+            @Valid @RequestBody RegisterRequestDTO request) {
+
+        AuthResponseDTO response = authService.register(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
     @Operation(summary = "Generate token on user login")
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginRequestDTO loginRequestDTO){
+    public ResponseEntity<AuthResponseDTO> login(@RequestBody LoginRequestDTO loginRequestDTO){
         Optional<String> tokenOptional = authService.authenticate(loginRequestDTO);
 
         if(tokenOptional.isEmpty()){
@@ -29,7 +39,7 @@ public class AuthController{
         }
 
         String token = tokenOptional.get();
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+        return ResponseEntity.ok(new AuthResponseDTO(token));
     }
 
     @Operation(summary = "Validate Token")
