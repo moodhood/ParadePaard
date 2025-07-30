@@ -11,8 +11,11 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
+    void deleteById(UUID id);
+
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, UUID id);
     boolean existsByBankAccountNumberAndIdNot(String bankAccountNumber, UUID id);
     boolean existsByPhoneNumberAndIdNot(String phoneNumber, UUID id);
+
 }

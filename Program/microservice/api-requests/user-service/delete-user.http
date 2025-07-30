@@ -1,0 +1,4 @@
+### DELETE request to user-service
+DELETE http://localhost:4004/api/users/b149d605-a15d-496f-a0a7-4c802ac56470
+Authorization: Bearer {{token}}
+###

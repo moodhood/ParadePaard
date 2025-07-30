@@ -45,6 +45,7 @@ public class UserService {
     }
 
     public void deleteUser(UUID id) {
+        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Patient with id: " + id + " not found"));
         userRepository.deleteById(id);
     }
 }
