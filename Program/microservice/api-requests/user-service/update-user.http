@@ -1,0 +1,15 @@
+### PUT request to user-service
+PUT http://localhost:4004/api/users/b149d605-a15d-496f-a0a7-4c802ac56470
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Sophia Clark",
+  "email": "henry.irwin@example.com",
+  "address": "123 Hickory St, Shelbyville",
+  "dateOfBirth": "1991-12-25",
+  "bankAccountNumber": "NL88ABN890890098",
+  "phoneNumber": "123345"
+}
+
+###
