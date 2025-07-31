@@ -12,6 +12,7 @@ public class Payslip {
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
+    @Column(name = "payslip_id", nullable = false)
     private UUID id;
 
     @Column(name = "user_id", nullable = false)
