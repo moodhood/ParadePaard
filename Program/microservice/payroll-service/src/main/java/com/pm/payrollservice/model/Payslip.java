@@ -21,7 +21,13 @@ public class Payslip {
     private Integer weekNumber;
     private Integer weekBasedYear;
     private String name;
-    private String address;
+    private String streetName;
+    private String houseNumber;
+    private String houseNumberSuffix;
+    private String postalCode;
+    private String city;
+    private String country;
+    private String email;
     private BigDecimal hoursWorked;
     private BigDecimal hourlyWage;
     @Column(precision = 19, scale = 2)
@@ -80,12 +86,60 @@ public class Payslip {
         this.name = name;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreetName() {
+        return streetName;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreetName(String streetName) {
+        this.streetName = streetName;
+    }
+
+    public String getHouseNumber() {
+        return houseNumber;
+    }
+
+    public void setHouseNumber(String houseNumber) {
+        this.houseNumber = houseNumber;
+    }
+
+    public String getHouseNumberSuffix() {
+        return houseNumberSuffix;
+    }
+
+    public void setHouseNumberSuffix(String houseNumberSuffix) {
+        this.houseNumberSuffix = houseNumberSuffix;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 
     public BigDecimal getHoursWorked() {

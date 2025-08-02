@@ -15,27 +15,19 @@ import java.util.UUID;
 public class User {
     @Id
     private UUID id;
-
     @NotNull
     @Email
     @Column(unique = true)
     private String email;
-
     private String name;
-
     @Column(nullable = false)
     private String role;
-
     private String address;
-
     private LocalDate dateOfBirth;
-
     @NotNull
     private LocalDate registeredDate;
-
     @Column(unique = true)
     private String bankAccountNumber;
-
     @Column(unique = true)
     private String phoneNumber;
 

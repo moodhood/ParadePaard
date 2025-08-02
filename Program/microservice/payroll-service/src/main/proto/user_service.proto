@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "user";
+
+service UserService {
+  rpc RequestUserData (UserDataRequest) returns (UserDataResponse);
+}
+
+message UserDataRequest {
+  string patientId = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message UserDataResponse {
+  string accountId = 1;
+  string status = 2;
+}
