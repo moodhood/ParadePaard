@@ -16,7 +16,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/users")
 @Tag(name = "User", description = "API for managing Users")
-public class UserController {
+public class  UserController {
     private final UserService userService;
 
     public UserController(UserService userService){

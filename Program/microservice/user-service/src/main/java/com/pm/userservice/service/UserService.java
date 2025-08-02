@@ -31,7 +31,7 @@ public class UserService {
     public UserResponseDTO updateUser(UUID id, UserRequestDTO userRequestDTO) {
         User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Patient with id: " + id + " not found"));
 
-        userDuplicateValidator.validateUniqueFields(id, userRequestDTO);
+        userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
 
         user.setName(userRequestDTO.getName());
         user.setEmail(userRequestDTO.getEmail());

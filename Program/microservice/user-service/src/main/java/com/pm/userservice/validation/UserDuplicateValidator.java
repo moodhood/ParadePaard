@@ -18,23 +18,23 @@ public class UserDuplicateValidator {
         this.userRepository = userRepository;
     }
 
-    public void validateUniqueFields(UUID currentId, UserRequestDTO dto) {
+    public void validateNoDuplicate(UUID currentId, UserRequestDTO userRequestDTO) {
 
-        if (userRepository.existsByEmailAndIdNot(dto.getEmail(), currentId)) {
+        if (userRepository.existsByEmailAndIdNot(userRequestDTO.getEmail(), currentId)) {
             throw new EmailAlreadyExistsException(
-                    "Email already exists " + dto.getEmail());
+                    "Email already exists " + userRequestDTO.getEmail());
         }
 
         if (userRepository.existsByBankAccountNumberAndIdNot(
-                dto.getBankAccountNumber(), currentId)) {
+                userRequestDTO.getBankAccountNumber(), currentId)) {
             throw new BankAccountNumberAlreadyExistsException(
-                    "Bank account number already exists " + dto.getBankAccountNumber());
+                    "Bank account number already exists " + userRequestDTO.getBankAccountNumber());
         }
 
         if (userRepository.existsByPhoneNumberAndIdNot(
-                dto.getPhoneNumber(), currentId)) {
+                userRequestDTO.getPhoneNumber(), currentId)) {
             throw new PhoneNumberAlreadyExistsException(
-                    "Phone number already exists " + dto.getPhoneNumber());
+                    "Phone number already exists " + userRequestDTO.getPhoneNumber());
         }
     }
 }

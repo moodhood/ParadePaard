@@ -8,5 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface PayslipRepository extends JpaRepository<Payslip, UUID>{
-    boolean existsByWeekNumberAndUserId(int weekNumber, UUID userId);
+    boolean existsByWeekBasedYearAndWeekNumberAndUserId(int weekBasedYear, int weekNumber, UUID userId);
 }

@@ -2,6 +2,8 @@ package com.pm.payrollservice.service;
 
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
+import com.pm.payrollservice.exception.ISOWeekPayslipAlreadyExistsException;
+import com.pm.payrollservice.validation.PayslipDuplicateValidator;
 import com.pm.payrollservice.mapper.PayslipMapper;
 import com.pm.payrollservice.model.Payslip;
 import org.springframework.stereotype.Service;
@@ -15,9 +17,11 @@ import java.util.UUID;
 @Service
 public class PayrollService {
     private final PayslipRepository payslipRepository;
+    private final PayslipDuplicateValidator duplicateValidator;
 
-    public PayrollService(PayslipRepository payslipRepository){
+    public PayrollService(PayslipRepository payslipRepository, PayslipDuplicateValidator duplicateValidator) {
         this.payslipRepository = payslipRepository;
+        this.duplicateValidator = duplicateValidator;
     }
 
     public List<PayslipResponseDTO> getPayslips(){
@@ -27,19 +31,24 @@ public class PayrollService {
 
     public PayslipResponseDTO createPayslip(PayslipRequestDTO payslipRequestDTO){
         LocalDate date = LocalDate.parse(payslipRequestDTO.getDateOfIssue());
-        int weekNumber = date.get(WeekFields.ISO.weekOfWeekBasedYear());
         UUID userId = UUID.fromString(payslipRequestDTO.getUserId());
 
-        if (payslipRepository.existsByWeekNumberAndUserId(weekNumber, userId)) {
-            throw new IllegalArgumentException("Payslip for that ISO week already exists for user");
-        }
+        duplicateValidator.validateNoDuplicate(userId, date);
 
-        Payslip payslip = payslipRepository.save(PayslipMapper.toModel(payslipRequestDTO));
+        Payslip payslip = PayslipMapper.toModel(payslipRequestDTO);
+        payslip.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
+        payslip.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
 
-        // calculation
+        //TODO grpc request to user service -> userId -> name, address
+        //TODO grpc request to hour service -> userId + year + week -> hours (per event?)
+        //TODO  grpc request to tax service -> userId -> tax cuts
+        //TODO  grpc request to contract service -> function -> hourlyWage ?
+        //TODO  calculation
 
+        payslip = payslipRepository.save(payslip);
         return PayslipMapper.toDTO(payslip);
     }
+
 
     public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO payslipRequestDTO){
         Payslip payslip = payslipRepository.findById(id)
@@ -50,7 +59,7 @@ public class PayrollService {
         payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
         payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
 
-        // any additional calculation logic would go here
+        //TODO any additional calculation logic would go here
 
         payslip = payslipRepository.save(payslip);
         return PayslipMapper.toDTO(payslip);

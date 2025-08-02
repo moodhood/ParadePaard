@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS payslips
     user_id                 UUID NOT NULL,
     date_of_issue           DATE,
     week_number             INTEGER,
+    week_based_year         INTEGER,
     name                    VARCHAR(255),
     address                 VARCHAR(255),
     hours_worked            NUMERIC(10,2),
@@ -15,12 +16,13 @@ CREATE TABLE IF NOT EXISTS payslips
 
 /* sample payslips with ISO week numbers */
 
-/* Alice Example: issued 2025-07-01 (ISO week 27), 40.0 hours at 25.0 = 1000 gross, 200 tax, 800 net */
+/* Alice Example: issued 2025-07-01 (ISO week 27, ISO week-year 2025), 40.0 hours at 25.0 = 1000 gross, 200 tax, 800 net */
 INSERT INTO payslips (
     payslip_id,
     user_id,
     date_of_issue,
     week_number,
+    week_based_year,
     name,
     address,
     hours_worked,
@@ -34,6 +36,7 @@ SELECT
     'b1e2f3a4-2222-4c5d-9b3c-000000000010',
     '2025-07-01'::date,
     27,
+    2025,
     'Alice Example',
     '12 River Rd, Amsterdam',
     40.0,
@@ -45,12 +48,13 @@ SELECT
     SELECT 1 FROM payslips WHERE payslip_id = 'a3f1c2d4-1111-4e5f-8a2b-000000000001'
 );
 
-/* Bob Worker: issued 2025-07-08 (ISO week 28), 35.0 hours at 30.0 = 1050 gross, 210 tax, 840 net */
+/* Bob Worker: issued 2025-07-08 (ISO week 28, ISO week-year 2025), 35.0 hours at 30.0 = 1050 gross, 210 tax, 840 net */
 INSERT INTO payslips (
     payslip_id,
     user_id,
     date_of_issue,
     week_number,
+    week_based_year,
     name,
     address,
     hours_worked,
@@ -64,6 +68,7 @@ SELECT
     'c2f3e4b5-4444-4a1b-8c2d-000000000020',
     '2025-07-08'::date,
     28,
+    2025,
     'Bob Worker',
     '34 Canal St, Utrecht',
     35.0,
@@ -75,12 +80,13 @@ SELECT
     SELECT 1 FROM payslips WHERE payslip_id = 'd4e5f6a7-3333-4b2c-7d1e-000000000002'
 );
 
-/* Carol Remote: issued 2025-07-15 (ISO week 29), 20.0 hours at 50.0 = 1000 gross, 200 tax, 800 net */
+/* Carol Remote: issued 2025-07-15 (ISO week 29, ISO week-year 2025), 20.0 hours at 50.0 = 1000 gross, 200 tax, 800 net */
 INSERT INTO payslips (
     payslip_id,
     user_id,
     date_of_issue,
     week_number,
+    week_based_year,
     name,
     address,
     hours_worked,
@@ -90,10 +96,11 @@ INSERT INTO payslips (
     total_net_amount
 )
 SELECT
-    'f7a8b9c0-5555-4f3d-9e4f-000000000003',
+    'f7a8b9c0-5555-4e5f-9e4f-000000000003',
     'd3a4b5c6-6666-4d2e-1f3a-000000000030',
     '2025-07-15'::date,
     29,
+    2025,
     'Carol Remote',
     '78 Market Ave, Rotterdam',
     20.0,
@@ -102,15 +109,16 @@ SELECT
     200.00,
     800.00
     WHERE NOT EXISTS (
-    SELECT 1 FROM payslips WHERE payslip_id = 'f7a8b9c0-5555-4f3d-9e4f-000000000003'
+    SELECT 1 FROM payslips WHERE payslip_id = 'f7a8b9c0-5555-4e5f-9e4f-000000000003'
 );
 
-/* Dave PartTime: issued 2025-07-22 (ISO week 30), 10.0 hours at 15.0 = 150 gross, 30 tax, 120 net */
+/* Dave PartTime: issued 2025-07-22 (ISO week 30, ISO week-year 2025), 10.0 hours at 15.0 = 150 gross, 30 tax, 120 net */
 INSERT INTO payslips (
     payslip_id,
     user_id,
     date_of_issue,
     week_number,
+    week_based_year,
     name,
     address,
     hours_worked,
@@ -124,6 +132,7 @@ SELECT
     'e4b5c6d7-8888-4c1f-2a3b-000000000040',
     '2025-07-22'::date,
     30,
+    2025,
     'Dave PartTime',
     '9 Hill St, Eindhoven',
     10.0,
@@ -135,12 +144,13 @@ SELECT
     SELECT 1 FROM payslips WHERE payslip_id = 'b0c1d2e3-7777-4a5b-6c7d-000000000004'
 );
 
-/* Eve Senior: issued 2025-07-29 (ISO week 31), 45.0 hours at 60.0 = 2700 gross, 540 tax, 2160 net */
+/* Eve Senior: issued 2025-07-29 (ISO week 31, ISO week-year 2025), 45.0 hours at 60.0 = 2700 gross, 540 tax, 2160 net */
 INSERT INTO payslips (
     payslip_id,
     user_id,
     date_of_issue,
     week_number,
+    week_based_year,
     name,
     address,
     hours_worked,
@@ -154,6 +164,7 @@ SELECT
     'f5c6d7e8-aaaa-4e9b-1c2d-000000000050',
     '2025-07-29'::date,
     31,
+    2025,
     'Eve Senior',
     '22 Garden Ln, The Hague',
     45.0,

@@ -19,6 +19,7 @@ public class Payslip {
     private UUID userId;
     private LocalDate dateOfIssue;
     private Integer weekNumber;
+    private Integer weekBasedYear;
     private String name;
     private String address;
     private BigDecimal hoursWorked;
@@ -53,6 +54,22 @@ public class Payslip {
 
     public void setDateOfIssue(LocalDate dateOfIssue) {
         this.dateOfIssue = dateOfIssue;
+    }
+
+    public Integer getWeekNumber() {
+        return weekNumber;
+    }
+
+    public void setWeekNumber(Integer weekNumber) {
+        this.weekNumber = weekNumber;
+    }
+
+    public Integer getWeekBasedYear() {
+        return weekBasedYear;
+    }
+
+    public void setWeekBasedYear(Integer weekBasedYear) {
+        this.weekBasedYear = weekBasedYear;
     }
 
     public String getName() {
