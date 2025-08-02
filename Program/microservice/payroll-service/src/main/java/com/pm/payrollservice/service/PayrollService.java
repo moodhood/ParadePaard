@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import com.pm.payrollservice.repository.PayslipRepository;
 
 import java.time.LocalDate;
+import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,8 +26,13 @@ public class PayrollService {
     }
 
     public PayslipResponseDTO createPayslip(PayslipRequestDTO payslipRequestDTO){
+        LocalDate date = LocalDate.parse(payslipRequestDTO.getDateOfIssue());
+        int weekNumber = date.get(WeekFields.ISO.weekOfWeekBasedYear());
+        UUID userId = UUID.fromString(payslipRequestDTO.getUserId());
 
-        // EXCEPTION (WEEK)
+        if (payslipRepository.existsByWeekNumberAndUserId(weekNumber, userId)) {
+            throw new IllegalArgumentException("Payslip for that ISO week already exists for user");
+        }
 
         Payslip payslip = payslipRepository.save(PayslipMapper.toModel(payslipRequestDTO));
 
@@ -39,18 +45,10 @@ public class PayrollService {
         Payslip payslip = payslipRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Payslip with id: " + id + " not found"));
 
-        if (payslipRequestDTO.getUserId() != null && !payslipRequestDTO.getUserId().isBlank()) {
-            payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
-        }
-        if (payslipRequestDTO.getDateOfIssue() != null && !payslipRequestDTO.getDateOfIssue().isBlank()) {
-            payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));
-        }
-        if (payslipRequestDTO.getHoursWorked() != null) {
-            payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
-        }
-        if (payslipRequestDTO.getHourlyWage() != null) {
-            payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
-        }
+        payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
+        payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));
+        payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
+        payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
 
         // any additional calculation logic would go here
 

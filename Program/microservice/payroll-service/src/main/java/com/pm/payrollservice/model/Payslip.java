@@ -15,26 +15,18 @@ public class Payslip {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID payslipId;
-
     @Column(nullable = false)
     private UUID userId;
-
     private LocalDate dateOfIssue;
-
+    private Integer weekNumber;
     private String name;
-
     private String address;
-
     private BigDecimal hoursWorked;
-
     private BigDecimal hourlyWage;
-
     @Column(precision = 19, scale = 2)
     private BigDecimal totalGrossAmount;
-
     @Column(precision = 19, scale = 2)
     private BigDecimal wageTaxWithheldTest;
-
     @Column(precision = 19, scale = 2)
     private BigDecimal totalNetAmount;
 

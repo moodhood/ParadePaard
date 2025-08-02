@@ -7,6 +7,7 @@ public class PayslipResponseDTO {
     private String payslipId;
     private String userId;
     private String dateOfIssue;
+    private Integer weekNumber;
     private String name;
     private String address;
     private BigDecimal hoursWorked;
@@ -37,6 +38,14 @@ public class PayslipResponseDTO {
 
     public void setDateOfIssue(String dateOfIssue) {
         this.dateOfIssue = dateOfIssue;
+    }
+
+    public Integer getWeekNumber() {
+        return weekNumber;
+    }
+
+    public void setWeekNumber(Integer weekNumber) {
+        this.weekNumber = weekNumber;
     }
 
     public String getName() {
