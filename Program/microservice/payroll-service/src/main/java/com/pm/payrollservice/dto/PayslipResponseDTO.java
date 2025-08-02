@@ -1,15 +1,19 @@
+// PayslipResponseDTO.java
 package com.pm.payrollservice.dto;
 
+import java.math.BigDecimal;
+
 public class PayslipResponseDTO {
-    String payslipId;
-    String userId;
-    String name;
-    String address;
-    String hoursWorked;
-    String hourlyWage;
-    String totalGrossAmount;
-    String wageTaxWithheldTest;
-    String totalNetAmount;
+    private String payslipId;
+    private String userId;
+    private String dateOfIssue;
+    private String name;
+    private String address;
+    private BigDecimal hoursWorked;
+    private BigDecimal hourlyWage;
+    private BigDecimal totalGrossAmount;
+    private BigDecimal wageTaxWithheldTest;
+    private BigDecimal totalNetAmount;
 
     public String getPayslipId() {
         return payslipId;
@@ -25,6 +29,14 @@ public class PayslipResponseDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getDateOfIssue() {
+        return dateOfIssue;
+    }
+
+    public void setDateOfIssue(String dateOfIssue) {
+        this.dateOfIssue = dateOfIssue;
     }
 
     public String getName() {
@@ -43,43 +55,43 @@ public class PayslipResponseDTO {
         this.address = address;
     }
 
-    public String getHoursWorked() {
+    public BigDecimal getHoursWorked() {
         return hoursWorked;
     }
 
-    public void setHoursWorked(String hoursWorked) {
+    public void setHoursWorked(BigDecimal hoursWorked) {
         this.hoursWorked = hoursWorked;
     }
 
-    public String getHourlyWage() {
+    public BigDecimal getHourlyWage() {
         return hourlyWage;
     }
 
-    public void setHourlyWage(String hourlyWage) {
+    public void setHourlyWage(BigDecimal hourlyWage) {
         this.hourlyWage = hourlyWage;
     }
 
-    public String getTotalGrossAmount() {
+    public BigDecimal getTotalGrossAmount() {
         return totalGrossAmount;
     }
 
-    public void setTotalGrossAmount(String totalGrossAmount) {
+    public void setTotalGrossAmount(BigDecimal totalGrossAmount) {
         this.totalGrossAmount = totalGrossAmount;
     }
 
-    public String getWageTaxWithheldTest() {
+    public BigDecimal getWageTaxWithheldTest() {
         return wageTaxWithheldTest;
     }
 
-    public void setWageTaxWithheldTest(String wageTaxWithheldTest) {
+    public void setWageTaxWithheldTest(BigDecimal wageTaxWithheldTest) {
         this.wageTaxWithheldTest = wageTaxWithheldTest;
     }
 
-    public String getTotalNetAmount() {
+    public BigDecimal getTotalNetAmount() {
         return totalNetAmount;
     }
 
-    public void setTotalNetAmount(String totalNetAmount) {
+    public void setTotalNetAmount(BigDecimal totalNetAmount) {
         this.totalNetAmount = totalNetAmount;
     }
 }

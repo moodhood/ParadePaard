@@ -25,9 +25,9 @@ public class Payslip {
 
     private String address;
 
-    private Integer hoursWorked;
+    private BigDecimal hoursWorked;
 
-    private Integer hourlyWage;
+    private BigDecimal hourlyWage;
 
     @Column(precision = 19, scale = 2)
     private BigDecimal totalGrossAmount;
@@ -37,6 +37,7 @@ public class Payslip {
 
     @Column(precision = 19, scale = 2)
     private BigDecimal totalNetAmount;
+
 
     public UUID getPayslipId() {
         return payslipId;
@@ -78,19 +79,19 @@ public class Payslip {
         this.address = address;
     }
 
-    public Integer getHoursWorked() {
+    public BigDecimal getHoursWorked() {
         return hoursWorked;
     }
 
-    public void setHoursWorked(Integer hoursWorked) {
+    public void setHoursWorked(BigDecimal hoursWorked) {
         this.hoursWorked = hoursWorked;
     }
 
-    public Integer getHourlyWage() {
+    public BigDecimal getHourlyWage() {
         return hourlyWage;
     }
 
-    public void setHourlyWage(Integer hourlyWage) {
+    public void setHourlyWage(BigDecimal hourlyWage) {
         this.hourlyWage = hourlyWage;
     }
 

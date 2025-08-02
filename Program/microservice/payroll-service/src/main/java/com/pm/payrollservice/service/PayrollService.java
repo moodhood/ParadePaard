@@ -7,7 +7,9 @@ import com.pm.payrollservice.model.Payslip;
 import org.springframework.stereotype.Service;
 import com.pm.payrollservice.repository.PayslipRepository;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PayrollService {
@@ -23,7 +25,37 @@ public class PayrollService {
     }
 
     public PayslipResponseDTO createPayslip(PayslipRequestDTO payslipRequestDTO){
+
+        // EXCEPTION (WEEK)
+
         Payslip payslip = payslipRepository.save(PayslipMapper.toModel(payslipRequestDTO));
+
+        // calculation
+
         return PayslipMapper.toDTO(payslip);
     }
+
+    public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO payslipRequestDTO){
+        Payslip payslip = payslipRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Payslip with id: " + id + " not found"));
+
+        if (payslipRequestDTO.getUserId() != null && !payslipRequestDTO.getUserId().isBlank()) {
+            payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
+        }
+        if (payslipRequestDTO.getDateOfIssue() != null && !payslipRequestDTO.getDateOfIssue().isBlank()) {
+            payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));
+        }
+        if (payslipRequestDTO.getHoursWorked() != null) {
+            payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
+        }
+        if (payslipRequestDTO.getHourlyWage() != null) {
+            payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
+        }
+
+        // any additional calculation logic would go here
+
+        payslip = payslipRepository.save(payslip);
+        return PayslipMapper.toDTO(payslip);
+    }
+
 }

@@ -1,28 +1,21 @@
+// PayslipRequestDTO.java
 package com.pm.payrollservice.dto;
 
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
-
 import java.math.BigDecimal;
-import java.util.UUID;
 
 public class PayslipRequestDTO {
-    @NotBlank(message = "UserId is required")
-    @Column(nullable = false)
-    private UUID userId;
+    @NotBlank(message = "userId is required")
+    private String userId;
+    private String dateOfIssue; // expect ISO yyyy-MM-dd
+    private BigDecimal hoursWorked;
+    private BigDecimal hourlyWage;
 
-    private String dateOfIssue;
-
-    private Integer hoursWorked; //remove later when hours table is in place
-
-    private Integer hourlyWage; //remove later when wage is in user table (user table for user service not auth)
-
-    public UUID getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
@@ -34,19 +27,19 @@ public class PayslipRequestDTO {
         this.dateOfIssue = dateOfIssue;
     }
 
-    public Integer getHoursWorked() {
+    public BigDecimal getHoursWorked() {
         return hoursWorked;
     }
 
-    public void setHoursWorked(Integer hoursWorked) {
+    public void setHoursWorked(BigDecimal hoursWorked) {
         this.hoursWorked = hoursWorked;
     }
 
-    public Integer getHourlyWage() {
+    public BigDecimal getHourlyWage() {
         return hourlyWage;
     }
 
-    public void setHourlyWage(Integer hourlyWage) {
+    public void setHourlyWage(BigDecimal hourlyWage) {
         this.hourlyWage = hourlyWage;
     }
 }

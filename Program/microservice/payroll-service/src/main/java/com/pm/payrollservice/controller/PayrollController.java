@@ -14,6 +14,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/payroll")
@@ -41,5 +42,11 @@ public class PayrollController {
         return ResponseEntity.ok().body(payslipResponseDTO);
     }
 
+    @PutMapping("/{id}")
+    @Operation(summary = "Update a Payslip")
+    public ResponseEntity<PayslipResponseDTO> updatePayslip(@PathVariable UUID id, @Validated({Default.class}) @RequestBody PayslipRequestDTO payslipRequestDTO){
+        PayslipResponseDTO payslipResponseDTO = payrollService.updatePayslip(id, payslipRequestDTO);
+        return ResponseEntity.ok().body(payslipResponseDTO);
+    }
 
 }

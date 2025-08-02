@@ -1,5 +1,15 @@
-### GET request to example server
-GET https://examples.http-client.intellij.net/get
-    ?generated-in=IntelliJ IDEA
+### CREATE request to payroll-service
+POST http://localhost:4004/api/payroll
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "userId": "10b129c4-3d50-41e6-8fff-389f01a31899",
+  "dateOfIssue": "2025-08-01",
+  "hoursWorked": 40,
+  "hourlyWage": 25
+}
+
+
 
 ###
