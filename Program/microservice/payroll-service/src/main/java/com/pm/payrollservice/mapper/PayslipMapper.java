@@ -1,5 +1,6 @@
 package com.pm.payrollservice.mapper;
 
+import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
 import com.pm.payrollservice.model.Payslip;
 
@@ -19,5 +20,15 @@ public class PayslipMapper {
         dto.setTotalNetAmount(payslip.getTotalNetAmount() != null ? payslip.getTotalNetAmount().toPlainString() : null);
 
         return dto;
+    }
+
+    public static Payslip toModel(PayslipRequestDTO payslipRequestDTO){
+        Payslip payslip = new Payslip();
+
+        payslip.setUserId(payslipRequestDTO.getUserId());
+        payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
+        payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
+
+        return payslip;
     }
 }

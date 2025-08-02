@@ -19,6 +19,8 @@ public class Payslip {
     @Column(nullable = false)
     private UUID userId;
 
+    private LocalDate dateOfIssue;
+
     private String name;
 
     private String address;
@@ -27,13 +29,13 @@ public class Payslip {
 
     private Integer hourlyWage;
 
-    @Column(precision = 19, scale = 4)
+    @Column(precision = 19, scale = 2)
     private BigDecimal totalGrossAmount;
 
-    @Column(precision = 19, scale = 4)
+    @Column(precision = 19, scale = 2)
     private BigDecimal wageTaxWithheldTest;
 
-    @Column(precision = 19, scale = 4)
+    @Column(precision = 19, scale = 2)
     private BigDecimal totalNetAmount;
 
     public UUID getPayslipId() {
@@ -50,6 +52,14 @@ public class Payslip {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public LocalDate getDateOfIssue() {
+        return dateOfIssue;
+    }
+
+    public void setDateOfIssue(LocalDate dateOfIssue) {
+        this.dateOfIssue = dateOfIssue;
     }
 
     public String getName() {

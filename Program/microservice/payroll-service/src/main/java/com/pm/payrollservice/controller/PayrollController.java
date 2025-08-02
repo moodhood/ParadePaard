@@ -1,15 +1,17 @@
 package com.pm.payrollservice.controller;
 
+import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
-import com.pm.payrollservice.service.PayslipService;
+import com.pm.payrollservice.dto.validators.CreatePayslipValidationGroup;
+import com.pm.payrollservice.service.PayrollService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.groups.Default;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -17,18 +19,27 @@ import java.util.List;
 @RequestMapping("/payroll")
 @Tag(name = "Payroll", description = "API for managing payroll service")
 public class PayrollController {
-    private final PayslipService payslipService;
+    private final PayrollService payrollService;
 
-    public PayrollController(PayslipService payslipService){
-        this.payslipService = payslipService;
+    public PayrollController(PayrollService payrollService){
+        this.payrollService = payrollService;
     }
 
     private static final Logger log = LoggerFactory.getLogger(PayrollController.class);
 
     @GetMapping
-    @Operation(summary = "Get Payslips test")
+    @Operation(summary = "Get Payslips")
     public ResponseEntity<List<PayslipResponseDTO>> getPayslips(){
-        List<PayslipResponseDTO> payslips = payslipService.getPayslips();
+        List<PayslipResponseDTO> payslips = payrollService.getPayslips();
         return ResponseEntity.ok().body(payslips);
     }
+
+    @PostMapping
+    @Operation(summary = "Create new Payslip")
+    public ResponseEntity<PayslipResponseDTO> createPayslip(@Validated({Default.class, CreatePayslipValidationGroup.class}) @RequestBody PayslipRequestDTO payslipRequestDTO){
+        PayslipResponseDTO payslipResponseDTO = payrollService.createPayslip(payslipRequestDTO);
+        return ResponseEntity.ok().body(payslipResponseDTO);
+    }
+
+
 }

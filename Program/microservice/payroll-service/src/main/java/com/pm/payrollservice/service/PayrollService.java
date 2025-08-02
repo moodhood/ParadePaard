@@ -1,5 +1,6 @@
 package com.pm.payrollservice.service;
 
+import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
 import com.pm.payrollservice.mapper.PayslipMapper;
 import com.pm.payrollservice.model.Payslip;
@@ -9,15 +10,20 @@ import com.pm.payrollservice.repository.PayslipRepository;
 import java.util.List;
 
 @Service
-public class PayslipService {
+public class PayrollService {
     private final PayslipRepository payslipRepository;
 
-    public PayslipService(PayslipRepository payslipRepository){
+    public PayrollService(PayslipRepository payslipRepository){
         this.payslipRepository = payslipRepository;
     }
 
     public List<PayslipResponseDTO> getPayslips(){
         List<Payslip> payslips = payslipRepository.findAll();
         return payslips.stream().map(PayslipMapper::toDTO).toList();
+    }
+
+    public PayslipResponseDTO createPayslip(PayslipRequestDTO payslipRequestDTO){
+        Payslip payslip = payslipRepository.save(PayslipMapper.toModel(payslipRequestDTO));
+        return PayslipMapper.toDTO(payslip);
     }
 }
