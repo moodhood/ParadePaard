@@ -21,6 +21,7 @@ public class Payslip {
     private Integer weekNumber;
     private Integer weekBasedYear;
     private String name;
+    private LocalDate dateOfBirth;
     private String streetName;
     private String houseNumber;
     private String houseNumberSuffix;
