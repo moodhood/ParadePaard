@@ -15,37 +15,47 @@ import java.util.UUID;
 
 @Service
 public class UserService {
-    final private UserRepository userRepository;
-    final private UserDuplicateValidator userDuplicateValidator;
+    private final UserRepository userRepository;
+    private final UserDuplicateValidator userDuplicateValidator;
 
     public UserService(UserRepository userRepository, UserDuplicateValidator userDuplicateValidator) {
         this.userRepository = userRepository;
         this.userDuplicateValidator = userDuplicateValidator;
     }
 
-    public List<UserResponseDTO> getUser() {
+    public List<UserResponseDTO> getUsers() {
         List<User> users = userRepository.findAll();
         return users.stream().map(UserMapper::toDTO).toList();
     }
 
     public UserResponseDTO updateUser(UUID id, UserRequestDTO userRequestDTO) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Patient with id: " + id + " not found"));
+        User user = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
 
         userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
 
         user.setName(userRequestDTO.getName());
         user.setEmail(userRequestDTO.getEmail());
-        user.setAddress(userRequestDTO.getAddress());
-        user.setDateOfBirth(LocalDate.parse(userRequestDTO.getDateOfBirth()));
+        user.setStreetName(userRequestDTO.getStreetName());
+        user.setHouseNumber(userRequestDTO.getHouseNumber());
+        user.setHouseNumberSuffix(userRequestDTO.getHouseNumberSuffix());
+        user.setPostalCode(userRequestDTO.getPostalCode());
+        user.setCity(userRequestDTO.getCity());
+        user.setCountry(userRequestDTO.getCountry());
+        if (userRequestDTO.getDateOfBirth() != null && !userRequestDTO.getDateOfBirth().isBlank()) {
+            user.setDateOfBirth(LocalDate.parse(userRequestDTO.getDateOfBirth()));
+        }
         user.setPhoneNumber(userRequestDTO.getPhoneNumber());
         user.setBankAccountNumber(userRequestDTO.getBankAccountNumber());
 
-        User updatedPatient = userRepository.save(user);
-        return UserMapper.toDTO(updatedPatient);
+        User updatedUser = userRepository.save(user);
+        return UserMapper.toDTO(updatedUser);
     }
 
     public void deleteUser(UUID id) {
-        User user = userRepository.findById(id).orElseThrow(() -> new UserNotFoundException("Patient with id: " + id + " not found"));
-        userRepository.deleteById(id);
+        if (!userRepository.existsById(id)) {
+            throw new UserNotFoundException("User with id: " + id + " not found");
+        }
+        userRepository.deleteByUserId(id);
     }
 }

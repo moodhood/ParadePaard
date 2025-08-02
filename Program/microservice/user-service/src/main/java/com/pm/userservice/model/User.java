@@ -14,7 +14,7 @@ import java.util.UUID;
 @Table(name = "users")
 public class User {
     @Id
-    private UUID id;
+    private UUID userId;
     @NotNull
     @Email
     @Column(unique = true)
@@ -36,12 +36,12 @@ public class User {
     @Column(unique = true)
     private String phoneNumber;
 
-    public UUID getId() {
-        return id;
+    public UUID getUserId() {
+        return userId;
     }
 
-    public void setId(UUID id) {
-        this.id = id;
+    public void setUserId(UUID userId) {
+        this.userId = userId;
     }
 
     public String getEmail() {

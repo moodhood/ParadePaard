@@ -20,18 +20,18 @@ public class UserDuplicateValidator {
 
     public void validateNoDuplicate(UUID currentId, UserRequestDTO userRequestDTO) {
 
-        if (userRepository.existsByEmailAndIdNot(userRequestDTO.getEmail(), currentId)) {
+        if (userRepository.existsByEmailAndUserIdNot(userRequestDTO.getEmail(), currentId)) {
             throw new EmailAlreadyExistsException(
                     "Email already exists " + userRequestDTO.getEmail());
         }
 
-        if (userRepository.existsByBankAccountNumberAndIdNot(
+        if (userRepository.existsByBankAccountNumberAndUserIdNot(
                 userRequestDTO.getBankAccountNumber(), currentId)) {
             throw new BankAccountNumberAlreadyExistsException(
                     "Bank account number already exists " + userRequestDTO.getBankAccountNumber());
         }
 
-        if (userRepository.existsByPhoneNumberAndIdNot(
+        if (userRepository.existsByPhoneNumberAndUserIdNot(
                 userRequestDTO.getPhoneNumber(), currentId)) {
             throw new PhoneNumberAlreadyExistsException(
                     "Phone number already exists " + userRequestDTO.getPhoneNumber());

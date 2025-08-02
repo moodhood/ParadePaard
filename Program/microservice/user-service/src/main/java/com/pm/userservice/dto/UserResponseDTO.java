@@ -1,22 +1,29 @@
 package com.pm.userservice.dto;
 
 public class UserResponseDTO {
-    private String id;
+    private String userId;
     private String name;
     private String email;
-    private String address;
-    private String dateOfBirth;
     private String role;
+
+    private String streetName;
+    private String houseNumber;
+    private String houseNumberSuffix;
+    private String postalCode;
+    private String city;
+    private String country;
+
+    private String dateOfBirth;
     private String registeredDate;
     private String bankAccountNumber;
     private String phoneNumber;
 
-    public String getId() {
-        return id;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setId(String id) {
-        this.id = id;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 
     public String getName() {
@@ -35,12 +42,60 @@ public class UserResponseDTO {
         this.email = email;
     }
 
-    public String getAddress() {
-        return address;
+    public String getRole() {
+        return role;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setRole(String role) {
+        this.role = role;
+    }
+
+    public String getStreetName() {
+        return streetName;
+    }
+
+    public void setStreetName(String streetName) {
+        this.streetName = streetName;
+    }
+
+    public String getHouseNumber() {
+        return houseNumber;
+    }
+
+    public void setHouseNumber(String houseNumber) {
+        this.houseNumber = houseNumber;
+    }
+
+    public String getHouseNumberSuffix() {
+        return houseNumberSuffix;
+    }
+
+    public void setHouseNumberSuffix(String houseNumberSuffix) {
+        this.houseNumberSuffix = houseNumberSuffix;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 
     public String getDateOfBirth() {
@@ -49,14 +104,6 @@ public class UserResponseDTO {
 
     public void setDateOfBirth(String dateOfBirth) {
         this.dateOfBirth = dateOfBirth;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
     }
 
     public String getRegisteredDate() {

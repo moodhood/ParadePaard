@@ -1,13 +1,10 @@
 package com.pm.userservice.dto;
 
 import com.pm.userservice.dto.validators.CreateUserValidationGroup;
-import jakarta.persistence.Column;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 
 public class UserRequestDTO {
-    @Column(unique = true)
     @Email(message = "Email should be valid")
     private String email;
 
@@ -15,14 +12,18 @@ public class UserRequestDTO {
 
     private String role;
 
-    private String address;
+    private String streetName;
+    private String houseNumber;
+    private String houseNumberSuffix;
+    private String postalCode;
+    private String city;
+    private String country;
 
     private String dateOfBirth;
 
     @NotBlank(groups = CreateUserValidationGroup.class, message = "Registered date is required")
     private String registeredDate;
 
-    @Column(unique = true)
     private String bankAccountNumber;
 
     private String phoneNumber;
@@ -51,12 +52,52 @@ public class UserRequestDTO {
         this.role = role;
     }
 
-    public String getAddress() {
-        return address;
+    public String getStreetName() {
+        return streetName;
     }
 
-    public void setAddress(String address) {
-        this.address = address;
+    public void setStreetName(String streetName) {
+        this.streetName = streetName;
+    }
+
+    public String getHouseNumber() {
+        return houseNumber;
+    }
+
+    public void setHouseNumber(String houseNumber) {
+        this.houseNumber = houseNumber;
+    }
+
+    public String getHouseNumberSuffix() {
+        return houseNumberSuffix;
+    }
+
+    public void setHouseNumberSuffix(String houseNumberSuffix) {
+        this.houseNumberSuffix = houseNumberSuffix;
+    }
+
+    public String getPostalCode() {
+        return postalCode;
+    }
+
+    public void setPostalCode(String postalCode) {
+        this.postalCode = postalCode;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
     }
 
     public String getDateOfBirth() {
@@ -75,19 +116,19 @@ public class UserRequestDTO {
         this.registeredDate = registeredDate;
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
     public String getBankAccountNumber() {
         return bankAccountNumber;
     }
 
     public void setBankAccountNumber(String bankAccountNumber) {
         this.bankAccountNumber = bankAccountNumber;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 }

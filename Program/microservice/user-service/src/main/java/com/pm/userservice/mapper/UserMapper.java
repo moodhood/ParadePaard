@@ -14,12 +14,17 @@ public class UserMapper {
             return null;
         }
         UserResponseDTO dto = new UserResponseDTO();
-        dto.setId(user.getId() != null ? user.getId().toString() : null);
+        dto.setUserId(user.getUserId() != null ? user.getUserId().toString() : null);
         dto.setEmail(user.getEmail());
         dto.setRole(user.getRole());
         dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setName(user.getName());
-        dto.setAddress(user.getAddress());
+        dto.setStreetName(user.getStreetName());
+        dto.setHouseNumber(user.getHouseNumber());
+        dto.setHouseNumberSuffix(user.getHouseNumberSuffix());
+        dto.setPostalCode(user.getPostalCode());
+        dto.setCity(user.getCity());
+        dto.setCountry(user.getCountry());
         dto.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
         dto.setBankAccountNumber(user.getBankAccountNumber());
         dto.setPhoneNumber(user.getPhoneNumber());
@@ -33,7 +38,7 @@ public class UserMapper {
         }
 
         User user = new User();
-        user.setId(UUID.fromString(event.getUserId()));
+        user.setUserId(UUID.fromString(event.getUserId()));
         user.setEmail(event.getEmail());
         user.setRole(event.getRole());
         user.setRegisteredDate(LocalDate.now());

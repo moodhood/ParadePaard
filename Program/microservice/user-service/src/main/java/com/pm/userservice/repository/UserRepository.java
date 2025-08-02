@@ -10,12 +10,14 @@ import java.util.UUID;
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+    Optional<User>  findByUserId(UUID id);
 
-    void deleteById(UUID id);
+    void deleteByUserId(UUID id);
+
 
     boolean existsByEmail(String email);
-    boolean existsByEmailAndIdNot(String email, UUID id);
-    boolean existsByBankAccountNumberAndIdNot(String bankAccountNumber, UUID id);
-    boolean existsByPhoneNumberAndIdNot(String phoneNumber, UUID id);
+    boolean existsByEmailAndUserIdNot(String email, UUID id);
+    boolean existsByBankAccountNumberAndUserIdNot(String bankAccountNumber, UUID id);
+    boolean existsByPhoneNumberAndUserIdNot(String phoneNumber, UUID id);
 
 }

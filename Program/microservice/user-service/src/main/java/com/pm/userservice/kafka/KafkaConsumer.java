@@ -32,7 +32,7 @@ public class KafkaConsumer {
 
             if (user != null) {
                 User newUser = userRepository.save(user);
-                log.info("Saved new user with ID: {}", newUser.getId());
+                log.info("Saved new user with ID: {}", newUser.getUserId());
             }
 
         } catch (InvalidProtocolBufferException e){

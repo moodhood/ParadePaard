@@ -1,15 +1,20 @@
-### PUT request to user-service
-PUT http://localhost:4004/api/users/11111111-1111-1111-1111-222222222222
+### PUT request to user service
+PUT http://localhost:4004/api/users/11111111-1111-1111-1111-111111111111
 Content-Type: application/json
 Authorization: Bearer {{token}}
 
 {
   "name": "Sophia Clark",
-  "email": "alice.brown@example.com",
-  "address": "123 Hickory St, Shelbyville",
+  "email": "sophia.clark@example.com",
+  "streetName": "Hickorystraat",
+  "houseNumber": "123",
+  "houseNumberSuffix": "B",
+  "postalCode": "1234 AB",
+  "city": "Shelbyville",
+  "country": "Netherlands",
   "dateOfBirth": "1991-12-25",
-  "bankAccountNumber": "NL88ABN890890098",
-  "phoneNumber": "123345"
+  "bankAccountNumber": "NL55ABNA0123456789",
+  "phoneNumber": "0612345678"
 }
 
 ###
