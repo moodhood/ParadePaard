@@ -15,11 +15,28 @@ public class Payslip {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID payslipId;
+
+    // Date
     @Column(nullable = false)
-    private UUID userId;
     private LocalDate dateOfIssue;
     private Integer weekNumber;
     private Integer weekBasedYear;
+
+    // Payslip Details
+    @Column(precision = 19, scale = 2)
+    private BigDecimal hoursWorked;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal hourlyWage;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal totalGrossAmount;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal wageTaxWithheldTest; //TODO test tax
+    @Column(precision = 19, scale = 2)
+    private BigDecimal totalNetAmount;
+
+    // Personal Details
+    @Column(nullable = false)
+    private UUID userId;
     private String name;
     private LocalDate dateOfBirth;
     private String streetName;
@@ -28,16 +45,6 @@ public class Payslip {
     private String postalCode;
     private String city;
     private String country;
-    private String email;
-    private BigDecimal hoursWorked;
-    private BigDecimal hourlyWage;
-    @Column(precision = 19, scale = 2)
-    private BigDecimal totalGrossAmount;
-    @Column(precision = 19, scale = 2)
-    private BigDecimal wageTaxWithheldTest;
-    @Column(precision = 19, scale = 2)
-    private BigDecimal totalNetAmount;
-
 
     public UUID getPayslipId() {
         return payslipId;
@@ -85,6 +92,14 @@ public class Payslip {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
     }
 
     public String getStreetName() {
@@ -135,13 +150,6 @@ public class Payslip {
         this.country = country;
     }
 
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
 
     public BigDecimal getHoursWorked() {
         return hoursWorked;

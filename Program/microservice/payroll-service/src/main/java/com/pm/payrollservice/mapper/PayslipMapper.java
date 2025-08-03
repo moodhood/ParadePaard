@@ -14,52 +14,40 @@ public class PayslipMapper {
 
     public static PayslipResponseDTO toDTO(Payslip payslip) {
         PayslipResponseDTO dto = new PayslipResponseDTO();
+        dto.setPayslipId(payslip.getPayslipId().toString());
 
-        dto.setName(payslip.getName());
-        dto.setAddress(payslip.getAddress());
+        // Date
+        dto.setDateOfIssue(payslip.getDateOfIssue().toString());
+        dto.setWeekNumber(payslip.getWeekNumber());
+        dto.setWeekBasedYear(payslip.getWeekBasedYear());
+
+        // Payslip Details
+        dto.setHoursWorked(payslip.getHoursWorked());
+        dto.setHourlyWage(payslip.getHourlyWage());
         dto.setTotalGrossAmount(payslip.getTotalGrossAmount());
-        dto.setWageTaxWithheldTest(payslip.getWageTaxWithheldTest());
+        dto.setWageTaxWithheldTest(payslip.getWageTaxWithheldTest()); // TODO tax withheld is just a test
         dto.setTotalNetAmount(payslip.getTotalNetAmount());
 
-        Optional.ofNullable(payslip.getPayslipId())
-                .map(UUID::toString)
-                .ifPresent(dto::setPayslipId);
-
-        Optional.ofNullable(payslip.getUserId())
-                .map(UUID::toString)
-                .ifPresent(dto::setUserId);
-
-        Optional.ofNullable(payslip.getDateOfIssue())
-                .map(LocalDate::toString)
-                .ifPresent(dto::setDateOfIssue);
-
-        Optional.ofNullable(payslip.getHoursWorked())
-                .ifPresent(dto::setHoursWorked);
-
-        Optional.ofNullable(payslip.getHourlyWage())
-                .ifPresent(dto::setHourlyWage);
-
+        // Personal Details
+        dto.setUserId(payslip.getUserId().toString());
+        dto.setName(payslip.getName());
+        dto.getDateOfBirth(payslip.getDateOfBirth());
+        dto.setStreetName(payslip.getStreetName());
+        dto.setHouseNumber(payslip.getHouseNumber());
+        dto.setHouseNumberSuffix(payslip.getHouseNumberSuffix());
+        dto.setPostalCode(payslip.getPostalCode());
+        dto.setCity(payslip.getCity());
+        dto.setCountry(payslip.getCountry());
         return dto;
     }
 
     public static Payslip toModel(PayslipRequestDTO dto) {
         Payslip payslip = new Payslip();
 
-        Optional.ofNullable(dto.getUserId())
-                .filter(Predicate.not(String::isBlank))
-                .map(UUID::fromString)
-                .ifPresent(payslip::setUserId);
-
-        Optional.ofNullable(dto.getDateOfIssue())
-                .filter(Predicate.not(String::isBlank))
-                .map(LocalDate::parse)
-                .ifPresent(payslip::setDateOfIssue);
-
-        Optional.ofNullable(dto.getHoursWorked())
-                .ifPresent(payslip::setHoursWorked);
-
-        Optional.ofNullable(dto.getHourlyWage())
-                .ifPresent(payslip::setHourlyWage);
+        payslip.setUserId(UUID.fromString(dto.getUserId()));
+        payslip.setDateOfIssue(LocalDate.parse(dto.getDateOfIssue()));
+        payslip.setHoursWorked(dto.getHoursWorked());
+        payslip.setHourlyWage(dto.getHourlyWage());
 
         return payslip;
     }
