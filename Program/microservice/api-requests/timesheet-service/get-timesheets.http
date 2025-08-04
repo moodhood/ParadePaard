@@ -1,0 +1,5 @@
+### GET request to Timesheet-Service
+GET http://localhost:4004/api/timesheet
+Authorization: Bearer {{token}}
+
+###

@@ -33,6 +33,7 @@ public class PayrollService {
         return payslips.stream().map(PayslipMapper::toDTO).toList();
     }
 
+    //TODO weekly/bi-weekly/monthly automation
     public PayslipResponseDTO createPayslip(PayslipRequestDTO payslipRequestDTO){
         LocalDate date = LocalDate.parse(payslipRequestDTO.getDateOfIssue());
         UUID userId = UUID.fromString(payslipRequestDTO.getUserId());
@@ -43,11 +44,11 @@ public class PayrollService {
         payslip.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
         payslip.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
 
-        //TODO grpc request to user service -> userId -> name, address
+        //grpc request to user service -> userId -> name, date of birth, street name, etc.
         UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
         PayslipMapper.updateFromUserData(payslip, userData);
 
-        //TODO grpc request to hour service -> userId + year + week -> hours (per event?)
+        //TODO grpc request to hour service -> userId + year + week -> hours worked per function, and travel expenses
         //TODO  grpc request to tax service -> userId -> tax cuts
         //TODO  grpc request to contract service -> function -> hourlyWage ?
         //TODO  calculation

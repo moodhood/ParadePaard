@@ -42,13 +42,13 @@ public class PayslipMapper {
         return dto;
     }
 
-    public static Payslip toModel(PayslipRequestDTO dto) {
+    public static Payslip toModel(PayslipRequestDTO payslipRequestDTO) {
         Payslip payslip = new Payslip();
 
-        payslip.setUserId(UUID.fromString(dto.getUserId()));
-        payslip.setDateOfIssue(LocalDate.parse(dto.getDateOfIssue()));
-        payslip.setHoursWorked(dto.getHoursWorked());
-        payslip.setHourlyWage(dto.getHourlyWage());
+        payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
+        payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));
+        payslip.setHoursWorked(payslipRequestDTO.getHoursWorked());
+        payslip.setHourlyWage(payslipRequestDTO.getHourlyWage());
 
         return payslip;
     }

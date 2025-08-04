@@ -10,6 +10,7 @@ spring:
           ## http://localhost:4004/auth/login -> localhost:4004 is the address of the api gateway
           ## API GATEWAY -> http://auth-service:4005/login
 
+            # Auth-Service
             - id: auth-service-route
               uri: http://auth-service:4005
               predicates:
@@ -28,6 +29,7 @@ spring:
             ## API GATEWAY -> http://patient-service:4000/payroll
             ## PATIENT SERVICE (SPRING BOOT APP) -> /payroll -> Payroll array
 
+            # User-Service
             - id: user-service-route
               uri: http://user-service:4006
               predicates:
@@ -42,6 +44,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/users,/v3/api-doc
 
+            # Payroll-Service
             - id: payroll-service-route
               uri: http://payroll-service:4000
               predicates:
@@ -55,6 +58,21 @@ spring:
                 - Path=/api-docs/payroll
               filters:
                 - RewritePath=/api-docs/payroll,/v3/api-docs
+
+            # Timesheet-Service
+            - id: timesheet-service-route
+              uri: http://timesheet-service:4001
+              predicates:
+                - Path=/api/timesheet/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+            - id: api-docs-timesheet-route
+              uri: http://timesheet-service:4001
+              predicates:
+                - Path=/api-docs/timesheet
+              filters:
+                - RewritePath=/api-docs/timesheet,/v3/api-docs
 
 
 
