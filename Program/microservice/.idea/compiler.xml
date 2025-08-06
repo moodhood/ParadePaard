@@ -10,6 +10,7 @@
         <module name="integration-test" />
         <module name="payroll-service" />
         <module name="infrastructure" />
+        <module name="contract-service" />
         <module name="api-gateway" />
         <module name="Timesheet-service" />
         <module name="user-service" />
@@ -28,6 +29,7 @@
       <module name="api-gateway" options="-parameters" />
       <module name="auth-service" options="-parameters" />
       <module name="billing-service" options="-parameters" />
+      <module name="contract-service" options="-parameters" />
       <module name="patient-service" options="-parameters" />
       <module name="payroll-service" options="-parameters" />
       <module name="user-service" options="-parameters" />

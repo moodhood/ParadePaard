@@ -1,0 +1,175 @@
+/* ------------------------------------------------------------------
+   TABLE DEFINITIONS
+   ------------------------------------------------------------------ */
+CREATE TABLE IF NOT EXISTS contracts
+(
+    contract_id           UUID PRIMARY KEY,
+    start_date            DATE    NOT NULL,
+    end_date              DATE    NOT NULL,
+    wage_tax_amount_test  NUMERIC(19,2) NOT NULL
+    );
+
+CREATE TABLE IF NOT EXISTS functions
+(
+    function_id   UUID PRIMARY KEY,
+    function_name VARCHAR(255) NOT NULL,
+    hourly_rate   NUMERIC(19,2) NOT NULL
+    );
+
+/* ------------------------------------------------------------------
+   CONTRACTS
+   ------------------------------------------------------------------ */
+
+/* Contract Alpha: full year 2025 */
+INSERT INTO contracts (
+    contract_id,
+    start_date,
+    end_date,
+    wage_tax_amount_test
+)
+SELECT
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    '2025-01-01'::date,
+    '2025-12-31'::date,
+    3000.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM contracts WHERE contract_id = '11111111-1111-1111-1111-111111111111'::uuid
+);
+
+/* Contract Bravo: February through August */
+INSERT INTO contracts (
+    contract_id,
+    start_date,
+    end_date,
+    wage_tax_amount_test
+)
+SELECT
+    '22222222-2222-2222-2222-222222222222'::uuid,
+    '2025-02-01'::date,
+    '2025-08-31'::date,
+    1500.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM contracts WHERE contract_id = '22222222-2222-2222-2222-222222222222'::uuid
+);
+
+/* Contract Charlie: mid-March to mid-September */
+INSERT INTO contracts (
+    contract_id,
+    start_date,
+    end_date,
+    wage_tax_amount_test
+)
+SELECT
+    '33333333-3333-3333-3333-333333333333'::uuid,
+    '2025-03-15'::date,
+    '2025-09-14'::date,
+    2500.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM contracts WHERE contract_id = '33333333-3333-3333-3333-333333333333'::uuid
+);
+
+/* Contract Delta: April to October */
+INSERT INTO contracts (
+    contract_id,
+    start_date,
+    end_date,
+    wage_tax_amount_test
+)
+SELECT
+    '44444444-4444-4444-4444-444444444444'::uuid,
+    '2025-04-10'::date,
+    '2025-10-09'::date,
+    1800.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM contracts WHERE contract_id = '44444444-4444-4444-4444-444444444444'::uuid
+);
+
+/* Contract Echo: May to November */
+INSERT INTO contracts (
+    contract_id,
+    start_date,
+    end_date,
+    wage_tax_amount_test
+)
+SELECT
+    '55555555-5555-5555-5555-555555555555'::uuid,
+    '2025-05-01'::date,
+    '2025-11-30'::date,
+    3200.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM contracts WHERE contract_id = '55555555-5555-5555-5555-555555555555'::uuid
+);
+
+/* ------------------------------------------------------------------
+   FUNCTIONS
+   ------------------------------------------------------------------ */
+
+/* Junior Developer */
+INSERT INTO functions (
+    function_id,
+    function_name,
+    hourly_rate
+)
+SELECT
+    'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid,
+    'Junior Developer',
+    25.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM functions WHERE function_id = 'aaaaaaa1-aaaa-aaaa-aaaa-aaaaaaaaaaaa'::uuid
+);
+
+/* Senior Developer */
+INSERT INTO functions (
+    function_id,
+    function_name,
+    hourly_rate
+)
+SELECT
+    'bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid,
+    'Senior Developer',
+    45.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM functions WHERE function_id = 'bbbbbbb2-bbbb-bbbb-bbbb-bbbbbbbbbbbb'::uuid
+);
+
+/* Project Manager */
+INSERT INTO functions (
+    function_id,
+    function_name,
+    hourly_rate
+)
+SELECT
+    'ccccccc3-cccc-cccc-cccc-cccccccccccc'::uuid,
+    'Project Manager',
+    60.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM functions WHERE function_id = 'ccccccc3-cccc-cccc-cccc-cccccccccccc'::uuid
+);
+
+/* Tester */
+INSERT INTO functions (
+    function_id,
+    function_name,
+    hourly_rate
+)
+SELECT
+    'ddddddd4-dddd-dddd-dddd-dddddddddddd'::uuid,
+    'Tester',
+    30.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM functions WHERE function_id = 'ddddddd4-dddd-dddd-dddd-dddddddddddd'::uuid
+);
+
+/* DevOps Engineer */
+INSERT INTO functions (
+    function_id,
+    function_name,
+    hourly_rate
+)
+SELECT
+    'eeeeeee5-eeee-eeee-eeee-eeeeeeeeeeee'::uuid,
+    'DevOps Engineer',
+    50.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM functions WHERE function_id = 'eeeeeee5-eeee-eeee-eeee-eeeeeeeeeeee'::uuid
+);

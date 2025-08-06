@@ -14,32 +14,32 @@ import java.util.function.Predicate;
 public class PayslipMapper {
 
     public static PayslipResponseDTO toDTO(Payslip payslip) {
-        PayslipResponseDTO dto = new PayslipResponseDTO();
-        dto.setPayslipId(payslip.getPayslipId().toString());
+        PayslipResponseDTO payslipResponseDTO = new PayslipResponseDTO();
+        payslipResponseDTO.setPayslipId(payslip.getPayslipId().toString());
 
         // Date
-        dto.setDateOfIssue(payslip.getDateOfIssue().toString());
-        dto.setWeekNumber(payslip.getWeekNumber());
-        dto.setWeekBasedYear(payslip.getWeekBasedYear());
+        payslipResponseDTO.setDateOfIssue(payslip.getDateOfIssue().toString());
+        payslipResponseDTO.setWeekNumber(payslip.getWeekNumber());
+        payslipResponseDTO.setWeekBasedYear(payslip.getWeekBasedYear());
 
         // Payslip Details
-        dto.setHoursWorked(payslip.getHoursWorked());
-        dto.setHourlyWage(payslip.getHourlyWage());
-        dto.setTotalGrossAmount(payslip.getTotalGrossAmount());
-        dto.setWageTaxWithheldTest(payslip.getWageTaxWithheldTest()); // TODO tax withheld is just a test
-        dto.setTotalNetAmount(payslip.getTotalNetAmount());
+        payslipResponseDTO.setHoursWorked(payslip.getHoursWorked());
+        payslipResponseDTO.setHourlyWage(payslip.getHourlyWage());
+        payslipResponseDTO.setTotalGrossAmount(payslip.getTotalGrossAmount());
+        payslipResponseDTO.setWageTaxWithheldTest(payslip.getWageTaxWithheldTest()); // TODO tax withheld is just a test
+        payslipResponseDTO.setTotalNetAmount(payslip.getTotalNetAmount());
 
         // Personal Details
-        dto.setUserId(payslip.getUserId().toString());
-        dto.setName(payslip.getName());
-        dto.getDateOfBirth(payslip.getDateOfBirth());
-        dto.setStreetName(payslip.getStreetName());
-        dto.setHouseNumber(payslip.getHouseNumber());
-        dto.setHouseNumberSuffix(payslip.getHouseNumberSuffix());
-        dto.setPostalCode(payslip.getPostalCode());
-        dto.setCity(payslip.getCity());
-        dto.setCountry(payslip.getCountry());
-        return dto;
+        payslipResponseDTO.setUserId(payslip.getUserId().toString());
+        payslipResponseDTO.setName(payslip.getName());
+        payslipResponseDTO.getDateOfBirth(payslip.getDateOfBirth());
+        payslipResponseDTO.setStreetName(payslip.getStreetName());
+        payslipResponseDTO.setHouseNumber(payslip.getHouseNumber());
+        payslipResponseDTO.setHouseNumberSuffix(payslip.getHouseNumberSuffix());
+        payslipResponseDTO.setPostalCode(payslip.getPostalCode());
+        payslipResponseDTO.setCity(payslip.getCity());
+        payslipResponseDTO.setCountry(payslip.getCountry());
+        return payslipResponseDTO;
     }
 
     public static Payslip toModel(PayslipRequestDTO payslipRequestDTO) {

@@ -74,7 +74,22 @@ spring:
               filters:
                 - RewritePath=/api-docs/timesheet,/v3/api-docs
 
+            # Contract-Service
+            - id: contract-service-route
+              uri: http://contract-service:4002
+              predicates:
+                - Path=/api/contract/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+            - id: api-docs-contract-route
+              uri: http://contract-service:4002
+              predicates:
+                - Path=/api-docs/contract
+              filters:
+                - RewritePath=/api-docs/contract,/v3/api-docs
 
 
-              ## REST-CLIENT -> http://localhost:4004/api-docs/patients
-              ## API-GATEWAY -> http://patient-service:4000/v3/api-docs
+
+              ## REST-CLIENT -> http://localhost:4004/api-docs/contract
+              ## API-GATEWAY -> http://contract-service:4002/v3/api-docs

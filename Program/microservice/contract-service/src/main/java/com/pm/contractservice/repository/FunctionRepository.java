@@ -1,0 +1,9 @@
+package com.pm.contractservice.repository;
+
+import com.pm.contractservice.model.Function;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.UUID;
+
+public interface FunctionRepository extends JpaRepository<Function, UUID> {
+}

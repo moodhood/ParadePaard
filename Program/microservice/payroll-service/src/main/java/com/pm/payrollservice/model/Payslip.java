@@ -32,7 +32,10 @@ public class Payslip {
     @Column(precision = 19, scale = 2)
     private BigDecimal wageTaxWithheldTest; //TODO test tax
     @Column(precision = 19, scale = 2)
+    private BigDecimal travleExpenses; //TODO travleExpenses
+    @Column(precision = 19, scale = 2)
     private BigDecimal totalNetAmount;
+
 
     // Personal Details
     @Column(nullable = false)
@@ -189,5 +192,13 @@ public class Payslip {
 
     public void setTotalNetAmount(BigDecimal totalNetAmount) {
         this.totalNetAmount = totalNetAmount;
+    }
+
+    public BigDecimal getTravleExpenses() {
+        return travleExpenses;
+    }
+
+    public void setTravleExpenses(BigDecimal travleExpenses) {
+        this.travleExpenses = travleExpenses;
     }
 }

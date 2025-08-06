@@ -1,0 +1,4 @@
+### Get request to contract-service/function
+GET http://localhost:4004/api/contract/function
+Authorization: Bearer {{token}}
+###
