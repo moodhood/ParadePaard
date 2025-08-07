@@ -17,7 +17,7 @@ public class Function {
     private String functionName;
 
     @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal hourlyRate;
+    private BigDecimal hourlyWage;
 
     public UUID getFunctionId() {
         return functionId;
@@ -35,11 +35,11 @@ public class Function {
         this.functionName = functionName;
     }
 
-    public BigDecimal getHourlyRate() {
-        return hourlyRate;
+    public BigDecimal getHourlyWage() {
+        return hourlyWage;
     }
 
-    public void setHourlyRate(BigDecimal hourlyRate) {
-        this.hourlyRate = hourlyRate;
+    public void setHourlyWage(BigDecimal hourlyWage) {
+        this.hourlyWage = hourlyWage;
     }
 }

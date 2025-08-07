@@ -1,5 +1,6 @@
 package com.pm.contractservice.mapper;
 
+import com.pm.contractservice.dto.FunctionRequestDTO;
 import com.pm.contractservice.dto.FunctionResponseDTO;
 import com.pm.contractservice.model.Function;
 
@@ -9,8 +10,19 @@ public class FunctionMapper {
         functionResponseDTO.setFunctionId(function.getFunctionId());
 
         functionResponseDTO.setFunctionName(function.getFunctionName());
-        functionResponseDTO.setHourlyRate(function.getHourlyRate());
+        functionResponseDTO.setHourlyWage(function.getHourlyWage());
 
         return functionResponseDTO;
     }
+
+    public static Function toModel(FunctionRequestDTO functionRequestDTODTODTO){
+        Function function = new Function();
+
+        function.setFunctionName(functionRequestDTODTODTO.getFunctionName());
+        function.setHourlyWage(functionRequestDTODTODTO.getHourlyWage());
+
+        return function;
+    }
+
+
 }

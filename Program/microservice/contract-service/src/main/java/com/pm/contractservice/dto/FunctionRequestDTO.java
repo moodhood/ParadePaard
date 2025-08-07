@@ -1,21 +1,10 @@
 package com.pm.contractservice.dto;
 
 import java.math.BigDecimal;
-import java.util.UUID;
 
-public class FunctionResponseDTO {
-    private UUID functionId;
-
+public class FunctionRequestDTO {
     private String functionName;
     private BigDecimal hourlyWage;
-
-    public UUID getFunctionId() {
-        return functionId;
-    }
-
-    public void setFunctionId(UUID functionId) {
-        this.functionId = functionId;
-    }
 
     public String getFunctionName() {
         return functionName;
@@ -33,4 +22,3 @@ public class FunctionResponseDTO {
         this.hourlyWage = hourlyWage;
     }
 }
-

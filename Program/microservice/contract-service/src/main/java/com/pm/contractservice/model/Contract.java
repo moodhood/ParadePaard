@@ -13,6 +13,7 @@ public class Contract {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID contractId;
+    private UUID userId;
 
     // Date
     @Column(nullable = false)
@@ -30,6 +31,14 @@ public class Contract {
 
     public void setContractId(UUID contractId) {
         this.contractId = contractId;
+    }
+
+    public UUID getUserId() {
+        return userId;
+    }
+
+    public void setUserId(UUID userId) {
+        this.userId = userId;
     }
 
     public LocalDate getStartDate() {

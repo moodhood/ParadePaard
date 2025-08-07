@@ -1,50 +1,47 @@
 package com.pm.contractservice.dto;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.NotBlank;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public class ContractResponseDTO {
-    private UUID contractId;
-    private UUID userId;
+public class ContractRequestDTO {
+    @NotBlank(message = "userId is required")
+    private String userId;
 
     // Date
-    private LocalDate startDate;
-    private LocalDate endDate;
+    private String startDate;
+    private String endDate;
 
     // Contract Details
     private BigDecimal wageTaxAmountTest; //TODO test tax
 
-
-    public UUID getContractId() {
-        return contractId;
-    }
-
-    public void setContractId(UUID contractId) {
-        this.contractId = contractId;
-    }
-
-    public UUID getUserId() {
+    public String getUserId() {
         return userId;
     }
 
-    public void setUserId(UUID userId) {
+    public void setUserId(String userId) {
         this.userId = userId;
     }
 
-    public LocalDate getStartDate() {
+    public String getStartDate() {
         return startDate;
     }
 
-    public void setStartDate(LocalDate startDate) {
+    public void setStartDate(String startDate) {
         this.startDate = startDate;
     }
 
-    public LocalDate getEndDate() {
+    public String getEndDate() {
         return endDate;
     }
 
-    public void setEndDate(LocalDate endDate) {
+    public void setEndDate(String endDate) {
         this.endDate = endDate;
     }
 
@@ -55,6 +52,4 @@ public class ContractResponseDTO {
     public void setWageTaxAmountTest(BigDecimal wageTaxAmountTest) {
         this.wageTaxAmountTest = wageTaxAmountTest;
     }
-
-
 }

@@ -1,17 +1,22 @@
 package com.pm.contractservice.controller;
 
+import com.pm.contractservice.dto.ContractRequestDTO;
 import com.pm.contractservice.dto.ContractResponseDTO;
+import com.pm.contractservice.dto.FunctionRequestDTO;
 import com.pm.contractservice.dto.FunctionResponseDTO;
+import com.pm.contractservice.dto.validators.CreateContractValidationGroup;
+import com.pm.contractservice.dto.validators.CreateFunctionValidationGroup;
 import com.pm.contractservice.service.ContractService;
 import com.pm.contractservice.service.FunctionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.groups.Default;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/contract")
@@ -26,6 +31,8 @@ public class ContractController {
         this.functionService = functionService;
     }
 
+
+    // Contract Controller
     @GetMapping
     @Operation(summary = "Get Contracts")
     public ResponseEntity<List<ContractResponseDTO>> getContracts(){
@@ -33,10 +40,55 @@ public class ContractController {
         return ResponseEntity.ok().body(contracts);
     }
 
+    @PostMapping
+    @Operation(summary = "Create new Contract")
+    public ResponseEntity<ContractResponseDTO> createContract(@Validated({Default.class, CreateContractValidationGroup.class}) @RequestBody ContractRequestDTO contractRequestDTO){
+        ContractResponseDTO contractResponseDTO = contractService.createContract(contractRequestDTO);
+        return ResponseEntity.ok().body(contractResponseDTO);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "Update Contract")
+    public ResponseEntity<ContractResponseDTO> updateContract(@PathVariable UUID id, @Validated({Default.class}) @RequestBody ContractRequestDTO contractRequestDTO){
+        ContractResponseDTO contractResponseDTO = contractService.updateContract(id, contractRequestDTO);
+        return ResponseEntity.ok().body(contractResponseDTO);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete Contract")
+    public ResponseEntity<Void> deleteContract(@PathVariable UUID id) {
+        contractService.deleteContract(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Function Controller
     @GetMapping("/function")
     @Operation(summary = "Get Functions")
     public ResponseEntity<List<FunctionResponseDTO>> getFunctions(){
         List<FunctionResponseDTO> functions = functionService.getFunctions();
         return ResponseEntity.ok().body(functions);
     }
+
+    @PostMapping("/function")
+    @Operation(summary = "Create new Function")
+    public ResponseEntity<FunctionResponseDTO> createFunction(@Validated({Default.class, CreateFunctionValidationGroup.class}) @RequestBody FunctionRequestDTO functionRequestDTO){
+        FunctionResponseDTO functionResponseDTO = functionService.createFunction(functionRequestDTO);
+        return ResponseEntity.ok().body(functionResponseDTO);
+    }
+
+    @PutMapping("/function/{id}")
+    @Operation(summary = "Update Function")
+    public ResponseEntity<FunctionResponseDTO> updateFunction(@PathVariable UUID id, @Validated({Default.class}) @RequestBody FunctionRequestDTO functionRequestDTO){
+        FunctionResponseDTO functionResponseDTO = functionService.updateFunction(id, functionRequestDTO);
+        return ResponseEntity.ok().body(functionResponseDTO);
+    }
+
+    @DeleteMapping("/function/{id}")
+    @Operation(summary = "Delete Function")
+    public ResponseEntity<Void> deleteFunction(@PathVariable UUID id) {
+        functionService.deleteFunction(id);
+        return ResponseEntity.noContent().build();
+    }
+
+
 }
