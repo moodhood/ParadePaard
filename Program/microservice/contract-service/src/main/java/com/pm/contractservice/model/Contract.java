@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -16,14 +17,17 @@ public class Contract {
     private UUID userId;
 
     // Date
-    @Column(nullable = false)
     private LocalDate startDate;
-    @Column(nullable = false)
     private LocalDate endDate;
 
     // Contract Details
-    @Column(nullable = false, precision = 19, scale = 2)
-    private BigDecimal wageTaxAmountTest; //TODO test tax
+    @Column(precision = 19, scale = 2)
+    private BigDecimal wageTaxAmountTest;
+
+    @ElementCollection
+    @CollectionTable(name = "contract_functions", joinColumns = @JoinColumn(name = "contract_id"))
+    @Column(name = "function_name")
+    private List<String> functions;
 
     public UUID getContractId() {
         return contractId;
@@ -63,5 +67,13 @@ public class Contract {
 
     public void setWageTaxAmountTest(BigDecimal wageTaxAmountTest) {
         this.wageTaxAmountTest = wageTaxAmountTest;
+    }
+
+    public List<String> getFunctions() {
+        return functions;
+    }
+
+    public void setFunctions(List<String> functions) {
+        this.functions = functions;
     }
 }

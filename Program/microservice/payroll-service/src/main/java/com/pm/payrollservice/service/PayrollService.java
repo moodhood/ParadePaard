@@ -2,9 +2,9 @@ package com.pm.payrollservice.service;
 
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
-import com.pm.payrollservice.exception.ISOWeekPayslipAlreadyExistsException;
+import com.pm.payrollservice.exception.PayslipNotFoundException;
 import com.pm.payrollservice.grpc.UserServiceGrpcClient;
-import com.pm.payrollservice.validation.PayslipDuplicateValidator;
+import com.pm.payrollservice.validation.PayslipValidator;
 import com.pm.payrollservice.mapper.PayslipMapper;
 import com.pm.payrollservice.model.Payslip;
 import org.springframework.stereotype.Service;
@@ -19,10 +19,10 @@ import java.util.UUID;
 @Service
 public class PayrollService {
     private final PayslipRepository payslipRepository;
-    private final PayslipDuplicateValidator duplicateValidator;
+    private final PayslipValidator duplicateValidator;
     private final UserServiceGrpcClient userServiceGrpcClient;
 
-    public PayrollService(PayslipRepository payslipRepository, PayslipDuplicateValidator duplicateValidator, UserServiceGrpcClient userServiceGrpcClient) {
+    public PayrollService(PayslipRepository payslipRepository, PayslipValidator duplicateValidator, UserServiceGrpcClient userServiceGrpcClient) {
         this.payslipRepository = payslipRepository;
         this.duplicateValidator = duplicateValidator;
         this.userServiceGrpcClient = userServiceGrpcClient;
@@ -60,7 +60,7 @@ public class PayrollService {
 
     public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO payslipRequestDTO){
         Payslip payslip = payslipRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Payslip with id: " + id + " not found"));
+                .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
 
         payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
         payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));

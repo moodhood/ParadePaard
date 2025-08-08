@@ -1,0 +1,51 @@
+package com.pm.contractservice.validation;
+
+import com.pm.contractservice.exception.ContractAlreadyExistsException;
+import com.pm.contractservice.exception.ContractNotFoundException;
+import com.pm.contractservice.exception.FunctionNotFoundException;
+import com.pm.contractservice.model.Contract;
+import com.pm.contractservice.repository.ContractRepository;
+import com.pm.contractservice.repository.FunctionRepository;
+import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.UUID;
+
+@Component
+public class ContractValidator {
+
+    private final ContractRepository contractRepository;
+    private final FunctionRepository functionRepository;
+
+    public ContractValidator(ContractRepository contractRepository,
+                             FunctionRepository functionRepository) {
+        this.contractRepository = contractRepository;
+        this.functionRepository = functionRepository;
+    }
+
+    /** Throw if a contract already exists for the user */
+    public void ensureNoContractForUser(UUID userId) {
+        if (contractRepository.existsByUserId(userId)) {
+            throw new ContractAlreadyExistsException(
+                    "A contract for user with id " + userId + " already exists");
+        }
+    }
+
+    /** Get the contract or raise not-found */
+    public Contract getExistingContract(UUID contractId) {
+        return contractRepository.findById(contractId)
+                .orElseThrow(() ->
+                        new ContractNotFoundException(
+                                "Contract with id " + contractId + " not found"));
+    }
+
+    /** Make sure each function name exists in the database */
+    public void ensureFunctionsExist(List<String> names) {
+        for (String name : names) {
+            if (!functionRepository.existsByFunctionName(name)) {
+                throw new FunctionNotFoundException(
+                        "Function " + name + " not found");
+            }
+        }
+    }
+}

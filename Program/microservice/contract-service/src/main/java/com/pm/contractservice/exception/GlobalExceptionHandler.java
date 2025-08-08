@@ -3,11 +3,11 @@ package com.pm.contractservice.exception;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Component;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,35 +15,26 @@ import java.util.Map;
 public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private static final Map<Class<? extends RuntimeException>, String> EXCEPTION_MESSAGES = Map.of(
+            ContractAlreadyExistsException.class, "Contract Already Exists",
+            ContractNotFoundException.class, "Contract Not Found"
+    );
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex){
+    public ResponseEntity<Map<String, String>> handleValidationException(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach((error)-> errors.put(error.getField(), error.getDefaultMessage()));
-
+        ex.getBindingResult().getFieldErrors().forEach((error) -> errors.put(error.getField(), error.getDefaultMessage()));
         return ResponseEntity.badRequest().body(errors);
     }
 
-    @ExceptionHandler(ContractAlreadyExistsException.class)
-    public ResponseEntity<Map<String, String>> handleContractAlreadyExistsException(Exception ex){
-        log.warn("Contract already exists {}!",  ex.getMessage());
-        Map<String, String> errors = new HashMap<>();
-        errors.put("message", "Contract Already Exists");
-        return ResponseEntity.badRequest().body(errors);
-    }
-
-    @ExceptionHandler(ContractNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleContractNotFoundException(Exception ex) {
-        log.warn("Contract not found {}!", ex.getMessage());
-        Map<String, String> errors = new HashMap<>();
-        errors.put("message", "Contract Not Found");
-        return ResponseEntity.badRequest().body(errors);
-    }
-
-    @ExceptionHandler(FunctionNotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleFunctionNotFoundException(Exception ex) {
-        log.warn("Function not found {}!", ex.getMessage());
-        Map<String, String> errors = new HashMap<>();
-        errors.put("message", "Function Not Found");
-        return ResponseEntity.badRequest().body(errors);
+    @ExceptionHandler({
+            ContractAlreadyExistsException.class,
+            ContractNotFoundException.class,
+            FunctionNotFoundException.class
+    })
+    public ResponseEntity<Map<String, String>> handleCustomDataExceptions(RuntimeException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+        String message = EXCEPTION_MESSAGES.getOrDefault(ex.getClass(), ex.getMessage());
+        return ResponseEntity.badRequest().body(Collections.singletonMap("message", message));
     }
 }

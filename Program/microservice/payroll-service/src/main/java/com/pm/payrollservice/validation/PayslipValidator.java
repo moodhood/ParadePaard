@@ -6,15 +6,14 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
-import java.util.Locale;
 import java.util.UUID;
 
 @Component
-public class PayslipDuplicateValidator {
+public class PayslipValidator {
 
     private final PayslipRepository payslipRepository;
 
-    public PayslipDuplicateValidator(PayslipRepository payslipRepository) {
+    public PayslipValidator(PayslipRepository payslipRepository) {
         this.payslipRepository = payslipRepository;
     }
 

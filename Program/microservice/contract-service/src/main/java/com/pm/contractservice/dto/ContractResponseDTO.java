@@ -3,6 +3,7 @@ package com.pm.contractservice.dto;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
+import java.util.List;
 
 public class ContractResponseDTO {
     private UUID contractId;
@@ -14,7 +15,15 @@ public class ContractResponseDTO {
 
     // Contract Details
     private BigDecimal wageTaxAmountTest; //TODO test tax
+    private List<String> functions;
 
+    public List<String> getFunctions() {
+        return functions;
+    }
+
+    public void setFunctions(List<String> functions) {
+        this.functions = functions;
+    }
 
     public UUID getContractId() {
         return contractId;
