@@ -28,25 +28,19 @@ public class UserService {
         return users.stream().map(UserMapper::toDTO).toList();
     }
 
+    public UserResponseDTO getUserById(UUID id) {
+        User user = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+        return UserMapper.toDTO(user);
+    }
+
     public UserResponseDTO updateUser(UUID id, UserRequestDTO userRequestDTO) {
         User user = userRepository.findByUserId(id)
                 .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
 
         userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
 
-        user.setName(userRequestDTO.getName()); // TODO clean up
-        user.setEmail(userRequestDTO.getEmail());
-        user.setStreetName(userRequestDTO.getStreetName());
-        user.setHouseNumber(userRequestDTO.getHouseNumber());
-        user.setHouseNumberSuffix(userRequestDTO.getHouseNumberSuffix());
-        user.setPostalCode(userRequestDTO.getPostalCode());
-        user.setCity(userRequestDTO.getCity());
-        user.setCountry(userRequestDTO.getCountry());
-        if (userRequestDTO.getDateOfBirth() != null && !userRequestDTO.getDateOfBirth().isBlank()) {
-            user.setDateOfBirth(LocalDate.parse(userRequestDTO.getDateOfBirth()));
-        }
-        user.setPhoneNumber(userRequestDTO.getPhoneNumber());
-        user.setBankAccountNumber(userRequestDTO.getBankAccountNumber());
+        user = UserMapper.toModel(userRequestDTO);
 
         User updatedUser = userRepository.save(user);
         return UserMapper.toDTO(updatedUser);

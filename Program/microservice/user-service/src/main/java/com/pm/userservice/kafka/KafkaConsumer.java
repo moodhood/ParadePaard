@@ -28,7 +28,7 @@ public class KafkaConsumer {
             UserRegisteredEvent userRegisteredEvent = UserRegisteredEvent.parseFrom(event);
 
             // Use the mapper to convert the event to a User entity
-            User user = UserMapper.toModel(userRegisteredEvent);
+            User user = UserMapper.toModelUserRegisteredEvent(userRegisteredEvent);
 
             if (user != null) {
                 User newUser = userRepository.save(user);

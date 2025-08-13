@@ -30,4 +30,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @ExceptionHandler(RoleDoesNotExistException.class)
+    public ResponseEntity<Map<String, String>> handleRoleDoesNotExistException(RoleDoesNotExistException ex) {
+        log.warn("Role does not exist: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Role does not exist");
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFoundException(UserNotFoundException ex) {
+        log.warn("User not found: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "User not found");
+        return ResponseEntity.status(404).body(errors);
+    }
+
 }

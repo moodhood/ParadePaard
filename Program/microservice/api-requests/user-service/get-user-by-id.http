@@ -1,0 +1,4 @@
+### GET request to auth-service
+GET http://localhost:4004/api/users/{{userId}}
+Authorization: Bearer {{token}}
+###

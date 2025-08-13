@@ -19,7 +19,7 @@ public class KafkaProducer {
         UserRegisteredEvent event = UserRegisteredEvent.newBuilder()
                 .setUserId(user.getId().toString())
                 .setEmail(user.getEmail())
-                .setRole(user.getRole())
+                //.setRole(user.getRoles())
                 .setEventType("USER_CREATED")
                 .build();
         try{

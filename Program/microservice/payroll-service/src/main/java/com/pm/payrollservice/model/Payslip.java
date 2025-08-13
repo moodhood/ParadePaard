@@ -24,10 +24,6 @@ public class Payslip {
     private Integer weekBasedYear;
 
     // Payslip Details
-//    @ElementCollection
-//    @CollectionTable(name = "payslip_functions",
-//            joinColumns = @JoinColumn(name = "payslip_id"))
-//    private List<PayslipFunction> functions;
     @ElementCollection
     @CollectionTable(name = "payslip_timesheets",
             joinColumns = @JoinColumn(name = "payslip_id"))

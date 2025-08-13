@@ -1,62 +1,91 @@
-//package com.pm.userservice.config;
-//
-//import io.jsonwebtoken.security.Keys;
-//import org.springframework.beans.factory.annotation.Value;
-//import org.springframework.context.annotation.Bean;
-//import org.springframework.context.annotation.Configuration;
-//import org.springframework.core.convert.converter.Converter;
-//import org.springframework.http.HttpMethod;
-//import org.springframework.security.authentication.AbstractAuthenticationToken;
-//import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
-//import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-//import org.springframework.security.oauth2.jwt.Jwt;
-//import org.springframework.security.oauth2.jwt.JwtDecoder;
-//import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
-//import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-//import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
-//import org.springframework.security.web.SecurityFilterChain;
-//
-//import javax.crypto.SecretKey;
-//import java.nio.charset.StandardCharsets;
-//import java.util.Base64;
-//
-//@Configuration
-//@EnableMethodSecurity
-//public class SecurityConfig {
-//
-//    @Bean
-//    public SecurityFilterChain api(HttpSecurity http) throws Exception {
-//        http.csrf(csrf -> csrf.disable());
-//
-//        http.authorizeHttpRequests(auth -> auth
-//                .requestMatchers("/actuator/**").permitAll()
-//                .requestMatchers(HttpMethod.POST, "/api/auth/**").permitAll()
-//                .requestMatchers("/api/users/**").hasAnyAuthority("USER","ADMIN")
-//                .anyRequest().authenticated()
-//        );
-//
-//        http.oauth2ResourceServer(oauth -> oauth
-//                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter()))
-//        );
-//
-//        return http.build();
-//    }
-//
-//    @Bean
-//    public JwtDecoder jwtDecoder(@Value("${jwt.secret}") String secret) {
-//        byte[] keyBytes = Base64.getDecoder().decode(secret.getBytes(StandardCharsets.UTF_8));
-//        SecretKey key = Keys.hmacShaKeyFor(keyBytes);
-//        return NimbusJwtDecoder.withSecretKey(key).build();
-//    }
-//
-//    @Bean
-//    public Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthConverter() {
-//        JwtGrantedAuthoritiesConverter roles = new JwtGrantedAuthoritiesConverter();
-//        roles.setAuthoritiesClaimName("roles");
-//        roles.setAuthorityPrefix("");
-//
-//        JwtAuthenticationConverter c = new JwtAuthenticationConverter();
-//        c.setJwtGrantedAuthoritiesConverter(roles);
-//        return c;
-//    }
-//}
+package com.pm.userservice.config;
+
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
+
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+
+@Configuration
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http,
+                                            Converter<Jwt, AbstractAuthenticationToken> jwtAuthConverter) throws Exception {
+        http
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(
+                                "/actuator/**",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**",
+                                "/public/**"
+                        ).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2ResourceServer(oauth -> oauth
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
+                );
+        return http.build();
+    }
+
+    @Bean
+    JwtDecoder jwtDecoder(@Value("${jwt.secret}") String secretBase64) {
+        byte[] keyBytes = Base64.getDecoder().decode(secretBase64.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = new SecretKeySpec(keyBytes, "HmacSHA256");
+        return NimbusJwtDecoder.withSecretKey(key)
+                .macAlgorithm(org.springframework.security.oauth2.jose.jws.MacAlgorithm.HS256)
+                .build();
+    }
+
+    @Bean
+    Converter<Jwt, AbstractAuthenticationToken> jwtAuthConverter() {
+        JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
+
+        // default reads a claim and turns items into authorities
+        JwtGrantedAuthoritiesConverter rolesAsList = new JwtGrantedAuthoritiesConverter();
+        rolesAsList.setAuthoritiesClaimName("roles"); // expect ["ADMIN","USER"]
+        rolesAsList.setAuthorityPrefix("");            // keep ADMIN not ROLE_ADMIN
+
+        converter.setJwtGrantedAuthoritiesConverter(jwt -> {
+            Collection<GrantedAuthority> fromList = rolesAsList.convert(jwt);
+
+            // also accept a single string claim named role if present
+            Object single = jwt.getClaims().get("role");
+            Set<String> extras = new LinkedHashSet<>();
+            if (single instanceof String s && !s.isBlank()) {
+                extras.add(s.trim().toUpperCase(Locale.ROOT));
+            }
+
+            // merge and return
+            Set<String> names = new LinkedHashSet<>();
+            if (fromList != null) {
+                names.addAll(fromList.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet()));
+            }
+            names.addAll(extras);
+
+            return names.stream()
+                    .filter(n -> !n.isBlank())
+                    .map(org.springframework.security.core.authority.SimpleGrantedAuthority::new)
+                    .collect(Collectors.toSet());
+        });
+
+        return converter;
+    }
+}

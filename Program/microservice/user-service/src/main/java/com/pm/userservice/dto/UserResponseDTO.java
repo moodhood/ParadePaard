@@ -4,7 +4,6 @@ public class UserResponseDTO {
     private String userId;
     private String name;
     private String email;
-    private String role;
 
     private String streetName;
     private String houseNumber;
@@ -40,14 +39,6 @@ public class UserResponseDTO {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
     }
 
     public String getStreetName() {

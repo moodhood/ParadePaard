@@ -16,7 +16,6 @@ public class UserMapper {
         UserResponseDTO dto = new UserResponseDTO();
         dto.setUserId(user.getUserId() != null ? user.getUserId().toString() : null);
         dto.setEmail(user.getEmail());
-        dto.setRole(user.getRole());
         dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setName(user.getName());
         dto.setStreetName(user.getStreetName());
@@ -32,7 +31,28 @@ public class UserMapper {
         return dto;
     }
 
-    public static User toModel(UserRegisteredEvent event) {
+    public static User toModel(UserRequestDTO userRequestDTO) {
+        if (userRequestDTO == null) {
+            return null;
+        }
+
+        User user = new User();
+        user.setEmail(userRequestDTO.getEmail());
+        user.setName(userRequestDTO.getName());
+        user.setStreetName(userRequestDTO.getStreetName());
+        user.setHouseNumber(userRequestDTO.getHouseNumber());
+        user.setHouseNumberSuffix(userRequestDTO.getHouseNumberSuffix());
+        user.setPostalCode(userRequestDTO.getPostalCode());
+        user.setCity(userRequestDTO.getCity());
+        user.setCountry(userRequestDTO.getCountry());
+        user.setDateOfBirth(userRequestDTO.getDateOfBirth() != null ? LocalDate.parse(userRequestDTO.getDateOfBirth()) : null);
+        user.setBankAccountNumber(userRequestDTO.getBankAccountNumber());
+        user.setPhoneNumber(userRequestDTO.getPhoneNumber());
+
+        return user;
+    }
+
+    public static User toModelUserRegisteredEvent(UserRegisteredEvent event) {
         if (event == null) {
             return null;
         }
@@ -40,7 +60,6 @@ public class UserMapper {
         User user = new User();
         user.setUserId(UUID.fromString(event.getUserId()));
         user.setEmail(event.getEmail());
-        user.setRole(event.getRole());
         user.setRegisteredDate(LocalDate.now());
 
         return user;

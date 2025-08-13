@@ -3,12 +3,13 @@ package com.pm.userservice.controller;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import io.swagger.v3.oas.annotations.Operation;
-import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.UUID;
@@ -16,7 +17,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/users")
 @Tag(name = "User", description = "API for managing Users")
-public class  UserController {
+public class UserController {
     private final UserService userService;
 
     public UserController(UserService userService){
@@ -24,24 +25,35 @@ public class  UserController {
     }
 
     @GetMapping
-    @Operation(summary = "Get all Users")
+    @Operation(summary = "Get all users admin only")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<UserResponseDTO>> getUsers(){
         List<UserResponseDTO> users = userService.getUsers();
-        return ResponseEntity.ok().body(users);
+        return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get a user by id self or admin")
+    @PreAuthorize("hasAuthority('ADMIN') or #id.toString() == principal.claims['userId']")
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID id){
+        UserResponseDTO userResponseDTO = userService.getUserById(id);
+        return ResponseEntity.ok(userResponseDTO);
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Update a User")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable UUID id, @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO){
+    @Operation(summary = "Update a user self or admin")
+    @PreAuthorize("hasAuthority('ADMIN') or #id.toString() == principal.claims['userId']")
+    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable UUID id,
+                                                      @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO){
         UserResponseDTO userResponseDTO = userService.updateUser(id, userRequestDTO);
-        return ResponseEntity.ok().body(userResponseDTO);
+        return ResponseEntity.ok(userResponseDTO);
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Delete a User")
+    @Operation(summary = "Delete a user admin only")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id){
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
-
 }

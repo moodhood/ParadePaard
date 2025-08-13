@@ -10,8 +10,6 @@ public class UserRequestDTO {
 
     private String name;
 
-    private String role;
-
     private String streetName;
     private String houseNumber;
     private String houseNumberSuffix;
@@ -42,14 +40,6 @@ public class UserRequestDTO {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
     }
 
     public String getStreetName() {

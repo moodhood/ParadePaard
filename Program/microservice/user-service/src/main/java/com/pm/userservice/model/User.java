@@ -19,8 +19,6 @@ public class User {
     @Column(unique = true)
     private String email;
     private String name;
-    @Column(nullable = false)
-    private String role;
     private String streetName;
     private String houseNumber;
     private String houseNumberSuffix;
@@ -57,14 +55,6 @@ public class User {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getRole() {
-        return role;
-    }
-
-    public void setRole(String role) {
-        this.role = role;
     }
 
     public String getStreetName() {

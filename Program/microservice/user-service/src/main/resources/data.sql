@@ -1,10 +1,8 @@
--- Make sure the table exists
 CREATE TABLE IF NOT EXISTS users
 (
-    user_id UUID PRIMARY KEY,          -- was id
+    user_id UUID PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(255),
-    role VARCHAR(50) NOT NULL,
     street_name VARCHAR(255),
     house_number VARCHAR(20),
     house_number_suffix VARCHAR(10),
@@ -17,12 +15,12 @@ CREATE TABLE IF NOT EXISTS users
     phone_number VARCHAR(20)
     );
 
--- Insert well-known UUIDs for specific users
-INSERT INTO users (user_id, email, name, role, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
+ALTER TABLE users DROP COLUMN IF EXISTS role;
+
+INSERT INTO users (user_id, email, name, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
 SELECT '11111111-1111-1111-1111-111111111111',
        'alice.brown@example.com',
        'Alice Brown',
-       'USER',
        'Lindelaan',
        '34',
        'A',
@@ -35,11 +33,10 @@ SELECT '11111111-1111-1111-1111-111111111111',
        '5551230001'
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '11111111-1111-1111-1111-111111111111');
 
-INSERT INTO users (user_id, email, name, role, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
+INSERT INTO users (user_id, email, name, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
 SELECT '11111111-1111-1111-1111-222222222222',
        'bob.adams@example.com',
        'Bob Adams',
-       'ADMIN',
        'Eikenstraat',
        '56',
        NULL,
@@ -52,11 +49,10 @@ SELECT '11111111-1111-1111-1111-222222222222',
        '5551230002'
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '11111111-1111-1111-1111-222222222222');
 
-INSERT INTO users (user_id, email, name, role, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
+INSERT INTO users (user_id, email, name, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
 SELECT '11111111-1111-1111-1111-333333333333',
        'carol.chen@example.com',
        'Carol Chen',
-       'USER',
        'Beukenlaan',
        '78',
        NULL,
@@ -69,11 +65,10 @@ SELECT '11111111-1111-1111-1111-333333333333',
        '5551230003'
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '11111111-1111-1111-1111-333333333333');
 
-INSERT INTO users (user_id, email, name, role, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
+INSERT INTO users (user_id, email, name, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
 SELECT '11111111-1111-1111-1111-444444444444',
        'dan.evans@example.com',
        'Dan Evans',
-       'MANAGER',
        'Perenstraat',
        '12',
        NULL,
@@ -86,11 +81,10 @@ SELECT '11111111-1111-1111-1111-444444444444',
        '5551230004'
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '11111111-1111-1111-1111-444444444444');
 
-INSERT INTO users (user_id, email, name, role, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
+INSERT INTO users (user_id, email, name, street_name, house_number, house_number_suffix, postal_code, city, country, date_of_birth, registered_date, bank_account_number, phone_number)
 SELECT '22222222-2222-2222-2222-111111111111',
        'ella.fisher@example.com',
        'Ella Fisher',
-       'USER',
        'Kastanjelaan',
        '9',
        'B',
@@ -102,6 +96,3 @@ SELECT '22222222-2222-2222-2222-111111111111',
        'ES9121000418450200051332',
        '5551230005'
     WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '22222222-2222-2222-2222-111111111111');
-
--- …repeat the same search-and-replace for every remaining INSERT…
--- (all other lines are identical; only “id” became “user_id”)
