@@ -11,13 +11,16 @@ import org.springframework.security.web.server.SecurityWebFilterChain;
 @EnableWebFluxSecurity
 public class SecurityConfig {
     @Bean
-    public SecurityWebFilterChain security(ServerHttpSecurity http) {
+    SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .authorizeExchange(ex -> ex
-                        .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .pathMatchers("/auth/**").permitAll()
-                        .anyExchange().authenticated())
+                .httpBasic(ServerHttpSecurity.HttpBasicSpec::disable)
+                .formLogin(ServerHttpSecurity.FormLoginSpec::disable)
+                .authorizeExchange(reg -> reg
+                        .pathMatchers("/auth/**", "/api-docs/**", "/v3/api-docs/**", "/swagger-ui/**").permitAll()
+                        .anyExchange().permitAll()
+                )
                 .build();
     }
+
 }

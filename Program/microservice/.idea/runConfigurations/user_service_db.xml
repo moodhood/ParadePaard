@@ -33,7 +33,7 @@
           <list>
             <DockerVolumeBindingImpl>
               <option name="containerPath" value="/var/lib/postgresql/data" />
-              <option name="hostPath" value="E:\Code\ParadePaard\HostPath\User-Service-db\" />
+              <option name="hostPath" value="C:\Saved Files\Code\ParadePaard\Program\bindmounts\user" />
             </DockerVolumeBindingImpl>
           </list>
         </option>
