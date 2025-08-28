@@ -54,28 +54,35 @@ public class AuthService {
                     "A user with this email already exists " + registerRequestDTO.getEmail()
             );
         }
-
-        // map basics only
         User user = RegisterMapper.toModel(registerRequestDTO, passwordEncoder);
-
-        // always assign USER role on registration
         Role userRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RoleDoesNotExistException("USER role is missing seed it first"));
         user.setRoles(List.of(userRole));
 
-        // save and emit event
         User newUser = userRepository.save(user);
         kafkaProducer.sendEvent(newUser);
 
-        // include userId claim
-        String token = jwtUtil.generateToken(newUser.getEmail(), newUser.getId().toString(), newUser.getRoles());
-        return new AuthResponseDTO(token);
+        String accessToken = jwtUtil.generateAccessToken(newUser.getEmail(), newUser.getId().toString(), newUser.getRoles());
+        String refreshToken = jwtUtil.generateRefreshToken(newUser.getEmail(), newUser.getId().toString(), newUser.getRoles());
+
+        AuthResponseDTO authResponseDTO = new AuthResponseDTO();
+        authResponseDTO.setAccessToken(accessToken);
+        authResponseDTO.setRefreshToken(refreshToken);
+        return authResponseDTO;
     }
 
-    public Optional<String> authenticate(LoginRequestDTO loginRequestDTO){
+    public Optional<AuthResponseDTO> authenticate(LoginRequestDTO loginRequestDTO) {
         return userService.findByEmail(loginRequestDTO.getEmail())
                 .filter(user -> passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword()))
-                .map(user -> jwtUtil.generateToken(user.getEmail(), user.getId().toString(), user.getRoles()));
+                .map(user -> {
+                    String accessToken = jwtUtil.generateAccessToken(user.getEmail(), user.getId().toString(), user.getRoles());
+                    String refreshToken = jwtUtil.generateRefreshToken(user.getEmail(), user.getId().toString(), user.getRoles());
+
+                    AuthResponseDTO authResponseDTO = new AuthResponseDTO();
+                    authResponseDTO.setAccessToken(accessToken);
+                    authResponseDTO.setRefreshToken(refreshToken);
+                    return authResponseDTO;
+                });
     }
 
     public boolean validateToken(String token){

@@ -1,5 +1,6 @@
 package com.pm.authservice.security;
 
+import com.pm.authservice.model.Role;
 import com.pm.authservice.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -15,6 +16,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Objects;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -56,10 +58,18 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 jwtUtil.validateToken(token);
                 String email = jwtUtil.extractEmail(token);
-                List<String> roles = jwtUtil.extractRoles(token);
+                List<Role> roles = jwtUtil.extractRoles(token);
 
-                var authorities = roles == null ? List.<SimpleGrantedAuthority>of()
-                        : roles.stream().map(role -> new SimpleGrantedAuthority("ROLE_" + role)).toList();
+                List<SimpleGrantedAuthority> authorities =
+                        roles == null ? List.of()
+                                : roles.stream()
+                                .map(Role::getName)
+                                .filter(Objects::nonNull)
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .map(name -> name.startsWith("ROLE_") ? name : "ROLE_" + name)
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
 
                 var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

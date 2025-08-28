@@ -1,4 +1,4 @@
 ### GET request to auth-service
-GET http://localhost:4004/api/users/22222222-2222-2222-2222-111111111111
+GET http://localhost:4004/api/users/a1d32a0a-405e-46ea-a936-09b40c6d837f
 Authorization: Bearer {{token}}
 ###

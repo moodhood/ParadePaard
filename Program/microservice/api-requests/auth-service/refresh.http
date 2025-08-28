@@ -1,0 +1,13 @@
+
+### Refresh request with actual token
+POST http://localhost:4004/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+> {%
+    client.global.set("accessToken", response.body.accessToken)
+%}
+
