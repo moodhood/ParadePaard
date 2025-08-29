@@ -7,9 +7,13 @@ import org.springframework.security.config.annotation.web.reactive.EnableWebFlux
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
 
+import static io.netty.handler.codec.http.HttpMethod.OPTIONS;
+
 @Configuration
 @EnableWebFluxSecurity
 public class SecurityConfig {
+
+
     @Bean
     SecurityWebFilterChain springSecurityFilterChain(ServerHttpSecurity http) {
         return http
