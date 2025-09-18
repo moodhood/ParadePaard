@@ -9,6 +9,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -43,33 +44,27 @@ public class AuthController {
 
     @Operation(summary = "Generate new access token using refresh token cookie")
     @PostMapping(value = {"/refresh", "/refresh/"})
-    public ResponseEntity<AuthResponseDTO> refreshToken(HttpServletRequest request) {
-        // Extract refresh token from cookie instead of request body
-        String refreshToken = null;
-        if (request.getCookies() != null) {
-            Optional<Cookie> refreshTokenCookie = Arrays.stream(request.getCookies())
-                    .filter(cookie -> "refreshToken".equals(cookie.getName()))
-                    .findFirst();
-
-            if (refreshTokenCookie.isPresent()) {
-                refreshToken = refreshTokenCookie.get().getValue();
-            }
-        }
-
-        if (refreshToken == null) {
+    public ResponseEntity<AuthResponseDTO> refreshToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+
+        String refreshToken = authorizationHeader.substring(7); // remove "Bearer "
 
         return authService.refreshToken(refreshToken);
     }
 
     @Operation(summary = "Validate Token")
-    @GetMapping(value = {"/validate", "/validate/"})
-    public ResponseEntity<Void> validateToken(@CookieValue(name = "accessToken", required = false) String accessToken) {
-        if (accessToken == null || accessToken.isEmpty()) {
+    @GetMapping({"/validate", "/validate/"})
+    public ResponseEntity<Void> validateToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
+        if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        return authService.validateToken(accessToken)
+
+        String token = authorizationHeader.substring(7); // remove "Bearer "
+
+        boolean valid = authService.validateToken(token);
+        return valid
                 ? ResponseEntity.ok().build()
                 : ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
     }

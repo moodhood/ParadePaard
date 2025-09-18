@@ -66,14 +66,10 @@ public class AuthService {
         User newUser = userRepository.save(user);
         kafkaProducer.sendEvent(newUser);
 
-        String accessToken = jwtUtil.generateAccessToken(newUser.getEmail(), newUser.getId().toString(), newUser.getRoles());
-        String refreshToken = jwtUtil.generateRefreshToken(newUser.getEmail(), newUser.getId().toString(), newUser.getRoles());
+        String accessToken = accessToken(newUser);
+        String refreshToken = refreshToken(newUser);
 
-        // Create response with user info instead of tokens
-        AuthResponseDTO authResponseDTO = new AuthResponseDTO();
-        authResponseDTO.setMessage("Registration successful");
-        authResponseDTO.setUserId(newUser.getId().toString());
-        authResponseDTO.setEmail(newUser.getEmail());
+        AuthResponseDTO authResponseDTO = authResponseDTO(newUser.getId().toString(), newUser.getEmail());
 
         ResponseCookie responseRefreshCookie = responseRefreshCookie(refreshToken);
         ResponseCookie responseAccessCookie = responseAccessCookie(accessToken);
@@ -91,11 +87,7 @@ public class AuthService {
                     String accessToken = accessToken(user);
                     String refreshToken = refreshToken(user);
 
-                    // Create response with user info instead of tokens
-                    AuthResponseDTO authResponseDTO = new AuthResponseDTO();
-                    authResponseDTO.setMessage("Login successful");
-                    authResponseDTO.setUserId(user.getId().toString());
-                    authResponseDTO.setEmail(user.getEmail());
+                    AuthResponseDTO authResponseDTO = authResponseDTO(user.getId().toString(), user.getEmail());
 
                     ResponseCookie responseRefreshCookie = responseRefreshCookie(refreshToken);
                     ResponseCookie responseAccessCookie = responseAccessCookie(accessToken);
@@ -119,11 +111,7 @@ public class AuthService {
             String newAccessToken = jwtUtil.generateAccessToken(email, userId, roles);
             String newRefreshToken = jwtUtil.generateRefreshToken(email, userId, roles);
 
-            // Create response with user info
-            AuthResponseDTO authResponseDTO = new AuthResponseDTO();
-            authResponseDTO.setMessage("Token refreshed successfully");
-            authResponseDTO.setUserId(userId);
-            authResponseDTO.setEmail(email);
+            AuthResponseDTO authResponseDTO = authResponseDTO(userId, email);
 
             ResponseCookie refreshTokenCookie = responseRefreshCookie(newRefreshToken);
             ResponseCookie accessTokenCookie = responseAccessCookie(newAccessToken);
@@ -178,6 +166,15 @@ public class AuthService {
                 .path("/")
                 .maxAge(15 * 60)
                 .build();
+    }
+
+    public AuthResponseDTO authResponseDTO(String userId, String email) {
+        AuthResponseDTO authResponseDTO = new AuthResponseDTO();
+        authResponseDTO.setMessage("Login successful");
+        authResponseDTO.setUserId(userId);
+        authResponseDTO.setEmail(email);
+
+        return authResponseDTO;
     }
 
     public String accessToken(User user){

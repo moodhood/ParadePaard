@@ -1,14 +1,16 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import axios from "axios";
-
-type RegisterResponse = { token: string };
+import { AuthServices } from "../services/AuthServices";
+import EmailLabel from "../components/EmailLabel";
+import PasswordLabel from "../components/PasswordLabel";
+import Button from "../components/Button";
+import "../stylesheets/Register.css"
 
 export default function Register() {
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [confirm, setConfirm] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -16,82 +18,42 @@ export default function Register() {
         e.preventDefault();
         setErrorMsg(null);
 
-        if (password !== confirm) {
+        if (password !== confirmPassword) {
             setErrorMsg("Passwords do not match");
             return;
         }
 
+        setLoading(true);
+
         try {
-            setLoading(true);
-            const response = await axios.post<RegisterResponse>(
-                "http://localhost:4004/auth/register",
-                { email, password },
-                { headers: { "Content-Type": "application/json" } }
-            );
-            if (!response.data?.token) throw new Error("No token in response");
-            localStorage.setItem("accessToken", `Bearer ${response.data.token}`);
+            const response = await AuthServices.register(email, password);
+            console.log("Register successful:", response.message);
             navigate("/");
-        } catch (err) {
-            const msg = axios.isAxiosError(err)
-                ? err.response?.data?.error || err.message
-                : "Register failed";
-            setErrorMsg(String(msg));
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error
+                ? err.message
+                : "Registration failed";
+            setErrorMsg(errorMessage);
         } finally {
             setLoading(false);
         }
     }
 
     return (
-        <div style={{ maxWidth: 380, margin: "80px auto", padding: 20 }}>
-            <h1 style={{ marginBottom: 16 }}>Register</h1>
+        <div className="register-container">
+            <h1 className="register-title">Register</h1>
 
             <form onSubmit={handleSubmit}>
-                <label>
-                    Email
-                    <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.currentTarget.value)}
-                        required
-                        placeholder="you@example.com"
-                        style={{ width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }}
-                    />
-                </label>
+                <EmailLabel email={email} setEmail={setEmail}/>
+                <PasswordLabel label="Password" value={password} onChange={setPassword} placeholder="Your password"/>
+                <PasswordLabel label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Repeat password"/>
 
-                <label>
-                    Password
-                    <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.currentTarget.value)}
-                        required
-                        placeholder="Your password"
-                        style={{ width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }}
-                    />
-                </label>
+                {errorMsg && (<div className="error-message">{errorMsg}</div>)}
 
-                <label>
-                    Confirm password
-                    <input
-                        type="password"
-                        value={confirm}
-                        onChange={(e) => setConfirm(e.currentTarget.value)}
-                        required
-                        placeholder="Repeat password"
-                        style={{ width: "100%", padding: 10, marginTop: 6, marginBottom: 12 }}
-                    />
-                </label>
-
-                {errorMsg && (
-                    <div style={{ color: "red", marginBottom: 12 }}>{errorMsg}</div>
-                )}
-
-                <button type="submit" disabled={loading} style={{ width: "100%", padding: 12 }}>
-                    {loading ? "Creating account..." : "Create account"}
-                </button>
+                <Button type="submit" loading={loading}>{loading ? "Creating account..." : "Create account"}</Button>
             </form>
 
-            <p style={{ marginTop: 12 }}>
+            <p className="existing-account">
                 Already have an account? <Link to="/login">Login</Link>
             </p>
         </div>

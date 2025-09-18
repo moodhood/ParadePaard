@@ -36,10 +36,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             path = path.substring(0, path.length() - 1);
         }
 
-        // These are the paths AFTER the API Gateway strips the /auth prefix
-        return path.equals("/register")      // /auth/register becomes /register
-                || path.equals("/login")         // /auth/login becomes /login
-                || path.equals("/validate")      // /auth/validate becomes /validate
+        return path.equals("/register")
+                || path.equals("/login")
+                || path.equals("/validate")
                 || path.startsWith("/actuator")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/swagger-ui")
@@ -52,9 +51,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
+        String token = null;
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
+        if (token != null) {
             try {
                 jwtUtil.validateToken(token);
                 String email = jwtUtil.extractEmail(token);
@@ -78,6 +85,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
             }
         }
+
         chain.doFilter(request, response);
     }
 }
