@@ -2,7 +2,7 @@
   <configuration default="false" name="kafka" type="docker-deploy" factoryName="docker-image" server-name="Docker">
     <deployment type="docker-image">
       <settings>
-        <option name="imageTag" value="bitnami/kafka:latest" />
+        <option name="imageTag" value="bitnamilegacy/kafka:latest" />
         <option name="containerName" value="kafka" />
         <option name="envVars">
           <list>

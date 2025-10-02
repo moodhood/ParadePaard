@@ -2,7 +2,7 @@
   <configuration default="false" name="auth-service-db" type="docker-deploy" factoryName="docker-image" server-name="Docker">
     <deployment type="docker-image">
       <settings>
-        <option name="imageTag" value="postgres:latest" />
+        <option name="imageTag" value="postgres:16.4" />
         <option name="containerName" value="auth-service-db" />
         <option name="envVars">
           <list>
@@ -33,7 +33,7 @@
           <list>
             <DockerVolumeBindingImpl>
               <option name="containerPath" value="/var/lib/postgresql/data" />
-              <option name="hostPath" value="C:\Saved Files\Code\ParadePaard\Program\bindmounts\auth" />
+              <option name="hostPath" value="C:\dockerdata\paradepaard\auth" />
             </DockerVolumeBindingImpl>
           </list>
         </option>
