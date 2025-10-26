@@ -36,7 +36,7 @@ public class UserPermission {
     }
 
     private UUID extractUserId(Jwt jwt) {
-        String[] keys = new String[] { "userId", "user_id", "uid", "userid", "UserId" };
+        String[] keys = new String[] {"userId"};
         for (String k : keys) {
             Object v = jwt.getClaims().get(k);
             if (v instanceof String s && !s.isBlank()) {

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthServices } from "../services/AuthServices";
+import { AuthServices } from "../services/auth-service/AuthServices.tsx";
 import EmailLabel from "../components/EmailLabel";
 import PasswordLabel from "../components/PasswordLabel";
 import Button from "../components/Button";

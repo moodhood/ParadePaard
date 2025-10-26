@@ -39,6 +39,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         return path.equals("/register")
                 || path.equals("/login")
                 || path.equals("/validate")
+                || path.equals("/refresh")
                 || path.startsWith("/actuator")
                 || path.startsWith("/v3/api-docs")
                 || path.startsWith("/swagger-ui")
@@ -51,15 +52,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                     FilterChain chain)
             throws ServletException, IOException {
 
-        String token = null;
-        if (request.getCookies() != null) {
-            for (var cookie : request.getCookies()) {
-                if ("accessToken".equals(cookie.getName())) {
-                    token = cookie.getValue();
-                    break;
-                }
-            }
-        }
+        String token = extractTokenFromRequest(request);
 
         if (token != null) {
             try {
@@ -87,5 +80,24 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         chain.doFilter(request, response);
+    }
+
+    private String extractTokenFromRequest(HttpServletRequest request) {
+        // First check cookies (for browser requests)
+        if (request.getCookies() != null) {
+            for (var cookie : request.getCookies()) {
+                if ("accessToken".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+        }
+
+        // Then check Authorization header (for gateway requests)
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            return authHeader.substring(7);
+        }
+
+        return null;
     }
 }

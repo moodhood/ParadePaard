@@ -1,4 +1,4 @@
-import GetUsers from "./apiFunctions/Get-Users.tsx";
+import GetUsers from "./Get-Users.tsx";
 
 const API_BASE_URL = "http://localhost:4004";
 

@@ -1,8 +1,6 @@
-"use client";
-
 import { useEffect, useState } from "react";
 import "../stylesheets/Home.css"
-import { UserServices } from "../services/UserServices.tsx"
+import { UserServices } from "../services/user-service/UserServices.tsx"
 
 type UserResponseDTO = {
     userId: string;

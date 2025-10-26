@@ -1,4 +1,3 @@
-// src/main/java/com/pm/authservice/service/AuthService.java
 package com.pm.authservice.service;
 
 import com.pm.authservice.dto.AuthResponseDTO;
@@ -209,5 +208,16 @@ public class AuthService {
 
         u.setRoles(roles);
         userRepository.save(u);
+    }
+
+    public boolean hasAdminRole(String token) {
+        try {
+            jwtUtil.validateToken(token);
+            return jwtUtil.extractRoles(token)
+                    .stream()
+                    .anyMatch(r -> "ADMIN".equalsIgnoreCase(r.getName()));
+        } catch (JwtException e) {
+            return false;
+        }
     }
 }

@@ -1,7 +1,16 @@
 server:
   port: 4004
 
+auth:
+  service:
+    url: http://auth-service:4005
+
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveSecurityAutoConfiguration
+      - org.springframework.boot.autoconfigure.security.reactive.ReactiveUserDetailsServiceAutoConfiguration
+
   cloud:
     gateway:
       server:
@@ -24,16 +33,52 @@ spring:
                 allowCredentials: true
                 maxAge: 3600
           routes:
-            ## http://localhost:4004/auth/login -> localhost:4004 is the address of the api gateway
-            ## API GATEWAY -> http://auth-service:4005/login
-
-            # Auth-Service
-            - id: auth-service-route
+            # Public Auth Endpoints - No JWT validation
+            - id: auth-service-login
               uri: http://auth-service:4005
               predicates:
-                - Path=/auth/**
+                - Path=/auth/login
               filters:
                 - StripPrefix=1
+
+            - id: auth-service-register
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/register
+              filters:
+                - StripPrefix=1
+
+            - id: auth-service-refresh
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/refresh
+              filters:
+                - StripPrefix=1
+
+            - id: auth-service-validate
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/validate
+              filters:
+                - StripPrefix=1
+
+            - id: auth-service-logout
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/logout
+              filters:
+                - StripPrefix=1
+
+            # Protected Auth Endpoints - With JWT validation
+            - id: auth-service-protected
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/is-admin,/auth/change-password,/auth/profile,/auth/me
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+
+            # API Docs for Auth Service
             - id: api-docs-auth-route
               uri: http://auth-service:4005
               predicates:
@@ -41,11 +86,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/auth,/v3/api-docs
 
-            ## REST CLIENT -> http://localhost:4004/api/payroll
-            ## API GATEWAY -> http://payroll-service:4000/payroll
-            ## payroll SERVICE (SPRING BOOT APP) -> /payroll -> Payroll array
-
-            # User-Service
+            # User-Service - Protected
             - id: user-service-route
               uri: http://user-service:4006
               predicates:
@@ -53,6 +94,7 @@ spring:
               filters:
                 - StripPrefix=1
                 - JwtValidation
+
             - id: api-docs-user-route
               uri: http://user-service:4006
               predicates:
@@ -60,7 +102,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/users,/v3/api-doc
 
-            # Payroll-Service
+            # Payroll-Service - Protected
             - id: payroll-service-route
               uri: http://payroll-service:4000
               predicates:
@@ -68,6 +110,7 @@ spring:
               filters:
                 - StripPrefix=1
                 - JwtValidation
+
             - id: api-docs-payroll-route
               uri: http://payroll-service:4000
               predicates:
@@ -75,7 +118,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/payroll,/v3/api-docs
 
-            # Timesheet-Service
+            # Timesheet-Service - Protected
             - id: timesheet-service-route
               uri: http://timesheet-service:4001
               predicates:
@@ -83,6 +126,7 @@ spring:
               filters:
                 - StripPrefix=1
                 - JwtValidation
+
             - id: api-docs-timesheet-route
               uri: http://timesheet-service:4001
               predicates:
@@ -90,7 +134,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/timesheet,/v3/api-docs
 
-            # Contract-Service
+            # Contract-Service - Protected
             - id: contract-service-route
               uri: http://contract-service:4002
               predicates:
@@ -98,6 +142,7 @@ spring:
               filters:
                 - StripPrefix=1
                 - JwtValidation
+
             - id: api-docs-contract-route
               uri: http://contract-service:4002
               predicates:
@@ -105,112 +150,9 @@ spring:
               filters:
                 - RewritePath=/api-docs/contract,/v3/api-docs
 
-              ## REST-CLIENT -> http://localhost:4004/api-docs/contract
-              ## API-GATEWAY -> http://contract-service:4002/v3/api-docs
-
-
-
-#
-#server:
-#  port: 4004
-#
-#cors:
-#
-#
-#spring:
-#  cloud:
-#    gateway:
-#      server:
-#        webflux:
-#          routes:
-#            ## http://localhost:4004/auth/login -> localhost:4004 is the address of the api gateway
-#            ## API GATEWAY -> http://auth-service:4005/login
-#
-#            # Auth-Service
-#            - id: auth-service-route
-#              uri: http://auth-service:4005
-#              predicates:
-#                - Path=/auth/**
-#              filters:
-#                - StripPrefix=1
-#            - id: api-docs-auth-route
-#              uri: http://auth-service:4005
-#              predicates:
-#                - Path=/api-docs/auth
-#              filters:
-#                - RewritePath=/api-docs/auth,/v3/api-docs
-#
-#            ## REST CLIENT -> http://localhost:4004/api/payroll
-#            ## API GATEWAY -> http://payroll-service:4000/payroll
-#            ## payroll SERVICE (SPRING BOOT APP) -> /payroll -> Payroll array
-#
-#            # User-Service
-#            - id: user-service-route
-#              uri: http://user-service:4006
-#              predicates:
-#                - Path=/api/users/**
-#              filters:
-#                - StripPrefix=1
-#                - JwtValidation
-#            - id: api-docs-user-route
-#              uri: http://user-service:4006
-#              predicates:
-#                - Path=/api-docs/user
-#              filters:
-#                - RewritePath=/api-docs/users,/v3/api-doc
-#
-#            # Payroll-Service
-#            - id: payroll-service-route
-#              uri: http://payroll-service:4000
-#              predicates:
-#                - Path=/api/payroll/**
-#              filters:
-#                - StripPrefix=1
-#                - JwtValidation
-#            - id: api-docs-payroll-route
-#              uri: http://payroll-service:4000
-#              predicates:
-#                - Path=/api-docs/payroll
-#              filters:
-#                - RewritePath=/api-docs/payroll,/v3/api-docs
-#
-#            # Timesheet-Service
-#            - id: timesheet-service-route
-#              uri: http://timesheet-service:4001
-#              predicates:
-#                - Path=/api/timesheet/**
-#              filters:
-#                - StripPrefix=1
-#                - JwtValidation
-#            - id: api-docs-timesheet-route
-#              uri: http://timesheet-service:4001
-#              predicates:
-#                - Path=/api-docs/timesheet
-#              filters:
-#                - RewritePath=/api-docs/timesheet,/v3/api-docs
-#
-#            # Contract-Service
-#            - id: contract-service-route
-#              uri: http://contract-service:4002
-#              predicates:
-#                - Path=/api/contract/**
-#              filters:
-#                - StripPrefix=1
-#                - JwtValidation
-#            - id: api-docs-contract-route
-#              uri: http://contract-service:4002
-#              predicates:
-#                - Path=/api-docs/contract
-#              filters:
-#                - RewritePath=/api-docs/contract,/v3/api-docs
-#
-#              ## REST-CLIENT -> http://localhost:4004/api-docs/contract
-#              ## API-GATEWAY -> http://contract-service:4002/v3/api-docs
-#
-## Enable debug logging for troubleshooting
+# Enable debug logging for troubleshooting
 logging:
   level:
-    org.springframework.security: DEBUG
-    org.springframework.web: DEBUG
-    com.pm.authservice.security: DEBUG
+    com.pm.apigateway.filter: DEBUG
+    org.springframework.cloud.gateway: DEBUG
     ROOT: INFO
