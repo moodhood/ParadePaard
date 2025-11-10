@@ -1,0 +1,17 @@
+/* stylesheets/app_calendar.css */
+
+.calendar_stub {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px;
+}
+.month_head { font-weight: 600; margin-bottom: 8px; }
+.date_grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.date_cell {
+    aspect-ratio: 1 / 1; border-radius: 8px; display: grid; place-items: center;
+    font-size: 12px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+}
+.highlight { outline: 2px solid #4f7cff; }
+.legend { display: flex; align-items: center; gap: 6px; margin-top: 8px; opacity: 0.8; font-size: 12px; }
+.dot { width: 8px; height: 8px; border-radius: 999px; background: #4f7cff; display: inline-block; }

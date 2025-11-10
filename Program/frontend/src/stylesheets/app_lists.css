@@ -1,0 +1,82 @@
+/* stylesheets/app_lists.css */
+
+/* list and rows */
+.list { list-style: none; margin: 0 0 12px 0; padding: 0; display: grid; gap: 8px; }
+
+.list_row {
+    display: grid; align-items: center; gap: 16px;
+    padding: 10px 12px; border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: background 0.12s;
+}
+.list_row:not(.list_row_header):hover { background: rgba(255,255,255,0.06); }
+
+
+.list_row_header {
+    background: transparent; border: 0; padding: 0 12px 4px; border-radius: 0;
+}
+.list_row_header .row_name,
+.list_row_header .row_type,
+.list_row_header .row_mid,
+.list_row_header .row_when {
+    background: none; border: 0; padding: 0; border-radius: 0;
+    font-size: 13px; font-weight: 600; color: rgba(230,231,235,0.6);
+    line-height: 1.4; white-space: nowrap; overflow: visible;
+}
+
+/* cells */
+.row_name {
+    font-weight: 600; overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap; min-width: 0;
+}
+.row_type {
+    padding: 8px 14px; border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    font-size: 15px; font-weight: 600; white-space: nowrap; justify-self: start;
+}
+.row_mid {
+    font-size: 14px; font-weight: 500; opacity: 0.9;
+    font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; justify-self: end;
+}
+.row_when {
+    opacity: 0.9; font-variant-numeric: tabular-nums; white-space: nowrap;
+    font-size: 14px; text-align: right; justify-self: end;
+}
+
+/* stats block */
+.stats_col { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.stat {
+    display: flex; align-items: center; justify-content: space-between; width: 100%;
+    padding: 12px 14px; border-radius: 12px;
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+}
+.stat_label { font-size: 12px; font-weight: 700; opacity: 0.8; }
+.stat_value { font-size: 18px; font-weight: 700; }
+.stat:hover { background: rgba(255,255,255,0.06); }
+
+/* fixed sizes per card */
+.requests_card { width: 720px; height: 420px; max-width: 720px; max-height: 420px; }
+.errors_card   { width: 720px; height: 420px; max-width: 720px; max-height: 420px; }
+.contracts_card{ width: 400px; height: 420px; max-width: 400px; max-height: 420px; }
+.dates_card    { width: 720px; height: 420px; max-width: 720px; max-height: 420px; }
+.payout_card   { width: 400px; height: 420px; max-width: 400px; max-height: 420px; }
+
+/* grid presets for lists */
+.list.wide_cols   { --cols: 1fr 240px 140px; }
+.list.narrow_cols { --cols: 1fr auto auto; }
+.list_row, .list_row_header { grid-template-columns: var(--cols, 1fr auto auto); }
+
+/* small screen list layout */
+@media (max-width: 560px) {
+    .list_row_header { display: none; }
+    .list_row {
+        grid-template-columns: 1fr auto;
+        grid-template-areas: "name when" "type type";
+        row-gap: 6px;
+    }
+    .row_name { grid-area: name; }
+    .row_type, .row_mid { grid-area: type; justify-self: start; text-align: left; }
+    .row_when { grid-area: when; }
+}

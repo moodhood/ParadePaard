@@ -34,23 +34,31 @@ public class JwtUtil {
         return generateToken(email, userId, roles,  REFRESH_TOKEN_VALIDITY);
     }
 
-    public String generateToken(String email, String userId, List<Role> roles, Long validity) {
-        List<String> roleNames = roles.stream().map(Role::getName).toList();
+    public String generateToken(String email, String userId, List<Role> roles, Long validityMillis) {
+        List<String> roleNames = Optional.ofNullable(roles)
+                .orElseGet(Collections::emptyList)
+                .stream()
+                .map(Role::getName)
+                .filter(Objects::nonNull)
+                .toList();
 
         Instant now = Instant.now();
-        Instant expiration = now.plusSeconds(validity);
+        Instant expiration = now.plusMillis(validityMillis); // was plusSeconds on millis
 
         var builder = Jwts.builder()
                 .subject(email)
                 .claim("roles", roleNames)
                 .claim("userId", userId)
-                .claim("role", roleNames.get(0))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .signWith(secretKey, Jwts.SIG.HS256);
 
+        // only add a single role claim if present
+        roleNames.stream().findFirst().ifPresent(r -> builder.claim("role", r));
+
         return builder.compact();
     }
+
 
     public void validateToken(String token) throws JwtException {parse(token);}
 

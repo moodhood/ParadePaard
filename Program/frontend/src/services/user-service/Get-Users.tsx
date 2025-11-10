@@ -14,6 +14,7 @@ export type UserResponseDTO = {
     registeredDate: string;
     bankAccountNumber: string;
     phoneNumber: string;
+    leaveHours: string;
 };
 
 export default async function GetUsers(API_BASE_URL: string): Promise<UserResponseDTO[]> {

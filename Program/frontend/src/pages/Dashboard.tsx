@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { AuthServices } from "../services/auth-service/AuthServices";
-import AdminDashboard from "../components/Dashboards/AdminDashboard.tsx";
-import UserDashboard from "../components/Dashboards/UserDashboard.tsx"
+import AdminDashboard from "../components/Dashboards/AdminDashboard";
+import UserDashboard from "../components/Dashboards/UserDashboard";
+import Spinner from "../components/Spinner.tsx";
 
 export default function Dashboard() {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -11,16 +12,12 @@ export default function Dashboard() {
         AuthServices.isAdmin()
             .then(setIsAdmin)
             .catch((err: unknown) => {
-                if (err instanceof Error) {
-                    setError(err.message);
-                } else {
-                    setError(String(err));
-                }
+                setError(err instanceof Error ? err.message : String(err));
             });
     }, []);
 
     if (error) return <div>{error}</div>;
-    if (isAdmin === null) return <div>Checking your role…</div>;
+    if (isAdmin === null) return <Spinner />;
 
     return isAdmin ? <AdminDashboard /> : <UserDashboard />;
 }

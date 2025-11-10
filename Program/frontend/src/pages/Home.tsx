@@ -16,6 +16,7 @@ type UserResponseDTO = {
     registeredDate: string;
     bankAccountNumber: string;
     phoneNumber: string;
+    leaveHours: string;
 };
 
 export default function Home() {
@@ -57,6 +58,7 @@ export default function Home() {
                         <th>Email</th>
                         <th>City</th>
                         <th>Phone</th>
+                        <th>Leave hours left</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -66,6 +68,7 @@ export default function Home() {
                             <td>{user.email}</td>
                             <td>{user.city}</td>
                             <td>{user.phoneNumber}</td>
+                            <td>{user.leaveHours}</td>
                         </tr>
                     ))}
                     </tbody>

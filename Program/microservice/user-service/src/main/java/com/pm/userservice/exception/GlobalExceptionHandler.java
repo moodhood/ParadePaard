@@ -54,4 +54,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @ExceptionHandler(LeaveRequestNotFoundException.class)
+    public ResponseEntity<Map<String, String>> LeaveRequestNotFoundException(Exception ex){
+        log.warn("Leave Request not found {}!",  ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Leave Request Not Found");
+        return ResponseEntity.badRequest().body(errors);
+    }
+
 }

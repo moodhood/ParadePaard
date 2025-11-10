@@ -32,6 +32,7 @@ public class User {
     private String bankAccountNumber;
     @Column(unique = true)
     private String phoneNumber;
+    private String leaveHours;
 
     public UUID getUserId() {
         return userId;
@@ -135,5 +136,13 @@ public class User {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getLeaveHours() {
+        return leaveHours;
+    }
+
+    public void setLeaveHours(String leaveHours) {
+        this.leaveHours = leaveHours;
     }
 }

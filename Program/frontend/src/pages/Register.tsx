@@ -28,7 +28,7 @@ export default function Register() {
         try {
             const response = await AuthServices.register(email, password);
             console.log("Register successful:", response.message);
-            navigate("/");
+            navigate("/dashboard");
         } catch (err: unknown) {
             const errorMessage = err instanceof Error
                 ? err.message

@@ -1,0 +1,75 @@
+/* stylesheets/app_modal.css */
+
+/* modal layout */
+.modal_overlay {
+    position: fixed; inset: 0;
+    background: rgba(15,18,24,0.6);
+    display: grid; place-items: center;
+    z-index: 999;
+}
+.modal_box {
+    background: #12151c;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    max-width: 92vw; max-height: 90vh;
+}
+.modal_header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.modal_title { margin: 0; font-size: 18px; color: #e6e7eb; }
+.modal_close_btn {
+    background: transparent; color: #e6e7eb; border: none;
+    font-size: 22px; line-height: 1; cursor: pointer;
+}
+.modal_body { padding: 16px; overflow: auto; color: #e6e7eb; font-size: 14px; }
+.modal_footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* keep modal actions tidy */
+.modal_body .actions_row {
+    margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;
+    padding-top: 0; border-top: 0; background: transparent;
+}
+
+/* info blocks and sections inside modal */
+.grid_two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info_item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; }
+.info_label { font-size: 12px; opacity: 0.75; margin-bottom: 4px; color: #e6e7eb; }
+.info_value { font-size: 14px; color: #fff; }
+.text_ok { color: #a1e6a1; }
+.text_bad { color: #ff9aa2; }
+.section_block { margin-top: 14px; }
+.section_title { margin: 0 0 6px 0; font-size: 14px; opacity: 0.85; color: #e6e7eb; }
+.section_text { margin: 0; opacity: 0.9; color: #e6e7eb; }
+.bullet_list { padding-left: 18px; margin: 4px 0 0 0; color: #e6e7eb; font-size: 14px; }
+
+/* same scroll bar look as lists */
+.modal_body {
+    padding: 16px;
+    overflow: auto;
+    color: #e6e7eb;
+    font-size: 14px;
+
+    /* thin scroll bar like the rest */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.3) rgba(0,0,0,0);
+}
+
+.modal_body::-webkit-scrollbar {
+    width: 6px;
+}
+.modal_body::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.2);
+    border-radius: 4px;
+}
+.modal_body::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.25);
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.4);
+}
+.modal_body::-webkit-scrollbar-thumb:hover {
+    background: rgba(255,255,255,0.35);
+}

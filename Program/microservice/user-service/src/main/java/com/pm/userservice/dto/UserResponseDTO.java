@@ -17,6 +17,8 @@ public class UserResponseDTO {
     private String bankAccountNumber;
     private String phoneNumber;
 
+    private String leaveHours;
+
     public String getUserId() {
         return userId;
     }
@@ -119,5 +121,13 @@ public class UserResponseDTO {
 
     public void setPhoneNumber(String phoneNumber) {
         this.phoneNumber = phoneNumber;
+    }
+
+    public String getLeaveHours() {
+        return leaveHours;
+    }
+
+    public void setLeaveHours(String leaveHours) {
+        this.leaveHours = leaveHours;
     }
 }

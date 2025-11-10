@@ -27,6 +27,7 @@ public class UserMapper {
         dto.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
         dto.setBankAccountNumber(user.getBankAccountNumber());
         dto.setPhoneNumber(user.getPhoneNumber());
+        dto.setLeaveHours(user.getLeaveHours());
 
         return dto;
     }

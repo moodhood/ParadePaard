@@ -15,25 +15,37 @@ spring:
     gateway:
       server:
         webflux:
-          default-filters:
-            - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          # CORS for browser calls through the gateway
           globalcors:
+            add-to-simple-url-handler-mapping: true
             cors-configurations:
               "[/**]":
-                allowedOrigins:
+                allowed-origins:
                   - "http://localhost:5173"
-                allowedMethods:
+                allowed-methods:
                   - GET
                   - POST
                   - PUT
                   - DELETE
                   - OPTIONS
-                allowedHeaders:
+                allowed-headers:
                   - "*"
-                allowCredentials: true
-                maxAge: 3600
+                allow-credentials: true
+                max-age: 3600
+
+          # make sure the browser sees only one CORS header value
+          default-filters:
+            - name: DedupeResponseHeader
+              args:
+                name: Access-Control-Allow-Origin
+                strategy: RETAIN_FIRST
+            - name: DedupeResponseHeader
+              args:
+                name: Access-Control-Allow-Credentials
+                strategy: RETAIN_FIRST
+
           routes:
-            # Public Auth Endpoints - No JWT validation
+            # Auth service public endpoints
             - id: auth-service-login
               uri: http://auth-service:4005
               predicates:
@@ -69,7 +81,7 @@ spring:
               filters:
                 - StripPrefix=1
 
-            # Protected Auth Endpoints - With JWT validation
+            # Auth service protected endpoints
             - id: auth-service-protected
               uri: http://auth-service:4005
               predicates:
@@ -78,7 +90,7 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
-            # API Docs for Auth Service
+            # Auth swagger
             - id: api-docs-auth-route
               uri: http://auth-service:4005
               predicates:
@@ -86,7 +98,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/auth,/v3/api-docs
 
-            # User-Service - Protected
+            # User service protected endpoints
             - id: user-service-route
               uri: http://user-service:4006
               predicates:
@@ -95,14 +107,24 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # leave requests through user service
+            - id: user-service-leave-requests
+              uri: http://user-service:4006
+              predicates:
+                - Path=/api/leave-requests/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+
+            # User swagger
             - id: api-docs-user-route
               uri: http://user-service:4006
               predicates:
                 - Path=/api-docs/user
               filters:
-                - RewritePath=/api-docs/users,/v3/api-doc
+                - RewritePath=/api-docs/user,/v3/api-docs
 
-            # Payroll-Service - Protected
+            # Payroll service protected endpoints
             - id: payroll-service-route
               uri: http://payroll-service:4000
               predicates:
@@ -111,6 +133,7 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # Payroll swagger
             - id: api-docs-payroll-route
               uri: http://payroll-service:4000
               predicates:
@@ -118,7 +141,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/payroll,/v3/api-docs
 
-            # Timesheet-Service - Protected
+            # Timesheet service protected endpoints
             - id: timesheet-service-route
               uri: http://timesheet-service:4001
               predicates:
@@ -127,6 +150,7 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # Timesheet swagger
             - id: api-docs-timesheet-route
               uri: http://timesheet-service:4001
               predicates:
@@ -134,7 +158,7 @@ spring:
               filters:
                 - RewritePath=/api-docs/timesheet,/v3/api-docs
 
-            # Contract-Service - Protected
+            # Contract service protected endpoints
             - id: contract-service-route
               uri: http://contract-service:4002
               predicates:
@@ -143,6 +167,7 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # Contract swagger
             - id: api-docs-contract-route
               uri: http://contract-service:4002
               predicates:
@@ -150,9 +175,8 @@ spring:
               filters:
                 - RewritePath=/api-docs/contract,/v3/api-docs
 
-# Enable debug logging for troubleshooting
 logging:
   level:
-    com.pm.apigateway.filter: DEBUG
     org.springframework.cloud.gateway: DEBUG
+    org.springframework.web.cors: DEBUG
     ROOT: INFO

@@ -21,7 +21,7 @@ export default function Login() {
         try {
             const response = await AuthServices.login(email, password);
             console.log("Login successful:", response.message);
-            navigate("/");
+            navigate("/dashboard");
         } catch (err: unknown) {
             const errorMessage = err instanceof Error
                 ? err.message

@@ -1,4 +1,3 @@
-// src/main/java/com/pm/userservice/controller/UserController.java
 package com.pm.userservice.controller;
 
 import com.pm.userservice.dto.UserRequestDTO;
