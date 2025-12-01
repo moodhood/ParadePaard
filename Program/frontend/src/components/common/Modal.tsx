@@ -5,19 +5,11 @@ type ModalProps = {
     title?: string;
     onClose: () => void;
     children: React.ReactNode;
-    width?: number; // px
-    maxHeight?: number; // px
+    width?: number;
+    maxHeight?: number;
 };
 
-export default function Modal({
-                                  open,
-                                  title,
-                                  onClose,
-                                  children,
-                                  width = 720,
-                                  maxHeight = 560,
-                              }: ModalProps) {
-    // close on Escape
+export default function Modal({open, title, onClose, children, width = 720, maxHeight = 560}: ModalProps) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
@@ -36,7 +28,6 @@ export default function Modal({
             aria-modal="true"
             aria-label={title || "Modal"}
             onClick={(e) => {
-                // click outside the box closes
                 if (e.target === e.currentTarget) onClose();
             }}
         >

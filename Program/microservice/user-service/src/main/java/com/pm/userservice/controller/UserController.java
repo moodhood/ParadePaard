@@ -1,3 +1,4 @@
+// src/main/java/com/pm/userservice/controller/UserController.java
 package com.pm.userservice.controller;
 
 import com.pm.userservice.dto.UserRequestDTO;
@@ -8,20 +9,30 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/users")
 @Tag(name = "User", description = "API for managing Users")
 public class UserController {
+
     private final UserService userService;
 
     public UserController(UserService userService){
         this.userService = userService;
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Return current user id from the token")
+    public ResponseEntity<Map<String, String>> me(Authentication authentication) {
+        String userId = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(Map.of("userId", userId));
     }
 
     @GetMapping
@@ -43,8 +54,9 @@ public class UserController {
     @PutMapping("/{id}")
     @Operation(summary = "Update a user self or admin")
     @PreAuthorize("hasAuthority('ADMIN') or @userPermission.isSelf(#id, authentication)")
-    public ResponseEntity<UserResponseDTO> updateUser(@PathVariable UUID id,
-                                                      @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO){
+    public ResponseEntity<UserResponseDTO> updateUser(
+            @PathVariable UUID id,
+            @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO){
         UserResponseDTO userResponseDTO = userService.updateUser(id, userRequestDTO);
         return ResponseEntity.ok(userResponseDTO);
     }

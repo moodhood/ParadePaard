@@ -1,0 +1,43 @@
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.shortcutBtn {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 16px;
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.shortcutBtn:hover {
+  border-color: #2F6BFF;
+  background: #f4f8ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+}
+
+.shortcutIcon {
+  font-size: 20px;
+  background: #f0f0f0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.shortcutBtn span {
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}

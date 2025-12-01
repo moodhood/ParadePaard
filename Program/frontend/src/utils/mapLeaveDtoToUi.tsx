@@ -1,17 +1,16 @@
 // src/utils/mapLeaveDtoToUi.ts
 import type { LeaveRequest } from "../components/requests/RequestModals";
-
-export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED";
+import type { LeaveType, LeaveStatus } from "../services/user-service/types";
 
 export type LeaveRequestDTO = {
     requestId: string;
     userId: string;
     userName: string;
-    type: "SICK" | "VACATION" | "PERSONAL" | string;
+    type: LeaveType
     startDate: string;
     endDate: string;
     hours: number;
-    reason?: string;
+    reason?: string | null;
     status: LeaveStatus;
     createdAt: string;
     updatedAt: string;
@@ -28,8 +27,8 @@ export function mapLeaves(dtos: LeaveRequestDTO[]): LeaveRequestUI[] {
         fromDate: d.startDate,
         toDate: d.endDate,
         hoursRequested: d.hours,
-        hoursAvailable: d.hours, // placeholder until you wire a real balance
-        note: d.reason,
+        hoursAvailable: d.hours,
+        note: d.reason ?? undefined,
         status: d.status,
     }));
 }

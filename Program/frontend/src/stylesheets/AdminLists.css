@@ -1,0 +1,133 @@
+/* src/stylesheets/AdminLists.css */
+
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Keeps header fixed, body scrolls */
+}
+
+/* The Grid System for Lists */
+.listHeaderGrid,
+.listRowGrid {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px; /* Horizontal padding match */
+}
+
+/* Header Styling */
+.listHeaderGrid {
+  background: #f4f4f5;
+  border-bottom: 1px solid #e0e0e0;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Scrollable Body */
+.listScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 280px;
+}
+
+/* Row Styling */
+.listRowGrid {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  transition: background 0.1s;
+}
+
+.listRowGrid:hover {
+  background: #f9f9fc;
+}
+
+.clickableRow {
+  cursor: pointer;
+}
+.clickableRow:hover {
+  background: #f0f6ff;
+}
+
+/* Empty State */
+.listEmpty {
+  padding: 24px;
+  text-align: center;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+.cardFooter {
+  padding: 16px;
+  border-top: 1px solid #eee;
+  display: flex;
+  justify-content: flex-end;
+  background: #fff;
+}
+
+/* --- Specific Column Definitions --- */
+
+/* 1. Requests: Name | Type | Date */
+.gridRequests {
+  grid-template-columns: 1.5fr 1fr 1fr;
+}
+
+/* 2. Errors: Name | Issue | Time */
+.gridErrors {
+  grid-template-columns: 1fr 1.5fr 0.8fr;
+}
+
+/* 3. Contracts: Name | End Date | Days Left */
+.gridContracts {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+/* 4. Payouts: Name | Date | Status */
+.gridPayouts {
+  grid-template-columns: 1fr 1fr 0.8fr;
+}
+
+/* --- Cell Styling --- */
+.cellMain {
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellSub {
+  color: #555;
+  font-size: 13px;
+}
+
+.cellDate {
+  color: #777;
+  font-size: 13px;
+  text-align: right;
+}
+
+/* Status Colors */
+.cellBad { color: #d32f2f; font-weight: 500; }
+.cellWarn { color: #f57c00; font-weight: 500; }
+.cellOk { color: #2e7d32; font-weight: 600; }
+
+.buttonSecondary {
+  background: white;
+  color: #333;
+  border: 1px solid #ddd;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+}
+.buttonSecondary:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}

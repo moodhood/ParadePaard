@@ -1,0 +1,63 @@
+.payslipContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden; /* Contains the scroll area */
+}
+
+/* The Grid System for Payslips */
+.payslipHeaderGrid,
+.payslipRowGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr 1.5fr 1fr; /* Define column widths here */
+  align-items: center;
+  gap: 10px;
+  padding: 0 16px;
+}
+
+/* Header Styling */
+.payslipHeaderGrid {
+  background: #f4f4f5;
+  border-bottom: 1px solid #e0e0e0;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Scrollable Body */
+.payslipScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+/* Row Styling */
+.payslipRowGrid {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+
+.payslipRowGrid:hover {
+  background: #f9f9fc;
+}
+
+.pdCell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  color: #2F6BFF;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+  font-size: 13px;
+}
+.linkButton:hover { text-decoration: underline; }

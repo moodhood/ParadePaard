@@ -1,231 +1,256 @@
-// UserDashboard.tsx
-import React, { type JSX, useEffect, useState } from "react";
-import "../../stylesheets/app_base.css";
-import "../../stylesheets/app_lists.css";
-import "../../stylesheets/app_calendar.css";
-import "../../stylesheets/app_modal.css";
-import "../../stylesheets/app_forms.css";
+import React, { useEffect, useMemo, useState } from "react";
 
-import Navbar from "../Navbar.tsx";
-import LeaveRequestModal, {type LeaveRequestForm } from "../requests/LeaveRequestModals.tsx";
+import "../../stylesheets/UserDashboard.css"
+import "../../stylesheets/GeneralInfo.css";
+import "../../stylesheets/common/Card.css";
+import "../../stylesheets/Payslips.css";
+import "../../stylesheets/LeaveRequests.css";
+import "../../stylesheets/Shortcuts.css";
 
-type CardProps = { title: string; children?: React.ReactNode; className?: string };
-type StatProps = { label: string; value: string | number };
+import { LeaveRequests } from "../../services/user-service/LeaveRequests";
+import { mapLeaves } from "../../utils/mapLeaveDtoToUi";
+import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
+import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
+import type { LeaveRequestForm } from "../requests/LeaveRequestModals.tsx";
+import  Card  from "../common/Card.tsx"
 
-type PayslipRowProps = {
-    period: string;
-    payday: string;
-    net: string;
-    status: "Paid" | "Processing" | "On hold";
-};
+function isoWeekNumber(date: Date): number {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    const dayNum = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d as any) - (yearStart as any)) / 86400000 + 1) / 7);
+}
 
-export default function UserDashboard(): JSX.Element {
-    const [ready, setReady] = useState(false);
-    const [showLeave, setShowLeave] = useState(false);
+export default function UserDashboard() {
+    // me
+    const [userId, setUserId] = useState<string | null>(null);
+    const [meLoading, setMeLoading] = useState(true);
+    const [meError, setMeError] = useState<string | null>(null);
 
-    useEffect(() => setReady(true), []);
+    // my leaves
+    const [list, setList] = useState<LeaveRequestUI[]>([]);
+    const [listLoading, setListLoading] = useState(false);
+    const [listError, setListError] = useState<string | null>(null);
 
-    const payslips: PayslipRowProps[] = [
-        { period: "Oct 2025", payday: "Oct 30 2025", net: "$2,450.20", status: "Paid" },
-        { period: "Sep 2025", payday: "Sep 30 2025", net: "$2,401.10", status: "Paid" },
-        { period: "Aug 2025", payday: "Aug 30 2025", net: "$2,398.75", status: "Paid" },
-        { period: "Jul 2025", payday: "Jul 30 2025", net: "$2,412.60", status: "Paid" },
+    // modal
+    const [openCreate, setOpenCreate] = useState(false);
+
+    // general info dummy data
+    const currentWeek = useMemo(() => isoWeekNumber(new Date()), []);
+    const [availableHours] = useState<number>(120);
+    const usedHours = 24;
+    const totalHours = availableHours + usedHours;
+
+    // payslips dummy data
+    type PayslipRow = { date: string; week: string; id: string; payslip: string };
+    const payslips: PayslipRow[] = [
+        { date: "2025-11-03", week: "45", id: "PS-2025-45-0012", payslip: "November Week 45" },
+        { date: "2025-10-27", week: "44", id: "PS-2025-44-0009", payslip: "October Week 44" },
+        { date: "2025-10-20", week: "43", id: "PS-2025-43-0007", payslip: "October Week 43" },
+        { date: "2025-10-13", week: "42", id: "PS-2025-42-0005", payslip: "October Week 42" },
+        { date: "2025-10-06", week: "41", id: "PS-2025-41-0003", payslip: "October Week 41" },
+        { date: "2025-09-29", week: "40", id: "PS-2025-40-0001", payslip: "September Week 40" },
+        { date: "2025-09-22", week: "39", id: "PS-2025-39-0001", payslip: "September Week 39" },
+        { date: "2025-09-15", week: "38", id: "PS-2025-38-0001", payslip: "September Week 38" },
     ];
 
-    const leaveAvailable = 56;
-    const leavePending = 8;
-    const leaveUsed = 96;
+    // fetch me
+    useEffect(() => {
+        const fetchMe = async () => {
+            setMeLoading(true);
+            try {
+                const me = await LeaveRequests.getMe();
+                setUserId(me.userId);
+                setMeError(null);
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Could not load current user";
+                setMeError(msg);
+            } finally {
+                setMeLoading(false);
+            }
+        };
+        fetchMe();
+    }, []);
+
+    // fetch my leaves
+    useEffect(() => {
+        if (!userId) return;
+        const fetchMyLeaves = async () => {
+            setListLoading(true);
+            try {
+                const data = await LeaveRequests.listMine(userId);
+                const ui = mapLeaves(data);
+                setList(ui);
+                setListError(null);
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Could not load your leave requests";
+                setListError(msg);
+            } finally {
+                setListLoading(false);
+            }
+        };
+        fetchMyLeaves();
+    }, [userId]);
+
+    // create from modal
+    const handleCreateFromModal = async (form: LeaveRequestForm) => {
+        if (!userId) return;
+        try {
+            const created = await LeaveRequests.create(userId, {
+                type: form.type,
+                startDate: form.fromDate,
+                endDate: form.toDate,
+                hours: form.totalHours,
+                reason: form.note,
+            });
+            const [createdUI] = mapLeaves([created]);
+            setList((old) => [createdUI, ...old]);
+            setOpenCreate(false);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Create failed";
+            setListError(msg);
+        }
+    };
 
     return (
-        <div className="page">
-            <Navbar />
-
-            <header className="page_header">
-                <h1>User Dashboard</h1>
-                <p className="subtitle">Your payroll and leave in one place</p>
+        <div className="userDashboardCard">
+            <header className="pageHeader">
+                <h1 className="pageTitle">User Dashboard</h1>
+                <p className="pageSubtitle">Your payroll and leave in one place</p>
             </header>
 
-            <main className="dashboard_outer">
-                <div className="dashboard_card">
-                    <div className="dashboard_inner">
-                        {/* row one */}
-                        <section className="row_main">
-                            <Card title="Payslips" className="requests_card">
-                                <ul className="list wide_cols scroll_area">
-                                    <PayslipHeaderRow />
-                                    {payslips.map((p) => (
-                                        <PayslipRow
-                                            key={p.period}
-                                            period={p.period}
-                                            payday={p.payday}
-                                            net={p.net}
-                                            status={p.status}
-                                        />
-                                    ))}
-                                </ul>
-
-                                <div className="actions_row">
-                                    <button className="btn btn_secondary">View older</button>
-                                </div>
-                            </Card>
-
-                            <Card title="Leave">
-                                <div className="stats_col">
-                                    <Stat label="Hours left" value={leaveAvailable} />
-                                    <Stat label="Pending" value={leavePending} />
-                                    <Stat label="Used this year" value={leaveUsed} />
-                                </div>
-
-                                <div className="actions_row">
-                                    <button className="btn" onClick={() => setShowLeave(true)}>Request leave</button>
-                                </div>
-                            </Card>
-                        </section>
-
-                        {/* row two */}
-                        <section className="row_secondary">
-                            <Card title="Quick actions" className="errors_card">
-                                <div className="stats_col">
-                                    <ActionButton label="Appeal a payslip" onClick={() => alert("Open payslip appeal form")} />
-                                    <ActionButton label="Update bank info" onClick={() => alert("Open bank info form")} />
-                                    <ActionButton label="View tax forms" onClick={() => alert("Open tax forms")} />
-                                </div>
-                            </Card>
-
-                            <Card title="Messages" className="contracts_card">
-                                <ul className="list narrow_cols scroll_area">
-                                    <li className="list_row">
-                                        <span className="row_name">Next payday</span>
-                                        <time className="row_mid">Oct 30</time>
-                                        <time className="row_when">in 2 days</time>
-                                    </li>
-                                    <li className="list_row">
-                                        <span className="row_name">Reminder bank info</span>
-                                        <span className="row_mid">Check routing</span>
-                                        <time className="row_when">today</time>
-                                    </li>
-                                    <li className="list_row">
-                                        <span className="row_name">Holiday notice</span>
-                                        <span className="row_mid">Nov 27</span>
-                                        <time className="row_when">closed</time>
-                                    </li>
-                                </ul>
-                            </Card>
-                        </section>
-
-                        {/* row three */}
-                        <section className="row_misc">
-                            <Card title="Dates" className="dates_card">
-                                <div className="calendar_stub scroll_area_small">
-                                    <div className="month_head">October 2025</div>
-                                    <div className="date_grid">
-                                        {[...Array(14)].map((_, i) => (
-                                            <div
-                                                key={i}
-                                                className={i === 4 || i === 10 ? "date_cell highlight" : "date_cell"}
-                                            >
-                                                {i + 15}
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="legend">
-                                        <span className="dot" /> payday
-                                    </div>
-                                </div>
-
-                                <div className="actions_row">
-                                    <button className="btn btn_secondary">Open calendar</button>
-                                </div>
-                            </Card>
-
-                            <Card title="Help" className="payout_card">
-                                <ul className="list narrow_cols scroll_area">
-                                    <li className="list_row">
-                                        <span className="row_name">How to read my payslip</span>
-                                        <span className="row_mid">Guide</span>
-                                        <time className="row_when">5 min</time>
-                                    </li>
-                                    <li className="list_row">
-                                        <span className="row_name">Leave policy</span>
-                                        <span className="row_mid">Summary</span>
-                                        <time className="row_when">3 min</time>
-                                    </li>
-                                </ul>
-                            </Card>
-                        </section>
+            <section className="dashboardGrid">
+                
+                {/* 1. General Information */}
+                <Card title="General Information" className="dashboardCardHeight">
+                    <div className="generalInfoRows">
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Current week</div>
+                            <div className="generalInfoValue">Week {currentWeek}</div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Leave hours available</div>
+                            <div className="generalInfoValue">{availableHours} h</div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Leave hours used</div>
+                            <div className="generalInfoValue">{usedHours} h</div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Total leave hours</div>
+                            <div className="generalInfoValue">{totalHours} h</div>
+                        </div>
                     </div>
-                </div>
-            </main>
+                </Card>
+
+                {/* 2. Payslips */}
+                <Card
+                    title="Payslips"
+                    className="dashboardCardHeight"
+                    right={
+                        <button className="button" onClick={() => alert("Open payslips center")}>
+                            View all
+                        </button>
+                    }
+                >
+                    <div className="payslipContainer">
+                        {/* Static Header */}
+                        <div className="payslipHeaderGrid">
+                            <div className="phCell">Date</div>
+                            <div className="phCell">Week</div>
+                            <div className="phCell">Payslip ID</div>
+                            <div className="phCell">Action</div>
+                        </div>
+                        {/* Scrollable Body */}
+                        <div className="payslipScrollArea">
+                            {payslips.map((p) => (
+                                <div key={p.id} className="payslipRowGrid">
+                                    <div className="pdCell">{p.date}</div>
+                                    <div className="pdCell">{p.week}</div>
+                                    <div className="pdCell">{p.id}</div>
+                                    <div className="pdCell">
+                                        <button className="linkButton" onClick={() => alert(`Downloading ${p.id}`)}>
+                                            Download
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </Card>
+
+                {/* 3. My leave requests */}
+                <Card
+                    title="My leave requests"
+                    className="dashboardCardHeight"
+                    right={
+                        <button
+                            className="button"
+                            onClick={() => setOpenCreate(true)}
+                            disabled={meLoading || !!meError}
+                        >
+                            New Request
+                        </button>
+                    }
+                >
+                    {meLoading ? <p className="helperText">Loading your account…</p> : null}
+                    {meError ? <p className="errorText">{meError}</p> : null}
+                    {listLoading ? <p className="helperText">Loading…</p> : null}
+                    {listError ? <p className="errorText">{listError}</p> : null}
+
+                    {!listLoading && !listError ? (
+                        <div className="requestScrollArea">
+                            {list.length === 0 ? <p className="requestListEmpty">No leave requests yet</p> : null}
+
+                            <ul className="requestList">
+                                {list.map((r) => (
+                                    <li key={r.id} className="requestListRow">
+                                        <div className="requestMainLine">
+                                            <span className="reqDateRange">{r.fromDate} to {r.toDate}</span>
+                                            <span className="reqTotalHours">{r.hoursRequested}h</span>
+                                            <span className={`statusText status${r.status.charAt(0) + r.status.slice(1).toLowerCase()}`}>
+                                                {r.status}
+                                            </span>
+                                        </div>
+                                        {r.note && (
+                                            <div className="requestNoteLine">
+                                                Note: {r.note}
+                                            </div>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    ) : null}
+                </Card>
+
+                {/* 4. Shortcuts */}
+                <Card title="Shortcuts" className="dashboardCardHeight">
+                    <div className="shortcutList">
+                        <button className="shortcutBtn" onClick={() => alert("Open payslip center")}>
+                            <div className="shortcutIcon">📄</div>
+                            <span>Payslips</span>
+                        </button>
+                        <button className="shortcutBtn" onClick={() => alert("Open profile")}>
+                            <div className="shortcutIcon">👤</div>
+                            <span>Profile</span>
+                        </button>
+                        <button className="shortcutBtn" onClick={() => alert("Open calendar")}>
+                            <div className="shortcutIcon">📅</div>
+                            <span>Calendar</span>
+                        </button>
+                    </div>
+                </Card>
+
+            </section>
 
             <LeaveRequestModal
-                open={showLeave}
-                onClose={() => setShowLeave(false)}
-                availableHours={leaveAvailable}
-                onSubmit={(data: LeaveRequestForm) => {
-                    alert(
-                        `Leave request\nFrom ${data.fromDate} to ${data.toDate}\nTotal ${data.totalHours} hours`
-                    );
-                }}
+                open={openCreate}
+                onClose={() => setOpenCreate(false)}
+                availableHours={availableHours}
+                onSubmit={handleCreateFromModal}
             />
         </div>
-    );
-}
-
-function Card({ title, children, className }: CardProps): JSX.Element {
-    return (
-        <article className={`card ${className ?? ""}`}>
-            <div className="card_head">
-                <h2>{title}</h2>
-            </div>
-            <div className="card_body">{children}</div>
-        </article>
-    );
-}
-
-function Stat({ label, value }: StatProps): JSX.Element {
-    return (
-        <div className="stat">
-            <span className="stat_label">{label}</span>
-            <span className="stat_value">{value}</span>
-        </div>
-    );
-}
-
-function ActionButton({ label, onClick }: { label: string; onClick: () => void }) {
-    return (
-        <button className="btn btn_secondary" onClick={onClick} style={{ justifyContent: "space-between" }}>
-            {label}
-        </button>
-    );
-}
-
-function PayslipHeaderRow(): JSX.Element {
-    return (
-        <li className="list_row list_row_header">
-            <span className="row_name">Period</span>
-            <span className="row_type">Net pay</span>
-            <span className="row_when">Payday</span>
-        </li>
-    );
-}
-
-function PayslipRow({ period, payday, net }: PayslipRowProps): JSX.Element {
-    return (
-        <li className="list_row">
-            <span className="row_name">{period}</span>
-
-            <span className="row_type" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        {net}
-                <button
-                    className="btn btn_secondary"
-                    onClick={() => alert(`Open ${period} pdf`)}
-                    style={{ padding: "6px 10px" }}
-                >
-          pdf
-        </button>
-      </span>
-
-            <time className="row_when">{payday}</time>
-        </li>
     );
 }

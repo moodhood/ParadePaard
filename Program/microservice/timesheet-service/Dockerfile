@@ -1,20 +1,16 @@
 FROM maven:3.9.10-eclipse-temurin-21 AS builder
-
 WORKDIR /app
 
-COPY pom.xml .
-
-RUN mvn dependency:go-offline -B
+COPY pom.xml ./
+RUN mvn -B dependency:go-offline
 
 COPY src ./src
+RUN mvn -B clean package -DskipTests
 
-RUN mvn clean package
-
-FROM openjdk:21-jdk AS runner
-
+FROM eclipse-temurin:21-jre AS runner
 WORKDIR /app
 
-COPY --from=builder ./app/target/timesheet-service-0.0.1-SNAPSHOT.jar ./app.jar
+COPY --from=builder /app/target/*.jar /app/app.jar
 
 EXPOSE 4001
 

@@ -1,0 +1,75 @@
+.requestScrollArea {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 340px;
+}
+
+.requestList{
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.requestListEmpty{
+  padding: 20px;
+  text-align: center;
+  color: #888;
+  font-style: italic;
+}
+
+.requestListRow{
+  border-bottom: 1px solid #eee;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.requestListRow:last-child{
+  border-bottom: 0;
+}
+
+/* Top line: Date ... Hours ... Status */
+.requestMainLine {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reqDateRange {
+  font-weight: 600;
+  color: #333;
+  font-size: 15px;
+}
+
+.reqTotalHours {
+  margin-left: auto; /* Pushes to right, but keeps status further right */
+  background: #f0f0f0;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #555;
+}
+
+/* Status Colors */
+.statusText {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.statusApproved{ color: #27ae60; }
+.statusRejected{ color: #c0392b; }
+.statusPending{  color: #f39c12; }
+.statusCanceled{ color: #7f8c8d; }
+
+/* Bottom line: Note */
+.requestNoteLine {
+  font-size: 13px;
+  color: #777;
+  margin-top: 2px;
+  padding-left: 2px;
+  font-style: italic;
+}

@@ -5,9 +5,9 @@ export default async function RejectLeaveRequest(
     API_BASE_URL: string,
     requestId: string,
     note?: string
-): Promise<LeaveRequestDTO> {
+): Promise<void> {
     try {
-        const res = await axios.post<LeaveRequestDTO>(
+        const res = await axios.put<LeaveRequestDTO>(
             `${API_BASE_URL}/api/leave-requests/${requestId}/reject`,
             note ? { reason: note } : {},
             {
@@ -18,7 +18,6 @@ export default async function RejectLeaveRequest(
         if (res.status !== 200) {
             throw new Error("Failed to reject with status: " + res.status);
         }
-        return res.data;
     } catch (err) {
         if (axios.isAxiosError(err)) {
             throw new Error(err.response?.data?.message || "Failed to reject");

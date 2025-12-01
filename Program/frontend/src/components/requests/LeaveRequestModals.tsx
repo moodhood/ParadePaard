@@ -1,8 +1,10 @@
-// LeaveRequestModal.tsx
+// src/components/requests/LeaveRequestModal.tsx
 import { useMemo, useState } from "react";
 import Modal from "../common/Modal";
+import type { LeaveType } from "../../services/user-service/types";
 
 export type LeaveRequestForm = {
+    type: LeaveType;
     fromDate: string;
     toDate: string;
     hoursPerDay: number;
@@ -15,6 +17,7 @@ type Props = {
     open: boolean;
     onClose: () => void;
     availableHours: number;
+    defaultType?: LeaveType;
     onSubmit?: (data: LeaveRequestForm) => void;
 };
 
@@ -22,8 +25,10 @@ export default function LeaveRequestModal({
                                               open,
                                               onClose,
                                               availableHours,
+                                              defaultType = "VACATION",
                                               onSubmit,
                                           }: Props) {
+    const [leaveType, setLeaveType] = useState<LeaveType>(defaultType);
     const [fromDate, setFromDate] = useState("");
     const [toDate, setToDate] = useState("");
     const [hoursPerDay, setHoursPerDay] = useState<number>(8);
@@ -42,9 +47,7 @@ export default function LeaveRequestModal({
         while (cur <= d2) {
             const day = cur.getDay();
             const isWeekend = day === 0 || day === 6;
-            if (!excludeWeekends || !isWeekend) {
-                days += 1;
-            }
+            if (!excludeWeekends || !isWeekend) days += 1;
             cur.setDate(cur.getDate() + 1);
         }
         return days * hoursPerDay;
@@ -56,6 +59,7 @@ export default function LeaveRequestModal({
     function handleSubmit() {
         if (!canSubmit) return;
         const payload: LeaveRequestForm = {
+            type: leaveType,
             fromDate,
             toDate,
             hoursPerDay,
@@ -63,13 +67,29 @@ export default function LeaveRequestModal({
             note: note.trim() || undefined,
             totalHours,
         };
-        if (onSubmit) onSubmit(payload);
+        onSubmit?.(payload);
         onClose();
     }
 
     return (
         <Modal open={open} onClose={onClose} title="Request leave">
             <div className="form_grid">
+                <div className="form_row">
+                    <label className="form_label">Type</label>
+                    <select
+                        className="input"
+                        value={leaveType}
+                        onChange={(e) => setLeaveType(e.target.value as LeaveType)}
+                    >
+                        <option value="VACATION">Vacation</option>
+                        <option value="SICK">Sick</option>
+                        <option value="UNPAID">Unpaid</option>
+                        <option value="PARENTAL">Parental</option>
+                        <option value="PERSONAL">Personal</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+
                 <div className="form_row">
                     <label className="form_label">From date</label>
                     <input

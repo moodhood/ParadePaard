@@ -2,29 +2,27 @@
 package com.pm.userservice.dto;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 
 public class LeaveRequestCreateDTO {
 
     @NotBlank(message = "type is required")
-    private String type; // VACATION, SICK, etc
+    private String type;
 
     @NotBlank(message = "startDate is required")
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "startDate must be ISO yyyy-MM-dd")
+    @Pattern(regexp = "^\\d{4}\\-\\d{2}\\-\\d{2}$", message = "startDate must be ISO yyyy MM dd")
     private String startDate;
 
     @NotBlank(message = "endDate is required")
-    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "endDate must be ISO yyyy-MM-dd")
+    @Pattern(regexp = "^\\d{4}\\-\\d{2}\\-\\d{2}$", message = "endDate must be ISO yyyy MM dd")
     private String endDate;
 
-    @NotNull @Positive
+    @Positive(message = "hours must be positive")
     private Integer hours;
 
     private String reason;
 
-    // getters and setters
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
     public String getStartDate() { return startDate; }

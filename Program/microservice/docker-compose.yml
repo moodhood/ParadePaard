@@ -1,0 +1,149 @@
+services:
+  auth-service-db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin_user
+    ports: ["5001:5432"]
+    volumes: ["auth_db_data:/var/lib/postgresql/data"]
+
+  user-service-db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin_user
+    ports: ["5002:5432"]
+    volumes: ["user_db_data:/var/lib/postgresql/data"]
+
+  payroll-service-db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin_user
+    ports: ["5000:5432"]
+    volumes: ["payroll_db_data:/var/lib/postgresql/data"]
+
+  timesheet-service-db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin_user
+    ports: ["5003:5432"]
+    volumes: ["timesheet_db_data:/var/lib/postgresql/data"]
+
+  contract-service-db:
+    image: postgres:16.4
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: admin_user
+    ports: ["5004:5432"]
+    volumes: ["contract_db_data:/var/lib/postgresql/data"]
+
+  kafka:
+    image: bitnamilegacy/kafka:latest
+    environment:
+      KAFKA_CFG_ADVERTISED_LISTENERS: "PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094"
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: "CONTROLLER"
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: "0@kafka:9093"
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: "CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT"
+      KAFKA_CFG_LISTENERS: "PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094"
+      KAFKA_CFG_NODE_ID: "0"
+      KAFKA_CFG_PROCESS_ROLES: "controller,broker"
+    ports: ["9092:9092", "9094:9094"]
+
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    image: auth-service:latest
+    environment:
+      JWT_SECRET: "cc028f2d8dcf1c84ffbf92c9ed5255e8df01bc0ca4a760ebce999a8fdc8741ad"
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://auth-service-db:5432/db"
+      SPRING_DATASOURCE_USERNAME: "admin_user"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      SPRING_SQL_INIT_MODE: "always"
+    depends_on: [auth-service-db, kafka]
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    image: user-service:latest
+    environment:
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://user-service-db:5432/db"
+      SPRING_DATASOURCE_USERNAME: "admin_user"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      SPRING_SQL_INIT_MODE: "always"
+    depends_on: [user-service-db, kafka]
+
+  timesheet-service:
+    build:
+      context: ./timesheet-service
+      dockerfile: Dockerfile
+    image: timesheet-service:latest
+    environment:
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://timesheet-service-db:5432/db"
+      SPRING_DATASOURCE_USERNAME: "admin_user"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_SQL_INIT_MODE: "always"
+    depends_on: [timesheet-service-db]
+
+  contract-service:
+    build:
+      context: ./contract-service
+      dockerfile: Dockerfile
+    image: contract-service:latest
+    environment:
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://contract-service-db:5432/db"
+      SPRING_DATASOURCE_USERNAME: "admin_user"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_SQL_INIT_MODE: "always"
+    depends_on: [contract-service-db]
+
+  payroll-service:
+    build:
+      context: ./payroll-service
+      dockerfile: Dockerfile
+    image: payroll-service:latest
+    environment:
+      CONTRACT_SERVICE_ADDRESS: "contract-service"
+      CONTRACT_SERVICE_GRPC: "9002"
+      TIMESHEET_SERVICE_ADDRESS: "timesheet-service"
+      TIMESHEET_SERVICE_GRPC: "9001"
+      USER_SERVICE_ADDRESS: "user-service"
+      USER_SERVICE_GRPC: "9006"
+      SPRING_DATASOURCE_PASSWORD: "password"
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://payroll-service-db:5432/db"
+      SPRING_DATASOURCE_USERNAME: "admin_user"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
+      SPRING_SQL_INIT_MODE: "always"
+    depends_on: [payroll-service-db, contract-service, timesheet-service, user-service, kafka]
+
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    image: api-gateway:latest
+    environment:
+      AUTH_SERVICE_URL: "http://auth-service:4005"
+    ports: ["4004:4004"]
+    depends_on: [auth-service]
+
+volumes:
+  auth_db_data: {}
+  user_db_data: {}
+  payroll_db_data: {}
+  timesheet_db_data: {}
+  contract_db_data: {}
