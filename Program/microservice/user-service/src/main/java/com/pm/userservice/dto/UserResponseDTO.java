@@ -2,22 +2,22 @@ package com.pm.userservice.dto;
 
 public class UserResponseDTO {
     private String userId;
-    private String name;
     private String email;
-
-    private String streetName;
+    private String preferredName;
+    private String firstNames;
+    private String middleNamePrefix;
+    private String lastName;
+    private String gender;
+    private String dateOfBirth;
+    private String mobileNumber;
+    private String street;
     private String houseNumber;
     private String houseNumberSuffix;
     private String postalCode;
     private String city;
     private String country;
-
-    private String dateOfBirth;
-    private String registeredDate;
-    private String bankAccountNumber;
-    private String phoneNumber;
-
-    private String leaveHours;
+    private String iban;
+    private String status;
 
     public String getUserId() {
         return userId;
@@ -25,14 +25,6 @@ public class UserResponseDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public String getEmail() {
@@ -43,12 +35,68 @@ public class UserResponseDTO {
         this.email = email;
     }
 
-    public String getStreetName() {
-        return streetName;
+    public String getPreferredName() {
+        return preferredName;
     }
 
-    public void setStreetName(String streetName) {
-        this.streetName = streetName;
+    public void setPreferredName(String preferredName) {
+        this.preferredName = preferredName;
+    }
+
+    public String getFirstNames() {
+        return firstNames;
+    }
+
+    public void setFirstNames(String firstNames) {
+        this.firstNames = firstNames;
+    }
+
+    public String getMiddleNamePrefix() {
+        return middleNamePrefix;
+    }
+
+    public void setMiddleNamePrefix(String middleNamePrefix) {
+        this.middleNamePrefix = middleNamePrefix;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public String getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(String dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
     }
 
     public String getHouseNumber() {
@@ -91,43 +139,19 @@ public class UserResponseDTO {
         this.country = country;
     }
 
-    public String getDateOfBirth() {
-        return dateOfBirth;
+    public String getIban() {
+        return iban;
     }
 
-    public void setDateOfBirth(String dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
+    public void setIban(String iban) {
+        this.iban = iban;
     }
 
-    public String getRegisteredDate() {
-        return registeredDate;
+    public String getStatus() {
+        return status;
     }
 
-    public void setRegisteredDate(String registeredDate) {
-        this.registeredDate = registeredDate;
-    }
-
-    public String getBankAccountNumber() {
-        return bankAccountNumber;
-    }
-
-    public void setBankAccountNumber(String bankAccountNumber) {
-        this.bankAccountNumber = bankAccountNumber;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public String getLeaveHours() {
-        return leaveHours;
-    }
-
-    public void setLeaveHours(String leaveHours) {
-        this.leaveHours = leaveHours;
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

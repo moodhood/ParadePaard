@@ -4,14 +4,39 @@ import Register from "./pages/Register";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import Onboarding from "./pages/Onboarding";
+import RequireActiveUser from "./components/RequireActiveUser";
+import RequireOnboarding from "./components/RequireOnboarding";
 
 export default function App() {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} /> {/* Added route */}
+            <Route
+                path="/dashboard"
+                element={
+                    <RequireActiveUser>
+                        <Dashboard />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/profile"
+                element={
+                    <RequireActiveUser>
+                        <Profile />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/onboarding"
+                element={
+                    <RequireOnboarding>
+                        <Onboarding />
+                    </RequireOnboarding>
+                }
+            />
             <Route path="/" element={<Home />} />
         </Routes>
     );

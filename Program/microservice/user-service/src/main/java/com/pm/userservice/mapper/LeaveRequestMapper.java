@@ -54,7 +54,7 @@ public final class LeaveRequestMapper {
         LeaveRequestResponseDTO dto = new LeaveRequestResponseDTO();
         dto.setRequestId(lr.getRequestId().toString());
         dto.setUserId(lr.getUser().getUserId().toString());
-        dto.setUserName(lr.getUser().getName());
+        dto.setUserName(resolveDisplayName(lr.getUser()));
         dto.setType(lr.getType().name());
         dto.setStartDate(lr.getStartDate().toString());
         dto.setEndDate(lr.getEndDate().toString());
@@ -64,5 +64,28 @@ public final class LeaveRequestMapper {
         dto.setCreatedAt(lr.getCreatedAt().toString());
         dto.setUpdatedAt(lr.getUpdatedAt().toString());
         return dto;
+    }
+
+    private static String resolveDisplayName(User user) {
+        if (user.getPreferredName() != null && !user.getPreferredName().isBlank()) {
+            return user.getPreferredName();
+        }
+        StringBuilder name = new StringBuilder();
+        if (user.getFirstNames() != null && !user.getFirstNames().isBlank()) {
+            name.append(user.getFirstNames());
+        }
+        if (user.getMiddleNamePrefix() != null && !user.getMiddleNamePrefix().isBlank()) {
+            if (name.length() > 0) {
+                name.append(" ");
+            }
+            name.append(user.getMiddleNamePrefix());
+        }
+        if (user.getLastName() != null && !user.getLastName().isBlank()) {
+            if (name.length() > 0) {
+                name.append(" ");
+            }
+            name.append(user.getLastName());
+        }
+        return name.isEmpty() ? "" : name.toString();
     }
 }

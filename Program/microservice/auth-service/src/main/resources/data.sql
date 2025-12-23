@@ -9,6 +9,7 @@ DROP TABLE IF EXISTS auth_user_roles;
 CREATE TABLE IF NOT EXISTS "users" (
                                        id UUID PRIMARY KEY,
                                        email VARCHAR(255) UNIQUE NOT NULL,
+                                       username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL
     );
 
@@ -31,15 +32,17 @@ CREATE TABLE IF NOT EXISTS auth_user_roles (
     );
 
 -- seed user
-INSERT INTO "users" (id, email, password)
+INSERT INTO "users" (id, email, username, password)
 SELECT
     '223e4567-e89b-12d3-a456-426614174006'::uuid,
     'testuser@test.com',
+    'testuser',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '223e4567-e89b-12d3-a456-426614174006'::uuid
        OR email = 'testuser@test.com'
+       OR username = 'testuser'
 );
 
 -- seed roles

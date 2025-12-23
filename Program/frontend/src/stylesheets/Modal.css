@@ -1,10 +1,10 @@
-
 /* modal layout */
 .modal_overlay {
     position: fixed; inset: 0;
     background: rgba(15,18,24,0.6);
     display: grid; place-items: center;
     z-index: 999;
+    overflow-x: hidden;
 }
 .modal_box {
     background: #12151c;
@@ -13,7 +13,10 @@
     box-shadow: 0 12px 40px rgba(0,0,0,0.5);
     overflow: hidden;
     display: flex; flex-direction: column;
+    width: min(900px, 92vw);
     max-width: 92vw; max-height: 90vh;
+    box-sizing: border-box;
+    overflow-x: hidden;
 }
 .modal_header {
     display: flex; align-items: center; justify-content: space-between;
@@ -24,26 +27,145 @@
     background: transparent; color: #e6e7eb; border: none;
     font-size: 22px; line-height: 1; cursor: pointer;
 }
-.modal_body { padding: 16px; overflow: auto; color: #e6e7eb; font-size: 14px; }
+.modal_body { padding: 16px; overflow-y: auto; overflow-x: hidden; color: #e6e7eb; font-size: 14px; min-width: 0; }
 .modal_footer { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; gap: 8px; justify-content: flex-end; }
+
+/* Modal Inputs */
+.modal_input {
+    width: 100%;
+    background: #151a22;
+    color: #e6e7eb;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 14px;
+    line-height: 1.2;
+    outline: none;
+    box-shadow: 0 0 0 0 rgba(88, 168, 255, 0);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+    color-scheme: dark;
+    box-sizing: border-box; 
+}
+.modal_input::placeholder {
+    color: rgba(230, 231, 235, 0.55);
+}
+.modal_input:focus {
+    border-color: rgba(88, 168, 255, 0.8);
+    box-shadow: 0 0 0 3px rgba(88, 168, 255, 0.25);
+}
+
+select.modal_input {
+    appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, rgba(230, 231, 235, 0.9) 50%),
+        linear-gradient(135deg, rgba(230, 231, 235, 0.9) 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) 50%,
+        calc(100% - 12px) 50%;
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 34px;
+}
+
+input[type="date"].modal_input::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.9);
+    opacity: 0.8;
+}
+input[type="date"].modal_input::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Modal Buttons (Blend in Styles) */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    outline: none;
+    
+    /* Primary: Dark Slate/Blue to blend with dark modal */
+    background: #2b303b;
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn:hover:not(:disabled) {
+    background: #363c4a;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.btn:focus-visible {
+    box-shadow: 0 0 0 2px rgba(88, 168, 255, 0.5);
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Secondary Button (Cancel) */
+.btn.btn_secondary {
+    background: transparent;
+    border-color: transparent;
+    color: #a0a0a0;
+}
+
+.btn.btn_secondary:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: #e6e7eb;
+}
 
 /* keep modal actions tidy */
 .modal_body .actions_row {
-    margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 24px; display: flex; gap: 12px; flex-wrap: wrap;
     padding-top: 0; border-top: 0; background: transparent;
+    max-width: 100%;
+    min-width: 0;
 }
 
 /* info blocks and sections inside modal */
-.grid_two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.info_item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; }
+.grid_two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 100%; min-width: 0; }
+.info_item { background: rgba(255,255,255,0.03); padding: 10px; border-radius: 8px; max-width: 100%; min-width: 0; }
 .info_label { font-size: 12px; opacity: 0.75; margin-bottom: 4px; color: #e6e7eb; }
 .info_value { font-size: 14px; color: #fff; }
 .text_ok { color: #a1e6a1; }
 .text_bad { color: #ff9aa2; }
-.section_block { margin-top: 14px; }
+.section_block { margin-top: 14px; max-width: 100%; min-width: 0; }
 .section_title { margin: 0 0 6px 0; font-size: 14px; opacity: 0.85; color: #e6e7eb; }
 .section_text { margin: 0; opacity: 0.9; color: #e6e7eb; }
 .bullet_list { padding-left: 18px; margin: 4px 0 0 0; color: #e6e7eb; font-size: 14px; }
+
+.form_grid {
+    display: grid;
+    gap: 12px;
+    max-width: 100%;
+    min-width: 0;
+}
+.form_row,
+.form_row_full {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 100%;
+    min-width: 0;
+}
+.form_row_full { grid-column: 1 / -1; }
+
+.modal_body .uiCard,
+.modal_body .uiCardBody {
+    max-width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 640px) {
+    .grid_two { grid-template-columns: 1fr; }
+}
 
 /* same scroll bar look as lists */
 .modal_body {

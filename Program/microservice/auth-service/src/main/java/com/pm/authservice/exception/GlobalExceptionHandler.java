@@ -30,6 +30,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
+    @ExceptionHandler(UsernameAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleUsernameAlreadyExistsException(Exception ex){
+        log.warn("Username already exists {}!",  ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Username Already Exists");
+        return ResponseEntity.badRequest().body(errors);
+    }
+
     @ExceptionHandler(RoleDoesNotExistException.class)
     public ResponseEntity<Map<String, String>> handleRoleDoesNotExistException(RoleDoesNotExistException ex) {
         log.warn("Role does not exist: {}", ex.getMessage());

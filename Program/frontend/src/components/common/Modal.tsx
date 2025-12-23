@@ -1,15 +1,15 @@
 import React, { useEffect } from "react";
+import "../../stylesheets/Modal.css";
 
 type ModalProps = {
     open: boolean;
     title?: string;
     onClose: () => void;
     children: React.ReactNode;
-    width?: number;
     maxHeight?: number;
 };
 
-export default function Modal({open, title, onClose, children, width = 720, maxHeight = 560}: ModalProps) {
+export default function Modal({open, title, onClose, children, maxHeight = 560}: ModalProps) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
@@ -33,7 +33,7 @@ export default function Modal({open, title, onClose, children, width = 720, maxH
         >
             <div
                 className="modal_box"
-                style={{ width, maxHeight }}
+                style={{ maxHeight }}
             >
                 <div className="modal_header">
                     <h3 className="modal_title">{title}</h3>

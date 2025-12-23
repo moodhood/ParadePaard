@@ -2,20 +2,16 @@ package com.pm.contractservice.grpc;
 
 import com.pm.contractservice.exception.ContractNotFoundException;
 import com.pm.contractservice.model.Contract;
-import com.pm.contractservice.model.Function;
 import com.pm.contractservice.repository.ContractRepository;
 import contract.ContractDataRequest;
 import contract.ContractDataResponse;
-import contract.ContractFunction;
 import contract.ContractServiceGrpc;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
 import net.devh.boot.grpc.server.service.GrpcService;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @GrpcService
 public class ContractGrpcService extends ContractServiceGrpc.ContractServiceImplBase {
@@ -36,19 +32,12 @@ public class ContractGrpcService extends ContractServiceGrpc.ContractServiceImpl
                     .orElseThrow(() -> new ContractNotFoundException("Contract for " + userId + " not found"));
 
 
-            List<ContractFunction> protoFunctions = contract.getFunctions().stream()
-                    .map(function -> ContractFunction.newBuilder()
-                            .setFunctionId(function.getFunctionId().toString())
-                            .setFunctionName(function.getFunctionName())
-                            .setHourlyWage(function.getHourlyWage().toString())
-                            .build()
-                    )
-                    .collect(Collectors.toList());
-
             ContractDataResponse response = ContractDataResponse.newBuilder()
                     .setStartDate(contract.getStartDate().toString())
-                    .setWageTaxAmountTest(contract.getWageTaxAmountTest().toString())
-                    .addAllFunctions(protoFunctions)
+                    .setEndDate(contract.getEndDate().toString())
+                    .setContractType(contract.getContractType().name())
+                    .setGrossHourlyWage(contract.getGrossHourlyWage().toString())
+                    .setTravelAllowance(Boolean.TRUE.equals(contract.getTravelAllowance()))
                     .build();
 
             responseObserver.onNext(response);

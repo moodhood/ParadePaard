@@ -19,6 +19,11 @@ public class UserService {
     public Optional<User> findByEmail(String email) {
         return repo.findByEmail(email);
     }
+    
+    // Added method for login
+    public Optional<User> findByUsername(String username) {
+        return repo.findByUsername(username);
+    }
 
     public Optional<User> findById(UUID id) {
         return repo.findById(id);

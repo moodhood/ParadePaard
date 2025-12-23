@@ -1,10 +1,19 @@
 package com.pm.contractservice.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import jakarta.persistence.Basic;
+import jakarta.persistence.FetchType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -23,17 +32,23 @@ public class Contract {
     @Column(nullable = false)
     private LocalDate endDate;
 
-    // Contract Details
-    @Column(precision = 19, scale = 2, nullable = false)
-    private BigDecimal wageTaxAmountTest;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private ContractType contractType;
 
-    @ManyToMany(fetch = FetchType.LAZY)
-    @JoinTable(
-            name = "contract_functions",
-            joinColumns = @JoinColumn(name = "contract_id"),
-            inverseJoinColumns = @JoinColumn(name = "function_id")
-    )
-    private List<Function> functions;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ContractStatus status = ContractStatus.DRAFT;
+
+    @Column(precision = 19, scale = 2, nullable = false)
+    private BigDecimal grossHourlyWage;
+
+    @Column(nullable = false)
+    private Boolean travelAllowance;
+
+    @Lob
+    @Basic(fetch = FetchType.LAZY)
+    private byte[] pdfData;
 
     public UUID getContractId() {
         return contractId;
@@ -67,19 +82,43 @@ public class Contract {
         this.endDate = endDate;
     }
 
-    public BigDecimal getWageTaxAmountTest() {
-        return wageTaxAmountTest;
+    public ContractType getContractType() {
+        return contractType;
     }
 
-    public void setWageTaxAmountTest(BigDecimal wageTaxAmountTest) {
-        this.wageTaxAmountTest = wageTaxAmountTest;
+    public void setContractType(ContractType contractType) {
+        this.contractType = contractType;
     }
 
-    public List<Function> getFunctions() {
-        return functions;
+    public ContractStatus getStatus() {
+        return status;
     }
 
-    public void setFunctions(List<Function> functions) {
-        this.functions = functions;
+    public void setStatus(ContractStatus status) {
+        this.status = status;
+    }
+
+    public BigDecimal getGrossHourlyWage() {
+        return grossHourlyWage;
+    }
+
+    public void setGrossHourlyWage(BigDecimal grossHourlyWage) {
+        this.grossHourlyWage = grossHourlyWage;
+    }
+
+    public Boolean getTravelAllowance() {
+        return travelAllowance;
+    }
+
+    public void setTravelAllowance(Boolean travelAllowance) {
+        this.travelAllowance = travelAllowance;
+    }
+
+    public byte[] getPdfData() {
+        return pdfData;
+    }
+
+    public void setPdfData(byte[] pdfData) {
+        this.pdfData = pdfData;
     }
 }

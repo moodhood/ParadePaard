@@ -3,6 +3,7 @@ package com.pm.contractservice.controller;
 
 import com.pm.contractservice.dto.ContractRequestDTO;
 import com.pm.contractservice.dto.ContractResponseDTO;
+import com.pm.contractservice.dto.ContractViewDTO;
 import com.pm.contractservice.dto.FunctionRequestDTO;
 import com.pm.contractservice.dto.FunctionResponseDTO;
 import com.pm.contractservice.dto.validators.CreateContractValidationGroup;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,12 +59,32 @@ public class ContractController {
         return ResponseEntity.ok().body(contractResponseDTO);
     }
 
+    @GetMapping("/{id}/view")
+    @Operation(summary = "Get contract view with user data")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<ContractViewDTO> getContractView(@PathVariable UUID id) {
+        ContractViewDTO contractViewDTO = contractService.getContractView(id);
+        return ResponseEntity.ok().body(contractViewDTO);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete contract admin only")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> deleteContract(@PathVariable UUID id) {
         contractService.deleteContract(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/finalize")
+    @Operation(summary = "Finalize contract for current user")
+    @PreAuthorize("hasAuthority('USER') or hasAuthority('ADMIN')")
+    public ResponseEntity<ContractResponseDTO> finalizeContract(Authentication authentication) {
+        if (authentication == null || authentication.getName() == null) {
+            return ResponseEntity.status(401).build();
+        }
+        UUID userId = UUID.fromString(authentication.getName());
+        ContractResponseDTO response = contractService.finalizeContract(userId);
+        return ResponseEntity.ok().body(response);
     }
 
     @GetMapping("/function")

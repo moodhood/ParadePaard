@@ -4,8 +4,8 @@ import com.pm.authservice.dto.AuthResponseDTO;
 import com.pm.authservice.dto.LoginRequestDTO;
 import com.pm.authservice.dto.RegisterRequestDTO;
 import com.pm.authservice.exception.EmailAlreadyExistsException;
+// You might want to create a UsernameAlreadyExistsException or reuse a generic one
 import com.pm.authservice.exception.RoleDoesNotExistException;
-import com.pm.authservice.exception.UserNotFoundException;
 import com.pm.authservice.kafka.KafkaProducer;
 import com.pm.authservice.mapper.RegisterMapper;
 import com.pm.authservice.model.Role;
@@ -21,10 +21,10 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.pm.authservice.exception.UserNotFoundException;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -52,12 +52,30 @@ public class AuthService {
 
     @Transactional
     public ResponseEntity<AuthResponseDTO> register(RegisterRequestDTO registerRequestDTO) {
+        // Check Email
         if (userRepository.existsByEmail(registerRequestDTO.getEmail())) {
             throw new EmailAlreadyExistsException(
                     "A user with this email already exists " + registerRequestDTO.getEmail()
             );
         }
+
         User user = RegisterMapper.toModel(registerRequestDTO, passwordEncoder);
+
+        // --- GENERATE USERNAME LOGIC ---
+        // 1. Combine First + Last
+        // 2. Convert to Lowercase
+        // 3. Replace spaces with dots
+        String rawName = registerRequestDTO.getFirstName() + "." + registerRequestDTO.getLastName();
+        String generatedUsername = rawName.toLowerCase(Locale.ROOT).replace(" ", ".");
+        
+        // Optional: Check if username exists and throw error or append number
+        if (userRepository.existsByUsername(generatedUsername)) {
+             throw new RuntimeException("Username '" + generatedUsername + "' is already taken.");
+        }
+        
+        user.setUsername(generatedUsername);
+        // -------------------------------
+
         Role userRole = roleRepository.findByName("USER")
                 .orElseThrow(() -> new RoleDoesNotExistException("USER role is missing seed it first"));
         user.setRoles(List.of(userRole));
@@ -68,7 +86,9 @@ public class AuthService {
         String accessToken = accessToken(newUser);
         String refreshToken = refreshToken(newUser);
 
+        // NOTE: We return the generated username in the response message or DTO so the user knows what it is
         AuthResponseDTO authResponseDTO = authResponseDTO(newUser.getId().toString(), newUser.getEmail());
+        authResponseDTO.setMessage("Registration successful. Your username is: " + newUser.getUsername());
 
         ResponseCookie responseRefreshCookie = responseRefreshCookie(refreshToken);
         ResponseCookie responseAccessCookie = responseAccessCookie(accessToken);
@@ -80,7 +100,8 @@ public class AuthService {
     }
 
     public ResponseEntity<AuthResponseDTO> authenticate(LoginRequestDTO loginRequestDTO) {
-        return userService.findByEmail(loginRequestDTO.getEmail())
+        // Update: findByUsername instead of findByEmail
+        return userService.findByUsername(loginRequestDTO.getUsername())
                 .filter(user -> passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword()))
                 .map(user -> {
                     String accessToken = accessToken(user);
@@ -99,6 +120,8 @@ public class AuthService {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
+    // ... [Rest of the file remains unchanged: refreshToken, logout, cookies, helper methods] ...
+    
     public ResponseEntity<AuthResponseDTO> refreshToken(String refreshToken) {
         try {
             jwtUtil.validateToken(refreshToken);

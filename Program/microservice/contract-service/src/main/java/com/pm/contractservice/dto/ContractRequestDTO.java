@@ -1,12 +1,9 @@
 package com.pm.contractservice.dto;
 
-import com.pm.contractservice.model.Function;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 public class ContractRequestDTO {
     @NotBlank(message = "userId is required")
@@ -18,11 +15,12 @@ public class ContractRequestDTO {
     @NotBlank(message = "endDate is required")
     private String endDate;
 
-    // Contract Details
-    @NotNull(message = "wageTaxAmountTest is required")
-    private BigDecimal wageTaxAmountTest; //TODO test tax
-    @NotEmpty(message = "functions list cannot be empty")
-    private List<String> functions;
+    @NotBlank(message = "contractType is required")
+    private String contractType;
+    @NotNull(message = "grossHourlyWage is required")
+    private BigDecimal grossHourlyWage;
+    @NotNull(message = "travelAllowance is required")
+    private Boolean travelAllowance;
 
     public String getUserId() {
         return userId;
@@ -48,19 +46,27 @@ public class ContractRequestDTO {
         this.endDate = endDate;
     }
 
-    public BigDecimal getWageTaxAmountTest() {
-        return wageTaxAmountTest;
+    public String getContractType() {
+        return contractType;
     }
 
-    public void setWageTaxAmountTest(BigDecimal wageTaxAmountTest) {
-        this.wageTaxAmountTest = wageTaxAmountTest;
+    public void setContractType(String contractType) {
+        this.contractType = contractType;
     }
 
-    public List<String> getFunctions() {
-        return functions;
+    public BigDecimal getGrossHourlyWage() {
+        return grossHourlyWage;
     }
 
-    public void setFunctions(List<String> functions) {
-        this.functions = functions;
+    public void setGrossHourlyWage(BigDecimal grossHourlyWage) {
+        this.grossHourlyWage = grossHourlyWage;
+    }
+
+    public Boolean getTravelAllowance() {
+        return travelAllowance;
+    }
+
+    public void setTravelAllowance(Boolean travelAllowance) {
+        this.travelAllowance = travelAllowance;
     }
 }

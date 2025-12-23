@@ -31,6 +31,10 @@ public class KafkaConsumer {
             User user = UserMapper.toModelUserRegisteredEvent(userRegisteredEvent);
 
             if (user != null) {
+                if (userRepository.existsById(user.getUserId())) {
+                    log.info("User already exists with ID: {}", user.getUserId());
+                    return;
+                }
                 User newUser = userRepository.save(user);
                 log.info("Saved new user with ID: {}", newUser.getUserId());
             }

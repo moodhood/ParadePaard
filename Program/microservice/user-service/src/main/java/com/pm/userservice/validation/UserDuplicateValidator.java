@@ -1,7 +1,6 @@
 package com.pm.userservice.validation;
 
 import com.pm.userservice.dto.UserRequestDTO;
-import com.pm.userservice.exception.BankAccountNumberAlreadyExistsException;
 import com.pm.userservice.exception.EmailAlreadyExistsException;
 import com.pm.userservice.exception.PhoneNumberAlreadyExistsException;
 import com.pm.userservice.repository.UserRepository;
@@ -25,16 +24,11 @@ public class UserDuplicateValidator {
                     "Email already exists " + userRequestDTO.getEmail());
         }
 
-        if (userRepository.existsByBankAccountNumberAndUserIdNot(
-                userRequestDTO.getBankAccountNumber(), currentId)) {
-            throw new BankAccountNumberAlreadyExistsException(
-                    "Bank account number already exists " + userRequestDTO.getBankAccountNumber());
-        }
-
-        if (userRepository.existsByPhoneNumberAndUserIdNot(
-                userRequestDTO.getPhoneNumber(), currentId)) {
+        if (userRequestDTO.getMobileNumber() != null
+                && userRepository.existsByMobileNumberAndUserIdNot(
+                userRequestDTO.getMobileNumber(), currentId)) {
             throw new PhoneNumberAlreadyExistsException(
-                    "Phone number already exists " + userRequestDTO.getPhoneNumber());
+                    "Phone number already exists " + userRequestDTO.getMobileNumber());
         }
     }
 }

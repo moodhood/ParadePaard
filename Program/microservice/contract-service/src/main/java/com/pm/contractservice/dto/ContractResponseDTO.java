@@ -1,11 +1,11 @@
 package com.pm.contractservice.dto;
 
-import com.pm.contractservice.model.Function;
+import com.pm.contractservice.model.ContractType;
+import com.pm.contractservice.model.ContractStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
-import java.util.List;
 
 public class ContractResponseDTO {
 
@@ -16,17 +16,10 @@ public class ContractResponseDTO {
     private LocalDate startDate;
     private LocalDate endDate;
 
-    // Contract Details
-    private BigDecimal wageTaxAmountTest; //TODO test tax
-    private List<Function> functions;
-
-    public List<Function> getFunctions() {
-        return functions;
-    }
-
-    public void setFunctions(List<Function> functions) {
-        this.functions = functions;
-    }
+    private ContractType contractType;
+    private ContractStatus status;
+    private BigDecimal grossHourlyWage;
+    private Boolean travelAllowance;
 
     public UUID getContractId() {
         return contractId;
@@ -60,13 +53,35 @@ public class ContractResponseDTO {
         this.endDate = endDate;
     }
 
-    public BigDecimal getWageTaxAmountTest() {
-        return wageTaxAmountTest;
+    public ContractType getContractType() {
+        return contractType;
     }
 
-    public void setWageTaxAmountTest(BigDecimal wageTaxAmountTest) {
-        this.wageTaxAmountTest = wageTaxAmountTest;
+    public void setContractType(ContractType contractType) {
+        this.contractType = contractType;
     }
 
+    public ContractStatus getStatus() {
+        return status;
+    }
 
+    public void setStatus(ContractStatus status) {
+        this.status = status;
+    }
+
+    public BigDecimal getGrossHourlyWage() {
+        return grossHourlyWage;
+    }
+
+    public void setGrossHourlyWage(BigDecimal grossHourlyWage) {
+        this.grossHourlyWage = grossHourlyWage;
+    }
+
+    public Boolean getTravelAllowance() {
+        return travelAllowance;
+    }
+
+    public void setTravelAllowance(Boolean travelAllowance) {
+        this.travelAllowance = travelAllowance;
+    }
 }

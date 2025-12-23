@@ -4,8 +4,9 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -15,24 +16,29 @@ import java.util.UUID;
 public class User {
     @Id
     private UUID userId;
+
     @Email
     @Column(unique = true)
     private String email;
-    private String name;
-    private String streetName;
+
+    private String preferredName;
+    private String firstNames;
+    private String middleNamePrefix;
+    private String lastName;
+    private String gender;
+    private LocalDate dateOfBirth;
+    private String mobileNumber;
+    private String street;
     private String houseNumber;
     private String houseNumberSuffix;
     private String postalCode;
     private String city;
     private String country;
-    private LocalDate dateOfBirth;
-    @NotNull
-    private LocalDate registeredDate;
-    @Column(unique = true)
-    private String bankAccountNumber;
-    @Column(unique = true)
-    private String phoneNumber;
-    private String leaveHours;
+    private String iban;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private UserStatus status = UserStatus.PENDING_SETUP;
 
     public UUID getUserId() {
         return userId;
@@ -50,20 +56,68 @@ public class User {
         this.email = email;
     }
 
-    public String getName() {
-        return name;
+    public String getPreferredName() {
+        return preferredName;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setPreferredName(String preferredName) {
+        this.preferredName = preferredName;
     }
 
-    public String getStreetName() {
-        return streetName;
+    public String getFirstNames() {
+        return firstNames;
     }
 
-    public void setStreetName(String streetName) {
-        this.streetName = streetName;
+    public void setFirstNames(String firstNames) {
+        this.firstNames = firstNames;
+    }
+
+    public String getMiddleNamePrefix() {
+        return middleNamePrefix;
+    }
+
+    public void setMiddleNamePrefix(String middleNamePrefix) {
+        this.middleNamePrefix = middleNamePrefix;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public String getGender() {
+        return gender;
+    }
+
+    public void setGender(String gender) {
+        this.gender = gender;
+    }
+
+    public LocalDate getDateOfBirth() {
+        return dateOfBirth;
+    }
+
+    public void setDateOfBirth(LocalDate dateOfBirth) {
+        this.dateOfBirth = dateOfBirth;
+    }
+
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+
+    public String getStreet() {
+        return street;
+    }
+
+    public void setStreet(String street) {
+        this.street = street;
     }
 
     public String getHouseNumber() {
@@ -106,43 +160,19 @@ public class User {
         this.country = country;
     }
 
-    public LocalDate getDateOfBirth() {
-        return dateOfBirth;
+    public String getIban() {
+        return iban;
     }
 
-    public void setDateOfBirth(LocalDate dateOfBirth) {
-        this.dateOfBirth = dateOfBirth;
+    public void setIban(String iban) {
+        this.iban = iban;
     }
 
-    public LocalDate getRegisteredDate() {
-        return registeredDate;
+    public UserStatus getStatus() {
+        return status;
     }
 
-    public void setRegisteredDate(LocalDate registeredDate) {
-        this.registeredDate = registeredDate;
-    }
-
-    public String getBankAccountNumber() {
-        return bankAccountNumber;
-    }
-
-    public void setBankAccountNumber(String bankAccountNumber) {
-        this.bankAccountNumber = bankAccountNumber;
-    }
-
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-
-    public String getLeaveHours() {
-        return leaveHours;
-    }
-
-    public void setLeaveHours(String leaveHours) {
-        this.leaveHours = leaveHours;
+    public void setStatus(UserStatus status) {
+        this.status = status;
     }
 }

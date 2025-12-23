@@ -1,14 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthServices } from "../services/auth-service/AuthServices.tsx";
-import EmailLabel from "../components/EmailLabel";
+import UsernameLabel from "../components/UsernameLabel";
 import PasswordLabel from "../components/PasswordLabel.tsx";
 import Button from "../components/Button.tsx";
 import "../stylesheets/Login.css"
+import { UserServices } from "../services/user-service/UserServices";
+import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
     const navigate = useNavigate();
-    const [email, setEmail] = useState("");
+    const { setStatus } = useAuth();
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -19,9 +22,16 @@ export default function Login() {
         setLoading(true);
 
         try {
-            const response = await AuthServices.login(email, password);
+            const response = await AuthServices.login(username, password);
             console.log("Login successful:", response.message);
-            navigate("/dashboard");
+            const me = await UserServices.getMe();
+            if (me.status === "PENDING_SETUP") {
+                setStatus("PENDING_SETUP");
+                navigate("/onboarding");
+            } else {
+                setStatus("ACTIVE");
+                navigate("/dashboard");
+            }
         } catch (err: unknown) {
             const errorMessage = err instanceof Error
                 ? err.message
@@ -36,7 +46,7 @@ export default function Login() {
         <div className="login-container">
             <h1 className="login-title">Login</h1>
             <form onSubmit={handleSubmit}>
-                <EmailLabel email={email} setEmail={setEmail} />
+                <UsernameLabel username={username} setUsername={setUsername} />
                 <PasswordLabel
                     label="Password"
                     value={password}

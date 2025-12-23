@@ -75,7 +75,10 @@ public class PayslipMapper {
             TimesheetDataResponse timesheetData
     ) {
         payslip.setStartDate(LocalDate.parse(contractData.getStartDate()));
-        payslip.setWageTaxWithheldTest(new BigDecimal(contractData.getWageTaxAmountTest()));
-        payslip.setTimesheets(PayslipTimesheetMerger.merge(contractData, timesheetData));
+        payslip.setWageTaxWithheldTest(BigDecimal.ZERO);
+        payslip.setTimesheets(PayslipTimesheetMerger.merge(
+                new BigDecimal(contractData.getGrossHourlyWage()),
+                timesheetData
+        ));
     }
 }

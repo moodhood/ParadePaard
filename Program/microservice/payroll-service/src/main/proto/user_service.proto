@@ -20,4 +20,11 @@ message UserDataResponse {
   string postalCode = 6;
   string city = 7;
   string country = 8;
+  string preferredName = 9;
+  string firstNames = 10;
+  string middleNamePrefix = 11;
+  string lastName = 12;
+  string gender = 13;
+  string email = 14;
+  string mobileNumber = 15;
 }

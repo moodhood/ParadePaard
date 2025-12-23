@@ -6,10 +6,10 @@ export type LoginResponse = {
     email: string;
 };
 
-export default async function Login(email: string, password: string, API_BASE_URL: string): Promise<LoginResponse> {
+export default async function Login(username: string, password: string, API_BASE_URL: string): Promise<LoginResponse> {
     const response = await axios.post<LoginResponse>(
         `${API_BASE_URL}/auth/login`,
-        { email, password },
+        { username, password },
         {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,

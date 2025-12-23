@@ -77,7 +77,7 @@ export default function LeaveRequestModal({
                 <div className="form_row">
                     <label className="form_label">Type</label>
                     <select
-                        className="input"
+                        className="modal_input"
                         value={leaveType}
                         onChange={(e) => setLeaveType(e.target.value as LeaveType)}
                     >
@@ -94,7 +94,7 @@ export default function LeaveRequestModal({
                     <label className="form_label">From date</label>
                     <input
                         type="date"
-                        className="input"
+                        className="modal_input"
                         value={fromDate}
                         onChange={(e) => setFromDate(e.target.value)}
                     />
@@ -104,7 +104,7 @@ export default function LeaveRequestModal({
                     <label className="form_label">To date</label>
                     <input
                         type="date"
-                        className="input"
+                        className="modal_input"
                         value={toDate}
                         onChange={(e) => setToDate(e.target.value)}
                     />
@@ -116,7 +116,7 @@ export default function LeaveRequestModal({
                         type="number"
                         min={1}
                         step={0.5}
-                        className="input"
+                        className="modal_input"
                         value={hoursPerDay}
                         onChange={(e) => setHoursPerDay(Number(e.target.value))}
                     />
@@ -138,7 +138,7 @@ export default function LeaveRequestModal({
                     <label className="form_label">Note</label>
                     <textarea
                         rows={3}
-                        className="input"
+                        className="modal_input"
                         placeholder="Optional message"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}

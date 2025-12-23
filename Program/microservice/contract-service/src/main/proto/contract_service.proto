@@ -16,13 +16,8 @@ message ContractDataRequest {
 // Response with snapshot of contract
 message ContractDataResponse {
   string startDate = 1;
-  string wageTaxAmountTest = 2; // keep as string to avoid decimal loss
-  repeated ContractFunction functions = 3;
-}
-
-// A function within a contract
-message ContractFunction {
-  string functionId = 1;
-  string functionName = 2;
-  string hourlyWage = 3; // keep as string or store minor units in int64
+  string endDate = 2;
+  string contractType = 3;
+  string grossHourlyWage = 4; // keep as string to avoid decimal loss
+  bool travelAllowance = 5;
 }

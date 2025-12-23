@@ -1,0 +1,45 @@
+package com.pm.userservice.integration;
+
+import com.pm.userservice.dto.AuthRegisterRequestDTO;
+import com.pm.userservice.dto.AuthRegisterResponseDTO;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class AuthServiceClient {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthServiceClient.class);
+
+    private final RestTemplate restTemplate;
+    private final String baseUrl;
+
+    public AuthServiceClient(
+            @Value("${auth.service.base-url:http://localhost:4004}") String baseUrl) {
+        this.restTemplate = new RestTemplate();
+        this.baseUrl = baseUrl;
+    }
+
+    public AuthRegisterResponseDTO register(AuthRegisterRequestDTO request) {
+        String url = baseUrl + "/auth/register";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        HttpEntity<AuthRegisterRequestDTO> entity = new HttpEntity<>(request, headers);
+
+        try {
+            return restTemplate.exchange(url, HttpMethod.POST, entity, AuthRegisterResponseDTO.class).getBody();
+        } catch (RestClientException e) {
+            log.error("Auth service register failed", e);
+            throw e;
+        }
+    }
+}

@@ -3,6 +3,7 @@ package com.pm.userservice.mapper;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.model.User;
+import com.pm.userservice.model.UserStatus;
 import user.events.UserRegisteredEvent;
 
 import java.time.LocalDate;
@@ -16,18 +17,21 @@ public class UserMapper {
         UserResponseDTO dto = new UserResponseDTO();
         dto.setUserId(user.getUserId() != null ? user.getUserId().toString() : null);
         dto.setEmail(user.getEmail());
-        dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
-        dto.setName(user.getName());
-        dto.setStreetName(user.getStreetName());
+        dto.setPreferredName(user.getPreferredName());
+        dto.setFirstNames(user.getFirstNames());
+        dto.setMiddleNamePrefix(user.getMiddleNamePrefix());
+        dto.setLastName(user.getLastName());
+        dto.setGender(user.getGender());
+        dto.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
+        dto.setMobileNumber(user.getMobileNumber());
+        dto.setStreet(user.getStreet());
         dto.setHouseNumber(user.getHouseNumber());
         dto.setHouseNumberSuffix(user.getHouseNumberSuffix());
         dto.setPostalCode(user.getPostalCode());
         dto.setCity(user.getCity());
         dto.setCountry(user.getCountry());
-        dto.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
-        dto.setBankAccountNumber(user.getBankAccountNumber());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setLeaveHours(user.getLeaveHours());
+        dto.setIban(user.getIban());
+        dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
         return dto;
     }
@@ -39,16 +43,20 @@ public class UserMapper {
 
         User user = new User();
         user.setEmail(userRequestDTO.getEmail());
-        user.setName(userRequestDTO.getName());
-        user.setStreetName(userRequestDTO.getStreetName());
+        user.setPreferredName(userRequestDTO.getPreferredName());
+        user.setFirstNames(userRequestDTO.getFirstNames());
+        user.setMiddleNamePrefix(userRequestDTO.getMiddleNamePrefix());
+        user.setLastName(userRequestDTO.getLastName());
+        user.setGender(userRequestDTO.getGender());
+        user.setDateOfBirth(userRequestDTO.getDateOfBirth() != null ? LocalDate.parse(userRequestDTO.getDateOfBirth()) : null);
+        user.setMobileNumber(userRequestDTO.getMobileNumber());
+        user.setStreet(userRequestDTO.getStreet());
         user.setHouseNumber(userRequestDTO.getHouseNumber());
         user.setHouseNumberSuffix(userRequestDTO.getHouseNumberSuffix());
         user.setPostalCode(userRequestDTO.getPostalCode());
         user.setCity(userRequestDTO.getCity());
         user.setCountry(userRequestDTO.getCountry());
-        user.setDateOfBirth(userRequestDTO.getDateOfBirth() != null ? LocalDate.parse(userRequestDTO.getDateOfBirth()) : null);
-        user.setBankAccountNumber(userRequestDTO.getBankAccountNumber());
-        user.setPhoneNumber(userRequestDTO.getPhoneNumber());
+        user.setIban(userRequestDTO.getIban());
 
         return user;
     }
@@ -61,7 +69,7 @@ public class UserMapper {
         User user = new User();
         user.setUserId(UUID.fromString(event.getUserId()));
         user.setEmail(event.getEmail());
-        user.setRegisteredDate(LocalDate.now());
+        user.setStatus(UserStatus.ACTIVE);
 
         return user;
     }

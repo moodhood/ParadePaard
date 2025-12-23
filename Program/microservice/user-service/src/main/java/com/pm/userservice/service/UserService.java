@@ -9,7 +9,6 @@ import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -35,13 +34,14 @@ public class UserService {
     }
 
     public UserResponseDTO updateUser(UUID id, UserRequestDTO userRequestDTO) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User with id: " + id + " not found");
-        }
+        User existing = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
 
         userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
 
         User user = UserMapper.toModel(userRequestDTO);
+        user.setUserId(id);
+        user.setStatus(existing.getStatus());
 
         User updatedUser = userRepository.save(user);
         return UserMapper.toDTO(updatedUser);

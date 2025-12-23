@@ -1,22 +1,6 @@
 // src/services/user/Get-Me.tsx
 import axios from "axios";
-
-export type MeResponseDTO = {
-    userId: string;
-    name: string;
-    email: string;
-    streetName: string;
-    houseNumber: string;
-    houseNumberSuffix: string;
-    postalCode: string;
-    city: string;
-    country: string;
-    dateOfBirth: string;
-    registeredDate: string;
-    bankAccountNumber: string;
-    phoneNumber: string;
-    leaveHours: string;
-};
+import type { UserResponseDTO as MeResponseDTO } from "./types";
 
 export default async function GetMe(API_BASE_URL: string): Promise<MeResponseDTO> {
     try {
