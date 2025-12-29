@@ -6,10 +6,16 @@ export type RegisterResponse = {
     email: string;
 };
 
-export default async function Register(email: string, username: string, password: string, API_BASE_URL: string): Promise<RegisterResponse> {
+export default async function Register(
+    email: string,
+    password: string,
+    firstName: string | undefined,
+    lastName: string | undefined,
+    API_BASE_URL: string
+): Promise<RegisterResponse> {
     const response = await axios.post<RegisterResponse>(
         `${API_BASE_URL}/auth/register`,
-        { email, username, password },
+        { email, password, firstName, lastName },
         {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,

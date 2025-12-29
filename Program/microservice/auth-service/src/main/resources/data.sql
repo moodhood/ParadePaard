@@ -8,6 +8,8 @@ DROP TABLE IF EXISTS auth_user_roles;
 -- users table matches the entity
 CREATE TABLE IF NOT EXISTS "users" (
                                        id UUID PRIMARY KEY,
+                                       first_name VARCHAR(255) NOT NULL,
+                                       last_name VARCHAR(255) NOT NULL,
                                        email VARCHAR(255) UNIQUE NOT NULL,
                                        username VARCHAR(255) UNIQUE NOT NULL,
     password VARCHAR(255) NOT NULL
@@ -32,9 +34,11 @@ CREATE TABLE IF NOT EXISTS auth_user_roles (
     );
 
 -- seed user
-INSERT INTO "users" (id, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password)
 SELECT
     '223e4567-e89b-12d3-a456-426614174006'::uuid,
+    'Test',
+    'User',
     'testuser@test.com',
     'testuser',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
@@ -46,13 +50,19 @@ SELECT
 );
 
 -- seed roles
-INSERT INTO roles (name)
-SELECT 'ADMIN'
-    WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'ADMIN');
+INSERT INTO roles (id, name)
+SELECT '11111111-aaaa-aaaa-aaaa-111111111111'::uuid, 'ADMIN'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM roles
+        WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'::uuid OR name = 'ADMIN'
+    );
 
-INSERT INTO roles (name)
-SELECT 'USER'
-    WHERE NOT EXISTS (SELECT 1 FROM roles WHERE name = 'USER');
+INSERT INTO roles (id, name)
+SELECT '22222222-bbbb-bbbb-bbbb-222222222222'::uuid, 'USER'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM roles
+        WHERE id = '22222222-bbbb-bbbb-bbbb-222222222222'::uuid OR name = 'USER'
+    );
 
 -- give the user the ADMIN role
 INSERT INTO auth_user_roles (user_id, role_id)

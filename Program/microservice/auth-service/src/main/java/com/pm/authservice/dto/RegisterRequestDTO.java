@@ -6,10 +6,8 @@ import jakarta.validation.constraints.Size;
 
 public class RegisterRequestDTO {
 
-    @NotBlank(message = "First Name is required")
     private String firstName;
 
-    @NotBlank(message = "Last Name is required")
     private String lastName;
 
     @NotBlank(message = "Email is required")

@@ -71,6 +71,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/register", "/register/",     // After StripPrefix=1 from /auth/register
                                 "/login", "/login/",           // After StripPrefix=1 from /auth/login
+                                "/forgot-password", "/forgot-password/",
+                                "/reset-password", "/reset-password/",
                                 "/validate", "/validate/",
                                 "/refresh", "/refresh/",
                                 "/actuator/**",

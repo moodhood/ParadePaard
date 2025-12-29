@@ -16,9 +16,9 @@ export default async function Login(username: string, password: string, API_BASE
         }
     );
 
-        if (response.status !== 200) {
-            throw new Error("Login failed with status: " + response.status);
-        }
+    if (response.status !== 200) {
+        throw new Error("Login failed with status: " + response.status);
+    }
 
-        return response.data;
+    return response.data;
 }

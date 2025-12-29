@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { LeaveRequestDTO } from "./types";
+import type { LeaveRequestDTO } from "./Types";
 
 export default async function GetListUserLeaveRequests(API_BASE_URL: string, userId: string): Promise<LeaveRequestDTO[]> {
     try {

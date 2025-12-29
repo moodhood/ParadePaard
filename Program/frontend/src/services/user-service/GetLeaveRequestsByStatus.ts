@@ -1,9 +1,9 @@
 import axios from "axios";
-import type { LeaveRequestDTO } from "./types";
+import type { LeaveRequestDTO, LeaveStatus } from "./Types";
 
 export default async function GetLeaveRequestsByStatus(
     API_BASE_URL: string,
-    status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELED"
+    status: LeaveStatus
 ): Promise<LeaveRequestDTO[]> {
     try {
         const res = await axios.get<LeaveRequestDTO[]>(

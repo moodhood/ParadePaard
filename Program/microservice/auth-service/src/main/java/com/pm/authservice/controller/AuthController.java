@@ -2,6 +2,7 @@ package com.pm.authservice.controller;
 
 import com.pm.authservice.dto.*;
 import com.pm.authservice.service.AuthService;
+import com.pm.authservice.service.PasswordResetService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -19,9 +20,11 @@ import java.util.UUID;
 @RestController
 public class AuthController {
     private final AuthService authService;
+    private final PasswordResetService passwordResetService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, PasswordResetService passwordResetService) {
         this.authService = authService;
+        this.passwordResetService = passwordResetService;
     }
 
     @Operation(summary = "Register new user and return access token")
@@ -76,6 +79,18 @@ public class AuthController {
     @PostMapping(value = {"/logout", "/logout/"})
     public ResponseEntity<Void> logout() {
         return authService.logout();
+    }
+
+    @Operation(summary = "Request a password reset email (always returns 204)")
+    @PostMapping(value = {"/forgot-password", "/forgot-password/"})
+    public ResponseEntity<Void> forgotPassword(@Valid @RequestBody ForgotPasswordRequestDTO body) {
+        return passwordResetService.requestPasswordReset(body.getEmail());
+    }
+
+    @Operation(summary = "Reset password using a one-time token")
+    @PostMapping(value = {"/reset-password", "/reset-password/"})
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequestDTO body) {
+        return passwordResetService.resetPassword(body.getToken(), body.getNewPassword());
     }
 
     @Operation(summary = "Check if user is ADMIN")

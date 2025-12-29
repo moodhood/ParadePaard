@@ -60,6 +60,20 @@ spring:
               filters:
                 - StripPrefix=1
 
+            - id: auth-service-forgot-password
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/forgot-password
+              filters:
+                - StripPrefix=1
+
+            - id: auth-service-reset-password
+              uri: http://auth-service:4005
+              predicates:
+                - Path=/auth/reset-password
+              filters:
+                - StripPrefix=1
+
             - id: auth-service-refresh
               uri: http://auth-service:4005
               predicates:

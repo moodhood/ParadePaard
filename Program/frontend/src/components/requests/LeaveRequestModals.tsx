@@ -1,7 +1,7 @@
 // src/components/requests/LeaveRequestModal.tsx
 import { useMemo, useState } from "react";
 import Modal from "../common/Modal";
-import type { LeaveType } from "../../services/user-service/types";
+import type { LeaveType } from "../../services/user-service/UserServices";
 
 export type LeaveRequestForm = {
     type: LeaveType;

@@ -1,4 +1,4 @@
-import React, { type JSX, useEffect, useState, useCallback } from "react";
+import { type JSX, useEffect, useState, useCallback } from "react";
 import Navbar from "../Navbar";
 
 import {
@@ -11,7 +11,7 @@ import {
     NewMemberRequestModal,
 } from "../requests/RequestModals";
 
-import { LeaveRequests } from "../../services/user-service/LeaveRequests";
+import { UserServices } from "../../services/user-service/UserServices";
 import { mapLeaves, type LeaveRequestDTO } from "../../utils/mapLeaveDtoToUi";
 import Card from "../common/Card";
 
@@ -31,7 +31,7 @@ export default function AdminDashboard(): JSX.Element {
         try {
             setLoading(true);
             setErr(null);
-            const dtos: LeaveRequestDTO[] = await LeaveRequests.list("PENDING");
+            const dtos: LeaveRequestDTO[] = await UserServices.leaveRequests.list("PENDING");
             const mapped = mapLeaves(dtos) as unknown as AnyRequest[];
             setItems(mapped);
         } catch (e: any) {
@@ -48,7 +48,7 @@ export default function AdminDashboard(): JSX.Element {
     const handleApprove = async (id: string) => {
         try {
             setActing(true);
-            await LeaveRequests.approve(id);
+            await UserServices.leaveRequests.approve(id);
             setOpen(null);
             setVersion((v) => v + 1);
         } catch (e: any) {
@@ -61,7 +61,7 @@ export default function AdminDashboard(): JSX.Element {
     const handleReject = async (id: string, reason?: string) => {
         try {
             setActing(true);
-            await LeaveRequests.reject(id, reason);
+            await UserServices.leaveRequests.reject(id, reason);
             setOpen(null);
             setVersion((v) => v + 1);
         } catch (e: any) {

@@ -1,6 +1,6 @@
 // src/utils/mapLeaveDtoToUi.ts
 import type { LeaveRequest } from "../components/requests/RequestModals";
-import type { LeaveType, LeaveStatus } from "../services/user-service/types";
+import type { LeaveStatus, LeaveType } from "../services/user-service/UserServices";
 
 export type LeaveRequestDTO = {
     requestId: string;

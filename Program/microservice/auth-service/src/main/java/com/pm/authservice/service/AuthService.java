@@ -62,10 +62,21 @@ public class AuthService {
         User user = RegisterMapper.toModel(registerRequestDTO, passwordEncoder);
 
         // --- GENERATE USERNAME LOGIC ---
-        // 1. Combine First + Last
-        // 2. Convert to Lowercase
-        // 3. Replace spaces with dots
-        String rawName = registerRequestDTO.getFirstName() + "." + registerRequestDTO.getLastName();
+        // Prefer first/last if provided, otherwise fall back to email local-part.
+        String firstName = registerRequestDTO.getFirstName();
+        String lastName = registerRequestDTO.getLastName();
+        boolean hasFirst = firstName != null && !firstName.trim().isEmpty();
+        boolean hasLast = lastName != null && !lastName.trim().isEmpty();
+        String rawName;
+        if (hasFirst || hasLast) {
+            String safeFirst = hasFirst ? firstName.trim() : "user";
+            String safeLast = hasLast ? lastName.trim() : "unknown";
+            rawName = safeFirst + "." + safeLast;
+        } else {
+            String email = registerRequestDTO.getEmail();
+            int at = email == null ? -1 : email.indexOf('@');
+            rawName = at > 0 ? email.substring(0, at) : "user";
+        }
         String generatedUsername = rawName.toLowerCase(Locale.ROOT).replace(" ", ".");
         
         // Optional: Check if username exists and throw error or append number

@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { AuthServices } from "../services/auth-service/AuthServices.tsx";
+import { AuthServices } from "../services/auth-service/AuthServices";
 import EmailLabel from "../components/EmailLabel";
-import UsernameLabel from "../components/UsernameLabel";
+import FirstNameLabel from "../components/FirstNameLabel";
+import LastNameLabel from "../components/LastNameLabel";
 import PasswordLabel from "../components/PasswordLabel";
 import Button from "../components/Button";
 import "../stylesheets/Register.css"
 
 export default function Register() {
     const navigate = useNavigate();
-    const [username, setUsername] = useState("");
+    const [firstName, setFirstName] = useState("");
+    const [lastName, setLastName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
@@ -28,7 +30,7 @@ export default function Register() {
         setLoading(true);
 
         try {
-            const response = await AuthServices.register(email, username, password);
+            const response = await AuthServices.register(email, password, firstName, lastName);
             console.log("Register successful:", response.message);
             navigate("/dashboard");
         } catch (err: unknown) {
@@ -46,7 +48,8 @@ export default function Register() {
             <h1 className="register-title">Register</h1>
 
             <form onSubmit={handleSubmit}>
-                <UsernameLabel username={username} setUsername={setUsername} />
+                <FirstNameLabel firstName={firstName} setFirstName={setFirstName} />
+                <LastNameLabel lastName={lastName} setLastName={setLastName} />
                 <EmailLabel email={email} setEmail={setEmail}/>
                 <PasswordLabel label="Password" value={password} onChange={setPassword} placeholder="Your password"/>
                 <PasswordLabel label="Confirm Password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Repeat password"/>

@@ -1,6 +1,6 @@
 // src/services/user/Get-Me.tsx
 import axios from "axios";
-import type { UserResponseDTO as MeResponseDTO } from "./types";
+import type { UserResponseDTO as MeResponseDTO } from "./Types";
 
 export default async function GetMe(API_BASE_URL: string): Promise<MeResponseDTO> {
     try {

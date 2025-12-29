@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { AuthServices } from "../services/auth-service/AuthServices.tsx";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthServices } from "../services/auth-service/AuthServices";
 import UsernameLabel from "../components/UsernameLabel";
 import PasswordLabel from "../components/PasswordLabel.tsx";
 import Button from "../components/Button.tsx";
@@ -54,6 +54,9 @@ export default function Login() {
                     placeholder="Your password"
                 />
                 {errorMsg && (<div className="error-message">{errorMsg}</div>)}
+                <p className="existing-account">
+                    <Link to="/forgot-password">Forgot your password?</Link>
+                </p>
                 <Button type="submit" loading={loading}>Login</Button>
             </form>
         </div>

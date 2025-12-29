@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom"; //
 
 import "../../stylesheets/UserDashboard.css"
@@ -8,7 +8,7 @@ import "../../stylesheets/Payslips.css";
 import "../../stylesheets/LeaveRequests.css";
 import "../../stylesheets/Shortcuts.css";
 
-import { LeaveRequests } from "../../services/user-service/LeaveRequests";
+import { UserServices } from "../../services/user-service/UserServices";
 import { mapLeaves } from "../../utils/mapLeaveDtoToUi";
 import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
 import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
@@ -63,7 +63,7 @@ export default function UserDashboard() {
         const fetchMe = async () => {
             setMeLoading(true);
             try {
-                const me = await LeaveRequests.getMe();
+                const me = await UserServices.getMe();
                 setUserId(me.userId);
                 setMeError(null);
             } catch (err: unknown) {
@@ -82,7 +82,7 @@ export default function UserDashboard() {
         const fetchMyLeaves = async () => {
             setListLoading(true);
             try {
-                const data = await LeaveRequests.listMine(userId);
+                const data = await UserServices.leaveRequests.listMine(userId);
                 const ui = mapLeaves(data);
                 setList(ui);
                 setListError(null);
@@ -100,7 +100,7 @@ export default function UserDashboard() {
     const handleCreateFromModal = async (form: LeaveRequestForm) => {
         if (!userId) return;
         try {
-            const created = await LeaveRequests.create(userId, {
+            const created = await UserServices.leaveRequests.create(userId, {
                 type: form.type,
                 startDate: form.fromDate,
                 endDate: form.toDate,

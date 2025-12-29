@@ -1,23 +1,6 @@
 import { useEffect, useState } from "react";
 import "../stylesheets/Home.css"
-import { UserServices } from "../services/user-service/UserServices.tsx"
-
-type UserResponseDTO = {
-    userId: string;
-    name: string;
-    email: string;
-    streetName: string;
-    houseNumber: string;
-    houseNumberSuffix: string;
-    postalCode: string;
-    city: string;
-    country: string;
-    dateOfBirth: string;
-    registeredDate: string;
-    bankAccountNumber: string;
-    phoneNumber: string;
-    leaveHours: string;
-};
+import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices"
 
 export default function Home() {
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
@@ -66,9 +49,9 @@ export default function Home() {
                         <tr key={user.userId}>
                             <td>{user.name}</td>
                             <td>{user.email}</td>
-                            <td>{user.city}</td>
-                            <td>{user.phoneNumber}</td>
-                            <td>{user.leaveHours}</td>
+                            <td>{user.city ?? "-"}</td>
+                            <td>{user.phoneNumber ?? "-"}</td>
+                            <td>{user.leaveHours ?? "-"}</td>
                         </tr>
                     ))}
                     </tbody>

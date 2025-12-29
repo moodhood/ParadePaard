@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { LeaveRequestCreateDTO, LeaveRequestDTO } from "./types";
+import type { LeaveRequestCreateDTO, LeaveRequestDTO } from "./Types";
 
 export default async function CreateLeaveRequest(
     API_BASE_URL: string,
