@@ -1,4 +1,9 @@
-INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, street, house_number, house_number_suffix, postal_code, city, country, iban, status)
+-- Keep seed scripts compatible with existing databases (e.g. when the table was created
+-- before new columns were added).
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS position VARCHAR(255);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS worked_for_us_before BOOLEAN NOT NULL DEFAULT FALSE;
+
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, status)
 SELECT '11111111-1111-1111-1111-111111111111',
        'jane.doe@example.com',
        'Jane',
@@ -8,6 +13,8 @@ SELECT '11111111-1111-1111-1111-111111111111',
        'FEMALE',
        '1992-04-12',
        '0611111111',
+       'BAR',
+       false,
        'Lindelaan',
        '10',
        'A',
@@ -16,9 +23,13 @@ SELECT '11111111-1111-1111-1111-111111111111',
        'Netherlands',
        'NL91ABNA0417164300',
        'ACTIVE'
-    WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '11111111-1111-1111-1111-111111111111');
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users
+        WHERE user_id = '11111111-1111-1111-1111-111111111111'
+           OR email = 'jane.doe@example.com'
+    );
 
-INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, street, house_number, house_number_suffix, postal_code, city, country, iban, status)
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, status)
 SELECT '22222222-2222-2222-2222-222222222222',
        'mark.vos@example.com',
        'Mark',
@@ -28,6 +39,8 @@ SELECT '22222222-2222-2222-2222-222222222222',
        'MALE',
        '1988-09-22',
        '0622222222',
+       'RUNNER',
+       true,
        'Eikenstraat',
        '45',
        NULL,
@@ -36,7 +49,11 @@ SELECT '22222222-2222-2222-2222-222222222222',
        'Netherlands',
        'DE89370400440532013000',
        'PENDING_SETUP'
-    WHERE NOT EXISTS (SELECT 1 FROM users WHERE user_id = '22222222-2222-2222-2222-222222222222');
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users
+        WHERE user_id = '22222222-2222-2222-2222-222222222222'
+           OR email = 'mark.vos@example.com'
+    );
 
 INSERT INTO leave_requests (request_id, user_id, type, start_date, end_date, hours, reason, status, created_at, updated_at)
 SELECT 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0001',

@@ -39,11 +39,27 @@ public class UserService {
 
         userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
 
-        User user = UserMapper.toModel(userRequestDTO);
-        user.setUserId(id);
-        user.setStatus(existing.getStatus());
+        existing.setEmail(userRequestDTO.getEmail());
+        existing.setPreferredName(userRequestDTO.getPreferredName());
+        existing.setFirstNames(userRequestDTO.getFirstNames());
+        existing.setMiddleNamePrefix(userRequestDTO.getMiddleNamePrefix());
+        existing.setLastName(userRequestDTO.getLastName());
+        existing.setGender(userRequestDTO.getGender());
+        existing.setDateOfBirth(
+                userRequestDTO.getDateOfBirth() != null
+                        ? java.time.LocalDate.parse(userRequestDTO.getDateOfBirth())
+                        : null
+        );
+        existing.setMobileNumber(userRequestDTO.getMobileNumber());
+        existing.setStreet(userRequestDTO.getStreet());
+        existing.setHouseNumber(userRequestDTO.getHouseNumber());
+        existing.setHouseNumberSuffix(userRequestDTO.getHouseNumberSuffix());
+        existing.setPostalCode(userRequestDTO.getPostalCode());
+        existing.setCity(userRequestDTO.getCity());
+        existing.setCountry(userRequestDTO.getCountry());
+        existing.setIban(userRequestDTO.getIban());
 
-        User updatedUser = userRepository.save(user);
+        User updatedUser = userRepository.save(existing);
         return UserMapper.toDTO(updatedUser);
     }
 

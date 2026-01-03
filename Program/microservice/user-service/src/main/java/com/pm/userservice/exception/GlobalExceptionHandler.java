@@ -2,10 +2,13 @@ package com.pm.userservice.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestClientResponseException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -59,6 +62,31 @@ public class GlobalExceptionHandler {
         log.warn("Leave Request not found {}!",  ex.getMessage());
         Map<String, String> errors = new HashMap<>();
         errors.put("message", "Leave Request Not Found");
+        return ResponseEntity.badRequest().body(errors);
+    }
+
+    @ExceptionHandler(RestClientResponseException.class)
+    public ResponseEntity<Map<String, String>> handleRestClientResponseException(RestClientResponseException ex) {
+        log.warn("Upstream service returned {}: {}", ex.getRawStatusCode(), ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        String body = ex.getResponseBodyAsString();
+        errors.put("message", (body == null || body.isBlank()) ? "Upstream service error" : body);
+        return ResponseEntity.status(ex.getRawStatusCode()).body(errors);
+    }
+
+    @ExceptionHandler(ResourceAccessException.class)
+    public ResponseEntity<Map<String, String>> handleResourceAccessException(ResourceAccessException ex) {
+        log.warn("Upstream service is unreachable: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Upstream service is unreachable");
+        return ResponseEntity.status(502).body(errors);
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+        Map<String, String> errors = new HashMap<>();
+        errors.put("message", "Data integrity violation");
         return ResponseEntity.badRequest().body(errors);
     }
 

@@ -28,6 +28,12 @@ public class User {
     private String gender;
     private LocalDate dateOfBirth;
     private String mobileNumber;
+
+    @Column(name = "position")
+    private String position;
+
+    @Column(name = "worked_for_us_before", nullable = false)
+    private boolean workedForUsBefore = false;
     private String street;
     private String houseNumber;
     private String houseNumberSuffix;
@@ -110,6 +116,22 @@ public class User {
 
     public void setMobileNumber(String mobileNumber) {
         this.mobileNumber = mobileNumber;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
+
+    public boolean isWorkedForUsBefore() {
+        return workedForUsBefore;
+    }
+
+    public void setWorkedForUsBefore(boolean workedForUsBefore) {
+        this.workedForUsBefore = workedForUsBefore;
     }
 
     public String getStreet() {

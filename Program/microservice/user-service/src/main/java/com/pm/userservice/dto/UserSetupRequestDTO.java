@@ -4,9 +4,6 @@ import jakarta.validation.constraints.NotBlank;
 
 public class UserSetupRequestDTO {
     @NotBlank
-    private String password;
-
-    @NotBlank
     private String street;
 
     @NotBlank
@@ -25,14 +22,6 @@ public class UserSetupRequestDTO {
 
     @NotBlank
     private String iban;
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
     public String getStreet() {
         return street;

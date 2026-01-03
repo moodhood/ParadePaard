@@ -38,6 +38,30 @@ public class JwtValidationGatewayFilterFactory extends AbstractGatewayFilterFact
 
             log.debug("JWT Validation filter processing request to: {}", path);
 
+            String bearerAccessToken = extractBearerTokenFromAuthorizationHeader(request);
+            if (bearerAccessToken != null && !bearerAccessToken.isBlank()) {
+                log.debug("Authorization header bearer token present: true");
+                return validateAccessToken(bearerAccessToken)
+                        .flatMap(isValid -> {
+                            if (isValid) {
+                                log.debug("Authorization header access token is valid");
+                                // Ensure downstream services always receive the token as Authorization header.
+                                ServerHttpRequest mutated = request.mutate()
+                                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + bearerAccessToken)
+                                        .build();
+                                return chain.filter(exchange.mutate().request(mutated).build());
+                            }
+                            log.debug("Authorization header access token is invalid");
+                            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+                            return response.setComplete();
+                        })
+                        .onErrorResume(e -> {
+                            log.error("Error during token validation", e);
+                            response.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
+                            return response.setComplete();
+                        });
+            }
+
             String accessToken = extractTokenFromCookies(request, "accessToken");
             String refreshToken = extractTokenFromCookies(request, "refreshToken");
 
@@ -89,6 +113,13 @@ public class JwtValidationGatewayFilterFactory extends AbstractGatewayFilterFact
             return request.getCookies().getFirst(cookieName).getValue();
         }
         return null;
+    }
+
+    private String extractBearerTokenFromAuthorizationHeader(ServerHttpRequest request) {
+        String auth = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if (auth == null) return null;
+        if (!auth.startsWith("Bearer ")) return null;
+        return auth.substring(7).trim();
     }
 
     private Mono<Boolean> validateAccessToken(String accessToken) {

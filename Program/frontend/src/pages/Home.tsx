@@ -7,6 +7,14 @@ export default function Home() {
     const [, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const buildFullName = (user: UserResponseDTO) => {
+        const parts = [user.firstNames, user.middleNamePrefix, user.lastName]
+            .map((p) => (p ?? "").trim())
+            .filter(Boolean);
+        if (parts.length > 0) return parts.join(" ");
+        return (user.preferredName ?? "").trim() || "-";
+    };
+
     useEffect(() => {
         const fetchUsers = async () => {
             setIsLoading(true);
@@ -40,18 +48,18 @@ export default function Home() {
                         <th>Name</th>
                         <th>Email</th>
                         <th>City</th>
-                        <th>Phone</th>
-                        <th>Leave hours left</th>
+                        <th>Mobile</th>
+                        <th>Status</th>
                     </tr>
                     </thead>
                     <tbody>
                     {users.map((user) => (
                         <tr key={user.userId}>
-                            <td>{user.name}</td>
+                            <td>{buildFullName(user)}</td>
                             <td>{user.email}</td>
                             <td>{user.city ?? "-"}</td>
-                            <td>{user.phoneNumber ?? "-"}</td>
-                            <td>{user.leaveHours ?? "-"}</td>
+                            <td>{user.mobileNumber ?? "-"}</td>
+                            <td>{user.status ?? "-"}</td>
                         </tr>
                     ))}
                     </tbody>

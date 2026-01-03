@@ -49,45 +49,49 @@ public class PasswordResetService {
         this.hmacSecret = (hmacSecret == null) ? "" : hmacSecret.trim();
     }
 
+    public static final class IssuedResetToken {
+        private final String token;
+        private final String resetUrl;
+        private final Duration ttl;
+
+        public IssuedResetToken(String token, String resetUrl, Duration ttl) {
+            this.token = token;
+            this.resetUrl = resetUrl;
+            this.ttl = ttl;
+        }
+
+        public String getToken() {
+            return token;
+        }
+
+        public String getResetUrl() {
+            return resetUrl;
+        }
+
+        public Duration getTtl() {
+            return ttl;
+        }
+    }
+
     @Transactional
     public ResponseEntity<Void> requestPasswordReset(String rawEmail) {
         try {
             String email = normalizeEmail(rawEmail);
-
-            tokenRepository.deleteAllByExpiresAtBefore(Instant.now());
 
             Optional<User> userOpt = userRepository.findByEmail(email);
             if (userOpt.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
 
-            if (hmacSecret.isBlank()) {
-                log.error("password-reset.hmac-secret is not configured; refusing to issue password reset tokens");
+            User user = userOpt.get();
+            Optional<IssuedResetToken> issuedOpt = issueResetToken(user);
+            if (issuedOpt.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
-
-            User user = userOpt.get();
-            tokenRepository.deleteAllByUserIdAndUsedAtIsNull(user.getId());
-
-            String token = PasswordResetTokenUtil.generateToken();
-            String tokenHash = PasswordResetTokenUtil.hmacSha256Hex(hmacSecret, token);
-
-            Instant now = Instant.now();
-            PasswordResetToken row = new PasswordResetToken();
-            row.setUserId(user.getId());
-            row.setTokenHash(tokenHash);
-            row.setCreatedAt(now);
-            row.setExpiresAt(now.plus(tokenTtl));
-            tokenRepository.save(row);
-
-            String resetUrl = UriComponentsBuilder
-                    .fromUriString(frontendResetUrl)
-                    .queryParam("token", token)
-                    .build()
-                    .toUriString();
+            IssuedResetToken issued = issuedOpt.get();
 
             try {
-                emailSender.sendPasswordResetEmail(user.getEmail(), resetUrl, tokenTtl);
+                emailSender.sendPasswordResetEmail(user.getEmail(), issued.getResetUrl(), issued.getTtl());
             } catch (Exception e) {
                 log.error("Failed to send password reset email", e);
             }
@@ -130,6 +134,7 @@ public class PasswordResetService {
 
         User user = userOpt.get();
         user.setPassword(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false);
         userRepository.save(user);
 
         row.setUsedAt(now);
@@ -137,6 +142,44 @@ public class PasswordResetService {
         tokenRepository.deleteAllByUserIdAndTokenHashNot(userId, tokenHash);
 
         return ResponseEntity.noContent().build();
+    }
+
+    @Transactional
+    public Optional<IssuedResetToken> issueResetToken(User user) {
+        try {
+            if (user == null || user.getId() == null) {
+                return Optional.empty();
+            }
+            if (hmacSecret.isBlank()) {
+                log.error("password-reset.hmac-secret is not configured; refusing to issue password reset tokens");
+                return Optional.empty();
+            }
+
+            Instant now = Instant.now();
+            tokenRepository.deleteAllByExpiresAtBefore(now);
+            tokenRepository.deleteAllByUserIdAndUsedAtIsNull(user.getId());
+
+            String token = PasswordResetTokenUtil.generateToken();
+            String tokenHash = PasswordResetTokenUtil.hmacSha256Hex(hmacSecret, token);
+
+            PasswordResetToken row = new PasswordResetToken();
+            row.setUserId(user.getId());
+            row.setTokenHash(tokenHash);
+            row.setCreatedAt(now);
+            row.setExpiresAt(now.plus(tokenTtl));
+            tokenRepository.save(row);
+
+            String resetUrl = UriComponentsBuilder
+                    .fromUriString(frontendResetUrl)
+                    .queryParam("token", token)
+                    .build()
+                    .toUriString();
+
+            return Optional.of(new IssuedResetToken(token, resetUrl, tokenTtl));
+        } catch (Exception e) {
+            log.error("Failed to issue reset token", e);
+            return Optional.empty();
+        }
     }
 
     private static String normalizeEmail(String email) {

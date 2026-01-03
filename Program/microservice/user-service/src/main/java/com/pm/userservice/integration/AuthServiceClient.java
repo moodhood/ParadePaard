@@ -1,5 +1,7 @@
 package com.pm.userservice.integration;
 
+import com.pm.userservice.dto.AuthAdminOnboardUserRequestDTO;
+import com.pm.userservice.dto.AuthAdminOnboardUserResponseDTO;
 import com.pm.userservice.dto.AuthRegisterRequestDTO;
 import com.pm.userservice.dto.AuthRegisterResponseDTO;
 import org.slf4j.Logger;
@@ -39,6 +41,25 @@ public class AuthServiceClient {
             return restTemplate.exchange(url, HttpMethod.POST, entity, AuthRegisterResponseDTO.class).getBody();
         } catch (RestClientException e) {
             log.error("Auth service register failed", e);
+            throw e;
+        }
+    }
+
+    public AuthAdminOnboardUserResponseDTO adminOnboardUser(AuthAdminOnboardUserRequestDTO request, String accessToken) {
+        String url = baseUrl + "/auth/admin/onboard-user";
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (accessToken != null && !accessToken.isBlank()) {
+            headers.setBearerAuth(accessToken);
+        }
+
+        HttpEntity<AuthAdminOnboardUserRequestDTO> entity = new HttpEntity<>(request, headers);
+
+        try {
+            return restTemplate.exchange(url, HttpMethod.POST, entity, AuthAdminOnboardUserResponseDTO.class).getBody();
+        } catch (RestClientException e) {
+            log.error("Auth service admin onboard failed", e);
             throw e;
         }
     }

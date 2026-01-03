@@ -10,6 +10,8 @@ public class UserResponseDTO {
     private String gender;
     private String dateOfBirth;
     private String mobileNumber;
+    private String position;
+    private Boolean workedForUsBefore;
     private String street;
     private String houseNumber;
     private String houseNumberSuffix;
@@ -89,6 +91,22 @@ public class UserResponseDTO {
 
     public void setMobileNumber(String mobileNumber) {
         this.mobileNumber = mobileNumber;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
+    }
+
+    public Boolean getWorkedForUsBefore() {
+        return workedForUsBefore;
+    }
+
+    public void setWorkedForUsBefore(Boolean workedForUsBefore) {
+        this.workedForUsBefore = workedForUsBefore;
     }
 
     public String getStreet() {

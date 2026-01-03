@@ -24,6 +24,8 @@ public class UserMapper {
         dto.setGender(user.getGender());
         dto.setDateOfBirth(user.getDateOfBirth() != null ? user.getDateOfBirth().toString() : null);
         dto.setMobileNumber(user.getMobileNumber());
+        dto.setPosition(user.getPosition());
+        dto.setWorkedForUsBefore(user.isWorkedForUsBefore());
         dto.setStreet(user.getStreet());
         dto.setHouseNumber(user.getHouseNumber());
         dto.setHouseNumberSuffix(user.getHouseNumberSuffix());

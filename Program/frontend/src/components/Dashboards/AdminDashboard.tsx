@@ -1,4 +1,5 @@
 import { type JSX, useEffect, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../Navbar";
 
 import {
@@ -20,6 +21,7 @@ import "../../stylesheets/AdminDashboard.css";
 import "../../stylesheets/AdminLists.css";
 
 export default function AdminDashboard(): JSX.Element {
+    const navigate = useNavigate();
     const [items, setItems] = useState<AnyRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
@@ -98,6 +100,11 @@ export default function AdminDashboard(): JSX.Element {
                                 <div className="statLabel">Pending requests</div>
                                 <div className="statValue">{items.length}</div>
                             </div>
+                        </div>
+                        <div className="cardFooter">
+                            <button className="button" onClick={() => navigate("/admin/onboarding")}>
+                                Onboard employee
+                            </button>
                         </div>
                     </Card>
 

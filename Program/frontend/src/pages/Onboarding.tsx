@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
 import "../stylesheets/Onboarding.css";
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2;
 
 export default function Onboarding() {
     const navigate = useNavigate();
@@ -12,9 +12,6 @@ export default function Onboarding() {
     const [step, setStep] = useState<Step>(1);
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-    const [password, setPassword] = useState("");
-    const [confirmPassword, setConfirmPassword] = useState("");
     const [street, setStreet] = useState("");
     const [houseNumber, setHouseNumber] = useState("");
     const [houseNumberSuffix, setHouseNumberSuffix] = useState("");
@@ -25,17 +22,14 @@ export default function Onboarding() {
 
     const canContinue = useMemo(() => {
         if (step === 1) {
-            return password.length >= 8 && password === confirmPassword;
-        }
-        if (step === 2) {
             return street && houseNumber && postalCode && city && country;
         }
         return iban.length >= 10;
-    }, [step, password, confirmPassword, street, houseNumber, postalCode, city, country, iban]);
+    }, [step, street, houseNumber, postalCode, city, country, iban]);
 
     const goNext = () => {
         setErrorMsg(null);
-        if (step < 3 && canContinue) {
+        if (step < 2 && canContinue) {
             setStep((step + 1) as Step);
         }
     };
@@ -57,7 +51,6 @@ export default function Onboarding() {
         setLoading(true);
         try {
             await UserServices.completeSetup({
-                password,
                 street,
                 houseNumber,
                 houseNumberSuffix: houseNumberSuffix || null,
@@ -83,38 +76,12 @@ export default function Onboarding() {
                 <p className="onboarding-subtitle">Complete your onboarding to access the dashboard.</p>
 
                 <div className="step-indicator">
-                    <span className={step === 1 ? "active" : ""}>1. Password</span>
-                    <span className={step === 2 ? "active" : ""}>2. Address</span>
-                    <span className={step === 3 ? "active" : ""}>3. IBAN</span>
+                    <span className={step === 1 ? "active" : ""}>1. Address</span>
+                    <span className={step === 2 ? "active" : ""}>2. IBAN</span>
                 </div>
 
                 <form onSubmit={handleSubmit}>
                     {step === 1 && (
-                        <div className="step-panel">
-                            <label>
-                                New password
-                                <input
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="At least 8 characters"
-                                    required
-                                />
-                            </label>
-                            <label>
-                                Confirm password
-                                <input
-                                    type="password"
-                                    value={confirmPassword}
-                                    onChange={(e) => setConfirmPassword(e.target.value)}
-                                    placeholder="Repeat password"
-                                    required
-                                />
-                            </label>
-                        </div>
-                    )}
-
-                    {step === 2 && (
                         <div className="step-panel">
                             <label>
                                 Street
@@ -174,7 +141,7 @@ export default function Onboarding() {
                         </div>
                     )}
 
-                    {step === 3 && (
+                    {step === 2 && (
                         <div className="step-panel">
                             <label>
                                 IBAN
@@ -195,12 +162,12 @@ export default function Onboarding() {
                         <button type="button" onClick={goBack} disabled={step === 1 || loading}>
                             Back
                         </button>
-                        {step < 3 && (
+                        {step < 2 && (
                             <button type="button" onClick={goNext} disabled={!canContinue || loading}>
                                 Next
                             </button>
                         )}
-                        {step === 3 && (
+                        {step === 2 && (
                             <button type="submit" disabled={!canContinue || loading}>
                                 {loading ? "Submitting..." : "Finish setup"}
                             </button>

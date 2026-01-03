@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import Button from "../components/Button";
+import EmailLabel from "../components/EmailLabel"; //
 import "../stylesheets/Login.css";
 
 export default function ForgotPassword() {
@@ -41,16 +42,9 @@ export default function ForgotPassword() {
                 </div>
             ) : (
                 <form onSubmit={handleSubmit}>
-                    <label>
-                        Email
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="you@domain.com"
-                            required
-                        />
-                    </label>
+                    {/* Replaced raw input with EmailLabel for consistent styling */}
+                    <EmailLabel email={email} setEmail={setEmail} />
+
                     <Button type="submit" loading={loading}>
                         Send reset link
                     </Button>

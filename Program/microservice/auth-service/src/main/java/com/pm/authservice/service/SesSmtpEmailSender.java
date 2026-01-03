@@ -59,4 +59,53 @@ public class SesSmtpEmailSender implements EmailSender {
             throw new RuntimeException("Failed to send password reset email", e);
         }
     }
+
+    @Override
+    public void sendEmployeeOnboardingEmail(String toEmail, String username, String temporaryPassword, String resetUrl, Duration ttl) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Your LambdaManager account is ready");
+
+            String minutes = String.valueOf(Math.max(1, ttl.toMinutes()));
+            String text = """
+                    An admin created your LambdaManager account.
+
+                    Username:
+                    %s
+
+                    Temporary password:
+                    %s
+
+                    After logging in, you must set a new password. You can also set it immediately using this link (valid for %s minutes):
+                    %s
+                    """.formatted(username, temporaryPassword, minutes, resetUrl);
+
+            String html = """
+                    <p>An admin created your LambdaManager account.</p>
+                    <p><strong>Username:</strong> %s</p>
+                    <p><strong>Temporary password:</strong> %s</p>
+                    <p>After logging in, you must set a new password. You can also set it immediately using this link (valid for %s minutes):</p>
+                    <p><a href="%s">Set your new password</a></p>
+                    """.formatted(escapeHtml(username), escapeHtml(temporaryPassword), minutes, resetUrl);
+
+            helper.setText(text, html);
+            mailSender.send(message);
+        } catch (Exception e) {
+            log.error("SES SMTP send failed (from={}, to={})", fromEmail, toEmail, e);
+            throw new RuntimeException("Failed to send onboarding email", e);
+        }
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null) return "";
+        return s.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
+    }
 }

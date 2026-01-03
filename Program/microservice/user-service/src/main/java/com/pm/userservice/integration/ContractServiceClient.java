@@ -27,13 +27,13 @@ public class ContractServiceClient {
     }
 
     public ContractDraftResponseDTO createDraftContract(ContractDraftRequestDTO request, String accessToken) {
-        String url = baseUrl + "/contract";
+        String url = baseUrl + "/api/contract";
         return restTemplate.exchange(url, HttpMethod.POST, entity(accessToken, request), ContractDraftResponseDTO.class)
                 .getBody();
     }
 
     public ContractDraftResponseDTO finalizeContract(String accessToken) {
-        String url = baseUrl + "/contract/finalize";
+        String url = baseUrl + "/api/contract/finalize";
         return restTemplate.exchange(url, HttpMethod.POST, entity(accessToken, null), ContractDraftResponseDTO.class)
                 .getBody();
     }

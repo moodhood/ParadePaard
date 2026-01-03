@@ -7,7 +7,10 @@ import GetListUserLeaveRequests from "./GetListUserLeaveRequests";
 import GetMe from "./GetMe";
 import GetUsers from "./GetUsers";
 import RejectLeaveRequest from "./RejectLeaveRequest";
+import AdminOnboardEmployee from "./AdminOnboardEmployee";
 import type {
+    AdminOnboardingRequestDTO,
+    AdminOnboardingResponseDTO,
     LeaveRequestCreateDTO,
     LeaveRequestDTO,
     LeaveStatus,
@@ -18,6 +21,8 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004";
 
 export type {
+    AdminOnboardingRequestDTO,
+    AdminOnboardingResponseDTO,
     LeaveRequestCreateDTO,
     LeaveRequestDTO,
     LeaveStatus,
@@ -27,6 +32,11 @@ export type {
 };
 
 export const UserServices = {
+    adminOnboardEmployee: async (
+        payload: AdminOnboardingRequestDTO
+    ): Promise<AdminOnboardingResponseDTO> => {
+        return await AdminOnboardEmployee(API_BASE_URL, payload);
+    },
     getUsers: async (): Promise<UserResponseDTO[]> => {
         return await GetUsers(API_BASE_URL);
     },

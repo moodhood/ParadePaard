@@ -1,7 +1,6 @@
 import axios from "axios";
 
 export type UserSetupRequest = {
-    password: string;
     street: string;
     houseNumber: string;
     houseNumberSuffix?: string | null;

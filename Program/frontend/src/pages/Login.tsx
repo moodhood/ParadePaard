@@ -25,13 +25,22 @@ export default function Login() {
             const response = await AuthServices.login(username, password);
             console.log("Login successful:", response.message);
             const me = await UserServices.getMe();
-            if (me.status === "PENDING_SETUP") {
-                setStatus("PENDING_SETUP");
-                navigate("/onboarding");
-            } else {
-                setStatus("ACTIVE");
-                navigate("/dashboard");
+
+            const status = me.status === "PENDING_SETUP" ? "PENDING_SETUP" : "ACTIVE";
+            setStatus(status);
+
+            if (response.mustChangePassword) {
+                const token = response.passwordResetToken;
+                if (!token) {
+                    throw new Error("Password reset is required but no reset token was provided.");
+                }
+                localStorage.setItem("passwordResetToken", token);
+                const next = status === "PENDING_SETUP" ? "/onboarding" : "/dashboard";
+                navigate(`/reset-password?token=${encodeURIComponent(token)}&next=${encodeURIComponent(next)}`);
+                return;
             }
+
+            navigate(status === "PENDING_SETUP" ? "/onboarding" : "/dashboard");
         } catch (err: unknown) {
             const errorMessage = err instanceof Error
                 ? err.message

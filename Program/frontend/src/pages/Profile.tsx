@@ -1,6 +1,5 @@
 /* src/pages/Profile.tsx */
 import { useEffect, useState } from "react";
-// Import both the service and the type from the same file
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -12,9 +11,8 @@ export default function Profile() {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Referencing the centralized UserServices
         UserServices.getMe()
-            .then((data) => setUser(data as UserResponseDTO))
+            .then((data) => setUser(data))
             .catch((err: Error) => setError(err.message));
     }, []);
 
@@ -27,11 +25,27 @@ export default function Profile() {
         return value;
     };
 
+    const formatPosition = (value: string | null | undefined) => {
+        if (value === null || value === undefined || value.trim() === "") return "-";
+        const normalized = value.trim().toUpperCase();
+        if (normalized === "BAR") return "Bar";
+        if (normalized === "RUNNER") return "Runner";
+        return value;
+    };
+
+    const fullName = (() => {
+        const parts = [user.firstNames, user.middleNamePrefix, user.lastName]
+            .map((p) => (p ?? "").trim())
+            .filter(Boolean);
+        if (parts.length > 0) return parts.join(" ");
+        return (user.preferredName ?? "").trim() || "-";
+    })();
+
     return (
         <div className="userDashboardCard">
             <header className="pageHeader">
                 <h1 className="pageTitle">My Profile</h1>
-                <p className="pageSubtitle">Manage your personal and employment details</p>
+                <p className="pageSubtitle">Your personal and employment details</p>
             </header>
 
             <section className="dashboardGrid">
@@ -39,23 +53,20 @@ export default function Profile() {
                     <div className="generalInfoRows">
                         <div className="profile_info_row">
                             <span className="profile_info_label">Full Name</span>
-                            <span className="profile_info_value">{formatValue(user.name)}</span>
+                            <span className="profile_info_value">{fullName}</span>
                         </div>
+
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Nickname</span>
-                            <span className="profile_info_value">{formatValue(user.nickname)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Initials</span>
-                            <span className="profile_info_value">{formatValue(user.initials)}</span>
+                            <span className="profile_info_label">Preferred Name</span>
+                            <span className="profile_info_value">{formatValue(user.preferredName)}</span>
                         </div>
                         <div className="profile_info_row">
                             <span className="profile_info_label">First Names</span>
                             <span className="profile_info_value">{formatValue(user.firstNames)}</span>
                         </div>
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Infix</span>
-                            <span className="profile_info_value">{formatValue(user.infix)}</span>
+                            <span className="profile_info_label">Middle Name Prefix</span>
+                            <span className="profile_info_value">{formatValue(user.middleNamePrefix)}</span>
                         </div>
                         <div className="profile_info_row">
                             <span className="profile_info_label">Last Name</span>
@@ -70,16 +81,8 @@ export default function Profile() {
                             <span className="profile_info_value">{formatValue(user.dateOfBirth)}</span>
                         </div>
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Nationality</span>
-                            <span className="profile_info_value">{formatValue(user.nationality)}</span>
-                        </div>
-                        <div className="profile_info_row">
                             <span className="profile_info_label">Email</span>
                             <span className="profile_info_value">{formatValue(user.email)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Phone</span>
-                            <span className="profile_info_value">{formatValue(user.phoneNumber)}</span>
                         </div>
                         <div className="profile_info_row">
                             <span className="profile_info_label">Mobile</span>
@@ -92,7 +95,7 @@ export default function Profile() {
                     <div className="generalInfoRows">
                         <div className="profile_info_row">
                             <span className="profile_info_label">Street</span>
-                            <span className="profile_info_value">{formatValue(user.streetName)}</span>
+                            <span className="profile_info_value">{formatValue(user.street)}</span>
                         </div>
                         <div className="profile_info_row">
                             <span className="profile_info_label">House Number</span>
@@ -123,63 +126,22 @@ export default function Profile() {
                             <span className="profile_info_label">IBAN</span>
                             <span className="profile_info_value">{formatValue(user.iban)}</span>
                         </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Bank Account Number</span>
-                            <span className="profile_info_value">{formatValue(user.bankAccountNumber)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Account Holder</span>
-                            <span className="profile_info_value">{formatValue(user.accountHolderName)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Bank Country</span>
-                            <span className="profile_info_value">{formatValue(user.bankCountry)}</span>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card title="Identification">
-                    <div className="generalInfoRows">
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">ID Type</span>
-                            <span className="profile_info_value">{formatValue(user.idType)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">ID Number</span>
-                            <span className="profile_info_value">{formatValue(user.idNumber)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Issue Date</span>
-                            <span className="profile_info_value">{formatValue(user.idIssueDate)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Expiration Date</span>
-                            <span className="profile_info_value">{formatValue(user.idExpirationDate)}</span>
-                        </div>
                     </div>
                 </Card>
 
                 <Card title="Employment Details">
                     <div className="generalInfoRows">
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Registered Date</span>
-                            <span className="profile_info_value">{formatValue(user.registeredDate)}</span>
+                            <span className="profile_info_label">Position</span>
+                            <span className="profile_info_value">{formatPosition(user.position)}</span>
                         </div>
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Leave Hours</span>
-                            <span className="profile_info_value">{formatValue(user.leaveHours)}</span>
+                            <span className="profile_info_label">Worked For Us Before</span>
+                            <span className="profile_info_value">{formatValue(user.workedForUsBefore)}</span>
                         </div>
                         <div className="profile_info_row">
-                            <span className="profile_info_label">Physically Demanding</span>
-                            <span className="profile_info_value">{formatValue(user.physicallyDemanding)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Apply Payroll Tax</span>
-                            <span className="profile_info_value">{formatValue(user.applyPayrollTax)}</span>
-                        </div>
-                        <div className="profile_info_row">
-                            <span className="profile_info_label">Previous Contract (Last 6 Months)</span>
-                            <span className="profile_info_value">{formatValue(user.previousContractInLastSixMonths)}</span>
+                            <span className="profile_info_label">Status</span>
+                            <span className="profile_info_value">{formatValue(user.status)}</span>
                         </div>
                     </div>
                 </Card>

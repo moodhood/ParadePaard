@@ -1,41 +1,26 @@
-// src/services/leave-requests/types.ts
 export type LeaveType = "VACATION" | "SICK" | "UNPAID" | "PARENTAL" | "OTHER";
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
 
 export type UserResponseDTO = {
     userId: string;
-    name: string;
     email: string;
-    initials: string | null;
-    nickname: string | null;
+    preferredName: string | null;
     firstNames: string | null;
-    infix: string | null;
+    middleNamePrefix: string | null;
     lastName: string | null;
     gender: string | null;
-    streetName: string | null;
+    dateOfBirth: string | null;
+    mobileNumber: string | null;
+    position: string | null;
+    workedForUsBefore: boolean | null;
+    street: string | null;
     houseNumber: string | null;
     houseNumberSuffix: string | null;
     postalCode: string | null;
     city: string | null;
     country: string | null;
     iban: string | null;
-    accountHolderName: string | null;
-    bankCountry: string | null;
-    nationality: string | null;
-    idType: string | null;
-    idNumber: string | null;
-    idIssueDate: string | null;
-    idExpirationDate: string | null;
-    physicallyDemanding: boolean | null;
-    applyPayrollTax: boolean | null;
-    previousContractInLastSixMonths: boolean | null;
-    dateOfBirth: string | null;
-    registeredDate: string;
-    bankAccountNumber: string | null;
-    phoneNumber: string | null;
-    mobileNumber: string | null;
-    leaveHours: string | null;
-    status?: "PENDING_SETUP" | "ACTIVE";
+    status: "PENDING_SETUP" | "ACTIVE" | string;
 };
 
 export type LeaveRequestCreateDTO = {
@@ -58,4 +43,29 @@ export type LeaveRequestDTO = {
     status: LeaveStatus;
     createdAt: string;
     updatedAt: string;
+};
+
+export type AdminOnboardingRequestDTO = {
+    email: string;
+    firstNames: string;
+    preferredName?: string | null;
+    middleNamePrefix?: string | null;
+    lastName: string;
+    gender?: string | null;
+    dateOfBirth: string;
+    mobileNumber: string;
+    workedForUsBefore: boolean;
+    position: "BAR" | "RUNNER" | string;
+    startDate: string;
+    endDate: string;
+    contractType: "FIXED" | "ON_CALL" | string;
+    grossHourlyWage: number;
+    travelAllowance: boolean;
+};
+
+export type AdminOnboardingResponseDTO = {
+    userId: string;
+    contractId: string | null;
+    username: string;
+    temporaryPassword: string;
 };

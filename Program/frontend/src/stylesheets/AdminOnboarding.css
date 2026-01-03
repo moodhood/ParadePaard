@@ -1,0 +1,59 @@
+.adminOnboardingForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminOnboardingIntro {
+  color: rgba(230, 231, 235, 0.75);
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 2px 2px 0 2px;
+}
+
+.adminOnboardingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 14px;
+  padding: 6px;
+  box-sizing: border-box;
+}
+
+.adminOnboardingLabel {
+  color: rgba(230, 231, 235, 0.9);
+  font-size: 12px;
+}
+
+.adminOnboardingToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
+  color: rgba(230, 231, 235, 0.9);
+}
+
+.adminOnboardingResult {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.adminOnboardingHint {
+  margin-top: 8px;
+  color: rgba(230, 231, 235, 0.7);
+}
+
+.adminOnboardingError {
+  color: #ff9aa2;
+  padding: 0 6px;
+}
+
+@media (max-width: 900px) {
+  .adminOnboardingGrid {
+    grid-template-columns: 1fr;
+  }
+}

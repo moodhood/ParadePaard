@@ -12,8 +12,12 @@ CREATE TABLE IF NOT EXISTS "users" (
                                        last_name VARCHAR(255) NOT NULL,
                                        email VARCHAR(255) UNIQUE NOT NULL,
                                        username VARCHAR(255) UNIQUE NOT NULL,
-    password VARCHAR(255) NOT NULL
+                                       password VARCHAR(255) NOT NULL,
+                                       must_change_password BOOLEAN NOT NULL DEFAULT FALSE
     );
+
+-- keep seed scripts compatible with existing databases
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- drop legacy column if it exists
 ALTER TABLE "users" DROP COLUMN IF EXISTS role;

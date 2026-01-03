@@ -4,6 +4,9 @@ export type LoginResponse = {
     message: string;
     userId: string;
     email: string;
+    username?: string;
+    mustChangePassword?: boolean;
+    passwordResetToken?: string;
 };
 
 export default async function Login(username: string, password: string, API_BASE_URL: string): Promise<LoginResponse> {

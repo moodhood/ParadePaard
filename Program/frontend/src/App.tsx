@@ -7,8 +7,10 @@ import Profile from "./pages/Profile";
 import Onboarding from "./pages/Onboarding";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
+import AdminOnboarding from "./pages/AdminOnboarding";
 import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
+import RequireAdmin from "./components/RequireAdmin";
 
 export default function App() {
     return (
@@ -39,6 +41,16 @@ export default function App() {
                     <RequireOnboarding>
                         <Onboarding />
                     </RequireOnboarding>
+                }
+            />
+            <Route
+                path="/admin/onboarding"
+                element={
+                    <RequireActiveUser>
+                        <RequireAdmin>
+                            <AdminOnboarding />
+                        </RequireAdmin>
+                    </RequireActiveUser>
                 }
             />
             <Route path="/" element={<Home />} />

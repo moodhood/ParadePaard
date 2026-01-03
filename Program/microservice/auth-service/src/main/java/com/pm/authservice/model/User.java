@@ -25,6 +25,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(nullable = false)
+    private boolean mustChangePassword = false;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "auth_user_roles",
@@ -51,6 +54,9 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public boolean isMustChangePassword() { return mustChangePassword; }
+    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
 
     public List<Role> getRoles() { return roles; }
     public void setRoles(List<Role> roles) { this.roles = roles; }

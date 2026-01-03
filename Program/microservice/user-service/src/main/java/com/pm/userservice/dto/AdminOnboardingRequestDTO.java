@@ -24,6 +24,12 @@ public class AdminOnboardingRequestDTO {
     private String dateOfBirth;
     private String mobileNumber;
 
+    @NotNull
+    private Boolean workedForUsBefore;
+
+    @NotBlank
+    private String position;
+
     @NotBlank
     private String startDate;
 
@@ -101,6 +107,22 @@ public class AdminOnboardingRequestDTO {
 
     public void setMobileNumber(String mobileNumber) {
         this.mobileNumber = mobileNumber;
+    }
+
+    public Boolean getWorkedForUsBefore() {
+        return workedForUsBefore;
+    }
+
+    public void setWorkedForUsBefore(Boolean workedForUsBefore) {
+        this.workedForUsBefore = workedForUsBefore;
+    }
+
+    public String getPosition() {
+        return position;
+    }
+
+    public void setPosition(String position) {
+        this.position = position;
     }
 
     public String getStartDate() {

@@ -26,6 +26,7 @@ import com.pm.authservice.exception.UserNotFoundException;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 @Service
 public class AuthService {
@@ -35,19 +36,24 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final KafkaProducer kafkaProducer;
+    private final PasswordResetService passwordResetService;
+
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
     public AuthService(UserService userService,
                        PasswordEncoder passwordEncoder,
                        JwtUtil jwtUtil,
                        UserRepository userRepository,
                        KafkaProducer kafkaProducer,
-                       RoleRepository roleRepository) {
+                       RoleRepository roleRepository,
+                       PasswordResetService passwordResetService) {
         this.roleRepository = roleRepository;
         this.userService = userService;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.kafkaProducer = kafkaProducer;
+        this.passwordResetService = passwordResetService;
     }
 
     @Transactional
@@ -77,13 +83,8 @@ public class AuthService {
             int at = email == null ? -1 : email.indexOf('@');
             rawName = at > 0 ? email.substring(0, at) : "user";
         }
-        String generatedUsername = rawName.toLowerCase(Locale.ROOT).replace(" ", ".");
-        
-        // Optional: Check if username exists and throw error or append number
-        if (userRepository.existsByUsername(generatedUsername)) {
-             throw new RuntimeException("Username '" + generatedUsername + "' is already taken.");
-        }
-        
+        String generatedUsernameBase = normalizeUsername(rawName);
+        String generatedUsername = ensureUniqueUsername(generatedUsernameBase);
         user.setUsername(generatedUsername);
         // -------------------------------
 
@@ -99,6 +100,7 @@ public class AuthService {
 
         // NOTE: We return the generated username in the response message or DTO so the user knows what it is
         AuthResponseDTO authResponseDTO = authResponseDTO(newUser.getId().toString(), newUser.getEmail());
+        authResponseDTO.setUsername(newUser.getUsername());
         authResponseDTO.setMessage("Registration successful. Your username is: " + newUser.getUsername());
 
         ResponseCookie responseRefreshCookie = responseRefreshCookie(refreshToken);
@@ -119,6 +121,16 @@ public class AuthService {
                     String refreshToken = refreshToken(user);
 
                     AuthResponseDTO authResponseDTO = authResponseDTO(user.getId().toString(), user.getEmail());
+                    authResponseDTO.setUsername(user.getUsername());
+
+                    if (user.isMustChangePassword()) {
+                        authResponseDTO.setMustChangePassword(true);
+                        passwordResetService.issueResetToken(user).ifPresent(issued -> {
+                            authResponseDTO.setPasswordResetToken(issued.getToken());
+                        });
+                    } else {
+                        authResponseDTO.setMustChangePassword(false);
+                    }
 
                     ResponseCookie responseRefreshCookie = responseRefreshCookie(refreshToken);
                     ResponseCookie responseAccessCookie = responseAccessCookie(accessToken);
@@ -129,6 +141,31 @@ public class AuthService {
                             .body(authResponseDTO);
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    private String ensureUniqueUsername(String baseUsername) {
+        String base = normalizeUsername(baseUsername);
+        if (!userRepository.existsByUsername(base)) {
+            return base;
+        }
+
+        for (int i = 2; i <= 9999; i++) {
+            String candidate = base + i;
+            if (!userRepository.existsByUsername(candidate)) {
+                return candidate;
+            }
+        }
+
+        throw new IllegalStateException("Unable to generate a unique username for base=" + base);
+    }
+
+    private static String normalizeUsername(String raw) {
+        String s = raw == null ? "" : raw.trim();
+        s = WHITESPACE.matcher(s).replaceAll(".");
+        s = s.toLowerCase(Locale.ROOT);
+        s = s.replaceAll("\\.+", ".");
+        s = s.replaceAll("^\\.+|\\.+$", "");
+        return s.isBlank() ? "user" : s;
     }
 
     // ... [Rest of the file remains unchanged: refreshToken, logout, cookies, helper methods] ...
