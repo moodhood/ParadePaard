@@ -3,18 +3,14 @@ package com.pm.payrollservice.mapper;
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
 import com.pm.payrollservice.model.Payslip;
-import com.pm.payrollservice.model.PayslipTimesheet;
+import com.pm.payrollservice.model.PayslipStatus;
 import contract.ContractDataResponse;
 import timesheet.TimesheetDataResponse;
 import user.UserDataResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.ArrayList;
 
 public class PayslipMapper {
 
@@ -28,11 +24,16 @@ public class PayslipMapper {
         payslipResponseDTO.setWeekBasedYear(payslip.getWeekBasedYear());
 
         // Payslip Details
-        payslipResponseDTO.setTimesheet(payslip.getTimesheets());
+        payslipResponseDTO.setFunctionName(payslip.getFunctionName());
+        payslipResponseDTO.setHourlyWage(payslip.getHourlyWage());
+        payslipResponseDTO.setTotalHoursWorked(payslip.getTotalHoursWorked());
         payslipResponseDTO.setTotalGrossAmount(payslip.getTotalGrossAmount());
         payslipResponseDTO.setWageTaxWithheldTest(payslip.getWageTaxWithheldTest()); // TODO tax withheld is just a test
         payslipResponseDTO.setTravelExpenses(payslip.getTravelExpenses());
         payslipResponseDTO.setTotalNetAmount(payslip.getTotalNetAmount());
+        payslipResponseDTO.setStatus(payslip.getStatus() != null ? payslip.getStatus().name() : PayslipStatus.RELEASED.name());
+        payslipResponseDTO.setAvailableToUserAt(payslip.getAvailableToUserAt() != null ? payslip.getAvailableToUserAt().toString() : null);
+        payslipResponseDTO.setGeneratedAt(payslip.getGeneratedAt() != null ? payslip.getGeneratedAt().toString() : null);
 
         // Personal Details
         payslipResponseDTO.setUserId(payslip.getUserId().toString());
@@ -76,9 +77,32 @@ public class PayslipMapper {
     ) {
         payslip.setStartDate(LocalDate.parse(contractData.getStartDate()));
         payslip.setWageTaxWithheldTest(BigDecimal.ZERO);
-        payslip.setTimesheets(PayslipTimesheetMerger.merge(
-                new BigDecimal(contractData.getGrossHourlyWage()),
-                timesheetData
-        ));
+
+        payslip.setFunctionName(contractTypeDisplayName(contractData.getContractType()));
+        payslip.setHourlyWage(new BigDecimal(contractData.getGrossHourlyWage()));
+
+        BigDecimal totalHoursWorked = BigDecimal.ZERO;
+        BigDecimal travelExpenses = BigDecimal.ZERO;
+        if (timesheetData != null) {
+            for (var ts : timesheetData.getTimesheetsList()) {
+                totalHoursWorked = totalHoursWorked.add(new BigDecimal(ts.getHoursWorked()));
+                travelExpenses = travelExpenses.add(new BigDecimal(ts.getTravelExpenses()));
+            }
+        }
+        payslip.setTotalHoursWorked(totalHoursWorked);
+        payslip.setTravelExpenses(travelExpenses);
+    }
+
+    private static String contractTypeDisplayName(String contractType) {
+        if (contractType == null || contractType.isBlank()) return "";
+        String lower = contractType.trim().toLowerCase();
+        String[] parts = lower.split("_+");
+        StringBuilder sb = new StringBuilder();
+        for (String p : parts) {
+            if (p.isBlank()) continue;
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(p.charAt(0))).append(p.substring(1));
+        }
+        return sb.toString();
     }
 }

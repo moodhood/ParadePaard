@@ -10,6 +10,7 @@ import com.pm.payrollservice.grpc.TimesheetServiceGrpcClient;
 import com.pm.payrollservice.grpc.UserServiceGrpcClient;
 import com.pm.payrollservice.mapper.PayslipMapper;
 import com.pm.payrollservice.model.Payslip;
+import com.pm.payrollservice.model.PayslipStatus;
 import com.pm.payrollservice.repository.PayslipRepository;
 import contract.ContractDataResponse;
 import org.springframework.core.io.ClassPathResource;
@@ -23,6 +24,7 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.Locale;
@@ -58,6 +60,28 @@ public class PayrollService {
         return payslipRepository.findAll().stream().map(PayslipMapper::toDTO).toList();
     }
 
+    public List<PayslipResponseDTO> getPayslipsByUserId(UUID userId) {
+        return payslipRepository.findByUserIdOrderByDateOfIssueDesc(userId)
+                .stream()
+                .map(PayslipMapper::toDTO)
+                .toList();
+    }
+
+    public List<PayslipResponseDTO> getReleasedPayslipsByUserId(UUID userId) {
+        return payslipRepository.findByUserIdOrderByDateOfIssueDesc(userId)
+                .stream()
+                .filter(p -> p.getStatus() == null || p.getStatus() == PayslipStatus.RELEASED)
+                .map(PayslipMapper::toDTO)
+                .toList();
+    }
+
+    public List<PayslipResponseDTO> getPayslipsPendingReview() {
+        return payslipRepository.findByStatusOrderByDateOfIssueDesc(PayslipStatus.PENDING_REVIEW)
+                .stream()
+                .map(PayslipMapper::toDTO)
+                .toList();
+    }
+
     public PayslipResponseDTO getPayslipById(UUID id) {
         Payslip payslip = payslipRepository.findById(id)
                 .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
@@ -73,6 +97,35 @@ public class PayrollService {
         Payslip payslip = PayslipMapper.toModel(req);
         payslip.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
         payslip.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
+        payslip.setStatus(PayslipStatus.RELEASED);
+        payslip.setAvailableToUserAt(date);
+        payslip.setGeneratedAt(OffsetDateTime.now());
+
+        UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
+        PayslipMapper.updateFromUserData(payslip, userData);
+
+        ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
+        TimesheetDataResponse timesheetData = timesheetServiceGrpcClient.requestTimesheetData(
+                userId.toString(), payslip.getWeekNumber(), payslip.getWeekBasedYear());
+        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, timesheetData);
+
+        PayslipCalculator.apply(payslip);
+
+        payslip = payslipRepository.save(payslip);
+        return PayslipMapper.toDTO(payslip);
+    }
+
+    public PayslipResponseDTO createScheduledPayslip(UUID userId, LocalDate periodEnd, LocalDate payoutDate) {
+        duplicateValidator.validateNoDuplicate(userId, periodEnd);
+
+        Payslip payslip = new Payslip();
+        payslip.setUserId(userId);
+        payslip.setDateOfIssue(periodEnd);
+        payslip.setWeekNumber(periodEnd.get(WeekFields.ISO.weekOfWeekBasedYear()));
+        payslip.setWeekBasedYear(periodEnd.get(WeekFields.ISO.weekBasedYear()));
+        payslip.setStatus(PayslipStatus.PENDING_REVIEW);
+        payslip.setAvailableToUserAt(payoutDate);
+        payslip.setGeneratedAt(OffsetDateTime.now());
 
         UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
         PayslipMapper.updateFromUserData(payslip, userData);
@@ -123,29 +176,20 @@ public class PayrollService {
 
         NumberFormat eur = NumberFormat.getCurrencyInstance(new Locale("nl", "NL"));
 
-        StringBuilder lines = new StringBuilder();
-        if (dto.getTimesheet() != null) {
-            dto.getTimesheet().forEach(line -> {
-                BigDecimal hours = safe(line.getHoursWorked());
-                BigDecimal rate = safe(line.getHourlyWage());
-                BigDecimal travel = safe(line.getTravelExpenses());
-                BigDecimal total = hours.multiply(rate).add(travel);
+        BigDecimal hours = safe(dto.getTotalHoursWorked());
+        BigDecimal rate = safe(dto.getHourlyWage());
+        BigDecimal travel = safe(dto.getTravelExpenses());
+        BigDecimal total = hours.multiply(rate).add(travel);
 
-                lines.append("<tr>")
-                        .append("<td>")
-                        .append(escape(line.getFunctionName()))
-                        .append("<div class=\"muted\" style=\"font-size:12px;\">")
-                        .append(line.getTimesheetId() != null ? "Timesheet " + line.getTimesheetId() : "")
-                        .append(line.getDateOfIssue() != null ? " • " + line.getDateOfIssue() : "")
-                        .append("</div>")
-                        .append("</td>")
-                        .append("<td class=\"num\">").append(formatHours(hours)).append("</td>")
-                        .append("<td class=\"num\">").append(eur.format(rate)).append("</td>")
-                        .append("<td class=\"num\">").append(eur.format(travel)).append("</td>")
-                        .append("<td class=\"num\">").append(eur.format(total)).append("</td>")
-                        .append("</tr>");
-            });
-        }
+        String lines = new StringBuilder()
+                .append("<tr>")
+                .append("<td>").append(escape(dto.getFunctionName())).append("</td>")
+                .append("<td class=\"num\">").append(formatHours(hours)).append("</td>")
+                .append("<td class=\"num\">").append(eur.format(rate)).append("</td>")
+                .append("<td class=\"num\">").append(eur.format(travel)).append("</td>")
+                .append("<td class=\"num\">").append(eur.format(total)).append("</td>")
+                .append("</tr>")
+                .toString();
 
         String address = String.join(" ",
                 orEmpty(dto.getStreetName()),
@@ -168,7 +212,9 @@ public class PayrollService {
                 .replace("__COUNTRY__", escape(dto.getCountry()))
                 .replace("__USER_ID__", orEmpty(dto.getUserId()))
                 .replace("__START_DATE__", orEmpty(dto.getStartDate()))
-                .replace("__LINES__", lines.toString())
+                .replace("__FUNCTION_NAME__", escape(dto.getFunctionName()))
+                .replace("__HOURLY_WAGE__", eur.format(safe(dto.getHourlyWage())))
+                .replace("__LINES__", lines)
                 .replace("__GROSS__", eur.format(safe(dto.getTotalGrossAmount())))
                 .replace("__TAX__", eur.format(safe(dto.getWageTaxWithheldTest())))
                 .replace("__TRAVEL__", eur.format(safe(dto.getTravelExpenses())))

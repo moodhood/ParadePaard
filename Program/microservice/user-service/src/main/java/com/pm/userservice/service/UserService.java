@@ -70,6 +70,15 @@ public class UserService {
         return UserMapper.toDTO(updatedUser);
     }
 
+    @Transactional
+    public UserResponseDTO updatePayslipFrequencyMinutes(UUID id, int minutes) {
+        User existing = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+        existing.setPayslipFrequencyMinutes(minutes);
+        User updatedUser = userRepository.save(existing);
+        return UserMapper.toDTO(updatedUser);
+    }
+
     @Transactional(readOnly = true)
     public Optional<ProfilePicture> getProfilePicture(UUID id) {
         User user = userRepository.findByUserId(id)

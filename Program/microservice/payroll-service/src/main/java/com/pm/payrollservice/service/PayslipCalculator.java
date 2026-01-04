@@ -1,7 +1,6 @@
 package com.pm.payrollservice.service;
 
 import com.pm.payrollservice.model.Payslip;
-import com.pm.payrollservice.model.PayslipTimesheet;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -12,18 +11,11 @@ public final class PayslipCalculator {
     private PayslipCalculator() {}
 
     public static void apply(Payslip payslip) {
-        BigDecimal gross = ZERO;
-        BigDecimal travel = ZERO;
+        BigDecimal hours = nz(payslip.getTotalHoursWorked());
+        BigDecimal rate = nz(payslip.getHourlyWage());
 
-        if (payslip.getTimesheets() != null) {
-            for (PayslipTimesheet timesheet : payslip.getTimesheets()) {
-                BigDecimal hours = nz(timesheet.getHoursWorked());
-                BigDecimal rate  = nz(timesheet.getHourlyWage());
-                BigDecimal line  = hours.multiply(rate);
-                gross  = gross.add(line);
-                travel = travel.add(nz(timesheet.getTravelExpenses()));
-            }
-        }
+        BigDecimal gross = hours.multiply(rate);
+        BigDecimal travel = nz(payslip.getTravelExpenses());
 
         gross  = money(gross);
         travel = money(travel);

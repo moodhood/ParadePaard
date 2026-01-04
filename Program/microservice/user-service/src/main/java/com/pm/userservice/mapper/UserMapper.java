@@ -33,6 +33,7 @@ public class UserMapper {
         dto.setCity(user.getCity());
         dto.setCountry(user.getCountry());
         dto.setIban(user.getIban());
+        dto.setPayslipFrequencyMinutes(user.getPayslipFrequencyMinutes());
         dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
         return dto;

@@ -55,6 +55,9 @@ public class User {
     @Column(nullable = false)
     private UserStatus status = UserStatus.PENDING_SETUP;
 
+    @Column(name = "payslip_frequency_minutes", nullable = false)
+    private Integer payslipFrequencyMinutes = 10080;
+
     public UUID getUserId() {
         return userId;
     }
@@ -221,5 +224,13 @@ public class User {
 
     public void setStatus(UserStatus status) {
         this.status = status;
+    }
+
+    public Integer getPayslipFrequencyMinutes() {
+        return payslipFrequencyMinutes;
+    }
+
+    public void setPayslipFrequencyMinutes(Integer payslipFrequencyMinutes) {
+        this.payslipFrequencyMinutes = payslipFrequencyMinutes;
     }
 }

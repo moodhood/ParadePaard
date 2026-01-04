@@ -19,6 +19,7 @@ public class UserResponseDTO {
     private String city;
     private String country;
     private String iban;
+    private Integer payslipFrequencyMinutes;
     private String status;
 
     public String getUserId() {
@@ -163,6 +164,14 @@ public class UserResponseDTO {
 
     public void setIban(String iban) {
         this.iban = iban;
+    }
+
+    public Integer getPayslipFrequencyMinutes() {
+        return payslipFrequencyMinutes;
+    }
+
+    public void setPayslipFrequencyMinutes(Integer payslipFrequencyMinutes) {
+        this.payslipFrequencyMinutes = payslipFrequencyMinutes;
     }
 
     public String getStatus() {

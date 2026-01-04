@@ -11,6 +11,11 @@ import AdminOnboardEmployee from "./AdminOnboardEmployee";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
+import GetMyPayslips, { type PayslipResponseDTO } from "./GetMyPayslips";
+import GetPayslipsForReview from "./GetPayslipsForReview";
+import UpdateMyPayslipFrequency, { type UpdatePayslipFrequencyRequestDTO } from "./UpdateMyPayslipFrequency";
+import GetMyTimesheets, { type MyTimesheetRow } from "./GetMyTimesheets";
+import GetPayslipPdf from "./GetPayslipPdf";
 import type {
     AdminOnboardingRequestDTO,
     AdminOnboardingResponseDTO,
@@ -30,6 +35,8 @@ export type {
     LeaveRequestDTO,
     LeaveStatus,
     LeaveType,
+    PayslipResponseDTO,
+    UpdatePayslipFrequencyRequestDTO,
     UserResponseDTO,
     UserSetupRequest,
 };
@@ -47,55 +54,21 @@ export const UserServices = {
         return await GetMe(API_BASE_URL);
     },
     getMyTimesheets: async (): Promise<
-        Array<{
-            timesheetId: string;
-            dateOfIssue: string;
-            function: string;
-            hoursWorked: number;
-        }>
+        MyTimesheetRow[]
     > => {
-        await new Promise((r) => setTimeout(r, 350));
-
-        const isoDate = (d: Date) => d.toISOString().slice(0, 10);
-        const addDays = (d: Date, days: number) => {
-            const copy = new Date(d);
-            copy.setDate(copy.getDate() + days);
-            return copy;
-        };
-
-        const today = new Date();
-        return [
-            {
-                timesheetId: "TS-2025-11-001",
-                dateOfIssue: isoDate(addDays(today, -3)),
-                function: "Evening Bar Shift",
-                hoursWorked: 6.5,
-            },
-            {
-                timesheetId: "TS-2025-11-002",
-                dateOfIssue: isoDate(addDays(today, -8)),
-                function: "Runner Shift (Event A)",
-                hoursWorked: 5.0,
-            },
-            {
-                timesheetId: "TS-2025-10-003",
-                dateOfIssue: isoDate(addDays(today, -14)),
-                function: "Setup & Teardown",
-                hoursWorked: 7.5,
-            },
-            {
-                timesheetId: "TS-2025-10-004",
-                dateOfIssue: isoDate(addDays(today, -21)),
-                function: "Afternoon Bar Shift",
-                hoursWorked: 4.0,
-            },
-            {
-                timesheetId: "TS-2025-10-005",
-                dateOfIssue: isoDate(addDays(today, -28)),
-                function: "Runner Shift (Event B)",
-                hoursWorked: 6.0,
-            },
-        ];
+        return await GetMyTimesheets(API_BASE_URL);
+    },
+    getMyPayslips: async (): Promise<PayslipResponseDTO[]> => {
+        return await GetMyPayslips(API_BASE_URL);
+    },
+    getPayslipsForReview: async (): Promise<PayslipResponseDTO[]> => {
+        return await GetPayslipsForReview(API_BASE_URL);
+    },
+    getPayslipPdf: async (payslipId: string): Promise<Blob> => {
+        return await GetPayslipPdf(API_BASE_URL, payslipId);
+    },
+    updateMyPayslipFrequency: async (payload: UpdatePayslipFrequencyRequestDTO): Promise<UserResponseDTO> => {
+        return await UpdateMyPayslipFrequency(API_BASE_URL, payload);
     },
     getMyProfilePicture: async (): Promise<Blob | null> => {
         return await GetMyProfilePicture(API_BASE_URL);

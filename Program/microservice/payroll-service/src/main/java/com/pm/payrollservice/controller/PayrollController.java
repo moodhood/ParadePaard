@@ -16,6 +16,8 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -51,6 +53,21 @@ public class PayrollController {
         return ResponseEntity.ok().body(payslips);
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Get my payslips")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<PayslipResponseDTO>> getMyPayslips(@AuthenticationPrincipal Jwt jwt) {
+        UUID userId = extractUserId(jwt);
+        return ResponseEntity.ok(payrollService.getReleasedPayslipsByUserId(userId));
+    }
+
+    @GetMapping("/review")
+    @Operation(summary = "Get payslips pending review admin only")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<PayslipResponseDTO>> getPayslipsPendingReview() {
+        return ResponseEntity.ok(payrollService.getPayslipsPendingReview());
+    }
+
     /* changed: return pdf for a single payslip */
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Get a payslip by id as PDF self or admin")
@@ -59,7 +76,7 @@ public class PayrollController {
         byte[] pdf = payrollService.generatePayslipPdf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.set(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"payslip_" + id + ".pdf\"");
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"payslip_" + id + ".pdf\"");
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 
@@ -106,5 +123,25 @@ public class PayrollController {
     public ResponseEntity<Void> deletePayslip(@PathVariable UUID id) {
         payrollService.deletePayslip(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private static UUID extractUserId(Jwt jwt) {
+        if (jwt == null) throw new IllegalArgumentException("missing jwt principal");
+        String userId = jwt.getClaimAsString("userId");
+        if (userId == null || userId.isBlank()) userId = jwt.getSubject();
+        if (userId == null || userId.isBlank()) throw new IllegalArgumentException("missing userId claim");
+        return parseFlexibleUUID(userId.trim());
+    }
+
+    private static UUID parseFlexibleUUID(String value) {
+        if (value.contains("-")) return UUID.fromString(value);
+        if (value.length() == 32) {
+            String formatted = value.replaceFirst(
+                    "(\\w{8})(\\w{4})(\\w{4})(\\w{4})(\\w{12})",
+                    "$1-$2-$3-$4-$5"
+            );
+            return UUID.fromString(formatted);
+        }
+        return UUID.fromString(value);
     }
 }

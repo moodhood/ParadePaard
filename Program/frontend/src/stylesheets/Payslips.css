@@ -9,7 +9,7 @@
 .payslipHeaderGrid,
 .payslipRowGrid {
   display: grid;
-  grid-template-columns: 1.2fr 0.8fr 1.5fr 1fr; /* Define column widths here */
+  grid-template-columns: 1.2fr 0.6fr 1.4fr 0.7fr 0.8fr 0.8fr; /* Date, Week, Function, Hours, Net, Action */
   align-items: center;
   gap: 10px;
   padding: 0 16px;

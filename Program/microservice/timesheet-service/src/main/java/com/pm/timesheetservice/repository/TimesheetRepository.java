@@ -12,4 +12,5 @@ import java.util.UUID;
 public interface TimesheetRepository extends JpaRepository<Timesheet, UUID> {
     Optional<Timesheet> findByUserId(UUID userId);
     List<Timesheet> findByUserIdAndWeekNumberAndWeekBasedYear(UUID userId, Integer weekNumber, Integer weekBasedYear);
+    List<Timesheet> findByUserIdOrderByDateOfIssueDesc(UUID userId);
 }

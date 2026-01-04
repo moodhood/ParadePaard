@@ -1,12 +1,10 @@
 package com.pm.payrollservice.model;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -24,10 +22,12 @@ public class Payslip {
     private Integer weekBasedYear;
 
     // Payslip Details
-    @ElementCollection
-    @CollectionTable(name = "payslip_timesheets",
-            joinColumns = @JoinColumn(name = "payslip_id"))
-    private List<PayslipTimesheet> timesheets;
+    @Column
+    private String functionName;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal hourlyWage;
+    @Column(precision = 19, scale = 2)
+    private BigDecimal totalHoursWorked;
     @Column(precision = 19, scale = 2)
     private BigDecimal totalGrossAmount;
     @Column(precision = 19, scale = 2)
@@ -36,6 +36,14 @@ public class Payslip {
     private BigDecimal travelExpenses; //TODO travel Expenses
     @Column(precision = 19, scale = 2)
     private BigDecimal totalNetAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40)
+    private PayslipStatus status;
+
+    private LocalDate availableToUserAt;
+
+    private OffsetDateTime generatedAt;
 
 
     // Personal Details
@@ -163,13 +171,28 @@ public class Payslip {
         this.country = country;
     }
 
-
-    public List<PayslipTimesheet> getTimesheets() {
-        return timesheets;
+    public String getFunctionName() {
+        return functionName;
     }
 
-    public void setTimesheets(List<PayslipTimesheet> timesheets) {
-        this.timesheets = timesheets;
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
+    public BigDecimal getHourlyWage() {
+        return hourlyWage;
+    }
+
+    public void setHourlyWage(BigDecimal hourlyWage) {
+        this.hourlyWage = hourlyWage;
+    }
+
+    public BigDecimal getTotalHoursWorked() {
+        return totalHoursWorked;
+    }
+
+    public void setTotalHoursWorked(BigDecimal totalHoursWorked) {
+        this.totalHoursWorked = totalHoursWorked;
     }
 
     public BigDecimal getTotalGrossAmount() {
@@ -202,5 +225,29 @@ public class Payslip {
 
     public void setTravelExpenses(BigDecimal travelExpenses) {
         this.travelExpenses = travelExpenses;
+    }
+
+    public PayslipStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(PayslipStatus status) {
+        this.status = status;
+    }
+
+    public LocalDate getAvailableToUserAt() {
+        return availableToUserAt;
+    }
+
+    public void setAvailableToUserAt(LocalDate availableToUserAt) {
+        this.availableToUserAt = availableToUserAt;
+    }
+
+    public OffsetDateTime getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public void setGeneratedAt(OffsetDateTime generatedAt) {
+        this.generatedAt = generatedAt;
     }
 }

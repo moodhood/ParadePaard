@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,6 +36,13 @@ public class TimesheetController {
     public ResponseEntity<List<TimesheetResponseDTO>> getTimesheets(){
         List<TimesheetResponseDTO> timesheets = timesheetService.getTimesheets();
         return ResponseEntity.ok().body(timesheets);
+    }
+
+    @GetMapping("/me")
+    @Operation(summary = "Get my work history (timesheets)")
+    public ResponseEntity<List<TimesheetResponseDTO>> getMyTimesheets(Authentication authentication) {
+        UUID userId = requireUserId(authentication);
+        return ResponseEntity.ok(timesheetService.getTimesheetsByUserId(userId));
     }
 
     @GetMapping("/{id}")
@@ -68,5 +77,23 @@ public class TimesheetController {
         return ResponseEntity.noContent().build();
     }
 
+    private UUID requireUserId(Authentication authentication) {
+        if (authentication == null) {
+            throw new IllegalArgumentException("Missing authentication");
+        }
+
+        String raw = authentication.getName();
+        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+            String claim = jwtAuth.getToken().getClaimAsString("userId");
+            if (claim != null && !claim.isBlank()) {
+                raw = claim;
+            }
+        }
+
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("Missing userId");
+        }
+        return UUID.fromString(raw);
+    }
 
 }

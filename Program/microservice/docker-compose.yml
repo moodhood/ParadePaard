@@ -140,12 +140,17 @@ services:
       dockerfile: Dockerfile
     image: payroll-service:latest
     environment:
+      PAYSLIP_PAYOUT_DAY: "SUNDAY"
+      PAYSLIP_PAYOUT_TIME: "12:00"
+      PAYSLIP_TIME_ZONE: "Europe/Amsterdam"
+      PAYSLIP_REVIEW_LEAD_DAYS: "2"
       CONTRACT_SERVICE_ADDRESS: "contract-service"
       CONTRACT_SERVICE_GRPC: "9002"
       TIMESHEET_SERVICE_ADDRESS: "timesheet-service"
       TIMESHEET_SERVICE_GRPC: "9001"
       USER_SERVICE_ADDRESS: "user-service"
       USER_SERVICE_GRPC: "9006"
+      USER_SERVICE_BASE_URL: "http://user-service:4006"
       SPRING_DATASOURCE_PASSWORD: "password"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://payroll-service-db:5432/db"
       SPRING_DATASOURCE_USERNAME: "admin_user"

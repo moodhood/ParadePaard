@@ -8,7 +8,7 @@ import "../../stylesheets/Payslips.css";
 import "../../stylesheets/LeaveRequests.css";
 import "../../stylesheets/Shortcuts.css";
 
-import { UserServices } from "../../services/user-service/UserServices";
+import { UserServices, type PayslipResponseDTO } from "../../services/user-service/UserServices";
 import { mapLeaves } from "../../utils/mapLeaveDtoToUi";
 import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
 import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
@@ -54,18 +54,10 @@ export default function UserDashboard() {
     const [timesheetLoading, setTimesheetLoading] = useState(false);
     const [timesheetError, setTimesheetError] = useState<string | null>(null);
 
-    // payslips dummy data
-    type PayslipRow = { date: string; week: string; id: string; payslip: string };
-    const payslips: PayslipRow[] = [
-        { date: "2025-11-03", week: "45", id: "PS-2025-45-0012", payslip: "November Week 45" },
-        { date: "2025-10-27", week: "44", id: "PS-2025-44-0009", payslip: "October Week 44" },
-        { date: "2025-10-20", week: "43", id: "PS-2025-43-0007", payslip: "October Week 43" },
-        { date: "2025-10-13", week: "42", id: "PS-2025-42-0005", payslip: "October Week 42" },
-        { date: "2025-10-06", week: "41", id: "PS-2025-41-0003", payslip: "October Week 41" },
-        { date: "2025-09-29", week: "40", id: "PS-2025-40-0001", payslip: "September Week 40" },
-        { date: "2025-09-22", week: "39", id: "PS-2025-39-0001", payslip: "September Week 39" },
-        { date: "2025-09-15", week: "38", id: "PS-2025-38-0001", payslip: "September Week 38" },
-    ];
+    // payslips (real)
+    const [payslips, setPayslips] = useState<PayslipResponseDTO[]>([]);
+    const [payslipLoading, setPayslipLoading] = useState(false);
+    const [payslipError, setPayslipError] = useState<string | null>(null);
 
     // fetch me
     useEffect(() => {
@@ -128,6 +120,49 @@ export default function UserDashboard() {
             cancelled = true;
         };
     }, []);
+
+    // fetch my payslips
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchPayslips = async () => {
+            try {
+                setPayslipLoading(true);
+                setPayslipError(null);
+                const data = await UserServices.getMyPayslips();
+                if (!cancelled) setPayslips(data);
+            } catch (err: unknown) {
+                const msg = err instanceof Error ? err.message : "Could not load your payslips";
+                if (!cancelled) setPayslipError(msg);
+            } finally {
+                if (!cancelled) setPayslipLoading(false);
+            }
+        };
+
+        if (!meLoading && !meError) void fetchPayslips();
+        return () => {
+            cancelled = true;
+        };
+    }, [meLoading, meError]);
+
+    const money = (n: number | null | undefined) =>
+        new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(n ?? 0));
+
+    const downloadPayslipPdf = async (payslipId: string, filename: string) => {
+        const blob = await UserServices.getPayslipPdf(payslipId);
+        const url = URL.createObjectURL(blob);
+        try {
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            a.rel = "noopener";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        } finally {
+            URL.revokeObjectURL(url);
+        }
+    };
 
     // create from modal
     const handleCreateFromModal = async (form: LeaveRequestForm) => {
@@ -221,23 +256,70 @@ export default function UserDashboard() {
                         <div className="payslipHeaderGrid">
                             <div className="phCell">Date</div>
                             <div className="phCell">Week</div>
-                            <div className="phCell">Payslip ID</div>
+                            <div className="phCell">Function</div>
+                            <div className="phCell">Hours</div>
+                            <div className="phCell">Net</div>
                             <div className="phCell">Action</div>
                         </div>
                         {/* Scrollable Body */}
                         <div className="payslipScrollArea">
-                            {payslips.map((p) => (
-                                <div key={p.id} className="payslipRowGrid">
-                                    <div className="pdCell">{p.date}</div>
-                                    <div className="pdCell">{p.week}</div>
-                                    <div className="pdCell">{p.id}</div>
-                                    <div className="pdCell">
-                                        <button className="linkButton" onClick={() => alert(`Downloading ${p.id}`)}>
-                                            Download
-                                        </button>
-                                    </div>
+                            {payslipLoading ? (
+                                <div className="payslipRowGrid">
+                                    <div className="pdCell">Loading...</div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
                                 </div>
-                            ))}
+                            ) : null}
+
+                            {payslipError ? (
+                                <div className="payslipRowGrid">
+                                    <div className="pdCell">{payslipError}</div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                </div>
+                            ) : null}
+
+                            {!payslipLoading && !payslipError && payslips.length === 0 ? (
+                                <div className="payslipRowGrid">
+                                    <div className="pdCell">No payslips yet</div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                    <div className="pdCell"></div>
+                                </div>
+                            ) : null}
+
+                            {!payslipLoading && !payslipError
+                                ? payslips.map((p) => (
+                                      <div key={p.payslipId} className="payslipRowGrid">
+                                          <div className="pdCell">{p.dateOfIssue}</div>
+                                          <div className="pdCell">{p.weekNumber}</div>
+                                          <div className="pdCell">{p.functionName}</div>
+                                          <div className="pdCell">{Number(p.totalHoursWorked ?? 0).toFixed(2)}</div>
+                                          <div className="pdCell">{money(p.totalNetAmount)}</div>
+                                          <div className="pdCell">
+                                              <button
+                                                  className="linkButton"
+                                                  onClick={() =>
+                                                      void downloadPayslipPdf(
+                                                          p.payslipId,
+                                                          `payslip_${p.weekBasedYear}_W${p.weekNumber}.pdf`
+                                                      )
+                                                  }
+                                              >
+                                                  Download
+                                              </button>
+                                          </div>
+                                      </div>
+                                  ))
+                                : null}
                         </div>
                     </div>
                 </Card>

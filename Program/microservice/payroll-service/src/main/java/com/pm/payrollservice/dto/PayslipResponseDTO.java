@@ -1,11 +1,8 @@
 // PayslipResponseDTO.java
 package com.pm.payrollservice.dto;
 
-import com.pm.payrollservice.model.PayslipTimesheet;
-
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
 
 public class PayslipResponseDTO {
     private String payslipId;
@@ -16,11 +13,16 @@ public class PayslipResponseDTO {
     private Integer weekBasedYear;
 
     // Payslip Details
-    private List<PayslipTimesheet> timesheet;
+    private String functionName;
+    private BigDecimal hourlyWage;
+    private BigDecimal totalHoursWorked;
     private BigDecimal totalGrossAmount;
     private BigDecimal wageTaxWithheldTest;
     private BigDecimal travelExpenses;
     private BigDecimal totalNetAmount;
+    private String status;
+    private String availableToUserAt;
+    private String generatedAt;
 
 
     // Personal Details
@@ -175,12 +177,28 @@ public class PayslipResponseDTO {
         this.country = country;
     }
 
-    public List<PayslipTimesheet> getTimesheet() {
-        return timesheet;
+    public String getFunctionName() {
+        return functionName;
     }
 
-    public void setTimesheet(List<PayslipTimesheet> timesheet) {
-        this.timesheet = timesheet;
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
+    public BigDecimal getHourlyWage() {
+        return hourlyWage;
+    }
+
+    public void setHourlyWage(BigDecimal hourlyWage) {
+        this.hourlyWage = hourlyWage;
+    }
+
+    public BigDecimal getTotalHoursWorked() {
+        return totalHoursWorked;
+    }
+
+    public void setTotalHoursWorked(BigDecimal totalHoursWorked) {
+        this.totalHoursWorked = totalHoursWorked;
     }
 
     public BigDecimal getTravelExpenses() {
@@ -189,5 +207,29 @@ public class PayslipResponseDTO {
 
     public void setTravelExpenses(BigDecimal travelExpenses) {
         this.travelExpenses = travelExpenses;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getAvailableToUserAt() {
+        return availableToUserAt;
+    }
+
+    public void setAvailableToUserAt(String availableToUserAt) {
+        this.availableToUserAt = availableToUserAt;
+    }
+
+    public String getGeneratedAt() {
+        return generatedAt;
+    }
+
+    public void setGeneratedAt(String generatedAt) {
+        this.generatedAt = generatedAt;
     }
 }

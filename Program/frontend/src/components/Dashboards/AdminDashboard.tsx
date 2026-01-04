@@ -11,7 +11,7 @@ import {
     NewMemberRequestModal,
 } from "../requests/RequestModals";
 
-import { UserServices } from "../../services/user-service/UserServices";
+import { UserServices, type PayslipResponseDTO } from "../../services/user-service/UserServices";
 import { mapLeaves, type LeaveRequestDTO } from "../../utils/mapLeaveDtoToUi";
 import Card from "../common/Card";
 
@@ -24,6 +24,9 @@ export default function AdminDashboard(): JSX.Element {
     const [items, setItems] = useState<AnyRequest[]>([]);
     const [loading, setLoading] = useState(true);
     const [err, setErr] = useState<string | null>(null);
+    const [reviewPayslips, setReviewPayslips] = useState<PayslipResponseDTO[]>([]);
+    const [reviewLoading, setReviewLoading] = useState(true);
+    const [reviewErr, setReviewErr] = useState<string | null>(null);
     const [open, setOpen] = useState<AnyRequest | null>(null);
     const [acting, setActing] = useState(false);
     const [version, setVersion] = useState(0);
@@ -32,13 +35,31 @@ export default function AdminDashboard(): JSX.Element {
         try {
             setLoading(true);
             setErr(null);
-            const dtos: LeaveRequestDTO[] = await UserServices.leaveRequests.list("PENDING");
-            const mapped = mapLeaves(dtos) as unknown as AnyRequest[];
-            setItems(mapped);
+            setReviewLoading(true);
+            setReviewErr(null);
+
+            const [leaveRes, reviewRes] = await Promise.allSettled([
+                UserServices.leaveRequests.list("PENDING"),
+                UserServices.getPayslipsForReview(),
+            ]);
+
+            if (leaveRes.status === "fulfilled") {
+                const mapped = mapLeaves(leaveRes.value as LeaveRequestDTO[]) as unknown as AnyRequest[];
+                setItems(mapped);
+            } else {
+                setErr((leaveRes.reason as any)?.message || "Failed to load requests");
+            }
+
+            if (reviewRes.status === "fulfilled") {
+                setReviewPayslips(reviewRes.value);
+            } else {
+                setReviewErr((reviewRes.reason as any)?.message || "Failed to load payslips for review");
+            }
         } catch (e: any) {
             setErr(e?.message || "Failed to load requests");
         } finally {
             setLoading(false);
+            setReviewLoading(false);
         }
     }, []);
 
@@ -97,6 +118,12 @@ export default function AdminDashboard(): JSX.Element {
                             <div className="statRow">
                                 <div className="statLabel">Pending requests</div>
                                 <div className="statValue">{items.length}</div>
+                            </div>
+                            <div className="statRow">
+                                <div className="statLabel">Payslips pending review</div>
+                                <div className="statValue">
+                                    {reviewLoading ? "…" : reviewErr ? "-" : reviewPayslips.length}
+                                </div>
                             </div>
                         </div>
                         <div className="cardFooter">
@@ -231,8 +258,8 @@ export default function AdminDashboard(): JSX.Element {
                         </div>
                     </Card>
 
-                    {/* 6. Payout Check */}
-                    <Card title="Payout Check" className="dashboardCardHeight">
+                    {/* 6. Payslip Review */}
+                    <Card title="Payslip Review" className="dashboardCardHeight">
                          <div className="listContainer">
                             <div className="listHeaderGrid gridPayouts">
                                 <div>Name</div>
@@ -240,24 +267,33 @@ export default function AdminDashboard(): JSX.Element {
                                 <div>Status</div>
                             </div>
                             <div className="listScrollArea">
-                                <div className="listRowGrid gridPayouts">
-                                    <div className="cellMain">J. Smith</div>
-                                    <div className="cellSub">Oct 30</div>
-                                    <div className="cellOk">Ready</div>
-                                </div>
-                                <div className="listRowGrid gridPayouts">
-                                    <div className="cellMain">A. Garcia</div>
-                                    <div className="cellSub">Oct 30</div>
-                                    <div className="cellOk">Ready</div>
-                                </div>
-                                <div className="listRowGrid gridPayouts">
-                                    <div className="cellMain">K. Tanaka</div>
-                                    <div className="cellSub">Oct 30</div>
-                                    <div className="cellOk">Ready</div>
-                                </div>
+                                {reviewLoading ? <div className="listEmpty">Loading...</div> : null}
+                                {reviewErr ? <div className="listEmpty errorText">{reviewErr}</div> : null}
+                                {!reviewLoading && !reviewErr && reviewPayslips.length === 0 ? (
+                                    <div className="listEmpty">No payslips pending review</div>
+                                ) : null}
+
+                                {!reviewLoading && !reviewErr
+                                    ? [...reviewPayslips]
+                                          .sort((a, b) => (a.availableToUserAt ?? "").localeCompare(b.availableToUserAt ?? ""))
+                                          .slice(0, 6)
+                                          .map((p) => (
+                                              <div
+                                                  key={p.payslipId}
+                                                  className="listRowGrid gridPayouts clickableRow"
+                                                  onClick={() => navigate("/admin/payslip-review")}
+                                              >
+                                                  <div className="cellMain">{p.name}</div>
+                                                  <div className="cellSub">{p.availableToUserAt ?? "-"}</div>
+                                                  <div className="cellWarn">Pending</div>
+                                              </div>
+                                          ))
+                                    : null}
                             </div>
                             <div className="cardFooter">
-                                <button className="button">Process Payouts</button>
+                                <button className="button" onClick={() => navigate("/admin/payslip-review")}>
+                                    Review payslips
+                                </button>
                             </div>
                         </div>
                     </Card>

@@ -92,6 +92,11 @@
   grid-template-columns: 1fr 1fr 0.8fr;
 }
 
+/* 5. Payslip Review: Name | Period end | Payout | Hours | Net | Action */
+.gridPayslipReview {
+  grid-template-columns: 1.4fr 0.9fr 0.9fr 0.7fr 0.8fr 0.9fr;
+}
+
 /* --- Cell Styling --- */
 .cellMain {
   font-weight: 600;

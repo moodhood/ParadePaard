@@ -3,6 +3,7 @@ package com.pm.userservice.controller;
 
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
+import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -133,6 +134,23 @@ public class UserController {
         }
         userService.removeProfilePicture(userId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PutMapping("/me/payslip-frequency")
+    @Operation(summary = "Update current user's payslip frequency (in minutes)")
+    public ResponseEntity<UserResponseDTO> updateMyPayslipFrequency(
+            Authentication authentication,
+            @Validated @RequestBody UpdatePayslipFrequencyRequestDTO body
+    ) {
+        final UUID userId;
+        try {
+            userId = requireUserId(authentication);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(401).build();
+        }
+        int minutes = body.getPayslipFrequencyMinutes();
+        UserResponseDTO updated = userService.updatePayslipFrequencyMinutes(userId, minutes);
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping

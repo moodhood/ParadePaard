@@ -13,10 +13,17 @@ export default function Profile() {
     const [avatarErrorMsg, setAvatarErrorMsg] = useState<string | null>(null);
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
+    const [payslipFrequencyDraft, setPayslipFrequencyDraft] = useState<number>(10080);
+    const [payslipFrequencySaving, setPayslipFrequencySaving] = useState(false);
+    const [payslipFrequencyError, setPayslipFrequencyError] = useState<string | null>(null);
 
     useEffect(() => {
         UserServices.getMe()
-            .then((data) => setUser(data))
+            .then((data) => {
+                setUser(data);
+                const minutes = data.payslipFrequencyMinutes ?? 10080;
+                setPayslipFrequencyDraft(minutes);
+            })
             .catch((err: Error) => setError(err.message));
     }, []);
 
@@ -104,6 +111,23 @@ export default function Profile() {
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Could not remove profile picture.";
             setAvatarErrorMsg(message);
+        }
+    };
+
+    const handleSavePayslipFrequency = async () => {
+        if (!user) return;
+        try {
+            setPayslipFrequencySaving(true);
+            setPayslipFrequencyError(null);
+            const updated = await UserServices.updateMyPayslipFrequency({
+                payslipFrequencyMinutes: payslipFrequencyDraft,
+            });
+            setUser(updated);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not update payslip frequency.";
+            setPayslipFrequencyError(message);
+        } finally {
+            setPayslipFrequencySaving(false);
         }
     };
 
@@ -262,6 +286,34 @@ export default function Profile() {
                                 <span className="profile_info_label">Worked For Us Before</span>
                                 <span className="profile_info_value">{formatValue(user.workedForUsBefore)}</span>
                             </div>
+                            <div className="profile_info_row">
+                                <span className="profile_info_label">Payslip frequency (minutes)</span>
+                                <span className="profile_info_value">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        step={1}
+                                        value={payslipFrequencyDraft}
+                                        onChange={(e) => setPayslipFrequencyDraft(Number(e.target.value))}
+                                        style={{ width: 120 }}
+                                        disabled={payslipFrequencySaving}
+                                    />
+                                    <button
+                                        className="button"
+                                        style={{ marginLeft: 10 }}
+                                        onClick={() => void handleSavePayslipFrequency()}
+                                        disabled={payslipFrequencySaving}
+                                    >
+                                        {payslipFrequencySaving ? "Saving..." : "Save"}
+                                    </button>
+                                </span>
+                            </div>
+                            {payslipFrequencyError ? (
+                                <div className="profile_info_row">
+                                    <span className="profile_info_label">Payslip frequency</span>
+                                    <span className="profile_info_value errorText">{payslipFrequencyError}</span>
+                                </div>
+                            ) : null}
                             <div className="profile_info_row">
                                 <span className="profile_info_label">Status</span>
                                 <span className="profile_info_value">{formatValue(user.status)}</span>

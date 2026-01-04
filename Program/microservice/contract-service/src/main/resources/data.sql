@@ -33,3 +33,15 @@ SELECT 'cccccccc-3333-3333-3333-333333333333',
        'SIGNED',
        NULL
     WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE contract_id = 'cccccccc-3333-3333-3333-333333333333');
+
+INSERT INTO contracts (contract_id, user_id, start_date, end_date, contract_type, gross_hourly_wage, travel_allowance, status, pdf_data)
+SELECT 'dddddddd-4444-4444-4444-444444444444',
+       '223e4567-e89b-12d3-a456-426614174006',
+       '2025-01-01',
+       '2026-12-31',
+       'ON_CALL_BAR',
+       20.00,
+       true,
+       'SIGNED',
+       NULL
+    WHERE NOT EXISTS (SELECT 1 FROM contracts WHERE contract_id = 'dddddddd-4444-4444-4444-444444444444');

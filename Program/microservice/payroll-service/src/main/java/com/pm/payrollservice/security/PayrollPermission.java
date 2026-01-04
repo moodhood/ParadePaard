@@ -2,6 +2,7 @@
 package com.pm.payrollservice.security;
 
 import com.pm.payrollservice.model.Payslip;
+import com.pm.payrollservice.model.PayslipStatus;
 import com.pm.payrollservice.repository.PayslipRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,10 +47,26 @@ public class PayrollPermission {
         UUID ownerId = payslipOpt.get().getUserId();
         boolean isOwner = currentUserId.equals(ownerId);
 
-        log.debug("Permission check currentUserId={} ownerId={} payslipId={} result={}",
-                currentUserId, ownerId, payslipId, isOwner ? "GRANTED" : "DENIED");
+        if (!isOwner) {
+            log.debug("Permission check currentUserId={} ownerId={} payslipId={} result=DENIED",
+                    currentUserId, ownerId, payslipId);
+            return false;
+        }
 
-        return isOwner;
+        // owners can only access their payslips after release
+        if (hasAdminAuthority(auth)) {
+            return true;
+        }
+
+        Payslip payslip = payslipOpt.get();
+        PayslipStatus status = payslip.getStatus() == null ? PayslipStatus.RELEASED : payslip.getStatus();
+        if (status == PayslipStatus.RELEASED) return true;
+        return false;
+    }
+
+    private boolean hasAdminAuthority(Authentication auth) {
+        return auth.getAuthorities() != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ADMIN".equalsIgnoreCase(a.getAuthority()) || "ROLE_ADMIN".equalsIgnoreCase(a.getAuthority()));
     }
 
     private UUID extractUserId(Jwt jwt) {

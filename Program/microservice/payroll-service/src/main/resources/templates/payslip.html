@@ -64,6 +64,8 @@
                 <h3>Contract</h3>
                 <div class="meta">
                     <div class="label">Start date</div><div id="startDate"></div>
+                    <div class="label">Function</div><div id="functionName"></div>
+                    <div class="label">Hourly wage</div><div id="hourlyWage"></div>
                     <div class="label">Week number</div><div id="weekNumber"></div>
                     <div class="label">Year</div><div id="weekYear"></div>
                 </div>
@@ -71,7 +73,7 @@
         </div>
 
         <div class="section">
-            <h3 style="margin:0 0 6px 0;">Timesheet</h3>
+            <h3 style="margin:0 0 6px 0;">Work summary</h3>
             <div class="box" style="padding:0;">
                 <table id="lines">
                     <thead>
@@ -118,25 +120,23 @@
         document.getElementById('country').textContent=safe(dto.country);
         document.getElementById('userId').textContent=safe(dto.userId);
         document.getElementById('startDate').textContent=fmtDate(dto.startDate);
+        document.getElementById('functionName').textContent=safe(dto.functionName);
+        document.getElementById('hourlyWage').textContent=money(dto.hourlyWage);
         document.getElementById('weekNumber').textContent=safe(dto.weekNumber);
         document.getElementById('weekYear').textContent=safe(dto.weekBasedYear);
 
         const body=document.getElementById('linesBody'); body.innerHTML='';
-        const rows=(dto.timesheet||[]).map(line=>{
-            const hours=Number(line.hoursWorked||0);
-            const rate=Number(line.hourlyWage||0);
-            const travel=Number(line.travelExpenses||0);
-            const total=hours*rate+travel;
-            return `<tr>
-          <td><div>${safe(line.functionName)}</div>
-          <div class="muted" style="font-size:12px;">${line.timesheetId?('Timesheet '+line.timesheetId):''} ${line.dateOfIssue?('• '+fmtDate(line.dateOfIssue)):''}</div></td>
+        const hours=Number(dto.totalHoursWorked||0);
+        const rate=Number(dto.hourlyWage||0);
+        const travel=Number(dto.travelExpenses||0);
+        const total=hours*rate+travel;
+        body.insertAdjacentHTML('beforeend', `<tr>
+          <td>${safe(dto.functionName)}</td>
           <td class="num">${hours.toFixed(2)}</td>
           <td class="num">${money(rate)}</td>
           <td class="num">${money(travel)}</td>
           <td class="num">${money(total)}</td>
-        </tr>`;
-        }).join('');
-        body.insertAdjacentHTML('beforeend', rows);
+        </tr>`);
 
         document.getElementById('gross').textContent=money(dto.totalGrossAmount);
         document.getElementById('tax').textContent=money(dto.wageTaxWithheldTest);
