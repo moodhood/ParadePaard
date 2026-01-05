@@ -23,6 +23,7 @@ public class PayslipResponseDTO {
     private String status;
     private String availableToUserAt;
     private String generatedAt;
+    private String errorDescription;
 
 
     // Personal Details
@@ -231,5 +232,13 @@ public class PayslipResponseDTO {
 
     public void setGeneratedAt(String generatedAt) {
         this.generatedAt = generatedAt;
+    }
+
+    public String getErrorDescription() {
+        return errorDescription;
+    }
+
+    public void setErrorDescription(String errorDescription) {
+        this.errorDescription = errorDescription;
     }
 }

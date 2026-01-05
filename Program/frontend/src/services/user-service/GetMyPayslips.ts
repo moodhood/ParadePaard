@@ -13,6 +13,7 @@ export type PayslipResponseDTO = {
     travelExpenses: number;
     totalNetAmount: number;
     status?: string;
+    errorDescription?: string | null;
     availableToUserAt?: string;
     generatedAt?: string;
     userId: string;

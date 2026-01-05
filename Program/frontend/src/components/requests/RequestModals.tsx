@@ -1,11 +1,13 @@
 // src/components/requests/RequestModals.tsx
 import React, { useState } from "react";
 import Modal from "../common/Modal";
+import { formatMaybeDateTime } from "../../utils/dateFormat";
 
 export type BaseRequest = {
     id: string;
     by: string;
     createdAt: string;
+    userId?: string;
 };
 
 export type LeaveRequest = BaseRequest & {
@@ -187,10 +189,14 @@ function Info({
     value: React.ReactNode;
     valueClass?: string;
 }) {
+    const displayValue =
+        typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)
+            ? formatMaybeDateTime(value)
+            : value;
     return (
         <div className="info_item">
             <div className="info_label">{label}</div>
-            <div className={`info_value ${valueClass || ""}`.trim()}>{value}</div>
+            <div className={`info_value ${valueClass || ""}`.trim()}>{displayValue}</div>
         </div>
     );
 }

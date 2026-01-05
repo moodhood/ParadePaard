@@ -56,6 +56,12 @@
   transition: background 0.1s;
 }
 
+.listHeaderGrid > :last-child,
+.listRowGrid > :last-child {
+  justify-self: end;
+  text-align: right;
+}
+
 .listRowGrid:hover {
   background: #f9f9fc;
 }
@@ -126,6 +132,11 @@
   grid-template-columns: 0.9fr 1.2fr 1.2fr 0.7fr;
 }
 
+/* 9. Users: User | Email | Position | Status */
+.gridUsers {
+  grid-template-columns: 1.6fr 1.4fr 1fr 0.8fr;
+}
+
 /* 5. Payslip Review: Name | Period end | Payout | Hours | Net | Action */
 .gridPayslipReview {
   grid-template-columns: 1.4fr 0.9fr 0.9fr 0.7fr 0.8fr 0.9fr;
@@ -149,6 +160,21 @@
   color: #777;
   font-size: 13px;
   text-align: right;
+}
+
+.listLink {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #2F6BFF;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: left;
+}
+
+.listLink:hover {
+  text-decoration: underline;
 }
 
 /* Status Colors */

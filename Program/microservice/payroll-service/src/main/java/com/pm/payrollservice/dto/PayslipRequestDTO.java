@@ -1,6 +1,7 @@
 // PayslipRequestDTO.java
 package com.pm.payrollservice.dto;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 
@@ -8,7 +9,14 @@ public class PayslipRequestDTO {
     @NotBlank(message = "userId is required")
     private String userId;
     private String dateOfIssue; // expect ISO yyyy-MM-dd
-    private BigDecimal hoursWorked; //TODO use timesheet data
+    private String functionName;
+    private BigDecimal hourlyWage;
+    @JsonAlias("hoursWorked")
+    private BigDecimal totalHoursWorked; // total hours for the period
+    private BigDecimal wageTaxWithheldTest;
+    private BigDecimal travelExpenses;
+    private String status;
+    private String errorDescription;
 
     public String getUserId() {
         return userId;
@@ -26,11 +34,59 @@ public class PayslipRequestDTO {
         this.dateOfIssue = dateOfIssue;
     }
 
-    public BigDecimal getHoursWorked() {
-        return hoursWorked;
+    public String getFunctionName() {
+        return functionName;
     }
 
-    public void setHoursWorked(BigDecimal hoursWorked) {
-        this.hoursWorked = hoursWorked;
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
+    public BigDecimal getHourlyWage() {
+        return hourlyWage;
+    }
+
+    public void setHourlyWage(BigDecimal hourlyWage) {
+        this.hourlyWage = hourlyWage;
+    }
+
+    public BigDecimal getTotalHoursWorked() {
+        return totalHoursWorked;
+    }
+
+    public void setTotalHoursWorked(BigDecimal totalHoursWorked) {
+        this.totalHoursWorked = totalHoursWorked;
+    }
+
+    public BigDecimal getWageTaxWithheldTest() {
+        return wageTaxWithheldTest;
+    }
+
+    public void setWageTaxWithheldTest(BigDecimal wageTaxWithheldTest) {
+        this.wageTaxWithheldTest = wageTaxWithheldTest;
+    }
+
+    public BigDecimal getTravelExpenses() {
+        return travelExpenses;
+    }
+
+    public void setTravelExpenses(BigDecimal travelExpenses) {
+        this.travelExpenses = travelExpenses;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getErrorDescription() {
+        return errorDescription;
+    }
+
+    public void setErrorDescription(String errorDescription) {
+        this.errorDescription = errorDescription;
     }
 }

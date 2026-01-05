@@ -18,6 +18,31 @@ CREATE TABLE IF NOT EXISTS "users" (
 
 -- keep seed scripts compatible with existing databases
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS first_name VARCHAR(255);
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS last_name VARCHAR(255);
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS username VARCHAR(255);
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS email VARCHAR(255);
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+
+UPDATE "users"
+SET email = COALESCE(email, CONCAT('unknown_', id, '@example.com')),
+    username = COALESCE(username, email, CONCAT('user_', id)),
+    first_name = COALESCE(first_name, SPLIT_PART(email, '@', 1), 'Unknown'),
+    last_name = COALESCE(last_name, 'User'),
+    password = COALESCE(password, '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'),
+    must_change_password = COALESCE(must_change_password, FALSE)
+WHERE email IS NULL
+   OR username IS NULL
+   OR first_name IS NULL
+   OR last_name IS NULL
+   OR password IS NULL
+   OR must_change_password IS NULL;
+
+ALTER TABLE IF EXISTS "users" ALTER COLUMN email SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN username SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN first_name SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN last_name SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN password SET NOT NULL;
 
 -- drop legacy column if it exists
 ALTER TABLE "users" DROP COLUMN IF EXISTS role;
@@ -37,7 +62,7 @@ CREATE TABLE IF NOT EXISTS auth_user_roles (
     CONSTRAINT fk_auth_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
     );
 
--- seed user
+-- seed admin user
 INSERT INTO "users" (id, first_name, last_name, email, username, password)
 SELECT
     '223e4567-e89b-12d3-a456-426614174006'::uuid,
@@ -51,6 +76,54 @@ SELECT
     WHERE id = '223e4567-e89b-12d3-a456-426614174006'::uuid
        OR email = 'testuser@test.com'
        OR username = 'testuser'
+);
+
+-- seed standard user (matches user-service Jane Doe)
+INSERT INTO "users" (id, first_name, last_name, email, username, password)
+SELECT
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    'Jane',
+    'Doe',
+    'jane.doe@example.com',
+    'jane.doe',
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = '11111111-1111-1111-1111-111111111111'::uuid
+       OR email = 'jane.doe@example.com'
+       OR username = 'jane.doe'
+);
+
+-- seed Joost van Stam (matches user-service)
+INSERT INTO "users" (id, first_name, last_name, email, username, password)
+SELECT
+    'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid,
+    'Joost',
+    'van Stam',
+    'joost.vanstam@example.com',
+    'joost.vanstam',
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
+       OR email = 'joost.vanstam@example.com'
+       OR username = 'joost.vanstam'
+);
+
+-- seed admin account (matches user-service)
+INSERT INTO "users" (id, first_name, last_name, email, username, password)
+SELECT
+    '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid,
+    'Sanne',
+    'Admin',
+    'sanne.admin@example.com',
+    'sanne.admin',
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
+       OR email = 'sanne.admin@example.com'
+       OR username = 'sanne.admin'
 );
 
 -- seed roles
@@ -68,12 +141,45 @@ SELECT '22222222-bbbb-bbbb-bbbb-222222222222'::uuid, 'USER'
         WHERE id = '22222222-bbbb-bbbb-bbbb-222222222222'::uuid OR name = 'USER'
     );
 
--- give the user the ADMIN role
+-- give the admin user the ADMIN role
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
          JOIN roles r ON r.name = 'ADMIN'
 WHERE u.id = '223e4567-e89b-12d3-a456-426614174006'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+-- give the standard user the USER role
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'USER'
+WHERE u.id = '11111111-1111-1111-1111-111111111111'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+-- give Joost the USER role
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'USER'
+WHERE u.id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+-- give Sanne the ADMIN role
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'ADMIN'
+WHERE u.id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
       WHERE ur.user_id = u.id AND ur.role_id = r.id

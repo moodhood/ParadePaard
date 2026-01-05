@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom"; //
 
 import "../../stylesheets/UserDashboard.css"
@@ -14,7 +14,9 @@ import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
 import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
 import type { LeaveRequestForm } from "../requests/LeaveRequestModals.tsx";
 import  Card  from "../common/Card.tsx"
+import Modal from "../common/Modal";
 import { summarizeHours } from "../../utils/hoursSummary";
+import { formatDate } from "../../utils/dateFormat";
 
 type Timesheet = {
     timesheetId: string;
@@ -24,6 +26,7 @@ type Timesheet = {
 };
 
 const BASE_LEAVE_ALLOWANCE_HOURS = 120;
+const MAX_ERROR_TITLE_LENGTH = 80;
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
@@ -51,6 +54,14 @@ export default function UserDashboard() {
     const [payslips, setPayslips] = useState<PayslipResponseDTO[]>([]);
     const [payslipLoading, setPayslipLoading] = useState(false);
     const [payslipError, setPayslipError] = useState<string | null>(null);
+
+    // report payslip error
+    const [reportOpen, setReportOpen] = useState(false);
+    const [reportPayslip, setReportPayslip] = useState<PayslipResponseDTO | null>(null);
+    const [reportTitle, setReportTitle] = useState("");
+    const [reportNote, setReportNote] = useState("");
+    const [reportSubmitting, setReportSubmitting] = useState(false);
+    const [reportError, setReportError] = useState<string | null>(null);
 
     // fetch me
     useEffect(() => {
@@ -115,28 +126,32 @@ export default function UserDashboard() {
     }, []);
 
     // fetch my payslips
-    useEffect(() => {
-        let cancelled = false;
-
-        const fetchPayslips = async () => {
+    const fetchPayslips = useCallback(
+        async (isCancelled?: () => boolean) => {
+            const cancelled = isCancelled ? isCancelled() : false;
+            if (cancelled) return;
             try {
                 setPayslipLoading(true);
                 setPayslipError(null);
                 const data = await UserServices.getMyPayslips();
-                if (!cancelled) setPayslips(data);
+                if (!isCancelled?.()) setPayslips(data);
             } catch (err: unknown) {
                 const msg = err instanceof Error ? err.message : "Could not load your payslips";
-                if (!cancelled) setPayslipError(msg);
+                if (!isCancelled?.()) setPayslipError(msg);
             } finally {
-                if (!cancelled) setPayslipLoading(false);
+                if (!isCancelled?.()) setPayslipLoading(false);
             }
-        };
+        },
+        []
+    );
 
-        if (!meLoading && !meError) void fetchPayslips();
+    useEffect(() => {
+        let cancelled = false;
+        if (!meLoading && !meError) void fetchPayslips(() => cancelled);
         return () => {
             cancelled = true;
         };
-    }, [meLoading, meError]);
+    }, [meLoading, meError, fetchPayslips]);
 
     const money = (n: number | null | undefined) =>
         new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(n ?? 0));
@@ -154,6 +169,47 @@ export default function UserDashboard() {
             a.remove();
         } finally {
             URL.revokeObjectURL(url);
+        }
+    };
+
+    const openReportModal = (payslip: PayslipResponseDTO) => {
+        setReportPayslip(payslip);
+        setReportTitle("");
+        setReportNote("");
+        setReportError(null);
+        setReportOpen(true);
+    };
+
+    const closeReportModal = (force = false) => {
+        if (reportSubmitting && !force) return;
+        setReportOpen(false);
+        setReportPayslip(null);
+        setReportTitle("");
+        setReportNote("");
+        setReportError(null);
+    };
+
+    const handleSubmitReport = async () => {
+        if (!reportPayslip) return;
+        const title = reportTitle.trim();
+        const note = reportNote.trim();
+        if (!title) {
+            setReportError("Please add a short title for the issue.");
+            return;
+        }
+        const combined = note ? `${title}
+${note}` : title;
+        try {
+            setReportSubmitting(true);
+            setReportError(null);
+            await UserServices.reportPayslipError(reportPayslip.payslipId, { errorDescription: combined });
+            closeReportModal(true);
+            await fetchPayslips();
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Could not report the payslip error";
+            setReportError(msg);
+        } finally {
+            setReportSubmitting(false);
         }
     };
 
@@ -310,23 +366,35 @@ export default function UserDashboard() {
                             {!payslipLoading && !payslipError
                                 ? payslips.map((p) => (
                                       <div key={p.payslipId} className="payslipRowGrid">
-                                          <div className="pdCell">{p.dateOfIssue}</div>
+                                          <div className="pdCell">{formatDate(p.dateOfIssue)}</div>
                                           <div className="pdCell">{p.weekNumber}</div>
                                           <div className="pdCell">{p.functionName}</div>
                                           <div className="pdCell">{Number(p.totalHoursWorked ?? 0).toFixed(2)}</div>
                                           <div className="pdCell">{money(p.totalNetAmount)}</div>
                                           <div className="pdCell">
-                                              <button
-                                                  className="linkButton"
-                                                  onClick={() =>
-                                                      void downloadPayslipPdf(
-                                                          p.payslipId,
-                                                          `payslip_${p.weekBasedYear}_W${p.weekNumber}.pdf`
-                                                      )
-                                                  }
-                                              >
-                                                  Download
-                                              </button>
+                                              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                                                  <button
+                                                      className="linkButton"
+                                                      onClick={() =>
+                                                          void downloadPayslipPdf(
+                                                              p.payslipId,
+                                                              `payslip_${p.weekBasedYear}_W${p.weekNumber}.pdf`
+                                                          )
+                                                      }
+                                                  >
+                                                      Download
+                                                  </button>
+                                                  {(p.status ?? "").toUpperCase() === "DISPUTED" ? (
+                                                      <span style={{ fontSize: 12, color: "#777" }}>Reported</span>
+                                                  ) : (
+                                                      <button
+                                                          className="linkButton"
+                                                          onClick={() => openReportModal(p)}
+                                                      >
+                                                          Report error
+                                                      </button>
+                                                  )}
+                                              </div>
                                           </div>
                                       </div>
                                   ))
@@ -452,6 +520,53 @@ export default function UserDashboard() {
                 availableHours={leaveHoursAvailableNow}
                 onSubmit={handleCreateFromModal}
             />
+
+            <Modal
+                open={reportOpen}
+                onClose={closeReportModal}
+                title="Report payslip error"
+            >
+                <div className="section_block">
+                    <p className="section_text">
+                        Describe what looks wrong so payroll can review it.
+                    </p>
+                </div>
+                <div className="section_block">
+                    <label htmlFor="payslip-error-title" className="section_title">
+                        Error title
+                    </label>
+                    <input
+                        id="payslip-error-title"
+                        className="modal_input"
+                        type="text"
+                        maxLength={MAX_ERROR_TITLE_LENGTH}
+                        placeholder="Short summary (e.g., Missing travel costs)"
+                        value={reportTitle}
+                        onChange={(e) => setReportTitle(e.target.value)}
+                        disabled={reportSubmitting}
+                    />
+                </div>
+                <div className="section_block">
+                    <label htmlFor="payslip-error-note" className="section_title">
+                        Error note
+                    </label>
+                    <textarea
+                        id="payslip-error-note"
+                        className="modal_input"
+                        rows={4}
+                        placeholder="Add any extra details that help payroll fix it."
+                        value={reportNote}
+                        onChange={(e) => setReportNote(e.target.value)}
+                        disabled={reportSubmitting}
+                    />
+                    {reportError ? <p className="text_bad">{reportError}</p> : null}
+                </div>
+                <div className="actions_row">
+                    <button className="btn" onClick={() => void handleSubmitReport()} disabled={reportSubmitting}>
+                        {reportSubmitting ? "Submitting..." : "Submit report"}
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 }

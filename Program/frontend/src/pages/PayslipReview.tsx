@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
+import { formatDate } from "../utils/dateFormat";
 
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
 import "../stylesheets/Payslips.css";
 
 export default function PayslipReview() {
+    const navigate = useNavigate();
     const [payslips, setPayslips] = useState<PayslipResponseDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -95,21 +98,27 @@ export default function PayslipReview() {
 
                                 {!loading && !error
                                     ? sorted.map((p) => (
-                                          <div key={p.payslipId} className="listRowGrid gridPayslipReview">
+                                          <div
+                                              key={p.payslipId}
+                                              className="listRowGrid gridPayslipReview clickableRow"
+                                              onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
+                                          >
                                               <div className="cellMain">{p.name}</div>
-                                              <div className="cellSub">{p.dateOfIssue}</div>
-                                              <div className="cellSub">{p.availableToUserAt ?? "-"}</div>
+                                              <div className="cellSub">{formatDate(p.dateOfIssue)}</div>
+                                              <div className="cellSub">{formatDate(p.availableToUserAt)}</div>
                                               <div className="cellDate">{Number(p.totalHoursWorked ?? 0).toFixed(2)}</div>
                                               <div className="cellDate">{money(p.totalNetAmount)}</div>
                                               <div className="cellDate">
                                                   <button
                                                       className="linkButton"
-                                                      onClick={() =>
+                                                      type="button"
+                                                      onClick={(event) => {
+                                                          event.stopPropagation();
                                                           void downloadPayslipPdf(
                                                               p.payslipId,
                                                               `payslip_review_${p.weekBasedYear}_W${p.weekNumber}.pdf`
-                                                          )
-                                                      }
+                                                          );
+                                                      }}
                                                   >
                                                       Download PDF
                                                   </button>

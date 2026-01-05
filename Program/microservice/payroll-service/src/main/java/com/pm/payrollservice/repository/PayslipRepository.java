@@ -14,6 +14,8 @@ import java.util.UUID;
 public interface PayslipRepository extends JpaRepository<Payslip, UUID>{
     boolean existsByWeekBasedYearAndWeekNumberAndUserId(int weekBasedYear, int weekNumber, UUID userId);
 
+    List<Payslip> findByWeekBasedYearAndWeekNumberAndUserId(int weekBasedYear, int weekNumber, UUID userId);
+
     List<Payslip> findByUserIdOrderByDateOfIssueDesc(UUID userId);
 
     List<Payslip> findByUserIdAndStatusOrderByDateOfIssueDesc(UUID userId, PayslipStatus status);
@@ -27,4 +29,6 @@ public interface PayslipRepository extends JpaRepository<Payslip, UUID>{
     List<Payslip> findByStatusAndAvailableToUserAt(PayslipStatus status, LocalDate availableToUserAt);
 
     List<Payslip> findByStatusOrderByDateOfIssueDesc(PayslipStatus status);
+
+    List<Payslip> findByStatusInOrderByDateOfIssueDesc(List<PayslipStatus> statuses);
 }

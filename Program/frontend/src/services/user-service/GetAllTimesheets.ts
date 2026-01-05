@@ -9,6 +9,7 @@ export type TimesheetRow = {
     weekBasedYear?: number;
     function: string;
     hoursWorked: number;
+    travelExpenses?: number;
 };
 
 export default async function GetAllTimesheets(API_BASE_URL: string): Promise<TimesheetRow[]> {

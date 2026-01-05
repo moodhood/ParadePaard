@@ -13,6 +13,7 @@ import com.pm.payrollservice.model.Payslip;
 import com.pm.payrollservice.model.PayslipStatus;
 import com.pm.payrollservice.repository.PayslipRepository;
 import contract.ContractDataResponse;
+import io.grpc.StatusRuntimeException;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import timesheet.TimesheetDataResponse;
@@ -26,6 +27,7 @@ import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.temporal.WeekFields;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -76,7 +78,12 @@ public class PayrollService {
     }
 
     public List<PayslipResponseDTO> getPayslipsPendingReview() {
-        return payslipRepository.findByStatusOrderByDateOfIssueDesc(PayslipStatus.PENDING_REVIEW)
+        List<PayslipStatus> statuses = List.of(
+                PayslipStatus.PENDING_REVIEW,
+                PayslipStatus.NEEDS_ATTENTION,
+                PayslipStatus.DISPUTED
+        );
+        return payslipRepository.findByStatusInOrderByDateOfIssueDesc(statuses)
                 .stream()
                 .map(PayslipMapper::toDTO)
                 .toList();
@@ -105,11 +112,11 @@ public class PayrollService {
         PayslipMapper.updateFromUserData(payslip, userData);
 
         ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
-        TimesheetDataResponse timesheetData = timesheetServiceGrpcClient.requestTimesheetData(
-                userId.toString(), payslip.getWeekNumber(), payslip.getWeekBasedYear());
-        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, timesheetData);
+        TimesheetFetchResult fetchResult = fetchTimesheetData(userId, payslip.getWeekNumber(), payslip.getWeekBasedYear());
+        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, fetchResult.timesheetData());
 
         PayslipCalculator.apply(payslip);
+        applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.RELEASED);
 
         payslip = payslipRepository.save(payslip);
         return PayslipMapper.toDTO(payslip);
@@ -131,11 +138,22 @@ public class PayrollService {
         PayslipMapper.updateFromUserData(payslip, userData);
 
         ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
-        TimesheetDataResponse timesheetData = timesheetServiceGrpcClient.requestTimesheetData(
-                userId.toString(), payslip.getWeekNumber(), payslip.getWeekBasedYear());
-        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, timesheetData);
+        TimesheetFetchResult fetchResult = fetchTimesheetData(userId, payslip.getWeekNumber(), payslip.getWeekBasedYear());
+        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, fetchResult.timesheetData());
 
         PayslipCalculator.apply(payslip);
+        applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.PENDING_REVIEW);
+
+        payslip = payslipRepository.save(payslip);
+        return PayslipMapper.toDTO(payslip);
+    }
+
+    public PayslipResponseDTO reportPayslipError(UUID payslipId, String errorDescription) {
+        Payslip payslip = payslipRepository.findById(payslipId)
+                .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + payslipId + " not found"));
+
+        payslip.setErrorDescription(errorDescription);
+        payslip.setStatus(PayslipStatus.DISPUTED);
 
         payslip = payslipRepository.save(payslip);
         return PayslipMapper.toDTO(payslip);
@@ -145,8 +163,38 @@ public class PayrollService {
         Payslip payslip = payslipRepository.findById(id)
                 .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
 
-        payslip.setUserId(UUID.fromString(req.getUserId()));
-        payslip.setDateOfIssue(LocalDate.parse(req.getDateOfIssue()));
+        if (req.getUserId() != null && !req.getUserId().isBlank()) {
+            payslip.setUserId(UUID.fromString(req.getUserId()));
+        }
+        if (req.getDateOfIssue() != null && !req.getDateOfIssue().isBlank()) {
+            LocalDate date = LocalDate.parse(req.getDateOfIssue());
+            payslip.setDateOfIssue(date);
+            payslip.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
+            payslip.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
+        }
+        if (req.getFunctionName() != null) {
+            payslip.setFunctionName(req.getFunctionName());
+        }
+        if (req.getHourlyWage() != null) {
+            payslip.setHourlyWage(req.getHourlyWage());
+        }
+        if (req.getTotalHoursWorked() != null) {
+            payslip.setTotalHoursWorked(req.getTotalHoursWorked());
+        }
+        if (req.getWageTaxWithheldTest() != null) {
+            payslip.setWageTaxWithheldTest(req.getWageTaxWithheldTest());
+        }
+        if (req.getTravelExpenses() != null) {
+            payslip.setTravelExpenses(req.getTravelExpenses());
+        }
+        if (req.getStatus() != null && !req.getStatus().isBlank()) {
+            payslip.setStatus(PayslipStatus.valueOf(req.getStatus().trim().toUpperCase()));
+        }
+        if (req.getErrorDescription() != null) {
+            payslip.setErrorDescription(req.getErrorDescription());
+        }
+
+        PayslipCalculator.apply(payslip);
 
         payslip = payslipRepository.save(payslip);
         return PayslipMapper.toDTO(payslip);
@@ -247,5 +295,41 @@ public class PayrollService {
         if (s == null) return "";
         return s.replace("&","&amp;").replace("<","&lt;")
                 .replace(">","&gt;").replace("\"","&quot;");
+    }
+
+    private record TimesheetFetchResult(TimesheetDataResponse timesheetData, List<String> discrepancies) { }
+
+    private TimesheetFetchResult fetchTimesheetData(UUID userId, int weekNumber, int weekBasedYear) {
+        List<String> discrepancies = new ArrayList<>();
+        TimesheetDataResponse timesheetData = null;
+        try {
+            timesheetData = timesheetServiceGrpcClient.requestTimesheetData(
+                    userId.toString(), weekNumber, weekBasedYear);
+        } catch (StatusRuntimeException ex) {
+            discrepancies.add("Missing timesheet data");
+        }
+        return new TimesheetFetchResult(timesheetData, discrepancies);
+    }
+
+    private void applyDiscrepancyStatus(Payslip payslip, TimesheetFetchResult fetchResult, PayslipStatus defaultStatus) {
+        BigDecimal hours = safe(payslip.getTotalHoursWorked());
+        List<String> discrepancies = new ArrayList<>(fetchResult.discrepancies());
+        if (hours.compareTo(BigDecimal.ZERO) <= 0) {
+            discrepancies.add("Total hours worked is 0");
+        }
+
+        if (discrepancies.isEmpty()) {
+            payslip.setStatus(defaultStatus);
+            return;
+        }
+
+        payslip.setStatus(PayslipStatus.NEEDS_ATTENTION);
+        String existing = payslip.getErrorDescription();
+        String note = "Auto-flagged: " + String.join("; ", discrepancies);
+        if (existing == null || existing.isBlank()) {
+            payslip.setErrorDescription(note);
+        } else if (!existing.contains(note)) {
+            payslip.setErrorDescription(existing + " | " + note);
+        }
     }
 }

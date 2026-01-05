@@ -2,6 +2,7 @@
 ALTER TABLE IF EXISTS payslips ADD COLUMN IF NOT EXISTS status VARCHAR(40) DEFAULT 'RELEASED';
 ALTER TABLE IF EXISTS payslips ADD COLUMN IF NOT EXISTS available_to_user_at DATE;
 ALTER TABLE IF EXISTS payslips ADD COLUMN IF NOT EXISTS generated_at TIMESTAMP;
+ALTER TABLE IF EXISTS payslips ADD COLUMN IF NOT EXISTS error_description VARCHAR(2000);
 
 UPDATE payslips SET status = 'RELEASED' WHERE status IS NULL;
 UPDATE payslips SET available_to_user_at = date_of_issue WHERE available_to_user_at IS NULL;
@@ -299,4 +300,53 @@ SELECT
     151.50
     WHERE NOT EXISTS (
     SELECT 1 FROM payslips WHERE payslip_id = '223e4567-e89b-12d3-a456-426614174201'::uuid
+);
+
+INSERT INTO payslips (
+    payslip_id,
+    user_id,
+    date_of_issue,
+    week_number,
+    week_based_year,
+    name,
+    date_of_birth,
+    start_date,
+    function_name,
+    hourly_wage,
+    total_hours_worked,
+    street_name,
+    house_number,
+    house_number_suffix,
+    postal_code,
+    city,
+    country,
+    total_gross_amount,
+    wage_tax_withheld_test,
+    travel_expenses,
+    total_net_amount
+)
+SELECT
+    '5a1c4d0a-bf39-4a7e-ae0e-bc7402c1637a'::uuid,
+    'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid,
+    '2026-01-11'::date,
+    2,
+    2026,
+    'Joost van Stam',
+    '1991-08-19'::date,
+    '2025-02-01'::date,
+    'On Call Runner',
+    18.75,
+    12.00,
+    'Kerkstraat',
+    '12',
+    'B',
+    '1017 GA',
+    'Amsterdam',
+    'NL',
+    225.00,
+    45.00,
+    15.00,
+    195.00
+    WHERE NOT EXISTS (
+    SELECT 1 FROM payslips WHERE payslip_id = '5a1c4d0a-bf39-4a7e-ae0e-bc7402c1637a'::uuid
 );

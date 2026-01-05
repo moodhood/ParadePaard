@@ -283,6 +283,57 @@ WHERE NOT EXISTS (
     SELECT 1 FROM timesheets WHERE timesheet_id = '223e4567-e89b-12d3-a456-426614174102'::uuid
 );
 
+/* Joost van Stam - ISO week 2 of 2026 */
+INSERT INTO timesheets (
+    timesheet_id,
+    user_id,
+    date_of_issue,
+    week_number,
+    week_based_year,
+    name,
+    function,
+    hours_worked,
+    travel_expenses
+)
+SELECT
+    '6e91d102-dce2-4d0f-9e39-819264e6730e'::uuid,
+    'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid,
+    '2026-01-10'::date,
+    2,
+    2026,
+    'Joost van Stam',
+    'Runner Shift (Event C)',
+    6.00,
+    2.50
+WHERE NOT EXISTS (
+    SELECT 1 FROM timesheets WHERE timesheet_id = '6e91d102-dce2-4d0f-9e39-819264e6730e'::uuid
+);
+
+INSERT INTO timesheets (
+    timesheet_id,
+    user_id,
+    date_of_issue,
+    week_number,
+    week_based_year,
+    name,
+    function,
+    hours_worked,
+    travel_expenses
+)
+SELECT
+    '50101f55-4e80-480d-839c-9b45e904f8b9'::uuid,
+    'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid,
+    '2026-01-12'::date,
+    2,
+    2026,
+    'Joost van Stam',
+    'Bar Shift (Evening)',
+    5.25,
+    0.00
+WHERE NOT EXISTS (
+    SELECT 1 FROM timesheets WHERE timesheet_id = '50101f55-4e80-480d-839c-9b45e904f8b9'::uuid
+);
+
 /* User d5286a87-17ad-4d1d-8ed9-887c1d4a574c - bulk work history for testing */
 UPDATE timesheets
 SET date_of_issue = '2026-01-04'::date,

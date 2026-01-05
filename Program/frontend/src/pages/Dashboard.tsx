@@ -18,7 +18,7 @@ export default function Dashboard() {
     }, []);
 
     if (error) return <div>{error}</div>;
-    if (isAdmin === null) return <Spinner />;
+    if (isAdmin === null) return <Spinner text="Loading dashboard" />;
 
     return (
         <>

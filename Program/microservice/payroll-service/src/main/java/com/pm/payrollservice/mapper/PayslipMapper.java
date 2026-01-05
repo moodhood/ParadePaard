@@ -34,6 +34,7 @@ public class PayslipMapper {
         payslipResponseDTO.setStatus(payslip.getStatus() != null ? payslip.getStatus().name() : PayslipStatus.RELEASED.name());
         payslipResponseDTO.setAvailableToUserAt(payslip.getAvailableToUserAt() != null ? payslip.getAvailableToUserAt().toString() : null);
         payslipResponseDTO.setGeneratedAt(payslip.getGeneratedAt() != null ? payslip.getGeneratedAt().toString() : null);
+        payslipResponseDTO.setErrorDescription(payslip.getErrorDescription());
 
         // Personal Details
         payslipResponseDTO.setUserId(payslip.getUserId().toString());
@@ -55,6 +56,7 @@ public class PayslipMapper {
 
         payslip.setUserId(UUID.fromString(payslipRequestDTO.getUserId()));
         payslip.setDateOfIssue(LocalDate.parse(payslipRequestDTO.getDateOfIssue()));
+        payslip.setErrorDescription(payslipRequestDTO.getErrorDescription());
 
         return payslip;
     }

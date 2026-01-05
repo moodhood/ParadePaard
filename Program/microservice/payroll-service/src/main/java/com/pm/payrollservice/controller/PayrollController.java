@@ -1,5 +1,6 @@
 package com.pm.payrollservice.controller;
 
+import com.pm.payrollservice.dto.PayslipErrorReportDTO;
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
 import com.pm.payrollservice.dto.validators.CreatePayslipValidationGroup;
@@ -115,6 +116,16 @@ public class PayrollController {
             @Validated({Default.class}) @RequestBody PayslipRequestDTO payslipRequestDTO) {
         PayslipResponseDTO payslipResponseDTO = payrollService.updatePayslip(id, payslipRequestDTO);
         return ResponseEntity.ok().body(payslipResponseDTO);
+    }
+
+    @PostMapping("/{id}/report-error")
+    @Operation(summary = "Report an error on a payslip self or admin")
+    @PreAuthorize("hasAuthority('ADMIN') or @payrollPermission.isOwner(#id, authentication)")
+    public ResponseEntity<PayslipResponseDTO> reportPayslipError(
+            @PathVariable UUID id,
+            @Validated @RequestBody PayslipErrorReportDTO body) {
+        PayslipResponseDTO updated = payrollService.reportPayslipError(id, body.getErrorDescription());
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")

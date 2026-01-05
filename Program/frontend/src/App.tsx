@@ -10,6 +10,9 @@ import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import PayslipReview from "./pages/PayslipReview";
+import AdminUserDetails from "./pages/AdminUserDetails";
+import AdminPayslipDetails from "./pages/AdminPayslipDetails";
+import AdminUsers from "./pages/AdminUsers";
 import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
 import RequireAdmin from "./components/RequireAdmin";
@@ -69,6 +72,36 @@ export default function App() {
                     <RequireActiveUser>
                         <RequireAdmin>
                             <PayslipReview />
+                        </RequireAdmin>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/admin/user/:userId"
+                element={
+                    <RequireActiveUser>
+                        <RequireAdmin>
+                            <AdminUserDetails />
+                        </RequireAdmin>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/admin/payslip/:payslipId"
+                element={
+                    <RequireActiveUser>
+                        <RequireAdmin>
+                            <AdminPayslipDetails />
+                        </RequireAdmin>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/admin/users"
+                element={
+                    <RequireActiveUser>
+                        <RequireAdmin>
+                            <AdminUsers />
                         </RequireAdmin>
                     </RequireActiveUser>
                 }

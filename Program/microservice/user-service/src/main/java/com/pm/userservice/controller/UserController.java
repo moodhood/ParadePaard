@@ -91,6 +91,28 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{id}/profile-picture")
+    @Operation(summary = "Get a user's profile picture self or admin")
+    @PreAuthorize("hasAuthority('ADMIN') or @userPermission.isSelf(#id, authentication)")
+    public ResponseEntity<byte[]> getUserProfilePicture(@PathVariable UUID id) {
+        return userService.getProfilePicture(id)
+                .map(pic -> {
+                    MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+                    try {
+                        if (pic.contentType() != null && !pic.contentType().isBlank()) {
+                            mediaType = MediaType.parseMediaType(pic.contentType());
+                        }
+                    } catch (Exception ignored) {
+                        // fallback to octet-stream
+                    }
+                    return ResponseEntity.ok()
+                            .cacheControl(CacheControl.noStore())
+                            .contentType(mediaType)
+                            .body(pic.data());
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
     @PutMapping(value = "/me/profile-picture", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(summary = "Upload current user's profile picture")
     public ResponseEntity<Map<String, String>> uploadMyProfilePicture(

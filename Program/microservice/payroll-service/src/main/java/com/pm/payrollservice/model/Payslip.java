@@ -41,6 +41,9 @@ public class Payslip {
     @Column(length = 40)
     private PayslipStatus status;
 
+    @Column(length = 2000)
+    private String errorDescription;
+
     private LocalDate availableToUserAt;
 
     private OffsetDateTime generatedAt;
@@ -233,6 +236,14 @@ public class Payslip {
 
     public void setStatus(PayslipStatus status) {
         this.status = status;
+    }
+
+    public String getErrorDescription() {
+        return errorDescription;
+    }
+
+    public void setErrorDescription(String errorDescription) {
+        this.errorDescription = errorDescription;
     }
 
     public LocalDate getAvailableToUserAt() {

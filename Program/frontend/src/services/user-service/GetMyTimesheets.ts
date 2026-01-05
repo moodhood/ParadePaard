@@ -5,6 +5,7 @@ export type MyTimesheetRow = {
     dateOfIssue: string;
     function: string;
     hoursWorked: number;
+    travelExpenses?: number;
 };
 
 export default async function GetMyTimesheets(API_BASE_URL: string): Promise<MyTimesheetRow[]> {

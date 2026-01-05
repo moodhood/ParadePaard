@@ -12,6 +12,7 @@ import {
     timeframeLabel,
     type Timeframe,
 } from "../utils/hoursSummary";
+import { formatDate } from "../utils/dateFormat";
 
 export interface Timesheet {
     timesheetId: string;
@@ -250,7 +251,7 @@ export default function WorkHistory() {
                                         ) : (
                                             filteredTimesheets.map((t) => (
                                                 <tr key={t.timesheetId}>
-                                                    <td>{t.dateOfIssue}</td>
+                                                    <td>{formatDate(t.dateOfIssue)}</td>
                                                     <td>{t.function}</td>
                                                     <td className="workHistoryHoursCol">{t.hoursWorked.toFixed(1)}</td>
                                                 </tr>

@@ -6,6 +6,7 @@ import Card from "../components/common/Card";
 import Navbar from "../components/Navbar";
 import "../stylesheets/Profile.css";
 import "../stylesheets/UserDashboard.css";
+import { formatMaybeDateTime } from "../utils/dateFormat";
 
 export default function Profile() {
     const [user, setUser] = useState<UserResponseDTO | null>(null);
@@ -56,11 +57,14 @@ export default function Profile() {
     }, [profilePictureUrl]);
 
     if (error) return <div className="error-container">{error}</div>;
-    if (!user) return <Spinner />;
+    if (!user) return <Spinner text="Loading profile" />;
 
     const formatValue = (value: string | number | boolean | null | undefined) => {
         if (value === null || value === undefined || value === "") return "-";
         if (typeof value === "boolean") return value ? "Yes" : "No";
+        if (typeof value === "string" && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+            return formatMaybeDateTime(value);
+        }
         return value;
     };
 
@@ -141,38 +145,28 @@ export default function Profile() {
                 </header>
 
                 <section className="dashboardGrid">
-                    <Card
-                        title="Profile Picture"
-                        right={
-                            <label className="profile_avatar_upload_btn button">
-                                Upload
-                                <input
-                                    className="profile_avatar_file_input"
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) =>
-                                        void handleSelectProfilePicture(e.target.files?.[0] ?? null)
-                                    }
-                                />
-                            </label>
-                        }
-                    >
+                    <Card title="Personal Information">
                         <div className="profile_avatar_body">
                             <div
-                                className={`profile_avatar_circle ${
-                                    profilePictureUrl ? "profile_avatar_circle--image" : "profile_avatar_circle--default"
-                                }`}
+                                className={`profile_avatar_circle ${profilePictureUrl ? "profile_avatar_circle--image" : "profile_avatar_circle--default"}`}
                                 aria-label="Profile picture"
                             >
                                 {profilePictureUrl ? (
-                                    <img
-                                        className="profile_avatar_img"
-                                        src={profilePictureUrl}
-                                        alt="Profile"
-                                    />
+                                    <img className="profile_avatar_img" src={profilePictureUrl} alt="Profile" />
                                 ) : (
                                     <span className="profile_avatar_letter">{defaultAvatarLetter}</span>
                                 )}
+                                <label className="profile_avatar_overlay">
+                                    {profilePictureUrl ? "Change" : "Upload"}
+                                    <input
+                                        className="profile_avatar_file_input"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                            void handleSelectProfilePicture(e.target.files?.[0] ?? null)
+                                        }
+                                    />
+                                </label>
                             </div>
 
                             <div className="profile_avatar_actions">
@@ -194,9 +188,6 @@ export default function Profile() {
                                 ) : null}
                             </div>
                         </div>
-                    </Card>
-
-                    <Card title="Personal Information">
                         <div className="generalInfoRows">
                             <div className="profile_info_row">
                                 <span className="profile_info_label">Full Name</span>

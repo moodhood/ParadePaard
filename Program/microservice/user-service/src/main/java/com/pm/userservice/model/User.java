@@ -7,6 +7,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -53,6 +54,7 @@ public class User {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    @ColumnDefault("'PENDING_SETUP'")
     private UserStatus status = UserStatus.PENDING_SETUP;
 
     @Column(name = "payslip_frequency_minutes", nullable = false)

@@ -1,6 +1,7 @@
 // src/utils/mapLeaveDtoToUi.ts
 import type { LeaveRequest } from "../components/requests/RequestModals";
 import type { LeaveStatus, LeaveType } from "../services/user-service/UserServices";
+import { formatDate, formatMaybeDateTime } from "./dateFormat";
 
 export type LeaveRequestDTO = {
     requestId: string;
@@ -23,9 +24,10 @@ export function mapLeaves(dtos: LeaveRequestDTO[]): LeaveRequestUI[] {
         id: d.requestId,
         type: "Leave",
         by: d.userName,
-        createdAt: d.createdAt,
-        fromDate: d.startDate,
-        toDate: d.endDate,
+        userId: d.userId,
+        createdAt: formatMaybeDateTime(d.createdAt),
+        fromDate: formatDate(d.startDate),
+        toDate: formatDate(d.endDate),
         hoursRequested: d.hours,
         hoursAvailable: d.hours,
         note: d.reason ?? undefined,

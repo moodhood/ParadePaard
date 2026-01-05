@@ -11,7 +11,13 @@ import {
     NewMemberRequestModal,
 } from "../requests/RequestModals";
 
-import { UserServices, type PayslipResponseDTO, type TimesheetRow } from "../../services/user-service/UserServices";
+import {
+    UserServices,
+    type PayslipResponseDTO,
+    type TimesheetRow,
+    type UserResponseDTO,
+    type ContractResponseDTO,
+} from "../../services/user-service/UserServices";
 import { mapLeaves, type LeaveRequestDTO } from "../../utils/mapLeaveDtoToUi";
 import Card from "../common/Card";
 import {
@@ -20,13 +26,29 @@ import {
     getIsoWeek,
     sumHours,
     sumHoursByUserForTimeframe,
-    timeframeLabel,
+    summarizeHours,
     type Timeframe,
 } from "../../utils/hoursSummary";
+import { formatDate, formatDateObject, formatMaybeDateTime } from "../../utils/dateFormat";
 
 // Updated CSS imports
 import "../../stylesheets/AdminDashboard.css";
 import "../../stylesheets/AdminLists.css";
+
+function formatUserName(user: UserResponseDTO): string {
+    const parts = [user.firstNames, user.middleNamePrefix, user.lastName]
+        .map((part) => (part ?? "").trim())
+        .filter(Boolean);
+    if (parts.length > 0) return parts.join(" ");
+    const preferred = (user.preferredName ?? "").trim();
+    return preferred || user.email;
+}
+
+function extractErrorTitle(value?: string | null): string {
+    if (!value) return "";
+    const parts = value.split(/\r?\n/).map((part) => part.trim()).filter(Boolean);
+    return parts[0] ?? "";
+}
 
 export default function AdminDashboard(): JSX.Element {
     const navigate = useNavigate();
@@ -39,6 +61,12 @@ export default function AdminDashboard(): JSX.Element {
     const [timesheets, setTimesheets] = useState<TimesheetRow[]>([]);
     const [timesheetLoading, setTimesheetLoading] = useState(true);
     const [timesheetErr, setTimesheetErr] = useState<string | null>(null);
+    const [contracts, setContracts] = useState<ContractResponseDTO[]>([]);
+    const [contractsLoading, setContractsLoading] = useState(true);
+    const [contractsErr, setContractsErr] = useState<string | null>(null);
+    const [users, setUsers] = useState<UserResponseDTO[]>([]);
+    const [usersLoading, setUsersLoading] = useState(true);
+    const [usersErr, setUsersErr] = useState<string | null>(null);
     const timeframeOptions = useMemo(() => buildTimeframeOptions(timesheets), [timesheets]);
     const [timeframe, setTimeframe] = useState<Timeframe>({ kind: "all" });
     const [timeframeInitialized, setTimeframeInitialized] = useState(false);
@@ -53,6 +81,7 @@ export default function AdminDashboard(): JSX.Element {
     const [open, setOpen] = useState<AnyRequest | null>(null);
     const [acting, setActing] = useState(false);
     const [version, setVersion] = useState(0);
+    const now = useMemo(() => new Date(), []);
 
     const reload = useCallback(async () => {
         try {
@@ -62,15 +91,34 @@ export default function AdminDashboard(): JSX.Element {
             setReviewErr(null);
             setTimesheetLoading(true);
             setTimesheetErr(null);
+            setUsersLoading(true);
+            setUsersErr(null);
+            setContractsLoading(true);
+            setContractsErr(null);
 
-            const [leaveRes, reviewRes, timesheetRes] = await Promise.allSettled([
+            const [leaveRes, reviewRes, timesheetRes, usersRes, contractsRes] = await Promise.allSettled([
                 UserServices.leaveRequests.list("PENDING"),
                 UserServices.getPayslipsForReview(),
                 UserServices.getTimesheets(),
+                UserServices.getUsers(),
+                UserServices.getContracts(),
             ]);
 
+            const usersData = usersRes.status === "fulfilled" ? usersRes.value : null;
+            const usersByIdLocal = usersData
+                ? new Map(usersData.map((u) => [u.userId, u]))
+                : null;
+
             if (leaveRes.status === "fulfilled") {
-                const mapped = mapLeaves(leaveRes.value as LeaveRequestDTO[]) as unknown as AnyRequest[];
+                const mapped = mapLeaves(leaveRes.value as LeaveRequestDTO[]).map((req) => {
+                    if (usersByIdLocal && req.userId) {
+                        const user = usersByIdLocal.get(req.userId);
+                        if (user) {
+                            return { ...req, by: formatUserName(user) };
+                        }
+                    }
+                    return req;
+                }) as unknown as AnyRequest[];
                 setItems(mapped);
             } else {
                 setErr((leaveRes.reason as any)?.message || "Failed to load requests");
@@ -87,12 +135,26 @@ export default function AdminDashboard(): JSX.Element {
             } else {
                 setTimesheetErr((timesheetRes.reason as any)?.message || "Failed to load timesheets");
             }
+
+            if (usersRes.status === "fulfilled") {
+                setUsers(usersRes.value);
+            } else {
+                setUsersErr((usersRes.reason as any)?.message || "Failed to load users");
+            }
+
+            if (contractsRes.status === "fulfilled") {
+                setContracts(contractsRes.value);
+            } else {
+                setContractsErr((contractsRes.reason as any)?.message || "Failed to load contracts");
+            }
         } catch (e: any) {
             setErr(e?.message || "Failed to load requests");
         } finally {
             setLoading(false);
             setReviewLoading(false);
             setTimesheetLoading(false);
+            setUsersLoading(false);
+            setContractsLoading(false);
         }
     }, []);
 
@@ -149,6 +211,117 @@ export default function AdminDashboard(): JSX.Element {
     }, [timesheets, timeframe]);
     const totalHours = useMemo(() => sumHours(filteredTimesheets), [filteredTimesheets]);
     const perUser = useMemo(() => sumHoursByUserForTimeframe(timesheets, timeframe), [timesheets, timeframe]);
+    const hoursSummary = useMemo(() => summarizeHours(timesheets, now), [timesheets, now]);
+    const activeUsers = useMemo(
+        () => users.filter((u) => u.status === "ACTIVE").length,
+        [users]
+    );
+    const pendingSetupUsers = useMemo(
+        () => users.filter((u) => u.status === "PENDING_SETUP").length,
+        [users]
+    );
+
+    const formatCount = (value: number) => value.toLocaleString("nl-NL");
+    const usersTotalValue = usersLoading ? "Loading..." : usersErr ? "-" : formatCount(users.length);
+    const usersStatusValue = usersLoading
+        ? "Loading..."
+        : usersErr
+            ? "-"
+            : `${formatCount(activeUsers)} / ${formatCount(pendingSetupUsers)}`;
+    const pendingRequestsValue = loading ? "Loading..." : err ? "-" : formatCount(items.length);
+    const pendingReviewValue = reviewLoading ? "Loading..." : reviewErr ? "-" : formatCount(reviewPayslips.length);
+    const hoursWeekValue = timesheetLoading ? "Loading..." : timesheetErr ? "-" : `${hoursSummary.weekHours.toFixed(1)} h`;
+    const hoursMonthValue = timesheetLoading ? "Loading..." : timesheetErr ? "-" : `${hoursSummary.monthHours.toFixed(1)} h`;
+    const hoursYearValue = timesheetLoading ? "Loading..." : timesheetErr ? "-" : `${hoursSummary.yearHours.toFixed(1)} h`;
+
+    const displayNameForUser = useCallback((user?: UserResponseDTO | null) => {
+        if (!user) return "-";
+        return formatUserName(user);
+    }, []);
+
+    const usersById = useMemo(() => {
+        const map = new Map<string, UserResponseDTO>();
+        users.forEach((u) => {
+            map.set(u.userId, u);
+        });
+        return map;
+    }, [users]);
+
+    const payslipIssues = useMemo(() => {
+        return reviewPayslips
+            .filter((p) => {
+                const status = (p.status ?? "").toUpperCase();
+                const hasError = Boolean((p.errorDescription ?? "").trim());
+                return status === "DISPUTED" || status === "NEEDS_ATTENTION" || hasError;
+            })
+            .map((p) => {
+                const status = (p.status ?? "").toUpperCase();
+                const description = (p.errorDescription ?? "").trim();
+                const title = extractErrorTitle(description);
+                const issue = title
+                    ? title
+                    : status === "DISPUTED"
+                        ? "Reported by user"
+                        : status === "NEEDS_ATTENTION"
+                            ? "Needs attention"
+                            : "Needs review";
+                const issueClass = status === "DISPUTED" ? "cellBad" : status === "NEEDS_ATTENTION" ? "cellWarn" : "cellSub";
+                const timeRaw = p.availableToUserAt ?? p.generatedAt ?? p.dateOfIssue ?? "";
+                const time = timeRaw ? formatMaybeDateTime(timeRaw) : "-";
+                return {
+                    ...p,
+                    issue,
+                    issueClass,
+                    time,
+                    timeRaw,
+                };
+            })
+            .sort((a, b) => (b.timeRaw ?? "").localeCompare(a.timeRaw ?? ""));
+    }, [reviewPayslips]);
+
+    const today = useMemo(() => new Date(), []);
+    const startOfTodayUtc = useMemo(
+        () => new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())),
+        [today]
+    );
+    const endOfWindowUtc = useMemo(() => {
+        const next = new Date(startOfTodayUtc.getTime());
+        next.setUTCMonth(next.getUTCMonth() + 1);
+        return next;
+    }, [startOfTodayUtc]);
+
+    const parseDateUtc = (dateValue?: string | null) => {
+        if (!dateValue) return null;
+        const date = new Date(`${dateValue}T00:00:00Z`);
+        return Number.isNaN(date.getTime()) ? null : date;
+    };
+
+    const upcomingContracts = useMemo(() => {
+        const rows = contracts
+            .map((contract) => {
+                const endDate = parseDateUtc(contract.endDate ?? undefined);
+                return { contract, endDate };
+            })
+            .filter((row) => row.endDate)
+            .filter((row) => {
+                const date = row.endDate as Date;
+                return date >= startOfTodayUtc && date <= endOfWindowUtc;
+            })
+            .sort((a, b) => (a.endDate as Date).getTime() - (b.endDate as Date).getTime())
+            .map((row) => {
+                const endDate = row.endDate as Date;
+                const diffDays = Math.ceil((endDate.getTime() - startOfTodayUtc.getTime()) / 86400000);
+                const user = usersById.get(row.contract.userId);
+                return {
+                    contractId: row.contract.contractId,
+                    userId: row.contract.userId,
+                    name: displayNameForUser(user),
+                    endDate,
+                    daysLeft: diffDays,
+                };
+            });
+        return rows;
+    }, [contracts, displayNameForUser, endOfWindowUtc, startOfTodayUtc, usersById]);
 
     return (
         <div className="adminDashboardPage">
@@ -165,22 +338,38 @@ export default function AdminDashboard(): JSX.Element {
                     <Card title="General Info" className="dashboardCardHeight">
                         <div className="statRows">
                             <div className="statRow">
+                                <div className="statLabel">Current week</div>
+                                <div className="statValue">
+                                    Week {hoursSummary.week.weekNumber} ({hoursSummary.week.weekBasedYear})
+                                </div>
+                            </div>
+                            <div className="statRow">
+                                <div className="statLabel">Team hours this week</div>
+                                <div className="statValue">{hoursWeekValue}</div>
+                            </div>
+                            <div className="statRow">
+                                <div className="statLabel">Team hours this month</div>
+                                <div className="statValue">{hoursMonthValue}</div>
+                            </div>
+                            <div className="statRow">
+                                <div className="statLabel">Team hours this year</div>
+                                <div className="statValue">{hoursYearValue}</div>
+                            </div>
+                            <div className="statRow">
                                 <div className="statLabel">Total users</div>
-                                <div className="statValue">1,284</div>
+                                <div className="statValue">{usersTotalValue}</div>
                             </div>
                             <div className="statRow">
-                                <div className="statLabel">Sick today</div>
-                                <div className="statValue">42</div>
+                                <div className="statLabel">Active / pending setup</div>
+                                <div className="statValue">{usersStatusValue}</div>
                             </div>
                             <div className="statRow">
-                                <div className="statLabel">Pending requests</div>
-                                <div className="statValue">{items.length}</div>
+                                <div className="statLabel">Pending leave requests</div>
+                                <div className="statValue">{pendingRequestsValue}</div>
                             </div>
                             <div className="statRow">
                                 <div className="statLabel">Payslips pending review</div>
-                                <div className="statValue">
-                                    {reviewLoading ? "…" : reviewErr ? "-" : reviewPayslips.length}
-                                </div>
+                                <div className="statValue">{pendingReviewValue}</div>
                             </div>
                         </div>
                         <div className="cardFooter">
@@ -192,7 +381,7 @@ export default function AdminDashboard(): JSX.Element {
 
                     {/* 2. Hours worked */}
                     <Card
-                        title={`Hours Worked (${timeframeLabel(timeframe)})`}
+                        title="Hours Worked"
                         className="dashboardCardHeight"
                         right={
                             <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
@@ -352,7 +541,13 @@ export default function AdminDashboard(): JSX.Element {
                                         {!timesheetLoading && !timesheetErr
                                             ? perUser.users.map((u) => (
                                                   <div key={u.userId} className="listRowGrid gridUserHours">
-                                                      <div className="cellMain">{u.name}</div>
+                                                      <button
+                                                          type="button"
+                                                          className="listLink"
+                                                          onClick={() => navigate(`/admin/user/${u.userId}`)}
+                                                      >
+                                                          {u.name}
+                                                      </button>
                                                       <div className="cellDate">{u.totalHours.toFixed(1)} h</div>
                                                   </div>
                                               ))
@@ -377,8 +572,14 @@ export default function AdminDashboard(): JSX.Element {
                                         {!timesheetLoading && !timesheetErr
                                             ? filteredTimesheets.map((t) => (
                                                   <div key={t.timesheetId} className="listRowGrid gridTimesheetHistory">
-                                                      <div className="cellSub">{t.dateOfIssue}</div>
-                                                      <div className="cellMain">{t.name}</div>
+                                                      <div className="cellSub">{formatDate(t.dateOfIssue)}</div>
+                                                      <button
+                                                          type="button"
+                                                          className="listLink"
+                                                          onClick={() => navigate(`/admin/user/${t.userId}`)}
+                                                      >
+                                                          {t.name}
+                                                      </button>
                                                       <div className="cellSub">{t.function}</div>
                                                       <div className="cellDate">{Number(t.hoursWorked ?? 0).toFixed(1)} h</div>
                                                   </div>
@@ -435,12 +636,25 @@ export default function AdminDashboard(): JSX.Element {
                                         className="listRowGrid gridRequests clickableRow"
                                         onClick={() => setOpen(req)}
                                     >
-                                        <div className="cellMain">{(req as LeaveRequest).by}</div>
+                                        {req.userId ? (
+                                            <button
+                                                type="button"
+                                                className="listLink"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    navigate(`/admin/user/${req.userId}`);
+                                                }}
+                                            >
+                                                {(req as LeaveRequest).by}
+                                            </button>
+                                        ) : (
+                                            <div className="cellMain">{(req as LeaveRequest).by}</div>
+                                        )}
                                         <div className="cellSub">
                                             {req.type === "PayslipUpdate" ? "Payslip Fix" : 
                                              req.type === "NewMember" ? "New Member" : "Leave"}
                                         </div>
-                                        <div className="cellDate">{(req as LeaveRequest).createdAt}</div>
+                                        <div className="cellDate">{formatMaybeDateTime((req as LeaveRequest).createdAt)}</div>
                                     </div>
                                 ))}
                             </div>
@@ -453,27 +667,45 @@ export default function AdminDashboard(): JSX.Element {
                             <div className="listHeaderGrid gridErrors">
                                 <div>Name</div>
                                 <div>Issue</div>
-                                <div>Time</div>
+                                <div>Date</div>
                             </div>
                             <div className="listScrollArea">
-                                <div className="listRowGrid gridErrors">
-                                    <div className="cellMain">J. Smith</div>
-                                    <div className="cellBad">Missing bank info</div>
-                                    <div className="cellDate">08:15</div>
-                                </div>
-                                <div className="listRowGrid gridErrors">
-                                    <div className="cellMain">A. Garcia</div>
-                                    <div className="cellBad">Tax ID mismatch</div>
-                                    <div className="cellDate">08:12</div>
-                                </div>
-                                <div className="listRowGrid gridErrors">
-                                    <div className="cellMain">K. Tanaka</div>
-                                    <div className="cellBad">Overtime flag</div>
-                                    <div className="cellDate">Yesterday</div>
-                                </div>
+                                {reviewLoading ? <div className="listEmpty">Loading...</div> : null}
+                                {reviewErr ? <div className="listEmpty errorText">{reviewErr}</div> : null}
+                                {!reviewLoading && !reviewErr && payslipIssues.length === 0 ? (
+                                    <div className="listEmpty">No payslip errors</div>
+                                ) : null}
+
+                                {!reviewLoading && !reviewErr
+                                    ? payslipIssues.slice(0, 6).map((p) => (
+                                          <div
+                                              key={p.payslipId}
+                                              className="listRowGrid gridErrors clickableRow"
+                                              onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
+                                          >
+                                              <button
+                                                  type="button"
+                                                  className="listLink"
+                                                  onClick={(event) => {
+                                                      event.stopPropagation();
+                                                      navigate(`/admin/user/${p.userId}`);
+                                                  }}
+                                              >
+                                                  {p.name}
+                                              </button>
+                                              <div className={p.issueClass}>{p.issue}</div>
+                                              <div className="cellDate">{p.time}</div>
+                                          </div>
+                                      ))
+                                    : null}
                             </div>
                             <div className="cardFooter">
-                                <button className="button buttonSecondary">Review errors</button>
+                                <button
+                                    className="button buttonSecondary"
+                                    onClick={() => navigate("/admin/payslip-review")}
+                                >
+                                    Review errors
+                                </button>
                             </div>
                         </div>
                     </Card>
@@ -487,43 +719,32 @@ export default function AdminDashboard(): JSX.Element {
                                 <div>Left</div>
                             </div>
                             <div className="listScrollArea">
-                                <div className="listRowGrid gridContracts">
-                                    <div className="cellMain">J. Smith</div>
-                                    <div className="cellSub">Oct 29</div>
-                                    <div className="cellWarn">1 day</div>
-                                </div>
-                                <div className="listRowGrid gridContracts">
-                                    <div className="cellMain">A. Garcia</div>
-                                    <div className="cellSub">Nov 2</div>
-                                    <div className="cellSub">5 days</div>
-                                </div>
-                                <div className="listRowGrid gridContracts">
-                                    <div className="cellMain">K. Tanaka</div>
-                                    <div className="cellSub">Nov 10</div>
-                                    <div className="cellSub">13 days</div>
-                                </div>
+                                {contractsLoading ? <div className="listEmpty">Loading...</div> : null}
+                                {contractsErr ? <div className="listEmpty errorText">{contractsErr}</div> : null}
+                                {!contractsLoading && !contractsErr && upcomingContracts.length === 0 ? (
+                                    <div className="listEmpty">No contracts ending in the next month</div>
+                                ) : null}
+
+                                {!contractsLoading && !contractsErr
+                                    ? upcomingContracts.map((row) => (
+                                          <div key={row.contractId} className="listRowGrid gridContracts">
+                                              <button
+                                                  type="button"
+                                                  className="listLink"
+                                                  onClick={() => navigate(`/admin/user/${row.userId}`)}
+                                              >
+                                                  {row.name}
+                                              </button>
+                                              <div className="cellSub">{formatDateObject(row.endDate)}</div>
+                                              <div className={row.daysLeft <= 3 ? "cellWarn" : "cellSub"}>
+                                                  {row.daysLeft <= 0 ? "Today" : `${row.daysLeft} days`}
+                                              </div>
+                                          </div>
+                                      ))
+                                    : null}
                             </div>
                             <div className="cardFooter">
                                 <button className="button buttonSecondary">View details</button>
-                            </div>
-                        </div>
-                    </Card>
-
-                    {/* 5. Calendar */}
-                    <Card title="Calendar" className="dashboardCardHeight">
-                        <div className="calendarWrapper">
-                            <div className="calendarHeader">October 2025</div>
-                            <div className="calendarGrid">
-                                {["M","T","W","T","F","S","S"].map(d => <div key={d} className="calDayHead">{d}</div>)}
-                                <div /> <div /> 
-                                {[...Array(31)].map((_, i) => (
-                                    <div key={i} className={`calDay ${i === 14 || i === 29 ? "calDayActive" : ""}`}>
-                                        {i + 1}
-                                    </div>
-                                ))}
-                            </div>
-                            <div className="calendarLegend">
-                                <span className="calDot" /> Run day
                             </div>
                         </div>
                     </Card>
@@ -553,8 +774,17 @@ export default function AdminDashboard(): JSX.Element {
                                                   className="listRowGrid gridPayouts clickableRow"
                                                   onClick={() => navigate("/admin/payslip-review")}
                                               >
-                                                  <div className="cellMain">{p.name}</div>
-                                                  <div className="cellSub">{p.availableToUserAt ?? "-"}</div>
+                                                  <button
+                                                      type="button"
+                                                      className="listLink"
+                                                      onClick={(event) => {
+                                                          event.stopPropagation();
+                                                          navigate(`/admin/user/${p.userId}`);
+                                                      }}
+                                                  >
+                                                      {p.name}
+                                                  </button>
+                                                  <div className="cellSub">{formatDate(p.availableToUserAt)}</div>
                                                   <div className="cellWarn">Pending</div>
                                               </div>
                                           ))

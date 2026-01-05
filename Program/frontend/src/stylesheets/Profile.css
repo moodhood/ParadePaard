@@ -17,6 +17,7 @@
     place-items: center;
     background: rgba(255, 255, 255, 0.9);
     overflow: hidden;
+    position: relative;
 }
 
 .profile_avatar_circle--default {
@@ -79,6 +80,28 @@
     font-size: 13px;
     opacity: 0.7;
     color: #333;
+}
+
+.profile_avatar_overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background: rgba(0, 0, 0, 0.45);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    cursor: pointer;
+}
+
+.profile_avatar_circle:hover .profile_avatar_overlay,
+.profile_avatar_overlay:focus-within {
+    opacity: 1;
 }
 
 .profile_avatar_error {
