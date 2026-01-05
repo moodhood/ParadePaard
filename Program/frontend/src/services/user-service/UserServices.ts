@@ -15,6 +15,7 @@ import GetMyPayslips, { type PayslipResponseDTO } from "./GetMyPayslips";
 import GetPayslipsForReview from "./GetPayslipsForReview";
 import UpdateMyPayslipFrequency, { type UpdatePayslipFrequencyRequestDTO } from "./UpdateMyPayslipFrequency";
 import GetMyTimesheets, { type MyTimesheetRow } from "./GetMyTimesheets";
+import GetAllTimesheets, { type TimesheetRow } from "./GetAllTimesheets";
 import GetPayslipPdf from "./GetPayslipPdf";
 import type {
     AdminOnboardingRequestDTO,
@@ -39,6 +40,7 @@ export type {
     UpdatePayslipFrequencyRequestDTO,
     UserResponseDTO,
     UserSetupRequest,
+    TimesheetRow,
 };
 
 export const UserServices = {
@@ -57,6 +59,9 @@ export const UserServices = {
         MyTimesheetRow[]
     > => {
         return await GetMyTimesheets(API_BASE_URL);
+    },
+    getTimesheets: async (): Promise<TimesheetRow[]> => {
+        return await GetAllTimesheets(API_BASE_URL);
     },
     getMyPayslips: async (): Promise<PayslipResponseDTO[]> => {
         return await GetMyPayslips(API_BASE_URL);

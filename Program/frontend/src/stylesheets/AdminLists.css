@@ -7,6 +7,19 @@
   overflow: hidden; /* Keeps header fixed, body scrolls */
 }
 
+.uiSelect {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #1a1a1a;
+}
+
+.uiSelect:disabled {
+  opacity: 0.6;
+}
+
 /* The Grid System for Lists */
 .listHeaderGrid,
 .listRowGrid {
@@ -62,6 +75,12 @@
   font-style: italic;
 }
 
+.errorText {
+  color: #b00020;
+  font-weight: 600;
+  opacity: 1;
+}
+
 .cardFooter {
   padding: 16px;
   border-top: 1px solid #eee;
@@ -90,6 +109,21 @@
 /* 4. Payouts: Name | Date | Status */
 .gridPayouts {
   grid-template-columns: 1fr 1fr 0.8fr;
+}
+
+/* 6. Hours: Name | Week | Month | Year | Total */
+.gridHours {
+  grid-template-columns: 1.4fr 0.8fr 0.8fr 0.8fr 0.8fr;
+}
+
+/* 7. User Hours: Name | Hours */
+.gridUserHours {
+  grid-template-columns: 1.6fr 0.8fr;
+}
+
+/* 8. Timesheet History: Date | Name | Function | Hours */
+.gridTimesheetHistory {
+  grid-template-columns: 0.9fr 1.2fr 1.2fr 0.7fr;
 }
 
 /* 5. Payslip Review: Name | Period end | Payout | Hours | Net | Action */

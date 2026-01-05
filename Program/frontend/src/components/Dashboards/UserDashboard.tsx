@@ -14,6 +14,7 @@ import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
 import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
 import type { LeaveRequestForm } from "../requests/LeaveRequestModals.tsx";
 import  Card  from "../common/Card.tsx"
+import { summarizeHours } from "../../utils/hoursSummary";
 
 type Timesheet = {
     timesheetId: string;
@@ -23,14 +24,6 @@ type Timesheet = {
 };
 
 const BASE_LEAVE_ALLOWANCE_HOURS = 120;
-
-function isoWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    const dayNum = d.getUTCDay() || 7;
-    d.setUTCDate(d.getUTCDate() + 4 - dayNum);
-    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil((((d as any) - (yearStart as any)) / 86400000 + 1) / 7);
-}
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
@@ -49,7 +42,7 @@ export default function UserDashboard() {
     const [openCreate, setOpenCreate] = useState(false);
 
     // general info
-    const currentWeek = useMemo(() => isoWeekNumber(new Date()), []);
+    const now = useMemo(() => new Date(), []);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [timesheetLoading, setTimesheetLoading] = useState(false);
     const [timesheetError, setTimesheetError] = useState<string | null>(null);
@@ -184,9 +177,7 @@ export default function UserDashboard() {
         }
     };
 
-    const hoursWorkedThisWeek = timesheets
-        .filter((t) => isoWeekNumber(new Date(t.dateOfIssue)) === currentWeek)
-        .reduce((sum, t) => sum + (t.hoursWorked ?? 0), 0);
+    const hoursSummary = useMemo(() => summarizeHours(timesheets, now), [timesheets, now]);
 
     const leaveHoursApproved = list
         .filter((r) => r.status === "APPROVED")
@@ -212,12 +203,32 @@ export default function UserDashboard() {
                     <div className="generalInfoRows">
                         <div className="generalInfoRow">
                             <div className="generalInfoLabel">Current week</div>
-                            <div className="generalInfoValue">Week {currentWeek}</div>
+                            <div className="generalInfoValue">
+                                Week {hoursSummary.week.weekNumber} ({hoursSummary.week.weekBasedYear})
+                            </div>
                         </div>
                         <div className="generalInfoRow">
                             <div className="generalInfoLabel">Hours worked this week</div>
                             <div className="generalInfoValue">
-                                {timesheetLoading ? "Loading..." : `${hoursWorkedThisWeek.toFixed(1)} h`}
+                                {timesheetLoading ? "Loading..." : `${hoursSummary.weekHours.toFixed(1)} h`}
+                            </div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Hours worked this month</div>
+                            <div className="generalInfoValue">
+                                {timesheetLoading ? "Loading..." : `${hoursSummary.monthHours.toFixed(1)} h`}
+                            </div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Hours worked this year</div>
+                            <div className="generalInfoValue">
+                                {timesheetLoading ? "Loading..." : `${hoursSummary.yearHours.toFixed(1)} h`}
+                            </div>
+                        </div>
+                        <div className="generalInfoRow">
+                            <div className="generalInfoLabel">Total hours worked</div>
+                            <div className="generalInfoValue">
+                                {timesheetLoading ? "Loading..." : `${hoursSummary.totalHours.toFixed(1)} h`}
                             </div>
                         </div>
                         <div className="generalInfoRow">
