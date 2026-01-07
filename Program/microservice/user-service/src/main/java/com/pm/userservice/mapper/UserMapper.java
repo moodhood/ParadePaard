@@ -34,6 +34,7 @@ public class UserMapper {
         dto.setCountry(user.getCountry());
         dto.setIban(user.getIban());
         dto.setPayslipFrequencyMinutes(user.getPayslipFrequencyMinutes());
+        dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
         return dto;
@@ -73,6 +74,7 @@ public class UserMapper {
         user.setUserId(UUID.fromString(event.getUserId()));
         user.setEmail(event.getEmail());
         user.setStatus(UserStatus.ACTIVE);
+        user.setRegisteredDate(LocalDate.now());
 
         return user;
     }

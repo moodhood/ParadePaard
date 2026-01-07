@@ -60,6 +60,9 @@ public class User {
     @Column(name = "payslip_frequency_minutes", nullable = false)
     private Integer payslipFrequencyMinutes = 10080;
 
+    @Column(name = "registered_date", nullable = false)
+    private LocalDate registeredDate = LocalDate.now();
+
     public UUID getUserId() {
         return userId;
     }
@@ -234,5 +237,13 @@ public class User {
 
     public void setPayslipFrequencyMinutes(Integer payslipFrequencyMinutes) {
         this.payslipFrequencyMinutes = payslipFrequencyMinutes;
+    }
+
+    public LocalDate getRegisteredDate() {
+        return registeredDate;
+    }
+
+    public void setRegisteredDate(LocalDate registeredDate) {
+        this.registeredDate = registeredDate;
     }
 }

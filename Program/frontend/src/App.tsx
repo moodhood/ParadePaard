@@ -1,14 +1,15 @@
-import { Routes, Route } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/Profile";
 import WorkHistory from "./pages/WorkHistory";
 import Onboarding from "./pages/Onboarding";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
-import Settings from "./pages/Settings";
-import SettingsOverview from "./pages/SettingsOverview";
+import Account from "./pages/Account";
+import AccountPersonalInfo from "./pages/AccountPersonalInfo";
+import AccountBankDetails from "./pages/AccountBankDetails";
+import AccountEmploymentDetails from "./pages/AccountEmploymentDetails";
 import SettingsCompany from "./pages/SettingsCompany";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import PayslipReview from "./pages/PayslipReview";
@@ -32,14 +33,6 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <Dashboard />
-                    </RequireActiveUser>
-                }
-            />
-            <Route
-                path="/profile"
-                element={
-                    <RequireActiveUser>
-                        <Profile />
                     </RequireActiveUser>
                 }
             />
@@ -96,16 +89,21 @@ export default function App() {
                 }
             />
             <Route
-                path="/settings"
+                path="/account"
                 element={
                     <RequireActiveUser>
-                        <Settings />
+                        <Account />
                     </RequireActiveUser>
                 }
             >
-                <Route index element={<SettingsOverview />} />
+                <Route index element={<AccountPersonalInfo />} />
+                <Route path="bank" element={<AccountBankDetails />} />
+                <Route path="employment" element={<AccountEmploymentDetails />} />
                 <Route path="company" element={<SettingsCompany />} />
             </Route>
+            <Route path="/profile" element={<Navigate to="/account" replace />} />
+            <Route path="/settings/company" element={<Navigate to="/account/company" replace />} />
+            <Route path="/settings" element={<Navigate to="/account" replace />} />
             <Route
                 path="/admin/user/:userId"
                 element={

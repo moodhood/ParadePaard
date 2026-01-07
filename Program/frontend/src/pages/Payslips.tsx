@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
@@ -272,6 +273,7 @@ export default function Payslips() {
             <div className="payslipsPage">
                 <div className="payslipsCard">
                     <div className="pageHeader">
+                        <PageBack />
                         <h1 className="pageTitle">Payslips</h1>
                         <p className="pageSubtitle">
                             Review personal and company payslips based on your permissions.

@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import {
@@ -266,6 +267,7 @@ export default function AdminUserDetails() {
             <div className="adminDashboardPage">
                 <div className="adminDashboardCard">
                     <header className="pageHeader">
+                        <PageBack />
                         <h1 className="pageTitle">User Details</h1>
                         <p className="pageSubtitle">Admin view for {displayName || "user"}</p>
                     </header>

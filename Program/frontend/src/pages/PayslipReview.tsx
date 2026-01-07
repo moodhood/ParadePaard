@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
@@ -66,6 +67,7 @@ export default function PayslipReview() {
             <div className="adminDashboardPage">
                 <div className="adminDashboardCard">
                     <header className="pageHeader">
+                        <PageBack />
                         <h1 className="pageTitle">Payslip Review</h1>
                         <p className="pageSubtitle">Payslips generated for admin review before release</p>
                     </header>

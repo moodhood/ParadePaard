@@ -464,18 +464,10 @@ export default function Navbar(): JSX.Element {
                                 <Link
                                     className="nav_dropdown_item"
                                     role="menuitem"
-                                    to="/profile"
+                                    to="/account"
                                     onClick={() => setMenuOpen(false)}
                                 >
-                                    Profile
-                                </Link>
-                                <Link
-                                    className="nav_dropdown_item"
-                                    role="menuitem"
-                                    to="/settings"
-                                    onClick={() => setMenuOpen(false)}
-                                >
-                                    Settings
+                                    Account
                                 </Link>
                                 <button
                                     type="button"

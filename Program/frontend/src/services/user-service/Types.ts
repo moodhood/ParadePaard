@@ -21,6 +21,7 @@ export type UserResponseDTO = {
     country: string | null;
     iban: string | null;
     payslipFrequencyMinutes?: number | null;
+    registeredDate?: string | null;
     status: "PENDING_SETUP" | "ACTIVE" | string;
 };
 

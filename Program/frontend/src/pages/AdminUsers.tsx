@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Card from "../components/common/Card";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
+import { formatDate } from "../utils/dateFormat";
 
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
@@ -28,8 +30,9 @@ export default function AdminUsers() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
-    const [sortKey, setSortKey] = useState<"name" | "status" | "position">("name");
+    const [sortKey, setSortKey] = useState<"name" | "status" | "position" | "dateAdded">("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+    const [tenureFilter, setTenureFilter] = useState<"all" | "new" | "longer">("all");
 
     const [avatarUrls, setAvatarUrls] = useState<Record<string, string | null>>({});
     const avatarUrlsRef = useRef<Record<string, string | null>>({});
@@ -85,6 +88,18 @@ export default function AdminUsers() {
 
     const filteredUsers = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
+        const now = new Date();
+        const cutoff = new Date(now);
+        cutoff.setDate(now.getDate() - 30);
+
+        const parseDate = (value?: string | null) => {
+            if (!value) return null;
+            const datePart = value.split("T")[0].split(" ")[0];
+            const [year, month, day] = datePart.split("-").map(Number);
+            if (!Number.isFinite(year) || !Number.isFinite(month) || !Number.isFinite(day)) return null;
+            return new Date(year, month - 1, day);
+        };
+
         const list = users
             .map((user) => ({
                 user,
@@ -97,24 +112,40 @@ export default function AdminUsers() {
                     user.email.toLowerCase().includes(term)
                 );
             })
+            .filter(({ user }) => {
+                if (tenureFilter === "all") return true;
+                const registered = parseDate(user.registeredDate);
+                if (!registered) return false;
+                if (tenureFilter === "new") return registered >= cutoff;
+                return registered < cutoff;
+            })
             .sort((a, b) => {
                 const direction = sortDirection === "asc" ? 1 : -1;
+                const aDate = parseDate(a.user.registeredDate)?.getTime() ?? 0;
+                const bDate = parseDate(b.user.registeredDate)?.getTime() ?? 0;
                 const aValue =
                     sortKey === "status"
                         ? statusLabel(a.user.status)
+                        : sortKey === "dateAdded"
+                            ? String(aDate)
                         : sortKey === "position"
                             ? (a.user.position ?? "")
                             : a.name;
                 const bValue =
                     sortKey === "status"
                         ? statusLabel(b.user.status)
+                        : sortKey === "dateAdded"
+                            ? String(bDate)
                         : sortKey === "position"
                             ? (b.user.position ?? "")
                             : b.name;
+                if (sortKey === "dateAdded") {
+                    return (aDate - bDate) * direction;
+                }
                 return aValue.localeCompare(bValue) * direction;
             });
         return list;
-    }, [displayNameForUser, searchTerm, sortDirection, sortKey, users]);
+    }, [displayNameForUser, searchTerm, sortDirection, sortKey, tenureFilter, users]);
 
     const setAvatarUrl = useCallback((userId: string, url: string | null) => {
         setAvatarUrls((prev) => {
@@ -167,6 +198,7 @@ export default function AdminUsers() {
             <div className="adminDashboardPage">
                 <div className="adminDashboardCard">
                     <header className="pageHeader">
+                        <PageBack />
                         <h1 className="pageTitle">Users</h1>
                         <p className="pageSubtitle">Browse all employees and jump to their profiles.</p>
                     </header>
@@ -189,13 +221,16 @@ export default function AdminUsers() {
                                 <select
                                     className="uiSelect"
                                     value={sortKey}
-                                    onChange={(e) => setSortKey(e.target.value as "name" | "status" | "position")}
+                                    onChange={(e) =>
+                                        setSortKey(e.target.value as "name" | "status" | "position" | "dateAdded")
+                                    }
                                     disabled={loading}
                                     aria-label="Sort users by"
                                 >
                                     <option value="name">Sort: Name</option>
                                     <option value="status">Sort: Status</option>
                                     <option value="position">Sort: Position</option>
+                                    <option value="dateAdded">Sort: Date added</option>
                                 </select>
                                 <select
                                     className="uiSelect"
@@ -206,6 +241,17 @@ export default function AdminUsers() {
                                 >
                                     <option value="asc">A-Z</option>
                                     <option value="desc">Z-A</option>
+                                </select>
+                                <select
+                                    className="uiSelect"
+                                    value={tenureFilter}
+                                    onChange={(e) => setTenureFilter(e.target.value as "all" | "new" | "longer")}
+                                    disabled={loading}
+                                    aria-label="Filter users by tenure"
+                                >
+                                    <option value="all">Tenure: All</option>
+                                    <option value="new">Tenure: New (last 30 days)</option>
+                                    <option value="longer">Tenure: Longer (30+ days)</option>
                                 </select>
                                 <button
                                     className="button buttonSecondary"
@@ -225,6 +271,7 @@ export default function AdminUsers() {
                                 </div>
                                 <div>Email</div>
                                 <div>Position</div>
+                                <div>Date added</div>
                                 <div>Status</div>
                             </div>
                             <div className="listScrollArea adminUsersScroll">
@@ -264,6 +311,7 @@ export default function AdminUsers() {
                                                   </div>
                                                   <div className="cellSub">{user.email}</div>
                                                   <div className="cellSub">{user.position ?? "-"}</div>
+                                                  <div className="cellSub">{formatDate(user.registeredDate)}</div>
                                                   <div className={statusClass(user.status)}>{statusLabel(user.status)}</div>
                                               </div>
                                           );

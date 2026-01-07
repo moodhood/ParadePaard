@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import {
@@ -292,6 +293,7 @@ ${note}` : title) : "";
                     <header className="pageHeader">
                         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                             <div>
+                                <PageBack />
                                 <h1 className="pageTitle">Payslip Details</h1>
                                 <p className="pageSubtitle">Review and edit payslip information</p>
                             </div>

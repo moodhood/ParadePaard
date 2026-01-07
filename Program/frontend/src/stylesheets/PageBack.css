@@ -1,0 +1,31 @@
+.pageBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  color: #4b5563;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 6px;
+}
+
+.pageBack svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  stroke-width: 2;
+  fill: none;
+}
+
+.pageBack:hover {
+  color: #111827;
+}
+
+.pageBack:focus-visible {
+  outline: 2px solid #2f6bff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
@@ -133,6 +134,7 @@ export default function PayslipDetails() {
                             }}
                         >
                             <div>
+                                <PageBack />
                                 <h1 className="pageTitle">Payslip Overview</h1>
                                 <p className="pageSubtitle">Details for this payslip</p>
                             </div>

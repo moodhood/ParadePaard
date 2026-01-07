@@ -472,8 +472,8 @@ ${note}` : title;
                             </div>
                             <span>Payslips</span>
                         </button>
-                        {/* Adjusted Profile Button */}
-                        <button className="shortcutBtn" onClick={() => navigate("/profile")}>
+                        {/* Adjusted Account Button */}
+                        <button className="shortcutBtn" onClick={() => navigate("/account")}>
                             <div className="shortcutIcon" aria-hidden="true">
                                 <svg
                                     viewBox="0 0 24 24"
@@ -489,7 +489,7 @@ ${note}` : title;
                                     <circle cx="12" cy="7" r="4" />
                                 </svg>
                             </div>
-                            <span>Profile</span>
+                            <span>Account</span>
                         </button>
                         <button className="shortcutBtn" onClick={() => navigate("/work-history")}>
                             <div className="shortcutIcon" aria-hidden="true">

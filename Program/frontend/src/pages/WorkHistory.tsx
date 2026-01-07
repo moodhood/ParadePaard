@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import { UserServices } from "../services/user-service/UserServices";
@@ -90,6 +91,7 @@ export default function WorkHistory() {
             <div className="workHistoryPage">
                 <div className="workHistoryShell">
                     <header className="workHistoryHeader">
+                        <PageBack />
                         <h1 className="workHistoryTitle">Work History</h1>
                         <p className="workHistorySubtitle">
                             A record of your past shifts and hours.

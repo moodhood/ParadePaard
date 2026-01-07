@@ -1,12 +1,5 @@
 body{
   background: #f2f2f2;
-  background: linear-gradient(
-    180deg,
-    rgba(242, 242, 242, 1) 22%,
-    rgba(204, 203, 209, 1) 39%,
-    rgba(169, 169, 186, 1) 72%,
-    rgba(158, 148, 168, 1) 88%
-  );
   min-height: 100vh;
   width: 100%;
   margin: 0;
@@ -19,10 +12,10 @@ body{
   width: 90%;
   max-width: 1200px;
   min-height: 90vh;
-  padding: 20px;
-  border-radius: 20px;
-  background: #F8F9FA;
-  box-shadow: 0 8px 16px rgba(0,0,0,0.12);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 24px;

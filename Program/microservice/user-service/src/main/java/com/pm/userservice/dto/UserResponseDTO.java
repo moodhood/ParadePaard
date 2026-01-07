@@ -20,6 +20,7 @@ public class UserResponseDTO {
     private String country;
     private String iban;
     private Integer payslipFrequencyMinutes;
+    private String registeredDate;
     private String status;
 
     public String getUserId() {
@@ -172,6 +173,14 @@ public class UserResponseDTO {
 
     public void setPayslipFrequencyMinutes(Integer payslipFrequencyMinutes) {
         this.payslipFrequencyMinutes = payslipFrequencyMinutes;
+    }
+
+    public String getRegisteredDate() {
+        return registeredDate;
+    }
+
+    public void setRegisteredDate(String registeredDate) {
+        this.registeredDate = registeredDate;
     }
 
     public String getStatus() {

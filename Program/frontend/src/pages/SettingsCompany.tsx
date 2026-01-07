@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Card from "../components/common/Card";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
@@ -55,11 +55,12 @@ export default function SettingsCompany() {
     const [createSuccess, setCreateSuccess] = useState<string | null>(null);
     const [creatingRole, setCreatingRole] = useState(false);
 
-    const [selectedUserId, setSelectedUserId] = useState("");
+    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
     const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
     const [assignError, setAssignError] = useState<string | null>(null);
     const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
     const [assigningRoles, setAssigningRoles] = useState(false);
+    const [userSearch, setUserSearch] = useState("");
 
     useEffect(() => {
         let cancelled = false;
@@ -161,22 +162,14 @@ export default function SettingsCompany() {
     }, [canAssignRoles]);
 
     useEffect(() => {
-        if (!selectedUserId && users.length > 0) {
-            setSelectedUserId(users[0].userId);
-        }
-    }, [selectedUserId, users]);
-
-    useEffect(() => {
         if (createSuccess) setCreateSuccess(null);
         if (createError) setCreateError(null);
     }, [roleName, selectedPermissions]);
 
     useEffect(() => {
-        if (!selectedUserId) return;
-        setSelectedRoles([]);
         setAssignSuccess(null);
         setAssignError(null);
-    }, [selectedUserId]);
+    }, [selectedUserIds, selectedRoles]);
 
     const sortedRoles = useMemo(() => {
         return [...roles].sort((a, b) => a.name.localeCompare(b.name));
@@ -186,10 +179,36 @@ export default function SettingsCompany() {
         return [...permissionCatalog].sort((a, b) => a.localeCompare(b));
     }, [permissionCatalog]);
 
+    const sortedUsers = useMemo(() => {
+        return [...users].sort((a, b) => displayNameForUser(a).localeCompare(displayNameForUser(b)));
+    }, [users]);
+
+    const filteredUsers = useMemo(() => {
+        const term = userSearch.trim().toLowerCase();
+        if (!term) return [];
+        const selectedSet = new Set(selectedUserIds);
+        return sortedUsers.filter((user) => {
+            if (selectedSet.has(user.userId)) return false;
+            const name = displayNameForUser(user).toLowerCase();
+            return name.includes(term) || user.email.toLowerCase().includes(term);
+        });
+    }, [displayNameForUser, selectedUserIds, sortedUsers, userSearch]);
+
+    const selectedUsers = useMemo(() => {
+        const userMap = new Map(users.map((user) => [user.userId, user]));
+        return selectedUserIds
+            .map((id) => userMap.get(id))
+            .filter((user): user is UserResponseDTO => Boolean(user));
+    }, [selectedUserIds, users]);
+
+    const addSelectedUser = useCallback((user: UserResponseDTO) => {
+        setSelectedUserIds((prev) => (prev.includes(user.userId) ? prev : [...prev, user.userId]));
+    }, []);
+
     const canSubmitCreate =
         roleName.trim().length > 0 && selectedPermissions.length > 0 && !catalogLoading;
 
-    const canSubmitAssign = Boolean(selectedUserId) && selectedRoles.length > 0;
+    const canSubmitAssign = selectedUserIds.length > 0 && selectedRoles.length > 0;
 
     const handleTogglePermission = (permission: string) => {
         setSelectedPermissions((prev) =>
@@ -246,8 +265,8 @@ export default function SettingsCompany() {
         event.preventDefault();
         if (!canAssignRoles) return;
 
-        if (!selectedUserId) {
-            setAssignError("Select a user.");
+        if (selectedUserIds.length === 0) {
+            setAssignError("Select at least one user.");
             return;
         }
 
@@ -255,8 +274,14 @@ export default function SettingsCompany() {
             setAssigningRoles(true);
             setAssignError(null);
             setAssignSuccess(null);
-            await AuthServices.setUserRoles(selectedUserId, selectedRoles);
-            setAssignSuccess("Roles updated.");
+            await Promise.all(
+                selectedUserIds.map((userId) => AuthServices.setUserRoles(userId, selectedRoles))
+            );
+            setAssignSuccess(
+                selectedUserIds.length === 1
+                    ? "Roles updated."
+                    : `Roles updated for ${selectedUserIds.length} users.`
+            );
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to update roles";
             setAssignError(message);
@@ -391,24 +416,98 @@ export default function SettingsCompany() {
                         <div className="settingsCardBody">
                             <form onSubmit={handleAssignRoles} className="settingsForm">
                                 <label className="settingsField">
-                                    <span className="settingsLabel">User</span>
-                                    <select
-                                        className="settingsSelect"
-                                        value={selectedUserId}
-                                        onChange={(e) => setSelectedUserId(e.target.value)}
-                                        disabled={usersLoading || assigningRoles}
-                                    >
-                                        {users.length === 0 ? (
-                                            <option value="">No users available</option>
-                                        ) : (
-                                            users.map((user) => (
-                                                <option key={user.userId} value={user.userId}>
-                                                    {displayNameForUser(user)} ({user.email})
-                                                </option>
-                                            ))
-                                        )}
-                                    </select>
+                                    <span className="settingsLabel">Find user</span>
+                                    <div className="settingsUserSearchWrap">
+                                        <input
+                                            className="settingsInput"
+                                            type="search"
+                                            value={userSearch}
+                                            onChange={(e) => setUserSearch(e.target.value)}
+                                            onKeyDown={(e) => {
+                                                if (e.key !== "Enter") return;
+                                                e.preventDefault();
+                                                const match = filteredUsers[0];
+                                                if (match) {
+                                                    addSelectedUser(match);
+                                                    setUserSearch("");
+                                                }
+                                            }}
+                                            placeholder="Search by name or email"
+                                            disabled={usersLoading || assigningRoles}
+                                        />
+                                        {userSearch.trim() && filteredUsers.length > 0 ? (
+                                            <div
+                                                className="settingsUserList settingsUserList--dropdown"
+                                                role="listbox"
+                                                aria-label="Search results"
+                                            >
+                                                {filteredUsers.map((user) => (
+                                                    <button
+                                                        key={user.userId}
+                                                        type="button"
+                                                        className="settingsUserItem"
+                                                        onClick={() => {
+                                                            addSelectedUser(user);
+                                                            setUserSearch("");
+                                                        }}
+                                                        disabled={assigningRoles}
+                                                        role="option"
+                                                    >
+                                                        <span className="settingsUserName">
+                                                            {displayNameForUser(user)}
+                                                        </span>
+                                                        <span className="settingsUserEmail">{user.email}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : null}
+                                    </div>
                                 </label>
+                                {userSearch.trim() && filteredUsers.length === 0 ? (
+                                    <div className="settingsMeta">No matches found.</div>
+                                ) : null}
+                                {selectedUsers.length > 0 ? (
+                                    <div className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Selected users</span>
+                                            <span className="settingsMeta">
+                                                {selectedUsers.length} selected
+                                            </span>
+                                        </div>
+                                        <div
+                                            className="settingsUserList"
+                                            role="listbox"
+                                            aria-label="Selected users"
+                                        >
+                                            {selectedUsers.map((user) => (
+                                                <div
+                                                    key={user.userId}
+                                                    className="settingsUserItem settingsUserItem--active settingsUserItem--selected"
+                                                >
+                                                    <div className="settingsUserMeta">
+                                                        <span className="settingsUserName">
+                                                            {displayNameForUser(user)}
+                                                        </span>
+                                                        <span className="settingsUserEmail">{user.email}</span>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="settingsUserRemove"
+                                                        onClick={() =>
+                                                            setSelectedUserIds((prev) =>
+                                                                prev.filter((id) => id !== user.userId)
+                                                            )
+                                                        }
+                                                        disabled={assigningRoles}
+                                                        aria-label={`Remove ${displayNameForUser(user)}`}
+                                                    >
+                                                        Remove
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ) : null}
 
                                 {usersLoading ? (
                                     <div className="settingsMeta">Loading users...</div>
@@ -448,7 +547,7 @@ export default function SettingsCompany() {
                                         )}
                                     </div>
                                     <div className="settingsMeta">
-                                        Assigning roles replaces the user&apos;s existing roles.
+                                        Select one or more roles. Assigning roles replaces the user&apos;s existing roles.
                                     </div>
                                 </div>
 
