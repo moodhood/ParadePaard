@@ -13,8 +13,10 @@ import com.pm.userservice.exception.UserNotFoundException;
 import com.pm.userservice.grpc.AuthServiceGrpcClient;
 import com.pm.userservice.integration.AuthServiceClient;
 import com.pm.userservice.integration.ContractServiceClient;
+import com.pm.userservice.model.Company;
 import com.pm.userservice.model.User;
 import com.pm.userservice.model.UserStatus;
+import com.pm.userservice.repository.CompanyRepository;
 import com.pm.userservice.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
@@ -27,15 +29,18 @@ import java.util.UUID;
 public class OnboardingService {
 
     private final UserRepository userRepository;
+    private final CompanyRepository companyRepository;
     private final AuthServiceClient authServiceClient;
     private final ContractServiceClient contractServiceClient;
     private final AuthServiceGrpcClient authServiceGrpcClient;
 
     public OnboardingService(UserRepository userRepository,
+                             CompanyRepository companyRepository,
                              AuthServiceClient authServiceClient,
                              ContractServiceClient contractServiceClient,
                              AuthServiceGrpcClient authServiceGrpcClient) {
         this.userRepository = userRepository;
+        this.companyRepository = companyRepository;
         this.authServiceClient = authServiceClient;
         this.contractServiceClient = contractServiceClient;
         this.authServiceGrpcClient = authServiceGrpcClient;
@@ -68,6 +73,11 @@ public class OnboardingService {
         user.setPosition(request.getPosition());
         user.setWorkedForUsBefore(Boolean.TRUE.equals(request.getWorkedForUsBefore()));
         user.setStatus(UserStatus.PENDING_SETUP);
+        UUID companyId = parseCompanyId(authResponse);
+        if (companyId != null) {
+            ensureCompany(companyId, request.getEmail());
+            user.setCompanyId(companyId);
+        }
         userRepository.save(user);
 
         ContractDraftRequestDTO contractRequest = new ContractDraftRequestDTO();
@@ -141,6 +151,34 @@ public class OnboardingService {
             return prefix.trim();
         }
         return prefix.trim() + " " + lastName.trim();
+    }
+
+    private UUID parseCompanyId(AuthAdminOnboardUserResponseDTO authResponse) {
+        if (authResponse == null || StringUtils.isBlank(authResponse.getCompanyId())) {
+            return null;
+        }
+        return UUID.fromString(authResponse.getCompanyId().trim());
+    }
+
+    private void ensureCompany(UUID companyId, String email) {
+        if (companyRepository.findById(companyId).isPresent()) {
+            return;
+        }
+        Company company = new Company();
+        company.setId(companyId);
+        company.setName(deriveCompanyName(email));
+        companyRepository.save(company);
+    }
+
+    private static String deriveCompanyName(String email) {
+        if (StringUtils.isBlank(email)) {
+            return "Company";
+        }
+        int at = email.indexOf('@');
+        if (at > -1 && at < email.length() - 1) {
+            return email.substring(at + 1).trim();
+        }
+        return "Company";
     }
 
     private static String mapContractType(String rawContractType, String rawPosition) {

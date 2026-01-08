@@ -28,22 +28,38 @@ public class JwtUtil {
     }
 
     public String generateAccessToken(String email, String userId, List<Role> roles) {
-        return generateToken(email, userId, roles, null, ACCESS_TOKEN_VALIDITY);
+        return generateToken(email, userId, roles, null, null, ACCESS_TOKEN_VALIDITY);
     }
 
     public String generateRefreshToken(String email, String userId, List<Role> roles) {
-        return generateToken(email, userId, roles, null, REFRESH_TOKEN_VALIDITY);
+        return generateToken(email, userId, roles, null, null, REFRESH_TOKEN_VALIDITY);
     }
 
     public String generateAccessToken(String email, String userId, List<Role> roles, List<String> permissions) {
-        return generateToken(email, userId, roles, permissions, ACCESS_TOKEN_VALIDITY);
+        return generateToken(email, userId, roles, permissions, null, ACCESS_TOKEN_VALIDITY);
     }
 
     public String generateRefreshToken(String email, String userId, List<Role> roles, List<String> permissions) {
-        return generateToken(email, userId, roles, permissions, REFRESH_TOKEN_VALIDITY);
+        return generateToken(email, userId, roles, permissions, null, REFRESH_TOKEN_VALIDITY);
     }
 
-    public String generateToken(String email, String userId, List<Role> roles, List<String> permissions, Long validityMillis) {
+    public String generateAccessToken(String email, String userId, List<Role> roles, String companyId) {
+        return generateToken(email, userId, roles, null, companyId, ACCESS_TOKEN_VALIDITY);
+    }
+
+    public String generateRefreshToken(String email, String userId, List<Role> roles, String companyId) {
+        return generateToken(email, userId, roles, null, companyId, REFRESH_TOKEN_VALIDITY);
+    }
+
+    public String generateAccessToken(String email, String userId, List<Role> roles, List<String> permissions, String companyId) {
+        return generateToken(email, userId, roles, permissions, companyId, ACCESS_TOKEN_VALIDITY);
+    }
+
+    public String generateRefreshToken(String email, String userId, List<Role> roles, List<String> permissions, String companyId) {
+        return generateToken(email, userId, roles, permissions, companyId, REFRESH_TOKEN_VALIDITY);
+    }
+
+    public String generateToken(String email, String userId, List<Role> roles, List<String> permissions, String companyId, Long validityMillis) {
         List<String> roleNames = Optional.ofNullable(roles)
                 .orElseGet(Collections::emptyList)
                 .stream()
@@ -82,6 +98,10 @@ public class JwtUtil {
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(expiration))
                 .signWith(secretKey, Jwts.SIG.HS256);
+
+        if (companyId != null && !companyId.isBlank()) {
+            builder.claim("companyId", companyId);
+        }
 
         // only add a single role claim if present
         roleNames.stream().findFirst().ifPresent(r -> builder.claim("role", r));

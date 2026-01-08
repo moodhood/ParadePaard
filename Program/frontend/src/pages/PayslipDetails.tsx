@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -106,13 +105,19 @@ export default function PayslipDetails() {
         }
     }, [payslip]);
 
+    const navHeader = (
+        <header className="pageHeader">
+            <h1 className="pageTitle">Payslip Overview</h1>
+        </header>
+    );
+
     if (!payslipId) {
         return (
             <>
                 <Navbar />
                 <div className="adminDashboardPage">
                     <div className="pageShell">
-                        <PrimaryNav />
+                        <PrimaryNav header={navHeader} />
                         <div className="pageShellContent">
                             <div className="adminDashboardCard">
                                 <div className="workHistoryError">Missing payslip id.</div>
@@ -129,48 +134,24 @@ export default function PayslipDetails() {
             <Navbar />
             <div className="adminDashboardPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav header={navHeader} />
                     <div className="pageShellContent">
                         <div className="adminDashboardCard">
-                            <header className="pageHeader">
-                                <div
-                                    style={{
-                                        display: "flex",
-                                        justifyContent: "space-between",
-                                        alignItems: "center",
-                                        gap: 16,
-                                        flexWrap: "wrap",
-                                    }}
+                            <div className="pageActions">
+                                <button
+                                    className="button buttonSecondary"
+                                    onClick={() => navigate("/payslips")}
                                 >
-                                    <div>
-                                        <PageBack />
-                                        <h1 className="pageTitle">Payslip Overview</h1>
-                                        <p className="pageSubtitle">Details for this payslip</p>
-                                    </div>
-                                    <div
-                                        style={{
-                                            display: "flex",
-                                            gap: 12,
-                                            alignItems: "center",
-                                            flexWrap: "wrap",
-                                        }}
-                                    >
-                                        <button
-                                            className="button buttonSecondary"
-                                            onClick={() => navigate("/payslips")}
-                                        >
-                                            Back to payslips
-                                        </button>
-                                        <button
-                                            className="button"
-                                            onClick={() => void downloadPayslipPdf()}
-                                            disabled={downloading}
-                                        >
-                                            {downloading ? "Downloading..." : "Download PDF"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </header>
+                                    Back to payslips
+                                </button>
+                                <button
+                                    className="button"
+                                    onClick={() => void downloadPayslipPdf()}
+                                    disabled={downloading}
+                                >
+                                    {downloading ? "Downloading..." : "Download PDF"}
+                                </button>
+                            </div>
 
                             {downloadError ? <div className="workHistoryError">{downloadError}</div> : null}
 

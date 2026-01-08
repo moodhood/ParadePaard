@@ -2,16 +2,132 @@
   gap: 20px;
 }
 
+.settingsCompanyCard {
+  grid-column: 1 / -1;
+}
+
+.settingsCompanyAvatar {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.settingsLayout,
+.accountLayout,
+.settingsLayout--sidebar {
+  --settings-sidebar-width: var(--sidebar-width, 360px);
+}
+
 .userDashboardCard.accountPage {
-  width: 96%;
-  max-width: 1600px;
+  width: 100%;
+  max-width: none;
 }
 
 .settingsLayout {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr);
   gap: 24px;
   align-items: start;
+}
+
+.accountLayout {
+  display: grid;
+  grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "accountHeader ."
+    "accountNav accountMain";
+  column-gap: 32px;
+  row-gap: var(--account-sidebar-gap);
+  align-items: start;
+  box-sizing: border-box;
+  width: 100%;
+  --account-sidebar-gap: 16px;
+  --account-header-height: 64px;
+}
+
+.accountSidebarHeader,
+.accountSidebarNav,
+.settingsSidebarHeader,
+.settingsSidebarNav {
+  width: 100%;
+  max-width: var(--settings-sidebar-width);
+  box-sizing: border-box;
+}
+
+.accountSidebarHeader {
+  grid-area: accountHeader;
+  padding-left: 24px;
+  padding-right: 0;
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--nav-gap));
+  align-self: start;
+  z-index: 2;
+}
+
+.accountSidebarNav {
+  grid-area: accountNav;
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--nav-gap) + var(--account-header-height) + var(--account-sidebar-gap));
+  align-self: start;
+  padding-left: 24px;
+  padding-right: 0;
+}
+
+.accountMain {
+  grid-area: accountMain;
+  min-width: 0;
+  width: 100%;
+}
+
+.accountMainInner {
+  width: min(1200px, 100%);
+  margin: 0 auto;
+}
+
+.accountSidebarHeader .pageTitle,
+.accountSidebarHeader .pageSubtitle {
+  white-space: nowrap;
+}
+
+.accountSidebarHeader .pageHeader {
+  padding: 0;
+  gap: 6px;
+  height: var(--account-header-height);
+}
+
+.accountSidebarHeader .pageBack {
+  margin-bottom: 0;
+  line-height: 18px;
+}
+
+.accountSidebarHeader .pageTitle {
+  line-height: 32px;
+}
+
+.accountSidebarHeader .pageSubtitle {
+  margin: 0;
+  line-height: 18px;
+}
+
+.settingsLayout--sidebar {
+  grid-template-columns: var(--settings-sidebar-width) minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "settingsHeader ."
+    "settingsNav settingsContent";
+  column-gap: 32px;
+  row-gap: 16px;
+}
+
+.settingsSidebarHeader {
+  grid-area: settingsHeader;
+}
+
+.settingsSidebarNav {
+  grid-area: settingsNav;
+}
+
+.settingsLayout--sidebar .settingsContent {
+  grid-area: settingsContent;
 }
 
 .settingsNav {
@@ -19,28 +135,44 @@
   flex-direction: column;
   gap: 8px;
   text-align: left;
+  width: 100%;
 }
 
 .settingsNavLink {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 0 16px;
+  height: 44px;
   border-radius: 12px;
   text-decoration: none;
-  font-weight: 600;
-  color: #1f2937;
-  background: #edf0f4;
-  transition: background 0.2s ease, color 0.2s ease;
+  font-weight: 800;
+  color: #1a1a1a;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+  transition: transform 120ms ease, background 120ms ease, border-color 120ms ease, color 120ms ease;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .settingsNavLink:hover {
-  background: #e2e8f0;
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.82);
+  border-color: rgba(47, 107, 255, 0.35);
 }
 
 .settingsNavLink--active {
-  background: #2f6bff;
-  color: #ffffff;
+  background: #e8f0ff;
+  border-color: #2f6bff;
+  color: #1d4ed8;
+  box-shadow: inset 4px 0 0 #2f6bff, 0 10px 20px rgba(47, 107, 255, 0.18);
+}
+
+.settingsNavLink--active:hover {
+  background: #dbe7ff;
 }
 
 .settingsContent {
@@ -489,6 +621,10 @@
   gap: 16px;
 }
 
+.roleWizard--edit {
+  min-height: 100%;
+}
+
 .roleWizardTabs {
   display: flex;
   gap: 12px;
@@ -748,6 +884,11 @@
   margin-top: 8px;
 }
 
+.roleWizard--edit .roleWizardActions {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
 .roleWizardPrimary {
   background: #2f6bff;
   color: #ffffff;
@@ -800,6 +941,42 @@
 @media (max-width: 900px) {
   .settingsLayout {
     grid-template-columns: 1fr;
+  }
+
+  .accountLayout {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "accountHeader"
+      "accountNav"
+      "accountMain";
+    row-gap: 12px;
+    --account-sidebar-gap: 12px;
+    --account-header-height: 56px;
+  }
+
+  .accountSidebarHeader,
+  .accountSidebarNav {
+    padding-left: 16px;
+    padding-right: 0;
+  }
+
+  .accountSidebarNav {
+    position: static;
+    padding-top: 0;
+  }
+
+  .accountSidebarHeader .pageTitle,
+  .accountSidebarHeader .pageSubtitle {
+    white-space: normal;
+  }
+
+  .settingsLayout--sidebar {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "settingsHeader"
+      "settingsNav"
+      "settingsContent";
+    row-gap: 16px;
   }
 
   .settingsNav {

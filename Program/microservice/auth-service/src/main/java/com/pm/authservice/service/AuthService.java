@@ -14,9 +14,11 @@ import com.pm.authservice.exception.RoleAlreadyExistsException;
 import com.pm.authservice.exception.RoleDoesNotExistException;
 import com.pm.authservice.kafka.KafkaProducer;
 import com.pm.authservice.mapper.RegisterMapper;
+import com.pm.authservice.model.Company;
 import com.pm.authservice.model.Permission;
 import com.pm.authservice.model.Role;
 import com.pm.authservice.model.User;
+import com.pm.authservice.repository.CompanyRepository;
 import com.pm.authservice.repository.PermissionRepository;
 import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
@@ -27,6 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.pm.authservice.exception.UserNotFoundException;
@@ -48,10 +51,44 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final CompanyRepository companyRepository;
     private final KafkaProducer kafkaProducer;
     private final PasswordResetService passwordResetService;
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+    private static final List<String> DEFAULT_ADMIN_PERMISSIONS = List.of(
+            "CAN_ACCESS_ADMIN_DASHBOARD",
+            "CAN_CREATE_ROLE",
+            "CAN_ASSIGN_ROLES",
+            "CAN_EDIT_ROLES",
+            "CAN_REMOVE_ROLES",
+            "CAN_DELETE_ROLES",
+            "CAN_VIEW_USERS",
+            "CAN_MANAGE_USERS",
+            "CAN_MANAGE_COMPANY",
+            "CAN_ONBOARD_USERS",
+            "CAN_VIEW_ALL_LEAVE_REQUESTS",
+            "CAN_MANAGE_LEAVE_REQUESTS",
+            "CAN_APPROVE_LEAVE_REQUESTS",
+            "CAN_REJECT_LEAVE_REQUESTS",
+            "CAN_VIEW_CONTRACTS",
+            "CAN_MANAGE_CONTRACTS",
+            "CAN_FINALIZE_CONTRACT",
+            "CAN_VIEW_FUNCTIONS",
+            "CAN_MANAGE_FUNCTIONS",
+            "CAN_VIEW_ALL_TIMESHEETS",
+            "CAN_MANAGE_TIMESHEETS",
+            "CAN_VIEW_ALL_PAYSLIPS",
+            "CAN_REVIEW_PAYSLIPS",
+            "CAN_MANAGE_PAYSLIPS"
+    );
+    private static final List<String> DEFAULT_USER_PERMISSIONS = List.of(
+            "CAN_COMPLETE_ONBOARDING",
+            "CAN_FINALIZE_CONTRACT",
+            "CAN_VIEW_PAYSLIPS",
+            "CAN_REPORT_PAYSLIP_ERRORS",
+            "CAN_VIEW_OWN_TIMESHEETS"
+    );
 
     public AuthService(UserService userService,
                        PasswordEncoder passwordEncoder,
@@ -60,6 +97,7 @@ public class AuthService {
                        KafkaProducer kafkaProducer,
                        RoleRepository roleRepository,
                        PermissionRepository permissionRepository,
+                       CompanyRepository companyRepository,
                        PasswordResetService passwordResetService) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
@@ -68,6 +106,7 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
         this.userRepository = userRepository;
         this.kafkaProducer = kafkaProducer;
+        this.companyRepository = companyRepository;
         this.passwordResetService = passwordResetService;
     }
 
@@ -81,6 +120,10 @@ public class AuthService {
         }
 
         User user = RegisterMapper.toModel(registerRequestDTO, passwordEncoder);
+
+        Company company = resolveOrCreateCompany(registerRequestDTO);
+        user.setCompanyId(company.getId());
+        ensureDefaultRoles(company.getId());
 
         // --- GENERATE USERNAME LOGIC ---
         // Prefer first/last if provided, otherwise fall back to email local-part.
@@ -103,7 +146,7 @@ public class AuthService {
         user.setUsername(generatedUsername);
         // -------------------------------
 
-        Role userRole = roleRepository.findByName("USER")
+        Role userRole = roleRepository.findByNameAndCompanyId("USER", company.getId())
                 .orElseThrow(() -> new RoleDoesNotExistException("USER role is missing seed it first"));
         user.setRoles(List.of(userRole));
 
@@ -114,7 +157,11 @@ public class AuthService {
         String refreshToken = refreshToken(newUser);
 
         // NOTE: We return the generated username in the response message or DTO so the user knows what it is
-        AuthResponseDTO authResponseDTO = authResponseDTO(newUser.getId().toString(), newUser.getEmail());
+        AuthResponseDTO authResponseDTO = authResponseDTO(
+                newUser.getId().toString(),
+                newUser.getEmail(),
+                newUser.getCompanyId() != null ? newUser.getCompanyId().toString() : null
+        );
         authResponseDTO.setUsername(newUser.getUsername());
         authResponseDTO.setMessage("Registration successful. Your username is: " + newUser.getUsername());
 
@@ -135,7 +182,11 @@ public class AuthService {
                     String accessToken = accessToken(user);
                     String refreshToken = refreshToken(user);
 
-                    AuthResponseDTO authResponseDTO = authResponseDTO(user.getId().toString(), user.getEmail());
+                    AuthResponseDTO authResponseDTO = authResponseDTO(
+                            user.getId().toString(),
+                            user.getEmail(),
+                            user.getCompanyId() != null ? user.getCompanyId().toString() : null
+                    );
                     authResponseDTO.setUsername(user.getUsername());
 
                     if (user.isMustChangePassword()) {
@@ -183,6 +234,79 @@ public class AuthService {
         return s.isBlank() ? "user" : s;
     }
 
+    private Company resolveOrCreateCompany(RegisterRequestDTO request) {
+        String requestedCompanyId = request.getCompanyId();
+        if (requestedCompanyId != null && !requestedCompanyId.isBlank()) {
+            UUID companyId = UUID.fromString(requestedCompanyId.trim());
+            return companyRepository.findById(companyId)
+                    .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+        }
+
+        String name = normalizeCompanyName(request);
+        return companyRepository.findByName(name)
+                .orElseGet(() -> {
+                    Company company = new Company();
+                    company.setId(UUID.randomUUID());
+                    company.setName(name);
+                    Company saved = companyRepository.save(company);
+                    ensureDefaultRoles(saved.getId());
+                    return saved;
+                });
+    }
+
+    private static String normalizeCompanyName(RegisterRequestDTO request) {
+        String raw = request.getCompanyName();
+        if (raw != null && !raw.trim().isEmpty()) {
+            return raw.trim();
+        }
+        String email = request.getEmail();
+        if (email != null) {
+            int at = email.indexOf('@');
+            if (at > -1 && at < email.length() - 1) {
+                return email.substring(at + 1).trim();
+            }
+        }
+        return "Company";
+    }
+
+    private void ensureDefaultRoles(UUID companyId) {
+        createRoleIfMissing(companyId, "ADMIN", DEFAULT_ADMIN_PERMISSIONS);
+        createRoleIfMissing(companyId, "USER", DEFAULT_USER_PERMISSIONS);
+    }
+
+    private Role createRoleIfMissing(UUID companyId, String name, List<String> permissions) {
+        if (roleRepository.existsByNameAndCompanyId(name, companyId)) {
+            return roleRepository.findByNameAndCompanyId(name, companyId).orElse(null);
+        }
+        List<Permission> permissionEntities = permissions.stream()
+                .map(permissionName -> permissionRepository.findByName(permissionName)
+                        .orElseThrow(() -> new PermissionDoesNotExistException("Permission not found " + permissionName)))
+                .toList();
+        Role role = new Role(name, permissionEntities);
+        role.setCompanyId(companyId);
+        return roleRepository.save(role);
+    }
+
+    private User requireAuthenticatedUser(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("Missing authentication");
+        }
+        String email = authentication.getName();
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Missing user identity");
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+    }
+
+    private UUID requireCompanyId(Authentication authentication) {
+        User user = requireAuthenticatedUser(authentication);
+        if (user.getCompanyId() == null) {
+            throw new IllegalStateException("User is missing company assignment");
+        }
+        return user.getCompanyId();
+    }
+
     // ... [Rest of the file remains unchanged: refreshToken, logout, cookies, helper methods] ...
     
     public ResponseEntity<AuthResponseDTO> refreshToken(String refreshToken) {
@@ -191,13 +315,14 @@ public class AuthService {
 
             String email = jwtUtil.extractEmail(refreshToken);
             String userId = jwtUtil.extractClaims(refreshToken).get("userId", String.class);
+            String companyId = jwtUtil.extractClaims(refreshToken).get("companyId", String.class);
             List<Role> roles = jwtUtil.extractRoles(refreshToken);
             List<String> permissions = jwtUtil.extractPermissions(refreshToken);
 
-            String newAccessToken = jwtUtil.generateAccessToken(email, userId, roles, permissions);
-            String newRefreshToken = jwtUtil.generateRefreshToken(email, userId, roles, permissions);
+            String newAccessToken = jwtUtil.generateAccessToken(email, userId, roles, permissions, companyId);
+            String newRefreshToken = jwtUtil.generateRefreshToken(email, userId, roles, permissions, companyId);
 
-            AuthResponseDTO authResponseDTO = authResponseDTO(userId, email);
+            AuthResponseDTO authResponseDTO = authResponseDTO(userId, email, companyId);
 
             ResponseCookie refreshTokenCookie = responseRefreshCookie(newRefreshToken);
             ResponseCookie accessTokenCookie = responseAccessCookie(newAccessToken);
@@ -254,21 +379,24 @@ public class AuthService {
                 .build();
     }
 
-    public AuthResponseDTO authResponseDTO(String userId, String email) {
+    public AuthResponseDTO authResponseDTO(String userId, String email, String companyId) {
         AuthResponseDTO authResponseDTO = new AuthResponseDTO();
         authResponseDTO.setMessage("Login successful");
         authResponseDTO.setUserId(userId);
         authResponseDTO.setEmail(email);
+        authResponseDTO.setCompanyId(companyId);
 
         return authResponseDTO;
     }
 
     public String accessToken(User user){
-        return jwtUtil.generateAccessToken(user.getEmail(), user.getId().toString(), user.getRoles());
+        String companyId = user.getCompanyId() != null ? user.getCompanyId().toString() : null;
+        return jwtUtil.generateAccessToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
     }
 
     public String refreshToken(User user){
-        return jwtUtil.generateRefreshToken(user.getEmail(), user.getId().toString(), user.getRoles());
+        String companyId = user.getCompanyId() != null ? user.getCompanyId().toString() : null;
+        return jwtUtil.generateRefreshToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
     }
 
     public boolean validateToken(String token){
@@ -281,15 +409,19 @@ public class AuthService {
     }
 
     @Transactional
-    public void setUserRoles(UUID userId, List<String> names) {
+    public void setUserRoles(UUID userId, List<String> names, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
         User u = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (u.getCompanyId() == null || !u.getCompanyId().equals(companyId)) {
+            throw new UserNotFoundException("User not found");
+        }
 
         List<Role> roles = names.stream()
                 .map(s -> s == null ? "" : s.trim().toUpperCase(Locale.ROOT))
                 .filter(s -> !s.isEmpty())
                 .distinct()
-                .map(n -> roleRepository.findByName(n)
+                .map(n -> roleRepository.findByNameAndCompanyId(n, companyId)
                         .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + n)))
                 .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
@@ -298,13 +430,14 @@ public class AuthService {
     }
 
     @Transactional
-    public RoleResponseDTO createRole(CreateRoleRequestDTO request) {
+    public RoleResponseDTO createRole(CreateRoleRequestDTO request, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
         String rawName = request.getName() == null ? "" : request.getName().trim();
         String name = rawName.toUpperCase(Locale.ROOT);
         if (name.isEmpty()) {
             throw new IllegalArgumentException("Role name is required");
         }
-        if (roleRepository.findByName(name).isPresent()) {
+        if (roleRepository.findByNameAndCompanyId(name, companyId).isPresent()) {
             throw new RoleAlreadyExistsException("Role already exists " + name);
         }
 
@@ -330,6 +463,7 @@ public class AuthService {
         }
 
         Role role = new Role(name, permissions);
+        role.setCompanyId(companyId);
         role.setColor(normalizeColor(request.getColor()));
         Role saved = roleRepository.save(role);
 
@@ -342,8 +476,9 @@ public class AuthService {
     }
 
     @Transactional
-    public RoleResponseDTO updateRole(UUID roleId, UpdateRoleRequestDTO request) {
-        Role role = roleRepository.findById(roleId)
+    public RoleResponseDTO updateRole(UUID roleId, UpdateRoleRequestDTO request, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
+        Role role = roleRepository.findByIdAndCompanyId(roleId, companyId)
                 .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + roleId));
 
         String rawName = request.getName() == null ? "" : request.getName().trim();
@@ -353,7 +488,7 @@ public class AuthService {
         }
 
         boolean nameChanged = !name.equalsIgnoreCase(role.getName());
-        if (nameChanged && roleRepository.findByName(name).isPresent()) {
+        if (nameChanged && roleRepository.findByNameAndCompanyId(name, companyId).isPresent()) {
             throw new RoleAlreadyExistsException("Role already exists " + name);
         }
 
@@ -388,25 +523,28 @@ public class AuthService {
     }
 
     @Transactional
-    public void deleteRole(UUID roleId) {
-        Role role = roleRepository.findById(roleId)
+    public void deleteRole(UUID roleId, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
+        Role role = roleRepository.findByIdAndCompanyId(roleId, companyId)
                 .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + roleId));
         roleRepository.delete(role);
     }
 
-    public List<RoleResponseDTO> getRoles() {
-        return roleRepository.findAll().stream()
+    public List<RoleResponseDTO> getRoles(Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
+        return roleRepository.findAllByCompanyId(companyId).stream()
                 .map(this::toRoleResponse)
                 .sorted(Comparator.comparing(RoleResponseDTO::getName, String.CASE_INSENSITIVE_ORDER))
                 .toList();
     }
 
-    public List<UserRolesResponseDTO> getUserRoles(List<UUID> ids) {
+    public List<UserRolesResponseDTO> getUserRoles(List<UUID> ids, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
         if (ids == null || ids.isEmpty()) {
             return List.of();
         }
 
-        List<User> users = userRepository.findByIdIn(ids);
+        List<User> users = userRepository.findByIdInAndCompanyId(ids, companyId);
         java.util.Map<UUID, User> byId = users.stream()
                 .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
 

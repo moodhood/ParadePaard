@@ -4,6 +4,7 @@ export type LoginResponse = {
     message: string;
     userId: string;
     email: string;
+    companyId?: string;
     username?: string;
     mustChangePassword?: boolean;
     passwordResetToken?: string;

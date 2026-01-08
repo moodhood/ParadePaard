@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { AuthServices } from "../services/auth-service/AuthServices";
@@ -233,15 +232,15 @@ export default function AdminUsers() {
             <Navbar />
             <div className="adminDashboardPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav
+                        header={
+                            <header className="pageHeader">
+                                <h1 className="pageTitle">Users</h1>
+                            </header>
+                        }
+                    />
                     <div className="pageShellContent">
                         <div className="adminDashboardCard">
-                            <header className="pageHeader">
-                                <PageBack />
-                                <h1 className="pageTitle">Users</h1>
-                                <p className="pageSubtitle">Browse all employees and jump to their profiles.</p>
-                            </header>
-
                     <Card
                         title="All users"
                         right={

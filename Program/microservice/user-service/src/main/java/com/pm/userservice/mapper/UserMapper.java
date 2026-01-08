@@ -11,6 +11,10 @@ import java.util.UUID;
 
 public class UserMapper {
     public static UserResponseDTO toDTO(User user) {
+        return toDTO(user, user != null ? user.getPayslipFrequencyMinutes() : null);
+    }
+
+    public static UserResponseDTO toDTO(User user, Integer payoutFrequencyMinutes) {
         if (user == null) {
             return null;
         }
@@ -33,7 +37,10 @@ public class UserMapper {
         dto.setCity(user.getCity());
         dto.setCountry(user.getCountry());
         dto.setIban(user.getIban());
-        dto.setPayslipFrequencyMinutes(user.getPayslipFrequencyMinutes());
+        dto.setCompanyId(user.getCompanyId() != null ? user.getCompanyId().toString() : null);
+        dto.setPayslipFrequencyMinutes(
+                payoutFrequencyMinutes != null ? payoutFrequencyMinutes : user.getPayslipFrequencyMinutes()
+        );
         dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
 
@@ -75,6 +82,9 @@ public class UserMapper {
         user.setEmail(event.getEmail());
         user.setStatus(UserStatus.ACTIVE);
         user.setRegisteredDate(LocalDate.now());
+        if (event.getCompanyId() != null && !event.getCompanyId().isBlank()) {
+            user.setCompanyId(UUID.fromString(event.getCompanyId()));
+        }
 
         return user;
     }

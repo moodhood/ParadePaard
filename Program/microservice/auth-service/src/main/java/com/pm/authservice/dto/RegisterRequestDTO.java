@@ -18,6 +18,9 @@ public class RegisterRequestDTO {
     @Size(min = 8, message = "Password must be at least 8 characters")
     private String password;
 
+    private String companyId;
+    private String companyName;
+
     // Getters and Setters
     public String getFirstName() { return firstName; }
     public void setFirstName(String firstName) { this.firstName = firstName; }
@@ -30,4 +33,10 @@ public class RegisterRequestDTO {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    public String getCompanyId() { return companyId; }
+    public void setCompanyId(String companyId) { this.companyId = companyId; }
+
+    public String getCompanyName() { return companyName; }
+    public void setCompanyName(String companyName) { this.companyName = companyName; }
 }

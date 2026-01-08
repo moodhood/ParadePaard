@@ -1,7 +1,6 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -146,6 +145,12 @@ export default function AdminUserDetails() {
         return (trimmed[0] ?? "?").toUpperCase();
     }, [displayName]);
 
+    const navHeader = (
+        <header className="pageHeader">
+            <h1 className="pageTitle">User Details</h1>
+        </header>
+    );
+
     const formatValue = (value: string | number | boolean | null | undefined) => {
         if (value === null || value === undefined || value === "") return "-";
         if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -255,7 +260,7 @@ export default function AdminUserDetails() {
                 <Navbar />
                 <div className="adminDashboardPage">
                     <div className="pageShell">
-                        <PrimaryNav />
+                        <PrimaryNav header={navHeader} />
                         <div className="pageShellContent">
                             <div className="adminDashboardCard">
                                 <div className="workHistoryError">Missing user id.</div>
@@ -272,15 +277,9 @@ export default function AdminUserDetails() {
             <Navbar />
             <div className="adminDashboardPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav header={navHeader} />
                     <div className="pageShellContent">
                         <div className="adminDashboardCard">
-                            <header className="pageHeader">
-                                <PageBack />
-                                <h1 className="pageTitle">User Details</h1>
-                                <p className="pageSubtitle">Admin view for {displayName || "user"}</p>
-                            </header>
-
                     <main className="adminDashboardGrid">
                         <Card title="Profile" className="dashboardCardHeight">
                             {userLoading ? (

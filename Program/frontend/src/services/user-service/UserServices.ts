@@ -12,6 +12,8 @@ import AdminOnboardEmployee from "./AdminOnboardEmployee";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
+import GetMyCompany from "./GetMyCompany";
+import UpdateMyCompany, { type UpdateCompanyRequestDTO } from "./UpdateMyCompany";
 import GetMyPayslips, { type PayslipResponseDTO } from "./GetMyPayslips";
 import GetAllPayslips from "./GetAllPayslips";
 import GetPayslipsForReview from "./GetPayslipsForReview";
@@ -32,6 +34,8 @@ import type {
     LeaveRequestDTO,
     LeaveStatus,
     LeaveType,
+    CompanyResponseDTO,
+    UpdateCompanyRequestDTO,
     UserResponseDTO,
 } from "./Types";
 
@@ -44,6 +48,7 @@ export type {
     LeaveRequestDTO,
     LeaveStatus,
     LeaveType,
+    CompanyResponseDTO,
     PayslipResponseDTO,
     UpdatePayslipFrequencyRequestDTO,
     UserResponseDTO,
@@ -70,6 +75,12 @@ export const UserServices = {
     },
     getMe: async (): Promise<UserResponseDTO> => {
         return await GetMe(API_BASE_URL);
+    },
+    getMyCompany: async (): Promise<CompanyResponseDTO> => {
+        return await GetMyCompany(API_BASE_URL);
+    },
+    updateMyCompany: async (payload: UpdateCompanyRequestDTO): Promise<CompanyResponseDTO> => {
+        return await UpdateMyCompany(API_BASE_URL, payload);
     },
     getMyTimesheets: async (): Promise<
         MyTimesheetRow[]

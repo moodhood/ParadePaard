@@ -74,8 +74,9 @@ public class AuthController {
     @PreAuthorize("hasAuthority('CAN_ASSIGN_ROLES') or hasAuthority('CAN_REMOVE_ROLES')")
     @PutMapping("/admin/users/{id}/roles")
     public ResponseEntity<Void> setUserRoles(@PathVariable("id") UUID userId,
-                                             @Valid @RequestBody UpdateUserRequestDTO body) {
-        authService.setUserRoles(userId, body.getRoles());
+                                             @Valid @RequestBody UpdateUserRequestDTO body,
+                                             Authentication authentication) {
+        authService.setUserRoles(userId, body.getRoles(), authentication);
         return ResponseEntity.noContent().build();
     }
 
@@ -83,39 +84,43 @@ public class AuthController {
     @PreAuthorize("hasAuthority('CAN_EDIT_ROLES')")
     @PutMapping("/admin/roles/{id}")
     public ResponseEntity<RoleResponseDTO> updateRole(@PathVariable("id") UUID roleId,
-                                                      @Valid @RequestBody UpdateRoleRequestDTO body) {
-        return ResponseEntity.ok(authService.updateRole(roleId, body));
+                                                      @Valid @RequestBody UpdateRoleRequestDTO body,
+                                                      Authentication authentication) {
+        return ResponseEntity.ok(authService.updateRole(roleId, body, authentication));
     }
 
     @Operation(summary = "Delete existing role")
     @PreAuthorize("hasAuthority('CAN_DELETE_ROLES')")
     @DeleteMapping("/admin/roles/{id}")
-    public ResponseEntity<Void> deleteRole(@PathVariable("id") UUID roleId) {
-        authService.deleteRole(roleId);
+    public ResponseEntity<Void> deleteRole(@PathVariable("id") UUID roleId, Authentication authentication) {
+        authService.deleteRole(roleId, authentication);
         return ResponseEntity.noContent().build();
     }
 
     @Operation(summary = "Create new role with permissions")
     @PreAuthorize("hasAuthority('CAN_CREATE_ROLE')")
     @PostMapping("/admin/roles")
-    public ResponseEntity<RoleResponseDTO> createRole(@Valid @RequestBody CreateRoleRequestDTO body) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(authService.createRole(body));
+    public ResponseEntity<RoleResponseDTO> createRole(
+            @Valid @RequestBody CreateRoleRequestDTO body,
+            Authentication authentication) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.createRole(body, authentication));
     }
 
     @Operation(summary = "List roles with permissions")
     @PreAuthorize("hasAuthority('CAN_ASSIGN_ROLES') or hasAuthority('CAN_CREATE_ROLE') or hasAuthority('CAN_EDIT_ROLES') or hasAuthority('CAN_REMOVE_ROLES') or hasAuthority('CAN_DELETE_ROLES')")
     @GetMapping("/admin/roles")
-    public ResponseEntity<List<RoleResponseDTO>> getRoles() {
-        return ResponseEntity.ok(authService.getRoles());
+    public ResponseEntity<List<RoleResponseDTO>> getRoles(Authentication authentication) {
+        return ResponseEntity.ok(authService.getRoles(authentication));
     }
 
     @Operation(summary = "List user roles")
     @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or hasAuthority('CAN_ASSIGN_ROLES')")
     @GetMapping("/admin/users/roles")
     public ResponseEntity<List<UserRolesResponseDTO>> getUserRoles(
-            @RequestParam(value = "ids", required = false) List<UUID> ids
+            @RequestParam(value = "ids", required = false) List<UUID> ids,
+            Authentication authentication
     ) {
-        return ResponseEntity.ok(authService.getUserRoles(ids));
+        return ResponseEntity.ok(authService.getUserRoles(ids, authentication));
     }
 
     @Operation(summary = "List available permissions")

@@ -327,14 +327,15 @@ export default function AdminDashboard(): JSX.Element {
     return (
         <div className="adminDashboardPage">
             <div className="pageShell">
-                <PrimaryNav />
-                <div className="pageShellContent">
-                    <div className="adminDashboardCard">
+                <PrimaryNav
+                    header={
                         <header className="pageHeader">
                             <h1 className="pageTitle">Admin Dashboard</h1>
-                            <p className="pageSubtitle">Payroll overview and request management</p>
                         </header>
-
+                    }
+                />
+                <div className="pageShellContent">
+                    <div className="adminDashboardCard">
                         <main className="adminDashboardGrid">
                     
                     {/* 1. General Info */}

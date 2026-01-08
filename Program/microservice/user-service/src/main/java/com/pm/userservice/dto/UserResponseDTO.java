@@ -19,6 +19,7 @@ public class UserResponseDTO {
     private String city;
     private String country;
     private String iban;
+    private String companyId;
     private Integer payslipFrequencyMinutes;
     private String registeredDate;
     private String status;
@@ -165,6 +166,14 @@ public class UserResponseDTO {
 
     public void setIban(String iban) {
         this.iban = iban;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
     }
 
     public Integer getPayslipFrequencyMinutes() {

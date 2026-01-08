@@ -1,3 +1,7 @@
+:root {
+  --sidebar-width: 360px;
+}
+
 .pageShell {
   display: flex;
   align-items: flex-start;
@@ -13,6 +17,19 @@
 .pageShellContent {
   flex: 1;
   min-width: 0;
+  padding-top: var(--primary-nav-header-height, 0px);
+}
+
+.pageShell--centered {
+  justify-content: center;
+  padding: var(--nav-gap) 24px 24px;
+}
+
+.pageShellContent--centered {
+  flex: 0 1 1200px;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .pageShell .userDashboardCard,
@@ -24,6 +41,7 @@
   max-width: none;
 }
 
+
 @media (max-width: 900px) {
   .pageShell {
     flex-direction: column;
@@ -31,5 +49,13 @@
     margin: 0 0 16px;
     padding-top: var(--nav-gap);
     padding-right: 16px;
+  }
+
+  .pageShellContent {
+    padding-top: 0;
+  }
+
+  .pageShell--centered {
+    padding: var(--nav-gap) 16px 16px;
   }
 }

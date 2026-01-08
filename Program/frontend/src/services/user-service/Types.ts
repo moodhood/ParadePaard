@@ -20,9 +20,15 @@ export type UserResponseDTO = {
     city: string | null;
     country: string | null;
     iban: string | null;
+    companyId?: string | null;
     payslipFrequencyMinutes?: number | null;
     registeredDate?: string | null;
     status: "PENDING_SETUP" | "ACTIVE" | string;
+};
+
+export type CompanyResponseDTO = {
+    companyId: string;
+    name: string;
 };
 
 export type LeaveRequestCreateDTO = {

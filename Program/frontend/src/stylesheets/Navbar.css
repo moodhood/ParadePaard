@@ -1,6 +1,7 @@
 :root {
     --navbar-height: 79px;
     --nav-gap: 16px;
+    --nav-search-width: 340px;
 }
 
 .nav_wrap {
@@ -76,7 +77,8 @@
 
 .nav_search {
     position: relative;
-    min-width: 340px;
+    width: var(--nav-search-width);
+    min-width: var(--nav-search-width);
 }
 
 .nav_search_input {
@@ -184,7 +186,107 @@
     white-space: nowrap;
 }
 
+.nav_company_menu {
+    position: relative;
+}
+
+.nav_company_button {
+    width: var(--nav-search-width);
+    height: 48px;
+    padding: 0 16px 0 8px;
+    border-radius: 16px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.7);
+    color: #1a1a1a;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease, border-color 120ms ease;
+    box-sizing: border-box;
+}
+
+.nav_company_button:hover {
+    transform: translateY(-1px);
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(47, 107, 255, 0.35);
+}
+
+.nav_company_button:focus-visible {
+    outline: 2px solid rgba(79, 124, 255, 0.9);
+    outline-offset: 3px;
+}
+
+.nav_company_avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #111827;
+    font-size: 16px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.nav_company_name {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+}
+
+.nav_company_dropdown {
+    right: 0;
+    left: auto;
+    min-width: 200px;
+}
+
+.nav_company_header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 4px;
+}
+
+.nav_company_header_avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.18);
+    color: #e6e7eb;
+    font-size: 12px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+}
+
+.nav_company_header_name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #e6e7eb;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1;
+}
+
 @media (max-width: 560px) {
+    :root {
+        --nav-search-width: 220px;
+    }
+
     .nav_top {
         flex-direction: column;
         align-items: flex-start;
@@ -199,8 +301,21 @@
     .nav_quick_text {
         display: none;
     }
+
+    .nav_company_button {
+        width: var(--nav-search-width);
+        height: 56px;
+        padding: 0 12px 0 6px;
+    }
+
+    .nav_company_avatar {
+        width: 44px;
+        height: 44px;
+        font-size: 15px;
+    }
     .nav_search {
-        min-width: 220px;
+        width: var(--nav-search-width);
+        min-width: var(--nav-search-width);
     }
 }
 

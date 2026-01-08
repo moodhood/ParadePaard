@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { UserServices, type AdminOnboardingRequestDTO, type AdminOnboardingResponseDTO } from "../services/user-service/UserServices";
@@ -113,17 +112,15 @@ export default function AdminOnboarding() {
             <Navbar />
             <div className="adminDashboardPage adminOnboardingPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav
+                        header={
+                            <header className="pageHeader">
+                                <h1 className="pageTitle">Onboard employee</h1>
+                            </header>
+                        }
+                    />
                     <div className="pageShellContent">
                         <div className="adminDashboardCard">
-                            <header className="pageHeader">
-                                <PageBack />
-                                <h1 className="pageTitle">Onboard employee</h1>
-                                <p className="pageSubtitle">
-                                    Create an employee account and send an onboarding email.
-                                </p>
-                            </header>
-
                             <Card title="Employee details">
                                 <form className="adminOnboardingForm" onSubmit={submit}>
                                     <div className="adminOnboardingIntro">

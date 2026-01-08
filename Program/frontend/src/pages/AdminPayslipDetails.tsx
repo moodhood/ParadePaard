@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -273,13 +272,19 @@ ${note}` : title) : "";
         }
     }, [payslip]);
 
+    const navHeader = (
+        <header className="pageHeader">
+            <h1 className="pageTitle">Payslip Details</h1>
+        </header>
+    );
+
     if (!payslipId) {
         return (
             <>
                 <Navbar />
                 <div className="adminDashboardPage">
                     <div className="pageShell">
-                        <PrimaryNav />
+                        <PrimaryNav header={navHeader} />
                         <div className="pageShellContent">
                             <div className="adminDashboardCard">
                                 <div className="workHistoryError">Missing payslip id.</div>
@@ -296,41 +301,32 @@ ${note}` : title) : "";
             <Navbar />
             <div className="adminDashboardPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav header={navHeader} />
                     <div className="pageShellContent">
                         <div className="adminDashboardCard">
-                            <header className="pageHeader">
-                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                                    <div>
-                                        <PageBack />
-                                        <h1 className="pageTitle">Payslip Details</h1>
-                                        <p className="pageSubtitle">Review and edit payslip information</p>
-                                    </div>
-                                    <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-                                        <button
-                                            className="button buttonSecondary"
-                                            onClick={() => void downloadPayslipPdf()}
-                                            disabled={saving}
-                                        >
-                                            Download PDF
-                                        </button>
-                                        <button
-                                            className="button buttonSecondary"
-                                            onClick={() => navigate(`/admin/user/${payslip.userId}`)}
-                                            disabled={saving}
-                                        >
-                                            View user
-                                        </button>
-                                        <button
-                                            className="button"
-                                            onClick={() => void handleSave()}
-                                            disabled={saving}
-                                        >
-                                            {saving ? "Saving..." : "Save changes"}
-                                        </button>
-                                    </div>
-                                </div>
-                            </header>
+                            <div className="pageActions">
+                                <button
+                                    className="button buttonSecondary"
+                                    onClick={() => void downloadPayslipPdf()}
+                                    disabled={saving}
+                                >
+                                    Download PDF
+                                </button>
+                                <button
+                                    className="button buttonSecondary"
+                                    onClick={() => navigate(`/admin/user/${payslip.userId}`)}
+                                    disabled={saving}
+                                >
+                                    View user
+                                </button>
+                                <button
+                                    className="button"
+                                    onClick={() => void handleSave()}
+                                    disabled={saving}
+                                >
+                                    {saving ? "Saving..." : "Save changes"}
+                                </button>
+                            </div>
 
                     {loading ? (
                         <div className="workHistoryLoading">

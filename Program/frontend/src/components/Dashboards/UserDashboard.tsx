@@ -247,14 +247,15 @@ ${note}` : title;
 
     return (
         <div className="pageShell">
-            <PrimaryNav />
-            <div className="pageShellContent">
-                <div className="userDashboardCard">
+            <PrimaryNav
+                header={
                     <header className="pageHeader">
                         <h1 className="pageTitle">User Dashboard</h1>
-                        <p className="pageSubtitle">Your payroll and leave in one place</p>
                     </header>
-
+                }
+            />
+            <div className="pageShellContent">
+                <div className="userDashboardCard">
                     <section className="dashboardGrid">
                 
                 {/* 1. General Information */}

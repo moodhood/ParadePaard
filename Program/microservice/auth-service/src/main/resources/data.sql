@@ -1,6 +1,20 @@
 -- enable uuid generator
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- companies table
+CREATE TABLE IF NOT EXISTS companies (
+    id UUID PRIMARY KEY,
+    name VARCHAR(255) UNIQUE NOT NULL
+);
+
+INSERT INTO companies (id, name)
+SELECT '00000000-0000-0000-0000-000000000001'::uuid, 'Default Company'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM companies
+        WHERE id = '00000000-0000-0000-0000-000000000001'::uuid
+           OR name = 'Default Company'
+    );
+
 -- clean up old join tables if they exist
 DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS auth_user_roles;
@@ -13,7 +27,8 @@ CREATE TABLE IF NOT EXISTS "users" (
                                        email VARCHAR(255) UNIQUE NOT NULL,
                                        username VARCHAR(255) UNIQUE NOT NULL,
                                        password VARCHAR(255) NOT NULL,
-                                       must_change_password BOOLEAN NOT NULL DEFAULT FALSE
+                                       must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+                                       company_id UUID NOT NULL
     );
 
 -- keep seed scripts compatible with existing databases
@@ -23,6 +38,7 @@ ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS last_name VARCHAR(255);
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS username VARCHAR(255);
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS email VARCHAR(255);
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS password VARCHAR(255);
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS company_id UUID;
 
 UPDATE "users"
 SET email = COALESCE(email, CONCAT('unknown_', id, '@example.com')),
@@ -30,19 +46,22 @@ SET email = COALESCE(email, CONCAT('unknown_', id, '@example.com')),
     first_name = COALESCE(first_name, SPLIT_PART(email, '@', 1), 'Unknown'),
     last_name = COALESCE(last_name, 'User'),
     password = COALESCE(password, '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'),
-    must_change_password = COALESCE(must_change_password, FALSE)
+    must_change_password = COALESCE(must_change_password, FALSE),
+    company_id = COALESCE(company_id, '00000000-0000-0000-0000-000000000001'::uuid)
 WHERE email IS NULL
    OR username IS NULL
    OR first_name IS NULL
    OR last_name IS NULL
    OR password IS NULL
-   OR must_change_password IS NULL;
+   OR must_change_password IS NULL
+   OR company_id IS NULL;
 
 ALTER TABLE IF EXISTS "users" ALTER COLUMN email SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN username SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN first_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN last_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN password SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN company_id SET NOT NULL;
 
 -- drop legacy column if it exists
 ALTER TABLE "users" DROP COLUMN IF EXISTS role;
@@ -50,11 +69,19 @@ ALTER TABLE "users" DROP COLUMN IF EXISTS role;
 -- roles table uses uuid
 CREATE TABLE IF NOT EXISTS roles (
                                      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) UNIQUE NOT NULL,
-    color VARCHAR(24)
+    name VARCHAR(50) NOT NULL,
+    color VARCHAR(24),
+    company_id UUID NOT NULL
     );
 
 ALTER TABLE IF EXISTS roles ADD COLUMN IF NOT EXISTS color VARCHAR(24);
+ALTER TABLE IF EXISTS roles ADD COLUMN IF NOT EXISTS company_id UUID;
+ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS roles_name_key;
+ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS roles_company_name_key;
+ALTER TABLE IF EXISTS roles ADD CONSTRAINT roles_company_name_key UNIQUE (company_id, name);
+UPDATE roles SET company_id = COALESCE(company_id, '00000000-0000-0000-0000-000000000001'::uuid)
+    WHERE company_id IS NULL;
+ALTER TABLE IF EXISTS roles ALTER COLUMN company_id SET NOT NULL;
 
 -- permissions table uses uuid
 CREATE TABLE IF NOT EXISTS permissions (
@@ -81,14 +108,15 @@ CREATE TABLE IF NOT EXISTS auth_user_roles (
     );
 
 -- seed admin user
-INSERT INTO "users" (id, first_name, last_name, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
 SELECT
     '223e4567-e89b-12d3-a456-426614174006'::uuid,
     'Test',
     'User',
     'testuser@test.com',
     'testuser',
-    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
+    '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '223e4567-e89b-12d3-a456-426614174006'::uuid
@@ -97,14 +125,15 @@ SELECT
 );
 
 -- seed standard user (matches user-service Jane Doe)
-INSERT INTO "users" (id, first_name, last_name, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
 SELECT
     '11111111-1111-1111-1111-111111111111'::uuid,
     'Jane',
     'Doe',
     'jane.doe@example.com',
     'jane.doe',
-    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
+    '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '11111111-1111-1111-1111-111111111111'::uuid
@@ -113,14 +142,15 @@ SELECT
 );
 
 -- seed Joost van Stam (matches user-service)
-INSERT INTO "users" (id, first_name, last_name, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
 SELECT
     'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid,
     'Joost',
     'van Stam',
     'joost.vanstam@example.com',
     'joost.vanstam',
-    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
+    '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
@@ -129,14 +159,15 @@ SELECT
 );
 
 -- seed admin account (matches user-service)
-INSERT INTO "users" (id, first_name, last_name, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
 SELECT
     '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid,
     'Sanne',
     'Admin',
     'sanne.admin@example.com',
     'sanne.admin',
-    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
+    '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
@@ -145,14 +176,15 @@ SELECT
 );
 
 -- seed super admin account
-INSERT INTO "users" (id, first_name, last_name, email, username, password)
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
 SELECT
     '99999999-9999-9999-9999-999999999999'::uuid,
     'Super',
     'Admin',
     'super.admin@example.com',
     'super.admin',
-    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'
+    '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
+    '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '99999999-9999-9999-9999-999999999999'::uuid
@@ -161,25 +193,28 @@ SELECT
 );
 
 -- seed roles
-INSERT INTO roles (id, name)
-SELECT '11111111-aaaa-aaaa-aaaa-111111111111'::uuid, 'ADMIN'
+INSERT INTO roles (id, name, company_id)
+SELECT '11111111-aaaa-aaaa-aaaa-111111111111'::uuid, 'ADMIN', '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
         SELECT 1 FROM roles
-        WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'::uuid OR name = 'ADMIN'
+        WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'::uuid
+           OR (name = 'ADMIN' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
-INSERT INTO roles (id, name)
-SELECT '22222222-bbbb-bbbb-bbbb-222222222222'::uuid, 'USER'
+INSERT INTO roles (id, name, company_id)
+SELECT '22222222-bbbb-bbbb-bbbb-222222222222'::uuid, 'USER', '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
         SELECT 1 FROM roles
-        WHERE id = '22222222-bbbb-bbbb-bbbb-222222222222'::uuid OR name = 'USER'
+        WHERE id = '22222222-bbbb-bbbb-bbbb-222222222222'::uuid
+           OR (name = 'USER' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
-INSERT INTO roles (id, name)
-SELECT '33333333-cccc-cccc-cccc-333333333333'::uuid, 'SUPER_ADMIN'
+INSERT INTO roles (id, name, company_id)
+SELECT '33333333-cccc-cccc-cccc-333333333333'::uuid, 'SUPER_ADMIN', '00000000-0000-0000-0000-000000000001'::uuid
     WHERE NOT EXISTS (
         SELECT 1 FROM roles
-        WHERE id = '33333333-cccc-cccc-cccc-333333333333'::uuid OR name = 'SUPER_ADMIN'
+        WHERE id = '33333333-cccc-cccc-cccc-333333333333'::uuid
+           OR (name = 'SUPER_ADMIN' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 -- seed permissions
@@ -210,6 +245,9 @@ SELECT gen_random_uuid(), 'CAN_VIEW_USERS'
 INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_MANAGE_USERS'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_USERS');
+INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_MANAGE_COMPANY'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_COMPANY');
 INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_ONBOARD_USERS'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_ONBOARD_USERS');
@@ -281,6 +319,7 @@ FROM roles r
     'CAN_DELETE_ROLES',
     'CAN_VIEW_USERS',
     'CAN_MANAGE_USERS',
+    'CAN_MANAGE_COMPANY',
     'CAN_ONBOARD_USERS',
     'CAN_VIEW_ALL_LEAVE_REQUESTS',
     'CAN_MANAGE_LEAVE_REQUESTS',

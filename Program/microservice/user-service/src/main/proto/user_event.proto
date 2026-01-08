@@ -8,5 +8,6 @@ message UserRegisteredEvent{
   string userId = 1;
   string email = 2;
   string event_type = 3;
+  string companyId = 4;
 }
 

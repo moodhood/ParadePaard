@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -208,17 +207,15 @@ export default function WorkHistory() {
             <Navbar />
             <div className="workHistoryPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav
+                        header={
+                            <header className="workHistoryHeader">
+                                <h1 className="workHistoryTitle">Work History</h1>
+                            </header>
+                        }
+                    />
                     <div className="pageShellContent">
                         <div className="workHistoryShell">
-                            <header className="workHistoryHeader">
-                                <PageBack />
-                                <h1 className="workHistoryTitle">Work History</h1>
-                                <p className="workHistorySubtitle">
-                                    A record of your past shifts and hours.
-                                </p>
-                            </header>
-
                     {loading ? (
                         <div className="workHistoryLoading">
                             <Spinner text="Loading work history" />

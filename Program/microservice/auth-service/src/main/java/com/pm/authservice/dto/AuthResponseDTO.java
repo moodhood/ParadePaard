@@ -4,6 +4,7 @@ public class AuthResponseDTO {
     private String message;
     private String userId;
     private String email;
+    private String companyId;
 
     // Optional fields used by admin-led onboarding flow
     private String username;
@@ -32,6 +33,14 @@ public class AuthResponseDTO {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
     }
 
     public String getUsername() {

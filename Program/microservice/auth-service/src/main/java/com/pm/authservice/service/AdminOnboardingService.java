@@ -4,6 +4,7 @@ import com.pm.authservice.dto.AdminOnboardUserRequestDTO;
 import com.pm.authservice.dto.AdminOnboardUserResponseDTO;
 import com.pm.authservice.exception.EmailAlreadyExistsException;
 import com.pm.authservice.exception.RoleDoesNotExistException;
+import com.pm.authservice.exception.UserNotFoundException;
 import com.pm.authservice.kafka.KafkaProducer;
 import com.pm.authservice.model.Role;
 import com.pm.authservice.model.User;
@@ -11,6 +12,7 @@ import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Service
@@ -52,7 +55,7 @@ public class AdminOnboardingService {
     }
 
     @Transactional
-    public AdminOnboardUserResponseDTO onboardUser(AdminOnboardUserRequestDTO request) {
+    public AdminOnboardUserResponseDTO onboardUser(AdminOnboardUserRequestDTO request, Authentication authentication) {
         String email = normalizeEmail(request.getEmail());
         if (userRepository.existsByEmail(email)) {
             throw new EmailAlreadyExistsException("A user with this email already exists " + email);
@@ -72,7 +75,10 @@ public class AdminOnboardingService {
         user.setPassword(passwordEncoder.encode(tempPassword));
         user.setMustChangePassword(true);
 
-        Role userRole = roleRepository.findByName("USER")
+        UUID companyId = resolveCompanyId(authentication);
+        user.setCompanyId(companyId);
+
+        Role userRole = roleRepository.findByNameAndCompanyId("USER", companyId)
                 .orElseThrow(() -> new RoleDoesNotExistException("USER role is missing seed it first"));
         user.setRoles(List.of(userRole));
 
@@ -92,7 +98,24 @@ public class AdminOnboardingService {
         response.setEmail(saved.getEmail());
         response.setUsername(saved.getUsername());
         response.setTemporaryPassword(tempPassword);
+        response.setCompanyId(saved.getCompanyId() != null ? saved.getCompanyId().toString() : null);
         return response;
+    }
+
+    private UUID resolveCompanyId(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalArgumentException("Missing authentication");
+        }
+        String email = authentication.getName();
+        if (email == null || email.isBlank()) {
+            throw new IllegalArgumentException("Missing user identity");
+        }
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UserNotFoundException("User not found for " + email));
+        if (user.getCompanyId() == null) {
+            throw new IllegalStateException("User is missing company assignment");
+        }
+        return user.getCompanyId();
     }
 
     private String ensureUniqueUsername(String base) {

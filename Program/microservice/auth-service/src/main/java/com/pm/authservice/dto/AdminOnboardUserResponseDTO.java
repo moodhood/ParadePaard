@@ -5,6 +5,7 @@ public class AdminOnboardUserResponseDTO {
     private String email;
     private String username;
     private String temporaryPassword;
+    private String companyId;
 
     public String getUserId() {
         return userId;
@@ -36,5 +37,13 @@ public class AdminOnboardUserResponseDTO {
 
     public void setTemporaryPassword(String temporaryPassword) {
         this.temporaryPassword = temporaryPassword;
+    }
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
     }
 }

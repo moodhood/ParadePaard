@@ -28,6 +28,9 @@ public class User {
     @Column(nullable = false)
     private boolean mustChangePassword = false;
 
+    @Column(name = "company_id", nullable = false)
+    private UUID companyId;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "auth_user_roles",
@@ -57,6 +60,9 @@ public class User {
 
     public boolean isMustChangePassword() { return mustChangePassword; }
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+
+    public UUID getCompanyId() { return companyId; }
+    public void setCompanyId(UUID companyId) { this.companyId = companyId; }
 
     public List<Role> getRoles() { return roles; }
     public void setRoles(List<Role> roles) { this.roles = roles; }

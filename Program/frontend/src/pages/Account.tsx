@@ -2,9 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
-import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
-import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
 import { formatMaybeDateTime } from "../utils/dateFormat";
 import "../stylesheets/Profile.css";
@@ -40,34 +38,12 @@ export default function Account() {
     const [avatarErrorMsg, setAvatarErrorMsg] = useState<string | null>(null);
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
-    const [permissions, setPermissions] = useState<string[]>([]);
-    const [permissionsLoaded, setPermissionsLoaded] = useState(false);
-
     useEffect(() => {
         UserServices.getMe()
             .then((data) => {
                 setUser(data);
             })
             .catch((err: Error) => setError(err.message));
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (!cancelled) setPermissions(data ?? []);
-            })
-            .catch(() => {
-                if (!cancelled) setPermissions([]);
-            })
-            .finally(() => {
-                if (!cancelled) setPermissionsLoaded(true);
-            });
-
-        return () => {
-            cancelled = true;
-        };
     }, []);
 
     useEffect(() => {
@@ -105,8 +81,7 @@ export default function Account() {
         }
     }, [location.pathname, navigate, personalView]);
 
-    const canManageCompany =
-        permissions.includes("CAN_CREATE_ROLE") || permissions.includes("CAN_ASSIGN_ROLES");
+    const isCompanyPage = location.pathname.startsWith("/account/company");
 
     if (error) return <div className="error-container">{error}</div>;
     if (!user) return <Spinner text="Loading account" />;
@@ -174,69 +149,76 @@ export default function Account() {
         <>
             <Navbar />
             <div className="pageShell">
-                <PrimaryNav />
-                <div className="pageShellContent">
-                    <div className="userDashboardCard settingsCard accountPage">
+                <div className="accountLayout">
+                    <aside className="accountSidebarHeader">
                         <header className="pageHeader">
                             <PageBack />
-                            <h1 className="pageTitle">Account</h1>
-                            <p className="pageSubtitle">Manage your personal and employment details</p>
+                            <h1 className="pageTitle">
+                                {isCompanyPage ? "Company settings" : "Account"}
+                            </h1>
                         </header>
-
-                        <div className="settingsLayout">
-                            <aside className="settingsNav">
+                    </aside>
+                    <aside className="accountSidebarNav">
+                        <nav className="settingsNav">
+                            {isCompanyPage ? (
                                 <NavLink
-                                    to={accountRoot}
-                                    end
+                                    to={accountCompany}
                                     className={({ isActive }) =>
                                         `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                     }
                                 >
-                                    Personal info
+                                    Company settings
                                 </NavLink>
-                                <NavLink
-                                    to={accountBank}
-                                    className={({ isActive }) =>
-                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                                    }
-                                >
-                                    Bank details
-                                </NavLink>
-                                <NavLink
-                                    to={accountEmployment}
-                                    className={({ isActive }) =>
-                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                                    }
-                                >
-                                    Employment details
-                                </NavLink>
-                                {permissionsLoaded && canManageCompany && !personalView ? (
+                            ) : (
+                                <>
                                     <NavLink
-                                        to={accountCompany}
+                                        to={accountRoot}
+                                        end
                                         className={({ isActive }) =>
                                             `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                         }
                                     >
-                                        Company settings
+                                        Personal info
                                     </NavLink>
-                                ) : null}
-                            </aside>
-
-                            <div className="settingsContent">
-                                <Outlet
-                                    context={{
-                                        user,
-                                        fullName,
-                                        defaultAvatarLetter,
-                                        profilePictureUrl,
-                                        profilePictureLoading,
-                                        avatarErrorMsg,
-                                        formatValue,
-                                        formatPosition,
-                                        onSelectProfilePicture: handleSelectProfilePicture,
-                                        onRemoveProfilePicture: handleRemoveProfilePicture,
-                                    }}
-                                />
+                                    <NavLink
+                                        to={accountBank}
+                                        className={({ isActive }) =>
+                                            `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Bank details
+                                    </NavLink>
+                                    <NavLink
+                                        to={accountEmployment}
+                                        className={({ isActive }) =>
+                                            `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Employment details
+                                    </NavLink>
+                                </>
+                            )}
+                        </nav>
+                    </aside>
+                    <div className="accountMain">
+                        <div className="accountMainInner">
+                            <div className="userDashboardCard settingsCard accountPage">
+                                <div className="settingsContent">
+                                    <Outlet
+                                        context={{
+                                            user,
+                                            fullName,
+                                            defaultAvatarLetter,
+                                            profilePictureUrl,
+                                            profilePictureLoading,
+                                            avatarErrorMsg,
+                                            formatValue,
+                                            formatPosition,
+                                            onSelectProfilePicture: handleSelectProfilePicture,
+                                            onRemoveProfilePicture: handleRemoveProfilePicture,
+                                        }}
+                                    />
+                                </div>
                             </div>
                         </div>
                     </div>

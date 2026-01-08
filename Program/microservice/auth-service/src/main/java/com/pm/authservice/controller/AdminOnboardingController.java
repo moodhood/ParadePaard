@@ -6,6 +6,7 @@ import com.pm.authservice.service.AdminOnboardingService;
 import io.swagger.v3.oas.annotations.Operation;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -22,8 +23,10 @@ public class AdminOnboardingController {
 
     @Operation(summary = "Admin creates a new user and sends onboarding email")
     @PostMapping("/onboard-user")
-    public ResponseEntity<AdminOnboardUserResponseDTO> onboardUser(@Valid @RequestBody AdminOnboardUserRequestDTO body) {
-        return ResponseEntity.ok(adminOnboardingService.onboardUser(body));
+    public ResponseEntity<AdminOnboardUserResponseDTO> onboardUser(
+            @Valid @RequestBody AdminOnboardUserRequestDTO body,
+            Authentication authentication) {
+        return ResponseEntity.ok(adminOnboardingService.onboardUser(body, authentication));
     }
 }
 

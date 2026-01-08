@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
@@ -333,17 +332,15 @@ export default function Payslips() {
             <Navbar />
             <div className="payslipsPage">
                 <div className="pageShell">
-                    <PrimaryNav />
+                    <PrimaryNav
+                        header={
+                            <div className="pageHeader">
+                                <h1 className="pageTitle">Payslips</h1>
+                            </div>
+                        }
+                    />
                     <div className="pageShellContent">
                         <div className="payslipsCard">
-                            <div className="pageHeader">
-                                <PageBack />
-                                <h1 className="pageTitle">Payslips</h1>
-                                <p className="pageSubtitle">
-                                    Review personal and company payslips based on your permissions.
-                                </p>
-                            </div>
-
                             {permissionsLoading ? (
                                 <div className="payslipsNotice">Loading permissions...</div>
                             ) : null}

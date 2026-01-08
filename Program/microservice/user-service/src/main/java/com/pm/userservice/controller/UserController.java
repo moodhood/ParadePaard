@@ -1,9 +1,11 @@
 // src/main/java/com/pm/userservice/controller/UserController.java
 package com.pm.userservice.controller;
 
+import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.UpdateCompanyRequestDTO;
+import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
-import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -52,15 +54,60 @@ public class UserController {
         return UUID.fromString(raw);
     }
 
+    private UUID resolveCompanyId(Authentication authentication) {
+        if (authentication instanceof JwtAuthenticationToken jwtAuth) {
+            String claim = jwtAuth.getToken().getClaimAsString("companyId");
+            if (claim != null && !claim.isBlank()) {
+                return UUID.fromString(claim.trim());
+            }
+        }
+        return null;
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Return current user profile from the token")
     public ResponseEntity<UserResponseDTO> me(Authentication authentication) {
         try {
             UUID userId = requireUserId(authentication);
-            UserResponseDTO userResponseDTO = userService.getUserById(userId);
+            UUID companyId = resolveCompanyId(authentication);
+            UserResponseDTO userResponseDTO = userService.getUserById(userId, companyId);
             return ResponseEntity.ok(userResponseDTO);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(401).build();
+        }
+    }
+
+    @GetMapping("/me/company")
+    @Operation(summary = "Return current company from the token")
+    public ResponseEntity<CompanyResponseDTO> getMyCompany(Authentication authentication) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        CompanyResponseDTO response = userService.getCompany(companyId);
+        return ResponseEntity.ok(response);
+    }
+
+    @PutMapping("/me/company")
+    @Operation(summary = "Update current company name")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_COMPANY')")
+    public ResponseEntity<?> updateMyCompany(
+            Authentication authentication,
+            @Validated @RequestBody UpdateCompanyRequestDTO body
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        String name = body.getName() == null ? "" : body.getName().trim();
+        if (name.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Company name is required"));
+        }
+        try {
+            CompanyResponseDTO response = userService.updateCompanyName(companyId, name);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
     }
 
@@ -94,7 +141,9 @@ public class UserController {
     @GetMapping("/{id}/profile-picture")
     @Operation(summary = "Get a user's profile picture self or admin")
     @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or @userPermission.isSelf(#id, authentication)")
-    public ResponseEntity<byte[]> getUserProfilePicture(@PathVariable UUID id) {
+    public ResponseEntity<byte[]> getUserProfilePicture(@PathVariable UUID id, Authentication authentication) {
+        UUID companyId = resolveCompanyId(authentication);
+        userService.getUserById(id, companyId);
         return userService.getProfilePicture(id)
                 .map(pic -> {
                     MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
@@ -159,7 +208,7 @@ public class UserController {
     }
 
     @PutMapping("/me/payslip-frequency")
-    @Operation(summary = "Update current user's payslip frequency (in minutes)")
+    @Operation(summary = "Update company payout frequency (in minutes)")
     public ResponseEntity<UserResponseDTO> updateMyPayslipFrequency(
             Authentication authentication,
             @Validated @RequestBody UpdatePayslipFrequencyRequestDTO body
@@ -171,23 +220,29 @@ public class UserController {
             return ResponseEntity.status(401).build();
         }
         int minutes = body.getPayslipFrequencyMinutes();
-        UserResponseDTO updated = userService.updatePayslipFrequencyMinutes(userId, minutes);
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        UserResponseDTO updated = userService.updateCompanyPayoutFrequency(userId, companyId, minutes);
         return ResponseEntity.ok(updated);
     }
 
     @GetMapping
     @Operation(summary = "Get all users admin only")
     @PreAuthorize("hasAuthority('CAN_VIEW_USERS')")
-    public ResponseEntity<List<UserResponseDTO>> getUsers(){
-        List<UserResponseDTO> users = userService.getUsers();
+    public ResponseEntity<List<UserResponseDTO>> getUsers(Authentication authentication){
+        UUID companyId = resolveCompanyId(authentication);
+        List<UserResponseDTO> users = userService.getUsers(companyId);
         return ResponseEntity.ok(users);
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a user by id self or admin")
     @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or @userPermission.isSelf(#id, authentication)")
-    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID id){
-        UserResponseDTO userResponseDTO = userService.getUserById(id);
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID id, Authentication authentication){
+        UUID companyId = resolveCompanyId(authentication);
+        UserResponseDTO userResponseDTO = userService.getUserById(id, companyId);
         return ResponseEntity.ok(userResponseDTO);
     }
 
@@ -196,16 +251,19 @@ public class UserController {
     @PreAuthorize("hasAuthority('CAN_MANAGE_USERS') or @userPermission.isSelf(#id, authentication)")
     public ResponseEntity<UserResponseDTO> updateUser(
             @PathVariable UUID id,
-            @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO){
-        UserResponseDTO userResponseDTO = userService.updateUser(id, userRequestDTO);
+            @Validated({Default.class}) @RequestBody UserRequestDTO userRequestDTO,
+            Authentication authentication){
+        UUID companyId = resolveCompanyId(authentication);
+        UserResponseDTO userResponseDTO = userService.updateUser(id, userRequestDTO, companyId);
         return ResponseEntity.ok(userResponseDTO);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a user admin only")
     @PreAuthorize("hasAuthority('CAN_MANAGE_USERS')")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id){
-        userService.deleteUser(id);
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id, Authentication authentication){
+        UUID companyId = resolveCompanyId(authentication);
+        userService.deleteUser(id, companyId);
         return ResponseEntity.noContent().build();
     }
 }

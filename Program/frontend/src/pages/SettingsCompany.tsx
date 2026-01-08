@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
-import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
+import { UserServices, type CompanyResponseDTO, type UserResponseDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Settings.css";
 
 const permissionLabelOverrides: Record<string, string> = {
@@ -12,6 +12,7 @@ const permissionLabelOverrides: Record<string, string> = {
     CAN_EDIT_ROLES: "Edit role definitions",
     CAN_DELETE_ROLES: "Delete roles",
     CAN_MANAGE_USERS: "Manage users",
+    CAN_MANAGE_COMPANY: "Manage company profile",
     CAN_VIEW_USERS: "View users",
     CAN_REMOVE_ROLES: "Remove roles from users",
 };
@@ -66,6 +67,14 @@ export default function SettingsCompany() {
     const [usersLoading, setUsersLoading] = useState(false);
     const [usersError, setUsersError] = useState<string | null>(null);
 
+    const [company, setCompany] = useState<CompanyResponseDTO | null>(null);
+    const [companyLoading, setCompanyLoading] = useState(true);
+    const [companyError, setCompanyError] = useState<string | null>(null);
+    const [companyNameDraft, setCompanyNameDraft] = useState("");
+    const [companySaving, setCompanySaving] = useState(false);
+    const [companySaveError, setCompanySaveError] = useState<string | null>(null);
+    const [companySaveSuccess, setCompanySaveSuccess] = useState<string | null>(null);
+
     const [roleName, setRoleName] = useState("");
     const [roleColor, setRoleColor] = useState(roleColorOptions[0] ?? "#2f6bff");
     const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -119,6 +128,33 @@ export default function SettingsCompany() {
         };
     }, []);
 
+    useEffect(() => {
+        let cancelled = false;
+        setCompanyLoading(true);
+        setCompanyError(null);
+
+        UserServices.getMyCompany()
+            .then((data) => {
+                if (!cancelled) setCompany(data);
+            })
+            .catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : "Failed to load company";
+                if (!cancelled) setCompanyError(message);
+            })
+            .finally(() => {
+                if (!cancelled) setCompanyLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        if (!company) return;
+        setCompanyNameDraft(company.name ?? "");
+    }, [company?.name]);
+
     const canCreateRole = permissions.includes("CAN_CREATE_ROLE");
     const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
     const canRemoveRoles = permissions.includes("CAN_REMOVE_ROLES");
@@ -128,8 +164,9 @@ export default function SettingsCompany() {
         permissions.includes("CAN_VIEW_USERS") || canAssignRoles || canRemoveRoles;
     const canManageRoles =
         canCreateRole || canAssignRoles || canRemoveRoles || canEditRoles || canDeleteRoles;
+    const canManageCompany = permissions.includes("CAN_MANAGE_COMPANY");
 
-    if (!permissionsLoading && !permissionsError && !canManageRoles) {
+    if (!permissionsLoading && !permissionsError && !canManageRoles && !canManageCompany) {
         return null;
     }
 
@@ -350,6 +387,8 @@ export default function SettingsCompany() {
         !editSaving &&
         !deletingRole;
 
+    const showEditSaveButton = editStep !== "danger" && (canEditRoles || canManageRoleMembers);
+
     const canConfirmDelete =
         canDeleteRoles &&
         Boolean(editRoleId) &&
@@ -365,6 +404,38 @@ export default function SettingsCompany() {
         return `${count} member${count === 1 ? "" : "s"}`;
     };
 
+    const companyOriginalName = (company?.name ?? "").trim();
+    const companyDisplayName = companyOriginalName || "Company";
+    const companyDraftName = companyNameDraft.trim();
+    const companyAvatarName = companyDraftName || companyDisplayName;
+    const companyInitial = (companyAvatarName[0] ?? "C").toUpperCase();
+    const companyNameDirty = companyDraftName !== companyOriginalName;
+
+    const handleSaveCompanyName = async (event?: React.FormEvent) => {
+        if (event) event.preventDefault();
+        if (!canManageCompany) return;
+        if (!companyDraftName) {
+            setCompanySaveError("Company name is required.");
+            return;
+        }
+        if (!companyNameDirty) return;
+
+        try {
+            setCompanySaving(true);
+            setCompanySaveError(null);
+            setCompanySaveSuccess(null);
+            const updated = await UserServices.updateMyCompany({ name: companyDraftName });
+            setCompany(updated);
+            setCompanyNameDraft(updated.name ?? companyDraftName);
+            setCompanySaveSuccess("Company name updated.");
+            window.dispatchEvent(new Event("companyUpdated"));
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not update company name.";
+            setCompanySaveError(message);
+        } finally {
+            setCompanySaving(false);
+        }
+    };
 
     const handleTogglePermission = (permission: string) => {
         setSelectedPermissions((prev) =>
@@ -643,7 +714,7 @@ export default function SettingsCompany() {
                 <div>
                     <h2 className="settingsSectionTitle">Company settings</h2>
                     <p className="settingsHelperText">
-                        Control access by defining roles and assigning permissions.
+                        Manage company details and access controls.
                     </p>
                 </div>
                 {permissionsLoading ? (
@@ -656,74 +727,152 @@ export default function SettingsCompany() {
             ) : null}
 
             <div className="settingsSectionGrid">
-                <Card
-                    title="Roles"
-                    className="settingsRoleCard"
-                    right={
-                        canCreateRole ? (
-                            <button type="button" className="button" onClick={openCreateRoleModal}>
-                                Create role
-                            </button>
-                        ) : null
-                    }
-                >
-                    <div className="settingsCardBody">
-                        {rolesLoading ? <div className="settingsMeta">Loading roles...</div> : null}
-                        {rolesError ? <div className="settingsError">{rolesError}</div> : null}
-                        {roleMembersError ? <div className="settingsError">{roleMembersError}</div> : null}
-                        {!rolesLoading && !rolesError && roles.length === 0 ? (
-                            <div className="settingsMeta">No roles defined yet.</div>
-                        ) : null}
-                        {!rolesLoading && !rolesError && roles.length > 0 ? (
-                            <div className="settingsRoleList">
-                                <div className="settingsRoleHeaderRow">
-                                    <span>Role</span>
-                                    <span>Members</span>
+                <Card title="Company profile" className="settingsCompanyCard">
+                    {companyLoading ? (
+                        <div className="settingsCardBody">
+                            <div className="settingsMeta">Loading company details...</div>
+                        </div>
+                    ) : null}
+                    {companyError ? (
+                        <div className="settingsCardBody">
+                            <div className="settingsError">{companyError}</div>
+                        </div>
+                    ) : null}
+                    {!companyLoading && !companyError ? (
+                        <>
+                            <div className="profile_avatar_body settingsCompanyAvatar">
+                                <div
+                                    className="profile_avatar_circle profile_avatar_circle--default"
+                                    aria-label="Company logo"
+                                >
+                                    <span className="profile_avatar_letter">{companyInitial}</span>
+                                    <label className="profile_avatar_overlay">
+                                        Upload
+                                        <input
+                                            className="profile_avatar_file_input"
+                                            type="file"
+                                            accept="image/*"
+                                            disabled
+                                        />
+                                    </label>
                                 </div>
-                                {sortedRoles.map((role) => {
-                                    const roleKey = role.id ?? role.name;
-                                    const canOpenEdit =
-                                        canEditRoles || canDeleteRoles || canManageRoleMembers;
-                                    const roleColorValue = role.color ?? "#9ca3af";
-                                    return (
-                                        canOpenEdit ? (
-                                            <button
-                                                key={roleKey}
-                                                type="button"
-                                                className="settingsRoleRow settingsRoleRow--clickable"
-                                                onClick={() => openEditRoleModal(role)}
-                                            >
-                                                <span className="settingsRoleInfo">
-                                                    <span
-                                                        className="settingsRoleDot"
-                                                        style={{ backgroundColor: roleColorValue }}
-                                                    />
-                                                    <span className="settingsRoleName">{role.name}</span>
-                                                </span>
-                                                <span className="settingsRoleCount">
-                                                    {memberCountLabel(role.name)}
-                                                </span>
-                                            </button>
-                                        ) : (
-                                            <div key={roleKey} className="settingsRoleRow">
-                                                <span className="settingsRoleInfo">
-                                                    <span
-                                                        className="settingsRoleDot"
-                                                        style={{ backgroundColor: roleColorValue }}
-                                                    />
-                                                    <span className="settingsRoleName">{role.name}</span>
-                                                </span>
-                                                <span className="settingsRoleCount">
-                                                    {memberCountLabel(role.name)}
-                                                </span>
-                                            </div>
-                                        )
-                                    );
-                                })}
+                                <div className="profile_avatar_actions">
+                                    <div className="profile_avatar_hint">
+                                        Company logo uploads aren&apos;t available yet.
+                                    </div>
+                                </div>
                             </div>
-                        ) : null}
-                    </div>
+                            <div className="settingsCardBody">
+                                <form className="settingsForm" onSubmit={(event) => void handleSaveCompanyName(event)}>
+                                    <label className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Company name</span>
+                                            <span className="settingsMeta">
+                                                {canManageCompany ? "Editable" : "Read only"}
+                                            </span>
+                                        </div>
+                                        <input
+                                            className="settingsInput"
+                                            value={companyNameDraft}
+                                            onChange={(event) => {
+                                                setCompanyNameDraft(event.target.value);
+                                                if (companySaveError) setCompanySaveError(null);
+                                                if (companySaveSuccess) setCompanySaveSuccess(null);
+                                            }}
+                                            readOnly={!canManageCompany}
+                                            aria-readonly={!canManageCompany}
+                                        />
+                                    </label>
+                                    {canManageCompany ? (
+                                        <button
+                                            type="submit"
+                                            className="button settingsAction"
+                                            disabled={!companyNameDirty || !companyDraftName || companySaving}
+                                        >
+                                            {companySaving ? "Saving..." : "Save"}
+                                        </button>
+                                    ) : null}
+                                </form>
+                                {companySaveError ? (
+                                    <div className="settingsError">{companySaveError}</div>
+                                ) : null}
+                                {companySaveSuccess ? (
+                                    <div className="settingsSuccess">{companySaveSuccess}</div>
+                                ) : null}
+                            </div>
+                        </>
+                    ) : null}
                 </Card>
+                {canManageRoles ? (
+                    <Card
+                        title="Roles"
+                        className="settingsRoleCard"
+                        right={
+                            canCreateRole ? (
+                                <button type="button" className="button" onClick={openCreateRoleModal}>
+                                    Create role
+                                </button>
+                            ) : null
+                        }
+                    >
+                        <div className="settingsCardBody">
+                            {rolesLoading ? <div className="settingsMeta">Loading roles...</div> : null}
+                            {rolesError ? <div className="settingsError">{rolesError}</div> : null}
+                            {roleMembersError ? <div className="settingsError">{roleMembersError}</div> : null}
+                            {!rolesLoading && !rolesError && roles.length === 0 ? (
+                                <div className="settingsMeta">No roles defined yet.</div>
+                            ) : null}
+                            {!rolesLoading && !rolesError && roles.length > 0 ? (
+                                <div className="settingsRoleList">
+                                    <div className="settingsRoleHeaderRow">
+                                        <span>Role</span>
+                                        <span>Members</span>
+                                    </div>
+                                    {sortedRoles.map((role) => {
+                                        const roleKey = role.id ?? role.name;
+                                        const canOpenEdit =
+                                            canEditRoles || canDeleteRoles || canManageRoleMembers;
+                                        const roleColorValue = role.color ?? "#9ca3af";
+                                        return (
+                                            canOpenEdit ? (
+                                                <button
+                                                    key={roleKey}
+                                                    type="button"
+                                                    className="settingsRoleRow settingsRoleRow--clickable"
+                                                    onClick={() => openEditRoleModal(role)}
+                                                >
+                                                    <span className="settingsRoleInfo">
+                                                        <span
+                                                            className="settingsRoleDot"
+                                                            style={{ backgroundColor: roleColorValue }}
+                                                        />
+                                                        <span className="settingsRoleName">{role.name}</span>
+                                                    </span>
+                                                    <span className="settingsRoleCount">
+                                                        {memberCountLabel(role.name)}
+                                                    </span>
+                                                </button>
+                                            ) : (
+                                                <div key={roleKey} className="settingsRoleRow">
+                                                    <span className="settingsRoleInfo">
+                                                        <span
+                                                            className="settingsRoleDot"
+                                                            style={{ backgroundColor: roleColorValue }}
+                                                        />
+                                                        <span className="settingsRoleName">{role.name}</span>
+                                                    </span>
+                                                    <span className="settingsRoleCount">
+                                                        {memberCountLabel(role.name)}
+                                                    </span>
+                                                </div>
+                                            )
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
+                        </div>
+                    </Card>
+                ) : null}
             </div>
             <Modal
                 open={editRoleOpen}
@@ -732,8 +881,20 @@ export default function SettingsCompany() {
                 maxHeight={560}
                 height={560}
                 hideDefaultFooter
+                footer={
+                    showEditSaveButton ? (
+                        <button
+                            type="button"
+                            className="roleWizardPrimary"
+                            onClick={() => void handleUpdateRole()}
+                            disabled={!canSubmitEdit}
+                        >
+                            {editSaving ? "Saving..." : "Save changes"}
+                        </button>
+                    ) : null
+                }
             >
-                <div className="roleWizard">
+                <div className="roleWizard roleWizard--edit">
                     <div className="roleWizardTabs" role="tablist" aria-label="Role edit steps">
                         <button
                             type="button"
@@ -1045,18 +1206,6 @@ export default function SettingsCompany() {
                     ) : null}
                     {editSuccess ? (
                         <div className="roleWizardAlert roleWizardAlert--success">{editSuccess}</div>
-                    ) : null}
-                    {editStep !== "danger" && (canEditRoles || canManageRoleMembers) ? (
-                        <div className="roleWizardActions">
-                            <button
-                                type="button"
-                                className="roleWizardPrimary"
-                                onClick={() => void handleUpdateRole()}
-                                disabled={!canSubmitEdit}
-                            >
-                                {editSaving ? "Saving..." : "Save changes"}
-                            </button>
-                        </div>
                     ) : null}
                 </div>
             </Modal>
