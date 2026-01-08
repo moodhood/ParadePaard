@@ -19,8 +19,9 @@ export function getIsoWeek(date: Date): IsoWeek {
     return { weekNumber, weekBasedYear };
 }
 
-function parseIsoDateToUtcDate(dateOnly: string): Date {
-    return new Date(`${dateOnly}T00:00:00Z`);
+function parseIsoDateToUtcDate(value: string): Date {
+    const datePart = value.split("T")[0].split(" ")[0];
+    return new Date(`${datePart}T00:00:00Z`);
 }
 
 function safeHours(hoursWorked: number | null | undefined): number {

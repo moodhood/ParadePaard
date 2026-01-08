@@ -6,7 +6,6 @@ import "../../stylesheets/GeneralInfo.css";
 import "../../stylesheets/common/Card.css";
 import "../../stylesheets/Payslips.css";
 import "../../stylesheets/LeaveRequests.css";
-import "../../stylesheets/Shortcuts.css";
 
 import { UserServices, type PayslipResponseDTO } from "../../services/user-service/UserServices";
 import { mapLeaves } from "../../utils/mapLeaveDtoToUi";
@@ -15,6 +14,7 @@ import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
 import type { LeaveRequestForm } from "../requests/LeaveRequestModals.tsx";
 import  Card  from "../common/Card.tsx"
 import Modal from "../common/Modal";
+import PrimaryNav from "../PrimaryNav";
 import { summarizeHours } from "../../utils/hoursSummary";
 import { formatDate } from "../../utils/dateFormat";
 
@@ -246,13 +246,16 @@ ${note}` : title;
     const leaveHoursAvailableNow = Math.max(0, BASE_LEAVE_ALLOWANCE_HOURS - leaveHoursApproved);
 
     return (
-        <div className="userDashboardCard">
-            <header className="pageHeader">
-                <h1 className="pageTitle">User Dashboard</h1>
-                <p className="pageSubtitle">Your payroll and leave in one place</p>
-            </header>
+        <div className="pageShell">
+            <PrimaryNav />
+            <div className="pageShellContent">
+                <div className="userDashboardCard">
+                    <header className="pageHeader">
+                        <h1 className="pageTitle">User Dashboard</h1>
+                        <p className="pageSubtitle">Your payroll and leave in one place</p>
+                    </header>
 
-            <section className="dashboardGrid">
+                    <section className="dashboardGrid">
                 
                 {/* 1. General Information */}
                 <Card title="General Information" className="dashboardCardHeight">
@@ -448,125 +451,63 @@ ${note}` : title;
                     ) : null}
                 </Card>
 
-                {/* 4. Shortcuts */}
-                <Card title="Shortcuts" className="dashboardCardHeight">
-                    <div className="shortcutList">
-                        <button className="shortcutBtn" onClick={() => navigate("/payslips")}>
-                            <div className="shortcutIcon" aria-hidden="true">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    width="20"
-                                    height="20"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-                                    <path d="M14 2v6h6" />
-                                    <path d="M16 13H8" />
-                                    <path d="M16 17H8" />
-                                    <path d="M10 9H8" />
-                                </svg>
-                            </div>
-                            <span>Payslips</span>
-                        </button>
-                        {/* Adjusted Account Button */}
-                        <button className="shortcutBtn" onClick={() => navigate("/account")}>
-                            <div className="shortcutIcon" aria-hidden="true">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    width="20"
-                                    height="20"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <path d="M20 21a8 8 0 1 0-16 0" />
-                                    <circle cx="12" cy="7" r="4" />
-                                </svg>
-                            </div>
-                            <span>Account</span>
-                        </button>
-                        <button className="shortcutBtn" onClick={() => navigate("/work-history")}>
-                            <div className="shortcutIcon" aria-hidden="true">
-                                <svg
-                                    viewBox="0 0 24 24"
-                                    width="20"
-                                    height="20"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeWidth="2"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                >
-                                    <circle cx="12" cy="12" r="9" />
-                                    <path d="M12 7v6l4 2" />
-                                </svg>
-                            </div>
-                            <span>Work History</span>
-                        </button>
-                    </div>
-                </Card>
+                    </section>
 
-            </section>
-
-            <LeaveRequestModal
-                open={openCreate}
-                onClose={() => setOpenCreate(false)}
-                availableHours={leaveHoursAvailableNow}
-                onSubmit={handleCreateFromModal}
-            />
-
-            <Modal
-                open={reportOpen}
-                onClose={closeReportModal}
-                title="Report payslip error"
-            >
-                <div className="section_block">
-                    <p className="section_text">
-                        Describe what looks wrong so payroll can review it.
-                    </p>
-                </div>
-                <div className="section_block">
-                    <label htmlFor="payslip-error-title" className="section_title">
-                        Error title
-                    </label>
-                    <input
-                        id="payslip-error-title"
-                        className="modal_input"
-                        type="text"
-                        maxLength={MAX_ERROR_TITLE_LENGTH}
-                        placeholder="Short summary (e.g., Missing travel costs)"
-                        value={reportTitle}
-                        onChange={(e) => setReportTitle(e.target.value)}
-                        disabled={reportSubmitting}
+                    <LeaveRequestModal
+                        open={openCreate}
+                        onClose={() => setOpenCreate(false)}
+                        availableHours={leaveHoursAvailableNow}
+                        onSubmit={handleCreateFromModal}
                     />
+
+                    <Modal
+                        open={reportOpen}
+                        onClose={closeReportModal}
+                        title="Report payslip error"
+                    >
+                        <div className="section_block">
+                            <p className="section_text">
+                                Describe what looks wrong so payroll can review it.
+                            </p>
+                        </div>
+                        <div className="section_block">
+                            <label htmlFor="payslip-error-title" className="section_title">
+                                Error title
+                            </label>
+                            <input
+                                id="payslip-error-title"
+                                className="modal_input"
+                                type="text"
+                                maxLength={MAX_ERROR_TITLE_LENGTH}
+                                placeholder="Short summary (e.g., Missing travel costs)"
+                                value={reportTitle}
+                                onChange={(e) => setReportTitle(e.target.value)}
+                                disabled={reportSubmitting}
+                            />
+                        </div>
+                        <div className="section_block">
+                            <label htmlFor="payslip-error-note" className="section_title">
+                                Error note
+                            </label>
+                            <textarea
+                                id="payslip-error-note"
+                                className="modal_input"
+                                rows={4}
+                                placeholder="Add any extra details that help payroll fix it."
+                                value={reportNote}
+                                onChange={(e) => setReportNote(e.target.value)}
+                                disabled={reportSubmitting}
+                            />
+                            {reportError ? <p className="text_bad">{reportError}</p> : null}
+                        </div>
+                        <div className="actions_row">
+                            <button className="btn" onClick={() => void handleSubmitReport()} disabled={reportSubmitting}>
+                                {reportSubmitting ? "Submitting..." : "Submit report"}
+                            </button>
+                        </div>
+                    </Modal>
                 </div>
-                <div className="section_block">
-                    <label htmlFor="payslip-error-note" className="section_title">
-                        Error note
-                    </label>
-                    <textarea
-                        id="payslip-error-note"
-                        className="modal_input"
-                        rows={4}
-                        placeholder="Add any extra details that help payroll fix it."
-                        value={reportNote}
-                        onChange={(e) => setReportNote(e.target.value)}
-                        disabled={reportSubmitting}
-                    />
-                    {reportError ? <p className="text_bad">{reportError}</p> : null}
-                </div>
-                <div className="actions_row">
-                    <button className="btn" onClick={() => void handleSubmitReport()} disabled={reportSubmitting}>
-                        {reportSubmitting ? "Submitting..." : "Submit report"}
-                    </button>
-                </div>
-            </Modal>
+            </div>
         </div>
     );
 }

@@ -50,8 +50,11 @@ ALTER TABLE "users" DROP COLUMN IF EXISTS role;
 -- roles table uses uuid
 CREATE TABLE IF NOT EXISTS roles (
                                      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    name VARCHAR(50) UNIQUE NOT NULL
+    name VARCHAR(50) UNIQUE NOT NULL,
+    color VARCHAR(24)
     );
+
+ALTER TABLE IF EXISTS roles ADD COLUMN IF NOT EXISTS color VARCHAR(24);
 
 -- permissions table uses uuid
 CREATE TABLE IF NOT EXISTS permissions (
@@ -190,6 +193,15 @@ INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_ASSIGN_ROLES'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_ASSIGN_ROLES');
 INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_EDIT_ROLES'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_EDIT_ROLES');
+INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_REMOVE_ROLES'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_REMOVE_ROLES');
+INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_DELETE_ROLES'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_DELETE_ROLES');
+INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_CREATE_ADMIN'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_CREATE_ADMIN');
 INSERT INTO permissions (id, name)
@@ -264,6 +276,9 @@ FROM roles r
     'CAN_ACCESS_ADMIN_DASHBOARD',
     'CAN_CREATE_ROLE',
     'CAN_ASSIGN_ROLES',
+    'CAN_EDIT_ROLES',
+    'CAN_REMOVE_ROLES',
+    'CAN_DELETE_ROLES',
     'CAN_VIEW_USERS',
     'CAN_MANAGE_USERS',
     'CAN_ONBOARD_USERS',

@@ -5,6 +5,8 @@ import com.pm.authservice.dto.CreateRoleRequestDTO;
 import com.pm.authservice.dto.LoginRequestDTO;
 import com.pm.authservice.dto.RegisterRequestDTO;
 import com.pm.authservice.dto.RoleResponseDTO;
+import com.pm.authservice.dto.UpdateRoleRequestDTO;
+import com.pm.authservice.dto.UserRolesResponseDTO;
 import com.pm.authservice.exception.EmailAlreadyExistsException;
 // You might want to create a UsernameAlreadyExistsException or reuse a generic one
 import com.pm.authservice.exception.PermissionDoesNotExistException;
@@ -289,7 +291,7 @@ public class AuthService {
                 .distinct()
                 .map(n -> roleRepository.findByName(n)
                         .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + n)))
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(java.util.ArrayList::new));
 
         u.setRoles(roles);
         userRepository.save(u);
@@ -328,19 +330,102 @@ public class AuthService {
         }
 
         Role role = new Role(name, permissions);
+        role.setColor(normalizeColor(request.getColor()));
         Role saved = roleRepository.save(role);
 
         RoleResponseDTO response = new RoleResponseDTO();
         response.setId(saved.getId() != null ? saved.getId().toString() : null);
         response.setName(saved.getName());
+        response.setColor(saved.getColor());
         response.setPermissions(permissions.stream().map(Permission::getName).toList());
         return response;
+    }
+
+    @Transactional
+    public RoleResponseDTO updateRole(UUID roleId, UpdateRoleRequestDTO request) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + roleId));
+
+        String rawName = request.getName() == null ? "" : request.getName().trim();
+        String name = rawName.toUpperCase(Locale.ROOT);
+        if (name.isEmpty()) {
+            throw new IllegalArgumentException("Role name is required");
+        }
+
+        boolean nameChanged = !name.equalsIgnoreCase(role.getName());
+        if (nameChanged && roleRepository.findByName(name).isPresent()) {
+            throw new RoleAlreadyExistsException("Role already exists " + name);
+        }
+
+        Set<String> permissionNames = new LinkedHashSet<>();
+        if (request.getPermissions() != null) {
+            for (String permission : request.getPermissions()) {
+                String normalized = permission == null ? "" : permission.trim().toUpperCase(Locale.ROOT);
+                if (!normalized.isEmpty()) {
+                    permissionNames.add(normalized);
+                }
+            }
+        }
+
+        if (permissionNames.isEmpty()) {
+            throw new PermissionDoesNotExistException("Role must include at least one permission");
+        }
+
+        List<Permission> permissions = new ArrayList<>();
+        for (String permissionName : permissionNames) {
+            Permission permission = permissionRepository.findByName(permissionName)
+                    .orElseThrow(() -> new PermissionDoesNotExistException("Permission not found " + permissionName));
+            permissions.add(permission);
+        }
+
+        role.setName(name);
+        role.setPermissions(permissions);
+        if (request.getColor() != null) {
+            role.setColor(normalizeColor(request.getColor()));
+        }
+        Role saved = roleRepository.save(role);
+        return toRoleResponse(saved);
+    }
+
+    @Transactional
+    public void deleteRole(UUID roleId) {
+        Role role = roleRepository.findById(roleId)
+                .orElseThrow(() -> new RoleDoesNotExistException("Role not found " + roleId));
+        roleRepository.delete(role);
     }
 
     public List<RoleResponseDTO> getRoles() {
         return roleRepository.findAll().stream()
                 .map(this::toRoleResponse)
                 .sorted(Comparator.comparing(RoleResponseDTO::getName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+    }
+
+    public List<UserRolesResponseDTO> getUserRoles(List<UUID> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return List.of();
+        }
+
+        List<User> users = userRepository.findByIdIn(ids);
+        java.util.Map<UUID, User> byId = users.stream()
+                .collect(java.util.stream.Collectors.toMap(User::getId, u -> u));
+
+        return ids.stream()
+                .distinct()
+                .map(id -> {
+                    UserRolesResponseDTO dto = new UserRolesResponseDTO();
+                    dto.setUserId(id.toString());
+                    User user = byId.get(id);
+                    List<String> roles = user == null || user.getRoles() == null
+                            ? List.of()
+                            : user.getRoles().stream()
+                                .map(Role::getName)
+                                .filter(name -> name != null && !name.isBlank())
+                                .sorted(String.CASE_INSENSITIVE_ORDER)
+                                .toList();
+                    dto.setRoles(roles);
+                    return dto;
+                })
                 .toList();
     }
 
@@ -356,6 +441,7 @@ public class AuthService {
         RoleResponseDTO response = new RoleResponseDTO();
         response.setId(role.getId() != null ? role.getId().toString() : null);
         response.setName(role.getName());
+        response.setColor(role.getColor());
         response.setPermissions(role.getPermissions() == null
                 ? List.of()
                 : role.getPermissions().stream()
@@ -364,6 +450,12 @@ public class AuthService {
                         .sorted(String.CASE_INSENSITIVE_ORDER)
                         .toList());
         return response;
+    }
+
+    private static String normalizeColor(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     public boolean hasAdminRole(String token) {

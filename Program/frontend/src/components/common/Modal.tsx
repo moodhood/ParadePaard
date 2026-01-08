@@ -7,9 +7,21 @@ type ModalProps = {
     onClose: () => void;
     children: React.ReactNode;
     maxHeight?: number;
+    height?: number;
+    footer?: React.ReactNode;
+    hideDefaultFooter?: boolean;
 };
 
-export default function Modal({open, title, onClose, children, maxHeight = 560}: ModalProps) {
+export default function Modal({
+    open,
+    title,
+    onClose,
+    children,
+    maxHeight = 560,
+    height,
+    footer,
+    hideDefaultFooter = false,
+}: ModalProps) {
     useEffect(() => {
         if (!open) return;
         const onKey = (e: KeyboardEvent) => {
@@ -20,6 +32,14 @@ export default function Modal({open, title, onClose, children, maxHeight = 560}:
     }, [open, onClose]);
 
     if (!open) return null;
+
+    const footerContent =
+        footer ??
+        (!hideDefaultFooter ? (
+            <button className="btn" onClick={onClose}>
+                Close
+            </button>
+        ) : null);
 
     return (
         <div
@@ -33,7 +53,7 @@ export default function Modal({open, title, onClose, children, maxHeight = 560}:
         >
             <div
                 className="modal_box"
-                style={{ maxHeight }}
+                style={{ maxHeight, height }}
             >
                 <div className="modal_header">
                     <h3 className="modal_title">{title}</h3>
@@ -48,11 +68,7 @@ export default function Modal({open, title, onClose, children, maxHeight = 560}:
 
                 <div className="modal_body">{children}</div>
 
-                <div className="modal_footer">
-                    <button className="btn" onClick={onClose}>
-                        Close
-                    </button>
-                </div>
+                {footerContent ? <div className="modal_footer">{footerContent}</div> : null}
             </div>
         </div>
     );

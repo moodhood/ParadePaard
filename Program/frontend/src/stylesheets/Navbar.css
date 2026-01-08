@@ -1,3 +1,8 @@
+:root {
+    --navbar-height: 79px;
+    --nav-gap: 16px;
+}
+
 .nav_wrap {
     position: sticky;
     top: 0;
@@ -23,25 +28,41 @@
 /* left cluster */
 .nav_left {
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: flex-start;
     min-width: 0;
+    gap: 14px;
+}
+
+.nav_top {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.nav_links {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 /* brand block */
 .brand {
     display: flex;
-    flex-direction: column;
+    align-items: center;
     line-height: 1.2;
+    height: 48px;
     min-width: 0;
 }
 .brand_main {
-    font-size: 28px;
+    font-size: 32px;
     font-weight: 700;
     letter-spacing: -0.01em;
     color: #1a1a1a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 48px;
 }
 
 /* right cluster */
@@ -55,18 +76,18 @@
 
 .nav_search {
     position: relative;
-    min-width: 220px;
+    min-width: 340px;
 }
 
 .nav_search_input {
     width: 100%;
-    height: 38px;
+    height: 48px;
     padding: 0 12px;
     border-radius: 12px;
     border: 1px solid rgba(0, 0, 0, 0.08);
     background: rgba(255, 255, 255, 0.85);
     color: #1a1a1a;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     transition: border-color 120ms ease, background 120ms ease;
@@ -129,7 +150,6 @@
 .nav_quick_link {
     height: 38px;
     padding: 0 12px;
-    height: 38px;
     border-radius: 12px;
     display: inline-flex;
     align-items: center;
@@ -165,6 +185,12 @@
 }
 
 @media (max-width: 560px) {
+    .nav_top {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
     .nav_quick_link {
         padding: 0;
         width: 38px;
@@ -174,7 +200,7 @@
         display: none;
     }
     .nav_search {
-        min-width: 160px;
+        min-width: 220px;
     }
 }
 
@@ -200,8 +226,8 @@
 
 /* avatar circle */
 .nav_user_avatar {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.16);
     color: #1a1a1a;
@@ -368,15 +394,26 @@
 }
 
 @media (max-width: 480px) {
+    :root {
+        --navbar-height: 69px;
+        --nav-gap: 12px;
+    }
     .nav_wrap {
         padding: 12px 16px;
     }
+    .brand {
+        height: 42px;
+    }
     .brand_main {
-        font-size: 22px;
+        font-size: 26px;
+        line-height: 42px;
+    }
+    .nav_search_input {
+        height: 42px;
     }
 
     .nav_user_avatar {
-        width: 36px;
-        height: 36px;
+        width: 42px;
+        height: 42px;
     }
 }

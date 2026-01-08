@@ -92,7 +92,7 @@
   text-overflow: ellipsis;
 }
 
-.gridUsers > :last-child {
-  justify-self: start;
-  text-align: left;
+.adminUserRoles {
+  white-space: normal;
+  line-height: 1.4;
 }

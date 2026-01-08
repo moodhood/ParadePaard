@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
+import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
 
@@ -33,6 +35,8 @@ export default function AdminUsers() {
     const [sortKey, setSortKey] = useState<"name" | "status" | "position" | "dateAdded">("name");
     const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
     const [tenureFilter, setTenureFilter] = useState<"all" | "new" | "longer">("all");
+    const [rolesByUser, setRolesByUser] = useState<Record<string, string[]>>({});
+    const [rolesLoading, setRolesLoading] = useState(false);
 
     const [avatarUrls, setAvatarUrls] = useState<Record<string, string | null>>({});
     const avatarUrlsRef = useRef<Record<string, string | null>>({});
@@ -85,6 +89,38 @@ export default function AdminUsers() {
     useEffect(() => {
         void loadUsers();
     }, [loadUsers]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadRoles = async () => {
+            if (users.length === 0) {
+                setRolesByUser({});
+                return;
+            }
+            try {
+                setRolesLoading(true);
+                const ids = users.map((user) => user.userId);
+                const data = await AuthServices.getUserRoles(ids);
+                if (cancelled) return;
+                const next: Record<string, string[]> = {};
+                data.forEach((entry) => {
+                    next[entry.userId] = entry.roles ?? [];
+                });
+                setRolesByUser(next);
+            } catch {
+                if (!cancelled) setRolesByUser({});
+            } finally {
+                if (!cancelled) setRolesLoading(false);
+            }
+        };
+
+        void loadRoles();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [users]);
 
     const filteredUsers = useMemo(() => {
         const term = searchTerm.trim().toLowerCase();
@@ -196,12 +232,15 @@ export default function AdminUsers() {
         <>
             <Navbar />
             <div className="adminDashboardPage">
-                <div className="adminDashboardCard">
-                    <header className="pageHeader">
-                        <PageBack />
-                        <h1 className="pageTitle">Users</h1>
-                        <p className="pageSubtitle">Browse all employees and jump to their profiles.</p>
-                    </header>
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <div className="pageShellContent">
+                        <div className="adminDashboardCard">
+                            <header className="pageHeader">
+                                <PageBack />
+                                <h1 className="pageTitle">Users</h1>
+                                <p className="pageSubtitle">Browse all employees and jump to their profiles.</p>
+                            </header>
 
                     <Card
                         title="All users"
@@ -271,6 +310,7 @@ export default function AdminUsers() {
                                 </div>
                                 <div>Email</div>
                                 <div>Position</div>
+                                <div>Roles</div>
                                 <div>Date added</div>
                                 <div>Status</div>
                             </div>
@@ -311,6 +351,13 @@ export default function AdminUsers() {
                                                   </div>
                                                   <div className="cellSub">{user.email}</div>
                                                   <div className="cellSub">{user.position ?? "-"}</div>
+                                                  <div className="cellSub adminUserRoles">
+                                                      {rolesByUser[user.userId]?.length
+                                                          ? rolesByUser[user.userId].join(", ")
+                                                          : rolesLoading
+                                                              ? "Loading..."
+                                                              : "-"}
+                                                  </div>
                                                   <div className="cellSub">{formatDate(user.registeredDate)}</div>
                                                   <div className={statusClass(user.status)}>{statusLabel(user.status)}</div>
                                               </div>
@@ -321,6 +368,8 @@ export default function AdminUsers() {
                         </div>
                     </Card>
 
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

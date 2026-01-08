@@ -29,6 +29,16 @@
   padding: 0 16px; /* Horizontal padding match */
 }
 
+.listHeaderGrid > *,
+.listRowGrid > * {
+  min-width: 0;
+}
+
+.listHeaderGrid > :first-child,
+.listRowGrid > :first-child {
+  text-align: left;
+}
+
 /* Header Styling */
 .listHeaderGrid {
   background: #f4f4f5;
@@ -58,8 +68,12 @@
 
 .listHeaderGrid > :last-child,
 .listRowGrid > :last-child {
-  justify-self: end;
   text-align: right;
+}
+
+.listHeaderGrid > :not(:first-child):not(:last-child),
+.listRowGrid > :not(:first-child):not(:last-child) {
+  text-align: left;
 }
 
 .listRowGrid:hover {
@@ -99,47 +113,47 @@
 
 /* 1. Requests: Name | Type | Date */
 .gridRequests {
-  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* 2. Errors: Name | Issue | Time */
 .gridErrors {
-  grid-template-columns: 1fr 1.5fr 0.8fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* 3. Contracts: Name | End Date | Days Left */
 .gridContracts {
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* 4. Payouts: Name | Date | Status */
 .gridPayouts {
-  grid-template-columns: 1fr 1fr 0.8fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 /* 6. Hours: Name | Week | Month | Year | Total */
 .gridHours {
-  grid-template-columns: 1.4fr 0.8fr 0.8fr 0.8fr 0.8fr;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 /* 7. User Hours: Name | Hours */
 .gridUserHours {
-  grid-template-columns: 1.6fr 0.8fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 /* 8. Timesheet History: Date | Name | Function | Hours */
 .gridTimesheetHistory {
-  grid-template-columns: 0.9fr 1.2fr 1.2fr 0.7fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-/* 9. Users: User | Email | Position | Status */
+/* 9. Users: User | Email | Position | Roles | Date added | Status */
 .gridUsers {
-  grid-template-columns: 1.5fr 1.3fr 0.9fr 0.9fr 0.8fr;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
-/* 5. Payslip Review: Name | Period end | Payout | Hours | Net | Action */
+/* 5. Payslip Review: Name | Period end | Payout | Hours | Net | Status | Action */
 .gridPayslipReview {
-  grid-template-columns: 1.4fr 0.9fr 0.9fr 0.7fr 0.8fr 0.9fr;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 /* --- Cell Styling --- */
@@ -159,24 +173,29 @@
 .cellDate {
   color: #777;
   font-size: 13px;
-  text-align: right;
+  text-align: inherit;
 }
+
 
 .listLink {
   background: none;
   border: 0;
-  padding: 2px 4px;
+  padding: 0;
   color: inherit;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
   text-align: left;
-  border-radius: 6px;
-  transition: background 0.12s ease;
+  border-radius: 0;
+  transition: color 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  align-self: center;
 }
 
 .listLink:hover {
-  background: #e9eef9;
+  color: #6b7280;
 }
 
 /* Status Colors */

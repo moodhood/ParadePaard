@@ -16,6 +16,9 @@ public class Role {
     @Column(nullable = false, unique = true)
     private String name; // examples: USER, ADMIN
 
+    @Column(length = 24)
+    private String color;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "role_permissions",
@@ -36,6 +39,9 @@ public class Role {
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
 
     public List<Permission> getPermissions() { return permissions; }
     public void setPermissions(List<Permission> permissions) {

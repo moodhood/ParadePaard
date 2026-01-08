@@ -1,6 +1,6 @@
 .workHistoryPage {
     min-height: calc(100vh - 64px);
-    padding: 24px 0 56px;
+    padding: 0 0 56px;
     background: #f2f2f2;
     font-family: Inter, system-ui, Arial, sans-serif;
 }
@@ -24,6 +24,10 @@
 
 .workHistoryHeader {
     padding: 0 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
 }
 
 .workHistoryTitle {
@@ -70,7 +74,56 @@
 .workHistoryCard .uiCardBody {
     flex: 1;
     display: flex;
+    flex-direction: column;
     min-height: 0;
+}
+
+.workHistoryFilterPanel {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.workHistoryFilterGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.workHistoryFilterField {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    color: #526072;
+    font-weight: 600;
+}
+
+.workHistoryFilterField input,
+.workHistoryFilterField select {
+    border: 1px solid #d6dce6;
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: #1f2937;
+    background: #ffffff;
+}
+
+.workHistoryFilterActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.workHistoryFilterMeta {
+    font-size: 12px;
+    color: #556070;
 }
 
 .workHistoryFilters {
@@ -91,6 +144,22 @@
 
 .workHistorySelect:disabled {
     opacity: 0.6;
+}
+
+.workHistoryButtonSecondary {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #ddd;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.workHistoryButtonSecondary:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
 }
 
 .workHistoryTableWrap {
@@ -146,6 +215,32 @@
     font-weight: 800;
 }
 
+.workHistoryTotalBar {
+    display: grid;
+    grid-template-columns: 1fr 1fr 160px;
+    padding: 14px 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.10);
+    background: rgba(255, 255, 255, 0.75);
+    font-weight: 800;
+}
+
+.workHistoryTotalBar--admin {
+    grid-template-columns: 1fr 1fr 1fr 160px;
+}
+
+.workHistoryTotalLabel {
+    grid-column: 1 / span 2;
+}
+
+.workHistoryTotalBar--admin .workHistoryTotalLabel {
+    grid-column: 1 / span 3;
+}
+
+.workHistoryTotalValue {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
 .workHistoryHoursCol {
     text-align: right;
     font-variant-numeric: tabular-nums;
@@ -164,10 +259,29 @@
 @media (max-width: 640px) {
     .workHistoryShell {
         width: 92%;
+        margin: 0 auto;
         padding: 0;
     }
 
     .workHistoryTitle {
         font-size: 22px;
+    }
+}
+
+@media (max-width: 1100px) {
+    .workHistoryFilterGrid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+    .workHistoryFilterGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 560px) {
+    .workHistoryFilterGrid {
+        grid-template-columns: 1fr;
     }
 }

@@ -1,63 +1,144 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices } from "../services/user-service/UserServices";
 import "../stylesheets/WorkHistory.css";
-import {
-    buildTimeframeOptions,
-    filterTimesheetsByTimeframe,
-    getIsoWeek,
-    sumHours,
-    timeframeLabel,
-    type Timeframe,
-} from "../utils/hoursSummary";
+import { getIsoWeek, sumHours } from "../utils/hoursSummary";
 import { formatDate } from "../utils/dateFormat";
+
+type FilterState = {
+    search: string;
+    userId: string;
+    functionName: string;
+    dateFrom: string;
+    dateTo: string;
+    weekYear: string;
+    weekNumber: string;
+    minHours: string;
+    maxHours: string;
+    minTravel: string;
+    maxTravel: string;
+};
+
+const createFilters = (): FilterState => ({
+    search: "",
+    userId: "all",
+    functionName: "all",
+    dateFrom: "",
+    dateTo: "",
+    weekYear: "",
+    weekNumber: "",
+    minHours: "",
+    maxHours: "",
+    minTravel: "",
+    maxTravel: "",
+});
+
+const parseNumber = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const num = Number(trimmed);
+    return Number.isFinite(num) ? num : null;
+};
+
+const getDatePart = (value: string) => value.split("T")[0].split(" ")[0];
 
 export interface Timesheet {
     timesheetId: string;
+    userId?: string;
+    name?: string;
     dateOfIssue: string;
+    weekNumber?: number;
+    weekBasedYear?: number;
     function: string;
     hoursWorked: number;
+    travelExpenses?: number;
 }
 
 export default function WorkHistory() {
+    const [searchParams] = useSearchParams();
+    const personalView = searchParams.get("view") === "personal";
+    const [isAdmin, setIsAdmin] = useState(false);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const timeframeOptions = useMemo(() => buildTimeframeOptions(timesheets), [timesheets]);
-    const [timeframe, setTimeframe] = useState<Timeframe>({ kind: "all" });
-    const [timeframeInitialized, setTimeframeInitialized] = useState(false);
-    const yearOptions = useMemo(() => {
-        const nowYear = new Date().getFullYear();
-        const years = new Set<number>(timeframeOptions.years);
-        years.add(nowYear);
-        for (let i = 1; i <= 5; i++) years.add(nowYear - i);
-        return [...years].sort((a, b) => b - a);
-    }, [timeframeOptions.years]);
+    const [filters, setFilters] = useState<FilterState>(() => createFilters());
+    const showAllTimesheets = isAdmin && !personalView;
 
-    useEffect(() => {
-        if (timeframeInitialized) return;
-        if (timesheets.length === 0) return;
-        if (timeframeOptions.weeks.length > 0) {
-            const latest = timeframeOptions.weeks[0];
-            setTimeframe({ kind: "week", ...latest });
-            setTimeframeInitialized(true);
-        } else if (timeframeOptions.months.length > 0) {
-            const latest = timeframeOptions.months[0];
-            setTimeframe({ kind: "month", ...latest });
-            setTimeframeInitialized(true);
-        } else if (timeframeOptions.years.length > 0) {
-            setTimeframe({ kind: "year", year: timeframeOptions.years[0] });
-            setTimeframeInitialized(true);
-        }
-    }, [timeframeInitialized, timeframeOptions.months, timeframeOptions.weeks, timeframeOptions.years, timesheets.length]);
+    const userOptions = useMemo(() => {
+        if (!showAllTimesheets) return [];
+        const map = new Map<string, string>();
+        timesheets.forEach((t) => {
+            if (!t.userId) return;
+            map.set(t.userId, t.name ?? t.userId);
+        });
+        return [...map.entries()]
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [showAllTimesheets, timesheets]);
+
+    const functionOptions = useMemo(() => {
+        const values = new Set<string>();
+        timesheets.forEach((t) => {
+            if (t.function) values.add(t.function);
+        });
+        return [...values].sort((a, b) => a.localeCompare(b));
+    }, [timesheets]);
 
     const filteredTimesheets = useMemo(() => {
-        const filtered = filterTimesheetsByTimeframe(timesheets, timeframe);
+        const term = filters.search.trim().toLowerCase();
+        const minHours = parseNumber(filters.minHours);
+        const maxHours = parseNumber(filters.maxHours);
+        const minTravel = parseNumber(filters.minTravel);
+        const maxTravel = parseNumber(filters.maxTravel);
+        const weekYear = parseNumber(filters.weekYear);
+        const weekNumber = parseNumber(filters.weekNumber);
+
+        const filtered = timesheets.filter((t) => {
+            if (showAllTimesheets && filters.userId !== "all" && t.userId !== filters.userId) {
+                return false;
+            }
+            if (filters.functionName !== "all" && t.function !== filters.functionName) {
+                return false;
+            }
+
+            if (term) {
+                const haystack = [t.name ?? "", t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
+                    .join(" ")
+                    .toLowerCase();
+                if (!haystack.includes(term)) return false;
+            }
+
+            const datePart = getDatePart(t.dateOfIssue ?? "");
+            if (filters.dateFrom && datePart < filters.dateFrom) return false;
+            if (filters.dateTo && datePart > filters.dateTo) return false;
+
+            if (weekYear !== null || weekNumber !== null) {
+                const week =
+                    t.weekNumber != null && t.weekBasedYear != null
+                        ? { weekNumber: t.weekNumber, weekBasedYear: t.weekBasedYear }
+                        : getIsoWeek(new Date(`${datePart}T00:00:00Z`));
+                if (weekYear !== null && week.weekBasedYear !== weekYear) return false;
+                if (weekNumber !== null && week.weekNumber !== weekNumber) return false;
+            }
+
+            const hours = Number(t.hoursWorked ?? 0);
+            const travel = Number(t.travelExpenses ?? 0);
+
+            if (minHours !== null && hours < minHours) return false;
+            if (maxHours !== null && hours > maxHours) return false;
+            if (minTravel !== null && travel < minTravel) return false;
+            if (maxTravel !== null && travel > maxTravel) return false;
+
+            return true;
+        });
         return [...filtered].sort((a, b) => (b.dateOfIssue ?? "").localeCompare(a.dateOfIssue ?? ""));
-    }, [timesheets, timeframe]);
+    }, [filters, showAllTimesheets, timesheets]);
     const totalHours = useMemo(() => sumHours(filteredTimesheets), [filteredTimesheets]);
 
     useEffect(() => {
@@ -67,7 +148,9 @@ export default function WorkHistory() {
             try {
                 setLoading(true);
                 setErrorMsg(null);
-                const data = await UserServices.getMyTimesheets();
+                const data = showAllTimesheets
+                    ? await UserServices.getTimesheets()
+                    : await UserServices.getMyTimesheets();
                 if (!cancelled) setTimesheets(data);
             } catch (err: unknown) {
                 const message =
@@ -83,20 +166,58 @@ export default function WorkHistory() {
         return () => {
             cancelled = true;
         };
+    }, [showAllTimesheets]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        AuthServices.isAdmin()
+            .then((value) => {
+                if (!cancelled) setIsAdmin(Boolean(value));
+            })
+            .catch(() => {
+                if (!cancelled) setIsAdmin(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
+
+    useEffect(() => {
+        if (!showAllTimesheets) {
+            setFilters((prev) => (prev.userId === "all" ? prev : { ...prev, userId: "all" }));
+        }
+    }, [showAllTimesheets]);
+
+    const updateFilter = (field: keyof FilterState, value: string) => {
+        setFilters((prev) => ({
+            ...prev,
+            [field]: value,
+        }));
+    };
+
+    const resetFilters = () => {
+        setFilters(createFilters());
+    };
+
+    const columnCount = showAllTimesheets ? 4 : 3;
 
     return (
         <>
             <Navbar />
             <div className="workHistoryPage">
-                <div className="workHistoryShell">
-                    <header className="workHistoryHeader">
-                        <PageBack />
-                        <h1 className="workHistoryTitle">Work History</h1>
-                        <p className="workHistorySubtitle">
-                            A record of your past shifts and hours.
-                        </p>
-                    </header>
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <div className="pageShellContent">
+                        <div className="workHistoryShell">
+                            <header className="workHistoryHeader">
+                                <PageBack />
+                                <h1 className="workHistoryTitle">Work History</h1>
+                                <p className="workHistorySubtitle">
+                                    A record of your past shifts and hours.
+                                </p>
+                            </header>
 
                     {loading ? (
                         <div className="workHistoryLoading">
@@ -106,139 +227,163 @@ export default function WorkHistory() {
                         <div className="workHistoryError">{errorMsg}</div>
                     ) : (
                         <Card
-                            title={`Timesheets (${timeframeLabel(timeframe)})`}
+                            title="Timesheets"
                             className="workHistoryCard"
-                            right={
-                                <div className="workHistoryFilters">
-                                    <select
-                                        className="workHistorySelect"
-                                        value={timeframe.kind}
-                                        onChange={(e) => {
-                                            const kind = e.target.value as Timeframe["kind"];
-                                            if (kind === "all") setTimeframe({ kind });
-                                            if (kind === "week") {
-                                                const latest = timeframeOptions.weeks[0];
-                                                const fallback = getIsoWeek(new Date());
-                                                setTimeframe(latest ? { kind, ...latest } : { kind, ...fallback });
+                        >
+                            <div className="workHistoryFilterPanel">
+                                <div className="workHistoryFilterGrid">
+                                    <label className="workHistoryFilterField">
+                                        <span>Search</span>
+                                        <input
+                                            type="search"
+                                            placeholder={
+                                                showAllTimesheets
+                                                    ? "Name, function, or employee ID"
+                                                    : "Function or date"
                                             }
-                                            if (kind === "month") {
-                                                const latest = timeframeOptions.months[0];
-                                                const now = new Date();
-                                                setTimeframe(
-                                                    latest ? { kind, ...latest } : { kind, year: now.getFullYear(), month: now.getMonth() + 1 }
-                                                );
-                                            }
-                                            if (kind === "year") {
-                                                const latest = timeframeOptions.years[0];
-                                                const nowYear = new Date().getFullYear();
-                                                setTimeframe(typeof latest === "number" ? { kind, year: latest } : { kind, year: nowYear });
-                                            }
-                                        }}
-                                        disabled={timesheets.length === 0}
-                                        aria-label="Select timeframe type"
-                                    >
-                                        <option value="week">Week</option>
-                                        <option value="month">Month</option>
-                                        <option value="year">Year</option>
-                                        <option value="all">All</option>
-                                    </select>
+                                            value={filters.search}
+                                            onChange={(e) => updateFilter("search", e.target.value)}
+                                        />
+                                    </label>
 
-                                    {timeframe.kind === "week" ? (
-                                        <>
+                                    {showAllTimesheets ? (
+                                        <label className="workHistoryFilterField">
+                                            <span>Employee</span>
                                             <select
-                                                className="workHistorySelect"
-                                                value={String(timeframe.weekBasedYear)}
-                                                onChange={(e) =>
-                                                    setTimeframe({
-                                                        kind: "week",
-                                                        weekBasedYear: Number(e.target.value),
-                                                        weekNumber: timeframe.weekNumber,
-                                                    })
-                                                }
-                                                aria-label="Select week-based year"
+                                                value={filters.userId}
+                                                onChange={(e) => updateFilter("userId", e.target.value)}
                                             >
-                                                {yearOptions.map((y) => (
-                                                    <option key={y} value={String(y)}>
-                                                        {y}
+                                                <option value="all">All employees</option>
+                                                {userOptions.map((user) => (
+                                                    <option key={user.id} value={user.id}>
+                                                        {user.name}
                                                     </option>
                                                 ))}
                                             </select>
-                                            <select
-                                                className="workHistorySelect"
-                                                value={String(timeframe.weekNumber)}
-                                                onChange={(e) =>
-                                                    setTimeframe({
-                                                        kind: "week",
-                                                        weekBasedYear: timeframe.weekBasedYear,
-                                                        weekNumber: Number(e.target.value),
-                                                    })
-                                                }
-                                                aria-label="Select week number"
-                                            >
-                                                {Array.from({ length: 53 }, (_, i) => i + 1).map((w) => (
-                                                    <option key={w} value={String(w)}>
-                                                        Week {w}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </>
+                                        </label>
                                     ) : null}
 
-                                    {timeframe.kind === "month" ? (
-                                        <>
-                                            <select
-                                                className="workHistorySelect"
-                                                value={String(timeframe.year)}
-                                                onChange={(e) =>
-                                                    setTimeframe({ kind: "month", year: Number(e.target.value), month: timeframe.month })
-                                                }
-                                                aria-label="Select year"
-                                            >
-                                                {yearOptions.map((y) => (
-                                                    <option key={y} value={String(y)}>
-                                                        {y}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <select
-                                                className="workHistorySelect"
-                                                value={String(timeframe.month)}
-                                                onChange={(e) =>
-                                                    setTimeframe({ kind: "month", year: timeframe.year, month: Number(e.target.value) })
-                                                }
-                                                aria-label="Select month"
-                                            >
-                                                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                                                    <option key={m} value={String(m)}>
-                                                        Month {String(m).padStart(2, "0")}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </>
-                                    ) : null}
-
-                                    {timeframe.kind === "year" ? (
+                                    <label className="workHistoryFilterField">
+                                        <span>Function</span>
                                         <select
-                                            className="workHistorySelect"
-                                            value={String(timeframe.year)}
-                                            onChange={(e) => setTimeframe({ kind: "year", year: Number(e.target.value) })}
-                                            aria-label="Select year"
+                                            value={filters.functionName}
+                                            onChange={(e) => updateFilter("functionName", e.target.value)}
                                         >
-                                            {yearOptions.map((y) => (
-                                                <option key={y} value={String(y)}>
-                                                    Year {y}
+                                            <option value="all">All functions</option>
+                                            {functionOptions.map((value) => (
+                                                <option key={value} value={value}>
+                                                    {value}
                                                 </option>
                                             ))}
                                         </select>
-                                    ) : null}
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Date from</span>
+                                        <input
+                                            type="date"
+                                            value={filters.dateFrom}
+                                            onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Date to</span>
+                                        <input
+                                            type="date"
+                                            value={filters.dateTo}
+                                            onChange={(e) => updateFilter("dateTo", e.target.value)}
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Week year</span>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            value={filters.weekYear}
+                                            onChange={(e) => updateFilter("weekYear", e.target.value)}
+                                            placeholder="2026"
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Week number</span>
+                                        <input
+                                            type="number"
+                                            inputMode="numeric"
+                                            value={filters.weekNumber}
+                                            onChange={(e) => updateFilter("weekNumber", e.target.value)}
+                                            placeholder="1-53"
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Min hours</span>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={filters.minHours}
+                                            onChange={(e) => updateFilter("minHours", e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Max hours</span>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={filters.maxHours}
+                                            onChange={(e) => updateFilter("maxHours", e.target.value)}
+                                            placeholder="60"
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Min travel</span>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={filters.minTravel}
+                                            onChange={(e) => updateFilter("minTravel", e.target.value)}
+                                            placeholder="0"
+                                        />
+                                    </label>
+
+                                    <label className="workHistoryFilterField">
+                                        <span>Max travel</span>
+                                        <input
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={filters.maxTravel}
+                                            onChange={(e) => updateFilter("maxTravel", e.target.value)}
+                                            placeholder="100"
+                                        />
+                                    </label>
                                 </div>
-                            }
-                        >
+                                <div className="workHistoryFilterActions">
+                                    <div className="workHistoryFilterMeta">
+                                        {filteredTimesheets.length} shown
+                                        {timesheets.length !== filteredTimesheets.length
+                                            ? ` of ${timesheets.length}`
+                                            : ""}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        className="workHistoryButtonSecondary"
+                                        onClick={resetFilters}
+                                    >
+                                        Reset filters
+                                    </button>
+                                </div>
+                            </div>
                             <div className="workHistoryTableWrap">
                                 <table className="workHistoryTable">
                                     <thead>
                                         <tr>
                                             <th>Date</th>
+                                            {showAllTimesheets ? <th>Employee</th> : null}
                                             <th>Function</th>
                                             <th className="workHistoryHoursCol">Hours Worked</th>
                                         </tr>
@@ -246,30 +391,35 @@ export default function WorkHistory() {
                                     <tbody>
                                         {filteredTimesheets.length === 0 ? (
                                             <tr>
-                                                <td colSpan={3} className="workHistoryEmpty">
-                                                    No timesheets found for {timeframeLabel(timeframe)}.
+                                                <td colSpan={columnCount} className="workHistoryEmpty">
+                                                    No timesheets match these filters.
                                                 </td>
                                             </tr>
                                         ) : (
                                             filteredTimesheets.map((t) => (
                                                 <tr key={t.timesheetId}>
                                                     <td>{formatDate(t.dateOfIssue)}</td>
+                                                    {showAllTimesheets ? <td>{t.name ?? "-"}</td> : null}
                                                     <td>{t.function}</td>
                                                     <td className="workHistoryHoursCol">{t.hoursWorked.toFixed(1)}</td>
                                                 </tr>
                                             ))
                                         )}
                                     </tbody>
-                                    <tfoot>
-                                        <tr className="workHistoryTotalRow">
-                                            <td colSpan={2}>Total</td>
-                                            <td className="workHistoryHoursCol">{totalHours.toFixed(1)}</td>
-                                        </tr>
-                                    </tfoot>
                                 </table>
+                            </div>
+                            <div
+                                className={`workHistoryTotalBar${
+                                    showAllTimesheets ? " workHistoryTotalBar--admin" : ""
+                                }`}
+                            >
+                                <div className="workHistoryTotalLabel">Total</div>
+                                <div className="workHistoryTotalValue">{totalHours.toFixed(1)}</div>
                             </div>
                         </Card>
                     )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

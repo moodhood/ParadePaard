@@ -5,7 +5,7 @@
 }
 
 .adminOnboardingIntro {
-  color: rgba(230, 231, 235, 0.75);
+  color: #6b7280;
   font-size: 13px;
   line-height: 1.4;
   margin: 2px 2px 0 2px;
@@ -20,8 +20,9 @@
 }
 
 .adminOnboardingLabel {
-  color: rgba(230, 231, 235, 0.9);
+  color: #374151;
   font-size: 12px;
+  font-weight: 600;
 }
 
 .adminOnboardingToggle {
@@ -29,7 +30,7 @@
   align-items: center;
   gap: 10px;
   padding: 10px 2px;
-  color: rgba(230, 231, 235, 0.9);
+  color: #374151;
 }
 
 .adminOnboardingResult {
@@ -37,19 +38,58 @@
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  background: rgba(255, 255, 255, 0.03);
+  background: #f8fafc;
+  color: #1f2937;
 }
 
 .adminOnboardingHint {
   margin-top: 8px;
-  color: rgba(230, 231, 235, 0.7);
+  color: #6b7280;
 }
 
 .adminOnboardingError {
-  color: #ff9aa2;
+  color: #b00020;
   padding: 0 6px;
+}
+
+.adminOnboardingPage .modal_input {
+  background: #ffffff;
+  color: #1a1a1a;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  box-shadow: none;
+  color-scheme: light;
+}
+
+.adminOnboardingPage .modal_input::placeholder {
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.adminOnboardingPage .modal_input:focus {
+  border-color: rgba(47, 107, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.2);
+}
+
+.adminOnboardingPage select.modal_input {
+  appearance: auto;
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  background-image: none;
+  padding-right: 12px;
+}
+
+.adminOnboardingPage .selectPlaceholder {
+  color: #9aa0a6;
+}
+
+.adminOnboardingPage input[type="date"].modal_input::-webkit-calendar-picker-indicator {
+  filter: none;
+  opacity: 0.7;
+}
+
+.adminOnboardingPage .uiCardBody {
+  padding: 16px;
 }
 
 @media (max-width: 900px) {

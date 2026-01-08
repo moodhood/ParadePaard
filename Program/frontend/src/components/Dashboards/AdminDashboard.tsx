@@ -30,6 +30,7 @@ import {
     type Timeframe,
 } from "../../utils/hoursSummary";
 import { formatDate, formatDateObject, formatMaybeDateTime } from "../../utils/dateFormat";
+import PrimaryNav from "../PrimaryNav";
 
 // Updated CSS imports
 import "../../stylesheets/AdminDashboard.css";
@@ -325,14 +326,16 @@ export default function AdminDashboard(): JSX.Element {
 
     return (
         <div className="adminDashboardPage">
-            
-            <div className="adminDashboardCard">
-                <header className="pageHeader">
-                    <h1 className="pageTitle">Admin Dashboard</h1>
-                    <p className="pageSubtitle">Payroll overview and request management</p>
-                </header>
+            <div className="pageShell">
+                <PrimaryNav />
+                <div className="pageShellContent">
+                    <div className="adminDashboardCard">
+                        <header className="pageHeader">
+                            <h1 className="pageTitle">Admin Dashboard</h1>
+                            <p className="pageSubtitle">Payroll overview and request management</p>
+                        </header>
 
-                <main className="adminDashboardGrid">
+                        <main className="adminDashboardGrid">
                     
                     {/* 1. General Info */}
                     <Card title="General Info" className="dashboardCardHeight">
@@ -371,11 +374,6 @@ export default function AdminDashboard(): JSX.Element {
                                 <div className="statLabel">Payslips pending review</div>
                                 <div className="statValue">{pendingReviewValue}</div>
                             </div>
-                        </div>
-                        <div className="cardFooter">
-                            <button className="button" onClick={() => navigate("/admin/onboarding")}>
-                                Onboard employee
-                            </button>
                         </div>
                     </Card>
 
@@ -593,27 +591,12 @@ export default function AdminDashboard(): JSX.Element {
                                 <div style={{ marginRight: "auto", fontSize: 12, color: "#666" }}>
                                     Total: {totalHours.toFixed(1)} h
                                 </div>
-                                <button
-                                    className="button buttonSecondary"
-                                    onClick={() => setVersion((v) => v + 1)}
-                                    disabled={timesheetLoading}
-                                >
-                                    Refresh
-                                </button>
                             </div>
                         </div>
                     </Card>
 
                     {/* 2. Requests (Main Action List) */}
-                    <Card 
-                        title="Pending Requests" 
-                        className="dashboardCardHeight"
-                        right={
-                            <button className="button" onClick={() => setVersion(v => v+1)} disabled={loading}>
-                                Refresh
-                            </button>
-                        }
-                    >
+                    <Card title="Pending Requests" className="dashboardCardHeight">
                         <div className="listContainer">
                             {/* Fixed Header */}
                             <div className="listHeaderGrid gridRequests">
@@ -662,7 +645,18 @@ export default function AdminDashboard(): JSX.Element {
                     </Card>
 
                     {/* 3. Payslip Errors */}
-                    <Card title="Payslip Errors" className="dashboardCardHeight">
+                    <Card
+                        title="Payslip Errors"
+                        className="dashboardCardHeight"
+                        right={
+                            <button
+                                className="button"
+                                onClick={() => navigate("/payslips?scope=all&status=NOT_ACCEPTED")}
+                            >
+                                Review payslip issues
+                            </button>
+                        }
+                    >
                         <div className="listContainer">
                             <div className="listHeaderGrid gridErrors">
                                 <div>Name</div>
@@ -698,14 +692,6 @@ export default function AdminDashboard(): JSX.Element {
                                           </div>
                                       ))
                                     : null}
-                            </div>
-                            <div className="cardFooter">
-                                <button
-                                    className="button buttonSecondary"
-                                    onClick={() => navigate("/admin/payslip-review")}
-                                >
-                                    Review errors
-                                </button>
                             </div>
                         </div>
                     </Card>
@@ -743,14 +729,19 @@ export default function AdminDashboard(): JSX.Element {
                                       ))
                                     : null}
                             </div>
-                            <div className="cardFooter">
-                                <button className="button buttonSecondary">View details</button>
-                            </div>
                         </div>
                     </Card>
 
                     {/* 6. Payslip Review */}
-                    <Card title="Payslip Review" className="dashboardCardHeight">
+                    <Card
+                        title="Payslip Review"
+                        className="dashboardCardHeight"
+                        right={
+                            <button className="button" onClick={() => navigate("/admin/payslip-review")}>
+                                View all payslips
+                            </button>
+                        }
+                    >
                          <div className="listContainer">
                             <div className="listHeaderGrid gridPayouts">
                                 <div>Name</div>
@@ -790,15 +781,12 @@ export default function AdminDashboard(): JSX.Element {
                                           ))
                                     : null}
                             </div>
-                            <div className="cardFooter">
-                                <button className="button" onClick={() => navigate("/admin/payslip-review")}>
-                                    Review payslips
-                                </button>
-                            </div>
                         </div>
                     </Card>
 
-                </main>
+                        </main>
+                    </div>
+                </div>
             </div>
 
             {/* Modals */}

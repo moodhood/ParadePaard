@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Card from "../components/common/Card";
+import Modal from "../components/common/Modal";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Settings.css";
@@ -8,9 +9,25 @@ const permissionLabelOverrides: Record<string, string> = {
     CAN_ACCESS_ADMIN_DASHBOARD: "Access admin dashboard",
     CAN_ASSIGN_ROLES: "Assign roles to users",
     CAN_CREATE_ROLE: "Create roles",
+    CAN_EDIT_ROLES: "Edit role definitions",
+    CAN_DELETE_ROLES: "Delete roles",
     CAN_MANAGE_USERS: "Manage users",
     CAN_VIEW_USERS: "View users",
+    CAN_REMOVE_ROLES: "Remove roles from users",
 };
+
+const roleColorOptions = [
+    "#2f6bff",
+    "#16a34a",
+    "#0ea5e9",
+    "#f97316",
+    "#e11d48",
+    "#7c3aed",
+    "#f59e0b",
+    "#14b8a6",
+];
+
+const normalizeRoleName = (value: string) => value.trim().toUpperCase();
 
 const formatPermission = (value: string) => {
     if (permissionLabelOverrides[value]) return permissionLabelOverrides[value];
@@ -50,17 +67,35 @@ export default function SettingsCompany() {
     const [usersError, setUsersError] = useState<string | null>(null);
 
     const [roleName, setRoleName] = useState("");
+    const [roleColor, setRoleColor] = useState(roleColorOptions[0] ?? "#2f6bff");
     const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
     const [createError, setCreateError] = useState<string | null>(null);
     const [createSuccess, setCreateSuccess] = useState<string | null>(null);
     const [creatingRole, setCreatingRole] = useState(false);
+    const [createRoleOpen, setCreateRoleOpen] = useState(false);
+    const [createStep, setCreateStep] = useState<"details" | "permissions" | "members">("details");
+    const [createUserSearch, setCreateUserSearch] = useState("");
+    const [selectedCreateUserIds, setSelectedCreateUserIds] = useState<string[]>([]);
 
-    const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
-    const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
-    const [assignError, setAssignError] = useState<string | null>(null);
-    const [assignSuccess, setAssignSuccess] = useState<string | null>(null);
-    const [assigningRoles, setAssigningRoles] = useState(false);
-    const [userSearch, setUserSearch] = useState("");
+    const [editRoleOpen, setEditRoleOpen] = useState(false);
+    const [editRoleId, setEditRoleId] = useState<string | null>(null);
+    const [editRoleName, setEditRoleName] = useState("");
+    const [editRoleOriginalName, setEditRoleOriginalName] = useState("");
+    const [editRoleColor, setEditRoleColor] = useState(roleColorOptions[0] ?? "#2f6bff");
+    const [editPermissions, setEditPermissions] = useState<string[]>([]);
+    const [editStep, setEditStep] = useState<"details" | "permissions" | "members" | "danger">("details");
+    const [editError, setEditError] = useState<string | null>(null);
+    const [editSuccess, setEditSuccess] = useState<string | null>(null);
+    const [editSaving, setEditSaving] = useState(false);
+    const [deletingRole, setDeletingRole] = useState(false);
+    const [deleteConfirmName, setDeleteConfirmName] = useState("");
+    const [roleMemberCounts, setRoleMemberCounts] = useState<Record<string, number>>({});
+    const [roleMembersLoading, setRoleMembersLoading] = useState(false);
+    const [roleMembersError, setRoleMembersError] = useState<string | null>(null);
+    const [roleMemberRefreshKey, setRoleMemberRefreshKey] = useState(0);
+    const [allUserRolesMap, setAllUserRolesMap] = useState<Record<string, string[]>>({});
+    const [editUserSearch, setEditUserSearch] = useState("");
+    const [selectedEditUserIds, setSelectedEditUserIds] = useState<string[]>([]);
 
     useEffect(() => {
         let cancelled = false;
@@ -86,7 +121,13 @@ export default function SettingsCompany() {
 
     const canCreateRole = permissions.includes("CAN_CREATE_ROLE");
     const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
-    const canManageRoles = canCreateRole || canAssignRoles;
+    const canRemoveRoles = permissions.includes("CAN_REMOVE_ROLES");
+    const canEditRoles = permissions.includes("CAN_EDIT_ROLES");
+    const canDeleteRoles = permissions.includes("CAN_DELETE_ROLES");
+    const canViewUserRoles =
+        permissions.includes("CAN_VIEW_USERS") || canAssignRoles || canRemoveRoles;
+    const canManageRoles =
+        canCreateRole || canAssignRoles || canRemoveRoles || canEditRoles || canDeleteRoles;
 
     if (!permissionsLoading && !permissionsError && !canManageRoles) {
         return null;
@@ -116,7 +157,7 @@ export default function SettingsCompany() {
     }, [canManageRoles]);
 
     useEffect(() => {
-        if (!canCreateRole) return;
+        if (!canCreateRole && !canEditRoles) return;
         let cancelled = false;
         setCatalogLoading(true);
         setCatalogError(null);
@@ -136,10 +177,10 @@ export default function SettingsCompany() {
         return () => {
             cancelled = true;
         };
-    }, [canCreateRole]);
+    }, [canCreateRole, canEditRoles]);
 
     useEffect(() => {
-        if (!canAssignRoles) return;
+        if (!canViewUserRoles) return;
         let cancelled = false;
         setUsersLoading(true);
         setUsersError(null);
@@ -159,56 +200,171 @@ export default function SettingsCompany() {
         return () => {
             cancelled = true;
         };
-    }, [canAssignRoles]);
+    }, [canViewUserRoles]);
 
     useEffect(() => {
-        if (createSuccess) setCreateSuccess(null);
         if (createError) setCreateError(null);
-    }, [roleName, selectedPermissions]);
+    }, [roleName, roleColor, selectedPermissions, selectedCreateUserIds]);
 
     useEffect(() => {
-        setAssignSuccess(null);
-        setAssignError(null);
-    }, [selectedUserIds, selectedRoles]);
+        if (editError) setEditError(null);
+        if (editSuccess) setEditSuccess(null);
+    }, [editRoleName, editRoleColor, editPermissions]);
 
     const sortedRoles = useMemo(() => {
         return [...roles].sort((a, b) => a.name.localeCompare(b.name));
     }, [roles]);
 
     const sortedPermissions = useMemo(() => {
-        return [...permissionCatalog].sort((a, b) => a.localeCompare(b));
+        const list = [...permissionCatalog];
+        if (!list.includes("CAN_EDIT_ROLES")) list.push("CAN_EDIT_ROLES");
+        if (!list.includes("CAN_DELETE_ROLES")) list.push("CAN_DELETE_ROLES");
+        if (!list.includes("CAN_REMOVE_ROLES")) list.push("CAN_REMOVE_ROLES");
+        return list.sort((a, b) => a.localeCompare(b));
     }, [permissionCatalog]);
 
     const sortedUsers = useMemo(() => {
         return [...users].sort((a, b) => displayNameForUser(a).localeCompare(displayNameForUser(b)));
     }, [users]);
 
-    const filteredUsers = useMemo(() => {
-        const term = userSearch.trim().toLowerCase();
+    const filteredCreateUsers = useMemo(() => {
+        const term = createUserSearch.trim().toLowerCase();
         if (!term) return [];
-        const selectedSet = new Set(selectedUserIds);
+        const selectedSet = new Set(selectedCreateUserIds);
         return sortedUsers.filter((user) => {
             if (selectedSet.has(user.userId)) return false;
             const name = displayNameForUser(user).toLowerCase();
             return name.includes(term) || user.email.toLowerCase().includes(term);
         });
-    }, [displayNameForUser, selectedUserIds, sortedUsers, userSearch]);
+    }, [createUserSearch, displayNameForUser, selectedCreateUserIds, sortedUsers]);
 
-    const selectedUsers = useMemo(() => {
+    const filteredEditUsers = useMemo(() => {
+        const term = editUserSearch.trim().toLowerCase();
+        if (!term) return [];
+        const selectedSet = new Set(selectedEditUserIds);
+        return sortedUsers.filter((user) => {
+            if (selectedSet.has(user.userId)) return false;
+            const name = displayNameForUser(user).toLowerCase();
+            return name.includes(term) || user.email.toLowerCase().includes(term);
+        });
+    }, [displayNameForUser, editUserSearch, selectedEditUserIds, sortedUsers]);
+
+    const selectedCreateUsers = useMemo(() => {
         const userMap = new Map(users.map((user) => [user.userId, user]));
-        return selectedUserIds
+        return selectedCreateUserIds
             .map((id) => userMap.get(id))
             .filter((user): user is UserResponseDTO => Boolean(user));
-    }, [selectedUserIds, users]);
+    }, [selectedCreateUserIds, users]);
 
-    const addSelectedUser = useCallback((user: UserResponseDTO) => {
-        setSelectedUserIds((prev) => (prev.includes(user.userId) ? prev : [...prev, user.userId]));
-    }, []);
+    const selectedEditUsers = useMemo(() => {
+        const userMap = new Map(users.map((user) => [user.userId, user]));
+        return selectedEditUserIds
+            .map((id) => userMap.get(id))
+            .filter((user): user is UserResponseDTO => Boolean(user));
+    }, [selectedEditUserIds, users]);
+
+    useEffect(() => {
+        if (!canViewUserRoles || users.length === 0) {
+            setRoleMemberCounts({});
+            setRoleMembersError(null);
+            setRoleMembersLoading(false);
+            setAllUserRolesMap({});
+            return;
+        }
+        let cancelled = false;
+        setRoleMembersLoading(true);
+        setRoleMembersError(null);
+
+        AuthServices.getUserRoles(users.map((user) => user.userId))
+            .then((data) => {
+                if (cancelled) return;
+                const counts: Record<string, number> = {};
+                const map: Record<string, string[]> = {};
+                (data ?? []).forEach((entry) => {
+                    map[entry.userId] = entry.roles ?? [];
+                    (entry.roles ?? []).forEach((roleName) => {
+                        const key = normalizeRoleName(roleName);
+                        if (!key) return;
+                        counts[key] = (counts[key] ?? 0) + 1;
+                    });
+                });
+                setRoleMemberCounts(counts);
+                setAllUserRolesMap(map);
+            })
+            .catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : "Failed to load member counts";
+                if (!cancelled) setRoleMembersError(message);
+            })
+            .finally(() => {
+                if (!cancelled) setRoleMembersLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [canViewUserRoles, roleMemberRefreshKey, users]);
+
+    useEffect(() => {
+        if (!editRoleOpen) return;
+        if (selectedEditUserIds.length > 0) return;
+        const roleKey = normalizeRoleName(editRoleOriginalName || editRoleName);
+        if (!roleKey) return;
+        const ids = Object.entries(allUserRolesMap)
+            .filter(([, rolesForUser]) =>
+                (rolesForUser ?? []).some((roleName) => normalizeRoleName(roleName) === roleKey)
+            )
+            .map(([userId]) => userId);
+        setSelectedEditUserIds(ids);
+    }, [allUserRolesMap, editRoleName, editRoleOpen, editRoleOriginalName, selectedEditUserIds.length]);
+
+    const addCreateUser = useCallback(
+        (user: UserResponseDTO) => {
+            setSelectedCreateUserIds((prev) =>
+                prev.includes(user.userId) ? prev : [...prev, user.userId]
+            );
+            if (createSuccess) setCreateSuccess(null);
+        },
+        [createSuccess]
+    );
+
+    const addEditUser = useCallback(
+        (user: UserResponseDTO) => {
+            setSelectedEditUserIds((prev) =>
+                prev.includes(user.userId) ? prev : [...prev, user.userId]
+            );
+            if (editSuccess) setEditSuccess(null);
+        },
+        [editSuccess]
+    );
 
     const canSubmitCreate =
         roleName.trim().length > 0 && selectedPermissions.length > 0 && !catalogLoading;
 
-    const canSubmitAssign = selectedUserIds.length > 0 && selectedRoles.length > 0;
+    const canManageRoleMembers = canAssignRoles || canRemoveRoles;
+
+    const canSubmitEdit =
+        Boolean(editRoleId) &&
+        editRoleName.trim().length > 0 &&
+        (!canEditRoles || editPermissions.length > 0) &&
+        (canEditRoles || canManageRoleMembers) &&
+        !editSaving &&
+        !deletingRole;
+
+    const canConfirmDelete =
+        canDeleteRoles &&
+        Boolean(editRoleId) &&
+        normalizeRoleName(deleteConfirmName) ===
+            normalizeRoleName(editRoleOriginalName || editRoleName);
+
+    const memberCountLabel = (roleNameValue: string) => {
+        if (!canViewUserRoles) return "N/A members";
+        if (usersLoading) return "Loading...";
+        if (roleMembersLoading) return "Loading...";
+        if (roleMembersError) return "Members unavailable";
+        const count = roleMemberCounts[normalizeRoleName(roleNameValue)] ?? 0;
+        return `${count} member${count === 1 ? "" : "s"}`;
+    };
+
 
     const handleTogglePermission = (permission: string) => {
         setSelectedPermissions((prev) =>
@@ -216,18 +372,87 @@ export default function SettingsCompany() {
                 ? prev.filter((p) => p !== permission)
                 : [...prev, permission]
         );
+        if (createSuccess) setCreateSuccess(null);
     };
 
-    const handleToggleRole = (roleNameValue: string) => {
-        setSelectedRoles((prev) =>
-            prev.includes(roleNameValue)
-                ? prev.filter((r) => r !== roleNameValue)
-                : [...prev, roleNameValue]
+    const handleToggleEditPermission = (permission: string) => {
+        setEditPermissions((prev) =>
+            prev.includes(permission)
+                ? prev.filter((p) => p !== permission)
+                : [...prev, permission]
         );
     };
 
-    const handleCreateRole = async (event: React.FormEvent) => {
-        event.preventDefault();
+    const resetCreateRoleForm = () => {
+        setRoleName("");
+        setRoleColor(roleColorOptions[0] ?? "#2f6bff");
+        setSelectedPermissions([]);
+        setSelectedCreateUserIds([]);
+        setCreateUserSearch("");
+        setCreateStep("details");
+        setCreateError(null);
+        setCreateSuccess(null);
+    };
+
+    const resetEditRoleForm = () => {
+        setEditRoleId(null);
+        setEditRoleName("");
+        setEditRoleOriginalName("");
+        setEditRoleColor(roleColorOptions[0] ?? "#2f6bff");
+        setEditPermissions([]);
+        setEditStep("details");
+        setEditError(null);
+        setEditSuccess(null);
+        setEditSaving(false);
+        setDeletingRole(false);
+        setDeleteConfirmName("");
+        setEditUserSearch("");
+        setSelectedEditUserIds([]);
+    };
+
+    const openCreateRoleModal = () => {
+        resetCreateRoleForm();
+        setCreateRoleOpen(true);
+    };
+
+    const closeCreateRoleModal = () => {
+        setCreateRoleOpen(false);
+        resetCreateRoleForm();
+    };
+
+    const openEditRoleModal = (role: RoleResponseDTO) => {
+        if (!role.id) return;
+        setEditRoleId(role.id);
+        setEditRoleName(role.name ?? "");
+        setEditRoleOriginalName(role.name ?? "");
+        setEditRoleColor(role.color ?? roleColorOptions[0] ?? "#2f6bff");
+        setEditPermissions(role.permissions ?? []);
+        setEditStep("details");
+        setEditError(null);
+        setEditSuccess(null);
+        setDeleteConfirmName("");
+        setEditUserSearch("");
+        const roleKey = normalizeRoleName(role.name ?? "");
+        if (roleKey) {
+            const ids = Object.entries(allUserRolesMap)
+                .filter(([, rolesForUser]) =>
+                    (rolesForUser ?? []).some((roleName) => normalizeRoleName(roleName) === roleKey)
+                )
+                .map(([userId]) => userId);
+            setSelectedEditUserIds(ids);
+        } else {
+            setSelectedEditUserIds([]);
+        }
+        setEditRoleOpen(true);
+    };
+
+    const closeEditRoleModal = () => {
+        setEditRoleOpen(false);
+        resetEditRoleForm();
+    };
+
+    const handleCreateRole = async (event?: React.FormEvent) => {
+        if (event) event.preventDefault();
         if (!canCreateRole) return;
 
         const trimmedName = roleName.trim();
@@ -244,13 +469,43 @@ export default function SettingsCompany() {
             setCreatingRole(true);
             setCreateError(null);
             setCreateSuccess(null);
-            await AuthServices.createRole({
+            const createdRole = await AuthServices.createRole({
                 name: trimmedName,
                 permissions: selectedPermissions,
+                color: roleColor,
             });
-            setCreateSuccess(`Role ${trimmedName.toUpperCase()} created.`);
+            const createdName = createdRole?.name ?? trimmedName.toUpperCase();
+
+            if (selectedCreateUserIds.length > 0 && canAssignRoles) {
+                const existingRoles = await AuthServices.getUserRoles(selectedCreateUserIds);
+                const existingByUser = new Map<string, string[]>();
+                (existingRoles ?? []).forEach((entry) => {
+                    existingByUser.set(entry.userId, entry.roles ?? []);
+                });
+
+                await Promise.all(
+                    selectedCreateUserIds.map((userId) => {
+                        const current = existingByUser.get(userId) ?? [];
+                        const next = Array.from(new Set([...current, createdName]));
+                        return AuthServices.setUserRoles(userId, next);
+                    })
+                );
+                setCreateSuccess(
+                    `Role ${createdName} created and added to ${selectedCreateUserIds.length} member${
+                        selectedCreateUserIds.length === 1 ? "" : "s"
+                    }.`
+                );
+                setRoleMemberRefreshKey((prev) => prev + 1);
+            } else {
+                setCreateSuccess(`Role ${createdName} created.`);
+            }
+
             setRoleName("");
+            setRoleColor(roleColorOptions[0] ?? "#2f6bff");
             setSelectedPermissions([]);
+            setSelectedCreateUserIds([]);
+            setCreateUserSearch("");
+            setCreateStep("details");
             const data = await AuthServices.getRoles();
             setRoles(data ?? []);
         } catch (err: unknown) {
@@ -261,32 +516,124 @@ export default function SettingsCompany() {
         }
     };
 
-    const handleAssignRoles = async (event: React.FormEvent) => {
-        event.preventDefault();
-        if (!canAssignRoles) return;
-
-        if (selectedUserIds.length === 0) {
-            setAssignError("Select at least one user.");
+    const handleUpdateRole = async () => {
+        if (!canEditRoles && !canManageRoleMembers) {
+            setEditError("You do not have permission to update roles.");
+            return;
+        }
+        if (!editRoleId) {
+            setEditError("Role ID is missing.");
+            return;
+        }
+        const trimmedName = editRoleName.trim();
+        const normalizedNewName = normalizeRoleName(trimmedName);
+        const normalizedOldName = normalizeRoleName(editRoleOriginalName || trimmedName);
+        if (!trimmedName) {
+            setEditError("Role name is required.");
+            return;
+        }
+        if (canEditRoles && editPermissions.length === 0) {
+            setEditError("Select at least one permission.");
             return;
         }
 
         try {
-            setAssigningRoles(true);
-            setAssignError(null);
-            setAssignSuccess(null);
-            await Promise.all(
-                selectedUserIds.map((userId) => AuthServices.setUserRoles(userId, selectedRoles))
-            );
-            setAssignSuccess(
-                selectedUserIds.length === 1
-                    ? "Roles updated."
-                    : `Roles updated for ${selectedUserIds.length} users.`
-            );
+            setEditSaving(true);
+            setEditError(null);
+            setEditSuccess(null);
+            if (canEditRoles) {
+                await AuthServices.updateRole(editRoleId, {
+                    name: trimmedName,
+                    permissions: editPermissions,
+                    color: editRoleColor,
+                });
+            }
+
+            if (canManageRoleMembers && normalizedNewName) {
+                const roleNameForAssignment = trimmedName;
+                const selectedSet = new Set(selectedEditUserIds);
+                const updates: Array<Promise<void>> = [];
+
+                users.forEach((user) => {
+                    const currentRoles = allUserRolesMap[user.userId] ?? [];
+                    const normalizedRoles = currentRoles.map(normalizeRoleName);
+                    const hasRole =
+                        normalizedRoles.includes(normalizedOldName) ||
+                        normalizedRoles.includes(normalizedNewName);
+                    const shouldHave = selectedSet.has(user.userId);
+
+                    if (shouldHave && !hasRole && canAssignRoles) {
+                        const nextRoles = [
+                            ...currentRoles.filter(
+                                (roleName) =>
+                                    normalizeRoleName(roleName) !== normalizedOldName &&
+                                    normalizeRoleName(roleName) !== normalizedNewName
+                            ),
+                            roleNameForAssignment,
+                        ];
+                        updates.push(AuthServices.setUserRoles(user.userId, nextRoles));
+                    }
+
+                    if (!shouldHave && hasRole && canRemoveRoles) {
+                        const nextRoles = currentRoles.filter(
+                            (roleName) =>
+                                normalizeRoleName(roleName) !== normalizedOldName &&
+                                normalizeRoleName(roleName) !== normalizedNewName
+                        );
+                        updates.push(AuthServices.setUserRoles(user.userId, nextRoles));
+                    }
+                });
+
+                if (updates.length > 0) {
+                    await Promise.all(updates);
+                }
+            }
+            setEditSuccess(canEditRoles ? "Role updated." : "Role members updated.");
+            setEditRoleOriginalName(trimmedName);
+            const data = await AuthServices.getRoles();
+            setRoles(data ?? []);
+            setRoleMemberRefreshKey((prev) => prev + 1);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to update roles";
-            setAssignError(message);
+            const message = err instanceof Error ? err.message : "Failed to update role";
+            setEditError(message);
         } finally {
-            setAssigningRoles(false);
+            setEditSaving(false);
+        }
+    };
+
+    const handleDeleteRole = async () => {
+        if (!canDeleteRoles) {
+            setEditError("You do not have permission to delete roles.");
+            return;
+        }
+        if (!editRoleId) {
+            setEditError("Role ID is missing.");
+            return;
+        }
+        const expected = normalizeRoleName(editRoleOriginalName || editRoleName);
+        const provided = normalizeRoleName(deleteConfirmName);
+        if (!expected || expected !== provided) {
+            setEditError("Type the role name to confirm deletion.");
+            return;
+        }
+        const confirmed = window.confirm(`Delete role ${editRoleOriginalName || editRoleName}? This cannot be undone.`);
+        if (!confirmed) return;
+
+        try {
+            setDeletingRole(true);
+            setEditError(null);
+            setEditSuccess(null);
+            await AuthServices.deleteRole(editRoleId);
+            setEditSuccess("Role deleted.");
+            const data = await AuthServices.getRoles();
+            setRoles(data ?? []);
+            setRoleMemberRefreshKey((prev) => prev + 1);
+            closeEditRoleModal();
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to delete role";
+            setEditError(message);
+        } finally {
+            setDeletingRole(false);
         }
     };
 
@@ -309,265 +656,687 @@ export default function SettingsCompany() {
             ) : null}
 
             <div className="settingsSectionGrid">
-                <Card title="Roles">
+                <Card
+                    title="Roles"
+                    className="settingsRoleCard"
+                    right={
+                        canCreateRole ? (
+                            <button type="button" className="button" onClick={openCreateRoleModal}>
+                                Create role
+                            </button>
+                        ) : null
+                    }
+                >
                     <div className="settingsCardBody">
                         {rolesLoading ? <div className="settingsMeta">Loading roles...</div> : null}
                         {rolesError ? <div className="settingsError">{rolesError}</div> : null}
+                        {roleMembersError ? <div className="settingsError">{roleMembersError}</div> : null}
                         {!rolesLoading && !rolesError && roles.length === 0 ? (
                             <div className="settingsMeta">No roles defined yet.</div>
                         ) : null}
                         {!rolesLoading && !rolesError && roles.length > 0 ? (
                             <div className="settingsRoleList">
-                                {sortedRoles.map((role) => (
-                                    <div key={role.name} className="settingsRoleRow">
-                                        <div className="settingsRoleHeader">
-                                            <span className="settingsRoleName">{role.name}</span>
-                                            <span className="settingsRoleCount">
-                                                {role.permissions?.length ?? 0} permissions
-                                            </span>
-                                        </div>
-                                        <div className="settingsPillRow">
-                                            {(role.permissions ?? []).length === 0 ? (
-                                                <span className="settingsMeta">No permissions assigned.</span>
-                                            ) : (
-                                                (role.permissions ?? []).map((permission) => (
-                                                    <span key={permission} className="settingsPill">
-                                                        {formatPermission(permission)}
-                                                    </span>
-                                                ))
-                                            )}
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="settingsRoleHeaderRow">
+                                    <span>Role</span>
+                                    <span>Members</span>
+                                </div>
+                                {sortedRoles.map((role) => {
+                                    const roleKey = role.id ?? role.name;
+                                    const canOpenEdit =
+                                        canEditRoles || canDeleteRoles || canManageRoleMembers;
+                                    const roleColorValue = role.color ?? "#9ca3af";
+                                    return (
+                                        canOpenEdit ? (
+                                            <button
+                                                key={roleKey}
+                                                type="button"
+                                                className="settingsRoleRow settingsRoleRow--clickable"
+                                                onClick={() => openEditRoleModal(role)}
+                                            >
+                                                <span className="settingsRoleInfo">
+                                                    <span
+                                                        className="settingsRoleDot"
+                                                        style={{ backgroundColor: roleColorValue }}
+                                                    />
+                                                    <span className="settingsRoleName">{role.name}</span>
+                                                </span>
+                                                <span className="settingsRoleCount">
+                                                    {memberCountLabel(role.name)}
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            <div key={roleKey} className="settingsRoleRow">
+                                                <span className="settingsRoleInfo">
+                                                    <span
+                                                        className="settingsRoleDot"
+                                                        style={{ backgroundColor: roleColorValue }}
+                                                    />
+                                                    <span className="settingsRoleName">{role.name}</span>
+                                                </span>
+                                                <span className="settingsRoleCount">
+                                                    {memberCountLabel(role.name)}
+                                                </span>
+                                            </div>
+                                        )
+                                    );
+                                })}
                             </div>
                         ) : null}
                     </div>
                 </Card>
+            </div>
+            <Modal
+                open={editRoleOpen}
+                onClose={closeEditRoleModal}
+                title="Edit role"
+                maxHeight={560}
+                height={560}
+                hideDefaultFooter
+            >
+                <div className="roleWizard">
+                    <div className="roleWizardTabs" role="tablist" aria-label="Role edit steps">
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                editStep === "details" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setEditStep("details")}
+                            role="tab"
+                            aria-selected={editStep === "details"}
+                            disabled={editSaving || deletingRole}
+                        >
+                            Details
+                        </button>
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                editStep === "permissions" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setEditStep("permissions")}
+                            role="tab"
+                            aria-selected={editStep === "permissions"}
+                            disabled={editSaving || deletingRole}
+                        >
+                            Permissions
+                        </button>
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                editStep === "members" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setEditStep("members")}
+                            role="tab"
+                            aria-selected={editStep === "members"}
+                            disabled={editSaving || deletingRole}
+                        >
+                            Members
+                        </button>
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                editStep === "danger" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setEditStep("danger")}
+                            role="tab"
+                            aria-selected={editStep === "danger"}
+                            disabled={editSaving || deletingRole}
+                        >
+                            Delete
+                        </button>
+                    </div>
 
-                {canCreateRole ? (
-                    <Card title="Create role">
-                        <div className="settingsCardBody">
-                            <form onSubmit={handleCreateRole} className="settingsForm">
-                                <label className="settingsField">
-                                    <span className="settingsLabel">Role name</span>
+                    {editStep === "details" ? (
+                        <div className="roleWizardPanel">
+                            {!canEditRoles ? (
+                                <div className="roleWizardMeta">
+                                    You do not have permission to edit roles.
+                                </div>
+                            ) : null}
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Role name</span>
+                                <input
+                                    className="modal_input"
+                                    value={editRoleName}
+                                    onChange={(e) => setEditRoleName(e.target.value)}
+                                    placeholder="e.g. PAYROLL_MANAGER"
+                                    disabled={!canEditRoles || editSaving || deletingRole}
+                                />
+                            </label>
+
+                            <div className="roleWizardField">
+                                <span className="roleWizardLabel">Role color</span>
+                                <div className="roleColorPicker">
+                                    {roleColorOptions.map((color) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            className={`roleColorSwatch ${
+                                                editRoleColor === color ? "roleColorSwatch--active" : ""
+                                            }`}
+                                            style={{ backgroundColor: color }}
+                                            onClick={() => setEditRoleColor(color)}
+                                            aria-label={`Select ${color}`}
+                                            disabled={!canEditRoles || editSaving || deletingRole}
+                                        />
+                                    ))}
                                     <input
-                                        className="settingsInput"
-                                        value={roleName}
-                                        onChange={(e) => setRoleName(e.target.value)}
-                                        placeholder="e.g. PAYROLL_MANAGER"
-                                        disabled={creatingRole}
+                                        type="color"
+                                        className="roleColorInput"
+                                        value={editRoleColor}
+                                        onChange={(e) => setEditRoleColor(e.target.value)}
+                                        disabled={!canEditRoles || editSaving || deletingRole}
+                                        aria-label="Custom color"
                                     />
-                                </label>
+                                </div>
+                            </div>
 
-                                <div className="settingsField">
-                                    <div className="settingsLabelRow">
-                                        <span className="settingsLabel">Permissions</span>
-                                        <span className="settingsMeta">
-                                            {selectedPermissions.length} selected
-                                        </span>
-                                    </div>
-                                    {catalogLoading ? (
-                                        <div className="settingsMeta">Loading permission catalog...</div>
-                                    ) : catalogError ? (
-                                        <div className="settingsError">{catalogError}</div>
+                            <div className="roleColorPreview">
+                                <span
+                                    className="roleColorPreviewDot"
+                                    style={{ backgroundColor: editRoleColor }}
+                                />
+                                <span className="roleColorPreviewText">
+                                    {editRoleName.trim() || "Role"}
+                                </span>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {editStep === "permissions" ? (
+                        <div className="roleWizardPanel">
+                            <div className="roleWizardHeaderRow">
+                                <span className="roleWizardLabel">Permissions</span>
+                                <span className="roleWizardMeta">
+                                    {editPermissions.length} selected
+                                </span>
+                            </div>
+                            {catalogLoading ? (
+                                <div className="roleWizardMeta">Loading permission catalog...</div>
+                            ) : catalogError ? (
+                                <div className="roleWizardAlert roleWizardAlert--error">
+                                    {catalogError}
+                                </div>
+                            ) : (
+                                <div className="roleWizardCheckboxGrid">
+                                    {sortedPermissions.length === 0 ? (
+                                        <span className="roleWizardMeta">No permissions available.</span>
                                     ) : (
-                                        <div className="settingsCheckboxGrid">
-                                            {sortedPermissions.map((permission) => (
-                                                <label
-                                                    key={permission}
-                                                    className={`settingsCheckboxItem ${
-                                                        selectedPermissions.includes(permission)
-                                                            ? "settingsCheckboxItem--active"
-                                                            : ""
-                                                    }`}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedPermissions.includes(permission)}
-                                                        onChange={() => handleTogglePermission(permission)}
-                                                        disabled={creatingRole}
-                                                    />
-                                                    <span>{formatPermission(permission)}</span>
-                                                </label>
-                                            ))}
-                                        </div>
+                                        sortedPermissions.map((permission) => (
+                                            <label
+                                                key={permission}
+                                                className={`roleWizardCheckbox ${
+                                                    editPermissions.includes(permission)
+                                                        ? "roleWizardCheckbox--active"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={editPermissions.includes(permission)}
+                                                    onChange={() => handleToggleEditPermission(permission)}
+                                                    disabled={!canEditRoles || editSaving || deletingRole}
+                                                />
+                                                <span>{formatPermission(permission)}</span>
+                                            </label>
+                                        ))
                                     )}
                                 </div>
-
-                                {createError ? <div className="settingsError">{createError}</div> : null}
-                                {createSuccess ? (
-                                    <div className="settingsSuccess">{createSuccess}</div>
-                                ) : null}
-
-                                <button
-                                    className="button"
-                                    type="submit"
-                                    disabled={!canSubmitCreate || creatingRole}
-                                >
-                                    {creatingRole ? "Creating..." : "Create role"}
-                                </button>
-                            </form>
+                            )}
                         </div>
-                    </Card>
-                ) : null}
+                    ) : null}
 
-                {canAssignRoles ? (
-                    <Card title="Assign roles">
-                        <div className="settingsCardBody">
-                            <form onSubmit={handleAssignRoles} className="settingsForm">
-                                <label className="settingsField">
-                                    <span className="settingsLabel">Find user</span>
-                                    <div className="settingsUserSearchWrap">
-                                        <input
-                                            className="settingsInput"
-                                            type="search"
-                                            value={userSearch}
-                                            onChange={(e) => setUserSearch(e.target.value)}
-                                            onKeyDown={(e) => {
-                                                if (e.key !== "Enter") return;
-                                                e.preventDefault();
-                                                const match = filteredUsers[0];
-                                                if (match) {
-                                                    addSelectedUser(match);
-                                                    setUserSearch("");
-                                                }
-                                            }}
-                                            placeholder="Search by name or email"
-                                            disabled={usersLoading || assigningRoles}
-                                        />
-                                        {userSearch.trim() && filteredUsers.length > 0 ? (
-                                            <div
-                                                className="settingsUserList settingsUserList--dropdown"
-                                                role="listbox"
-                                                aria-label="Search results"
-                                            >
-                                                {filteredUsers.map((user) => (
-                                                    <button
-                                                        key={user.userId}
-                                                        type="button"
-                                                        className="settingsUserItem"
-                                                        onClick={() => {
-                                                            addSelectedUser(user);
-                                                            setUserSearch("");
-                                                        }}
-                                                        disabled={assigningRoles}
-                                                        role="option"
-                                                    >
-                                                        <span className="settingsUserName">
-                                                            {displayNameForUser(user)}
-                                                        </span>
-                                                        <span className="settingsUserEmail">{user.email}</span>
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </label>
-                                {userSearch.trim() && filteredUsers.length === 0 ? (
-                                    <div className="settingsMeta">No matches found.</div>
-                                ) : null}
-                                {selectedUsers.length > 0 ? (
-                                    <div className="settingsField">
-                                        <div className="settingsLabelRow">
-                                            <span className="settingsLabel">Selected users</span>
-                                            <span className="settingsMeta">
-                                                {selectedUsers.length} selected
-                                            </span>
-                                        </div>
+                    {editStep === "members" ? (
+                        <div className="roleWizardPanel">
+                            {!canManageRoleMembers ? (
+                                <div className="roleWizardMeta">
+                                    You do not have permission to manage role members.
+                                </div>
+                            ) : null}
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Find member</span>
+                                <div className="roleWizardSearchWrap">
+                                    <input
+                                        className="modal_input"
+                                        type="search"
+                                        value={editUserSearch}
+                                        onChange={(e) => setEditUserSearch(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key !== "Enter") return;
+                                            e.preventDefault();
+                                            const match = filteredEditUsers[0];
+                                            if (match) {
+                                                addEditUser(match);
+                                                setEditUserSearch("");
+                                            }
+                                        }}
+                                        placeholder="Search by name or email"
+                                        disabled={
+                                            !canAssignRoles ||
+                                            editSaving ||
+                                            deletingRole ||
+                                            usersLoading
+                                        }
+                                    />
+                                    {editUserSearch.trim() && filteredEditUsers.length > 0 ? (
                                         <div
-                                            className="settingsUserList"
+                                            className="roleWizardUserList roleWizardUserList--dropdown"
                                             role="listbox"
-                                            aria-label="Selected users"
+                                            aria-label="Search results"
                                         >
-                                            {selectedUsers.map((user) => (
-                                                <div
+                                            {filteredEditUsers.map((user) => (
+                                                <button
                                                     key={user.userId}
-                                                    className="settingsUserItem settingsUserItem--active settingsUserItem--selected"
+                                                    type="button"
+                                                    className="roleWizardUserItem"
+                                                    onClick={() => {
+                                                        addEditUser(user);
+                                                        setEditUserSearch("");
+                                                    }}
+                                                    disabled={editSaving || deletingRole}
+                                                    role="option"
                                                 >
-                                                    <div className="settingsUserMeta">
-                                                        <span className="settingsUserName">
-                                                            {displayNameForUser(user)}
-                                                        </span>
-                                                        <span className="settingsUserEmail">{user.email}</span>
-                                                    </div>
+                                                    <span className="roleWizardUserName">
+                                                        {displayNameForUser(user)}
+                                                    </span>
+                                                    <span className="roleWizardUserEmail">{user.email}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
+                                </div>
+                            </label>
+                            {editUserSearch.trim() && filteredEditUsers.length === 0 ? (
+                                <div className="roleWizardMeta">No matches found.</div>
+                            ) : null}
+                            {usersLoading ? (
+                                <div className="roleWizardMeta">Loading members...</div>
+                            ) : usersError ? (
+                                <div className="roleWizardAlert roleWizardAlert--error">{usersError}</div>
+                            ) : null}
+                            {selectedEditUsers.length > 0 ? (
+                                <div className="roleWizardField">
+                                    <div className="roleWizardHeaderRow">
+                                        <span className="roleWizardLabel">Members with this role</span>
+                                        <span className="roleWizardMeta">
+                                            {selectedEditUsers.length} selected
+                                        </span>
+                                    </div>
+                                    <div className="roleWizardUserList" role="listbox" aria-label="Selected members">
+                                        {selectedEditUsers.map((user) => (
+                                            <div
+                                                key={user.userId}
+                                                className="roleWizardUserItem roleWizardUserItem--selected"
+                                            >
+                                                <div className="roleWizardUserMeta">
+                                                    <span className="roleWizardUserName">
+                                                        {displayNameForUser(user)}
+                                                    </span>
+                                                    <span className="roleWizardUserEmail">{user.email}</span>
+                                                </div>
+                                                {canRemoveRoles ? (
                                                     <button
                                                         type="button"
-                                                        className="settingsUserRemove"
-                                                        onClick={() =>
-                                                            setSelectedUserIds((prev) =>
+                                                        className="roleWizardUserRemove"
+                                                        onClick={() => {
+                                                            setSelectedEditUserIds((prev) =>
                                                                 prev.filter((id) => id !== user.userId)
-                                                            )
-                                                        }
-                                                        disabled={assigningRoles}
+                                                            );
+                                                            if (editSuccess) setEditSuccess(null);
+                                                        }}
+                                                        disabled={editSaving || deletingRole}
                                                         aria-label={`Remove ${displayNameForUser(user)}`}
                                                     >
                                                         Remove
                                                     </button>
-                                                </div>
+                                                ) : null}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {!canRemoveRoles ? (
+                                        <div className="roleWizardMeta">
+                                            Removing members requires the remove roles permission.
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="roleWizardMeta">No members selected.</div>
+                            )}
+                        </div>
+                    ) : null}
+
+                    {editStep === "danger" ? (
+                        <div className="roleWizardPanel">
+                            <div className="roleWizardAlert roleWizardAlert--warning">
+                                Deleting this role is permanent and will remove it from all members.
+                            </div>
+                            {!canDeleteRoles ? (
+                                <div className="roleWizardMeta">
+                                    You do not have permission to delete roles.
+                                </div>
+                            ) : null}
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">
+                                    Type {editRoleOriginalName || editRoleName} to confirm
+                                </span>
+                                <input
+                                    className="modal_input"
+                                    value={deleteConfirmName}
+                                    onChange={(e) => {
+                                        setDeleteConfirmName(e.target.value);
+                                        if (editError) setEditError(null);
+                                        if (editSuccess) setEditSuccess(null);
+                                    }}
+                                    disabled={!canDeleteRoles || deletingRole}
+                                />
+                            </label>
+                            <button
+                                type="button"
+                                className="roleWizardDangerButton"
+                                onClick={() => void handleDeleteRole()}
+                                disabled={!canConfirmDelete || deletingRole}
+                            >
+                                {deletingRole ? "Deleting..." : "Delete role"}
+                            </button>
+                        </div>
+                    ) : null}
+
+                    {editError ? (
+                        <div className="roleWizardAlert roleWizardAlert--error">{editError}</div>
+                    ) : null}
+                    {editSuccess ? (
+                        <div className="roleWizardAlert roleWizardAlert--success">{editSuccess}</div>
+                    ) : null}
+                    {editStep !== "danger" && (canEditRoles || canManageRoleMembers) ? (
+                        <div className="roleWizardActions">
+                            <button
+                                type="button"
+                                className="roleWizardPrimary"
+                                onClick={() => void handleUpdateRole()}
+                                disabled={!canSubmitEdit}
+                            >
+                                {editSaving ? "Saving..." : "Save changes"}
+                            </button>
+                        </div>
+                    ) : null}
+                </div>
+            </Modal>
+            <Modal
+                open={createRoleOpen}
+                onClose={closeCreateRoleModal}
+                title="Create role"
+                maxHeight={560}
+                height={560}
+                hideDefaultFooter
+            >
+                <div className="roleWizard">
+                    <div className="roleWizardTabs" role="tablist" aria-label="Role setup steps">
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                createStep === "details" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setCreateStep("details")}
+                            role="tab"
+                            aria-selected={createStep === "details"}
+                            disabled={creatingRole}
+                        >
+                            Details
+                        </button>
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                createStep === "permissions" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setCreateStep("permissions")}
+                            role="tab"
+                            aria-selected={createStep === "permissions"}
+                            disabled={creatingRole}
+                        >
+                            Permissions
+                        </button>
+                        <button
+                            type="button"
+                            className={`roleWizardTab ${
+                                createStep === "members" ? "roleWizardTab--active" : ""
+                            }`}
+                            onClick={() => setCreateStep("members")}
+                            role="tab"
+                            aria-selected={createStep === "members"}
+                            disabled={creatingRole}
+                        >
+                            Members
+                        </button>
+                    </div>
+
+                    {createStep === "details" ? (
+                        <div className="roleWizardPanel">
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Role name</span>
+                                <input
+                                    className="modal_input"
+                                    value={roleName}
+                                    onChange={(e) => {
+                                        setRoleName(e.target.value);
+                                        if (createSuccess) setCreateSuccess(null);
+                                    }}
+                                    placeholder="e.g. PAYROLL_MANAGER"
+                                    disabled={creatingRole}
+                                />
+                            </label>
+
+                            <div className="roleWizardField">
+                                <span className="roleWizardLabel">Role color</span>
+                                <div className="roleColorPicker">
+                                    {roleColorOptions.map((color) => (
+                                        <button
+                                            key={color}
+                                            type="button"
+                                            className={`roleColorSwatch ${
+                                                roleColor === color ? "roleColorSwatch--active" : ""
+                                            }`}
+                                            style={{ backgroundColor: color }}
+                                            onClick={() => {
+                                                setRoleColor(color);
+                                                if (createSuccess) setCreateSuccess(null);
+                                            }}
+                                            aria-label={`Select ${color}`}
+                                            disabled={creatingRole}
+                                        />
+                                    ))}
+                                    <input
+                                        type="color"
+                                        className="roleColorInput"
+                                        value={roleColor}
+                                        onChange={(e) => {
+                                            setRoleColor(e.target.value);
+                                            if (createSuccess) setCreateSuccess(null);
+                                        }}
+                                        disabled={creatingRole}
+                                        aria-label="Custom color"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="roleColorPreview">
+                                <span
+                                    className="roleColorPreviewDot"
+                                    style={{ backgroundColor: roleColor }}
+                                />
+                                <span className="roleColorPreviewText">
+                                    {roleName.trim() || "New role"}
+                                </span>
+                            </div>
+                        </div>
+                    ) : null}
+
+                    {createStep === "permissions" ? (
+                        <div className="roleWizardPanel">
+                            <div className="roleWizardHeaderRow">
+                                <span className="roleWizardLabel">Permissions</span>
+                                <span className="roleWizardMeta">
+                                    {selectedPermissions.length} selected
+                                </span>
+                            </div>
+                            {catalogLoading ? (
+                                <div className="roleWizardMeta">Loading permission catalog...</div>
+                            ) : catalogError ? (
+                                <div className="roleWizardAlert roleWizardAlert--error">
+                                    {catalogError}
+                                </div>
+                            ) : (
+                                <div className="roleWizardCheckboxGrid">
+                                    {sortedPermissions.length === 0 ? (
+                                        <span className="roleWizardMeta">No permissions available.</span>
+                                    ) : (
+                                        sortedPermissions.map((permission) => (
+                                            <label
+                                                key={permission}
+                                                className={`roleWizardCheckbox ${
+                                                    selectedPermissions.includes(permission)
+                                                        ? "roleWizardCheckbox--active"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={selectedPermissions.includes(permission)}
+                                                    onChange={() => handleTogglePermission(permission)}
+                                                    disabled={creatingRole}
+                                                />
+                                                <span>{formatPermission(permission)}</span>
+                                            </label>
+                                        ))
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ) : null}
+
+                    {createStep === "members" ? (
+                        <div className="roleWizardPanel">
+                            {!canAssignRoles ? (
+                                <div className="roleWizardMeta">
+                                    Adding members requires the assign roles permission.
+                                </div>
+                            ) : null}
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Find member</span>
+                                <div className="roleWizardSearchWrap">
+                                    <input
+                                        className="modal_input"
+                                        type="search"
+                                        value={createUserSearch}
+                                        onChange={(e) => setCreateUserSearch(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key !== "Enter") return;
+                                            e.preventDefault();
+                                            const match = filteredCreateUsers[0];
+                                            if (match) {
+                                                addCreateUser(match);
+                                                setCreateUserSearch("");
+                                            }
+                                        }}
+                                        placeholder="Search by name or email"
+                                        disabled={!canAssignRoles || usersLoading || creatingRole}
+                                    />
+                                    {createUserSearch.trim() && filteredCreateUsers.length > 0 ? (
+                                        <div
+                                            className="roleWizardUserList roleWizardUserList--dropdown"
+                                            role="listbox"
+                                            aria-label="Search results"
+                                        >
+                                            {filteredCreateUsers.map((user) => (
+                                                <button
+                                                    key={user.userId}
+                                                    type="button"
+                                                    className="roleWizardUserItem"
+                                                    onClick={() => {
+                                                        addCreateUser(user);
+                                                        setCreateUserSearch("");
+                                                    }}
+                                                    disabled={creatingRole}
+                                                    role="option"
+                                                >
+                                                    <span className="roleWizardUserName">
+                                                        {displayNameForUser(user)}
+                                                    </span>
+                                                    <span className="roleWizardUserEmail">{user.email}</span>
+                                                </button>
                                             ))}
                                         </div>
-                                    </div>
-                                ) : null}
-
-                                {usersLoading ? (
-                                    <div className="settingsMeta">Loading users...</div>
-                                ) : usersError ? (
-                                    <div className="settingsError">{usersError}</div>
-                                ) : null}
-
-                                <div className="settingsField">
-                                    <div className="settingsLabelRow">
-                                        <span className="settingsLabel">Roles</span>
-                                        <span className="settingsMeta">
-                                            {selectedRoles.length} selected
+                                    ) : null}
+                                </div>
+                            </label>
+                            {createUserSearch.trim() && filteredCreateUsers.length === 0 ? (
+                                <div className="roleWizardMeta">No matches found.</div>
+                            ) : null}
+                            {usersLoading ? (
+                                <div className="roleWizardMeta">Loading members...</div>
+                            ) : usersError ? (
+                                <div className="roleWizardAlert roleWizardAlert--error">{usersError}</div>
+                            ) : null}
+                            {selectedCreateUsers.length > 0 ? (
+                                <div className="roleWizardField">
+                                    <div className="roleWizardHeaderRow">
+                                        <span className="roleWizardLabel">Selected members</span>
+                                        <span className="roleWizardMeta">
+                                            {selectedCreateUsers.length} selected
                                         </span>
                                     </div>
-                                    <div className="settingsCheckboxGrid">
-                                        {sortedRoles.length === 0 ? (
-                                            <span className="settingsMeta">No roles available.</span>
-                                        ) : (
-                                            sortedRoles.map((role) => (
-                                                <label
-                                                    key={role.name}
-                                                    className={`settingsCheckboxItem ${
-                                                        selectedRoles.includes(role.name)
-                                                            ? "settingsCheckboxItem--active"
-                                                            : ""
-                                                    }`}
+                                    <div className="roleWizardUserList" role="listbox" aria-label="Selected members">
+                                        {selectedCreateUsers.map((user) => (
+                                            <div
+                                                key={user.userId}
+                                                className="roleWizardUserItem roleWizardUserItem--selected"
+                                            >
+                                                <div className="roleWizardUserMeta">
+                                                    <span className="roleWizardUserName">
+                                                        {displayNameForUser(user)}
+                                                    </span>
+                                                    <span className="roleWizardUserEmail">{user.email}</span>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="roleWizardUserRemove"
+                                                    onClick={() => {
+                                                        setSelectedCreateUserIds((prev) =>
+                                                            prev.filter((id) => id !== user.userId)
+                                                        );
+                                                        if (createSuccess) setCreateSuccess(null);
+                                                    }}
+                                                    disabled={!canAssignRoles || creatingRole}
+                                                    aria-label={`Remove ${displayNameForUser(user)}`}
                                                 >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={selectedRoles.includes(role.name)}
-                                                        onChange={() => handleToggleRole(role.name)}
-                                                        disabled={assigningRoles}
-                                                    />
-                                                    <span>{role.name}</span>
-                                                </label>
-                                            ))
-                                        )}
-                                    </div>
-                                    <div className="settingsMeta">
-                                        Select one or more roles. Assigning roles replaces the user&apos;s existing roles.
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
-
-                                {assignError ? <div className="settingsError">{assignError}</div> : null}
-                                {assignSuccess ? (
-                                    <div className="settingsSuccess">{assignSuccess}</div>
-                                ) : null}
-
-                                <button
-                                    className="button"
-                                    type="submit"
-                                    disabled={!canSubmitAssign || assigningRoles}
-                                >
-                                    {assigningRoles ? "Saving..." : "Update roles"}
-                                </button>
-                            </form>
+                            ) : (
+                                <div className="roleWizardMeta">No members selected.</div>
+                            )}
                         </div>
-                    </Card>
-                ) : null}
-            </div>
+                    ) : null}
+
+                    {createError ? (
+                        <div className="roleWizardAlert roleWizardAlert--error">{createError}</div>
+                    ) : null}
+                    {createSuccess ? (
+                        <div className="roleWizardAlert roleWizardAlert--success">{createSuccess}</div>
+                    ) : null}
+                    <div className="roleWizardActions">
+                        <button
+                            type="button"
+                            className="roleWizardPrimary"
+                            onClick={() => void handleCreateRole()}
+                            disabled={!canSubmitCreate || creatingRole}
+                        >
+                            {creatingRole ? "Creating..." : "Create role"}
+                        </button>
+                    </div>
+                </div>
+            </Modal>
         </>
     );
 }

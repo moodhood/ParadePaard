@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
@@ -15,6 +16,15 @@ export default function PayslipReview() {
     const [payslips, setPayslips] = useState<PayslipResponseDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+
+    const normalizeStatus = (status?: string | null) => (status ?? "RELEASED").toUpperCase();
+    const formatStatus = (status?: string | null) => {
+        const value = normalizeStatus(status);
+        return value
+            .split("_")
+            .map((part) => part[0] + part.slice(1).toLowerCase())
+            .join(" ");
+    };
 
     const money = (n: number | null | undefined) =>
         new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(n ?? 0));
@@ -65,72 +75,81 @@ export default function PayslipReview() {
         <>
             <Navbar />
             <div className="adminDashboardPage">
-                <div className="adminDashboardCard">
-                    <header className="pageHeader">
-                        <PageBack />
-                        <h1 className="pageTitle">Payslip Review</h1>
-                        <p className="pageSubtitle">Payslips generated for admin review before release</p>
-                    </header>
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <div className="pageShellContent">
+                        <div className="adminDashboardCard">
+                            <header className="pageHeader">
+                                <PageBack />
+                                <h1 className="pageTitle">Payslip Review</h1>
+                                <p className="pageSubtitle">Payslips generated for admin review before release</p>
+                            </header>
 
-                    <Card
-                        title="Pending Review"
-                        right={
-                            <button className="button" onClick={() => void load()} disabled={loading}>
-                                Refresh
-                            </button>
-                        }
-                    >
-                        <div className="listContainer">
-                            <div className="listHeaderGrid gridPayslipReview">
-                                <div>Name</div>
-                                <div>Period end</div>
-                                <div>Payout</div>
-                                <div style={{ textAlign: "right" }}>Hours</div>
-                                <div style={{ textAlign: "right" }}>Net</div>
-                                <div style={{ textAlign: "right" }}>Action</div>
-                            </div>
+                            <Card
+                                title="Pending Review"
+                                right={
+                                    <button className="button" onClick={() => void load()} disabled={loading}>
+                                        Refresh
+                                    </button>
+                                }
+                            >
+                                <div className="listContainer">
+                                    <div className="listHeaderGrid gridPayslipReview">
+                                        <div>Name</div>
+                                        <div>Period end</div>
+                                        <div>Payout</div>
+                                        <div>Hours</div>
+                                        <div>Net</div>
+                                        <div>Status</div>
+                                        <div>Action</div>
+                                    </div>
 
-                            <div className="listScrollArea" style={{ maxHeight: "65vh" }}>
-                                {loading ? <div className="listEmpty">Loading...</div> : null}
-                                {error ? <div className="listEmpty errorText">{error}</div> : null}
+                                    <div className="listScrollArea" style={{ maxHeight: "65vh" }}>
+                                        {loading ? <div className="listEmpty">Loading...</div> : null}
+                                        {error ? <div className="listEmpty errorText">{error}</div> : null}
 
-                                {!loading && !error && sorted.length === 0 ? (
-                                    <div className="listEmpty">No payslips pending review</div>
-                                ) : null}
+                                        {!loading && !error && sorted.length === 0 ? (
+                                            <div className="listEmpty">No payslips pending review</div>
+                                        ) : null}
 
-                                {!loading && !error
-                                    ? sorted.map((p) => (
-                                          <div
-                                              key={p.payslipId}
-                                              className="listRowGrid gridPayslipReview clickableRow"
-                                              onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
-                                          >
-                                              <div className="cellMain">{p.name}</div>
-                                              <div className="cellSub">{formatDate(p.dateOfIssue)}</div>
-                                              <div className="cellSub">{formatDate(p.availableToUserAt)}</div>
-                                              <div className="cellDate">{Number(p.totalHoursWorked ?? 0).toFixed(2)}</div>
-                                              <div className="cellDate">{money(p.totalNetAmount)}</div>
-                                              <div className="cellDate">
-                                                  <button
-                                                      className="linkButton"
-                                                      type="button"
-                                                      onClick={(event) => {
-                                                          event.stopPropagation();
-                                                          void downloadPayslipPdf(
-                                                              p.payslipId,
-                                                              `payslip_review_${p.weekBasedYear}_W${p.weekNumber}.pdf`
-                                                          );
-                                                      }}
+                                        {!loading && !error
+                                            ? sorted.map((p) => (
+                                                  <div
+                                                      key={p.payslipId}
+                                                      className="listRowGrid gridPayslipReview clickableRow"
+                                                      onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
                                                   >
-                                                      Download PDF
-                                                  </button>
-                                              </div>
-                                          </div>
-                                      ))
-                                    : null}
-                            </div>
+                                                      <div className="cellMain">{p.name}</div>
+                                                      <div className="cellSub">{formatDate(p.dateOfIssue)}</div>
+                                                      <div className="cellSub">{formatDate(p.availableToUserAt)}</div>
+                                                      <div className="cellDate">
+                                                          {Number(p.totalHoursWorked ?? 0).toFixed(2)}
+                                                      </div>
+                                                      <div className="cellDate">{money(p.totalNetAmount)}</div>
+                                                      <div className="cellSub">{formatStatus(p.status)}</div>
+                                                      <div className="cellDate">
+                                                          <button
+                                                              className="linkButton"
+                                                              type="button"
+                                                              onClick={(event) => {
+                                                                  event.stopPropagation();
+                                                                  void downloadPayslipPdf(
+                                                                      p.payslipId,
+                                                                      `payslip_review_${p.weekBasedYear}_W${p.weekNumber}.pdf`
+                                                                  );
+                                                              }}
+                                                          >
+                                                              Download PDF
+                                                          </button>
+                                                      </div>
+                                                  </div>
+                                              ))
+                                            : null}
+                                    </div>
+                                </div>
+                            </Card>
                         </div>
-                    </Card>
+                    </div>
                 </div>
             </div>
         </>

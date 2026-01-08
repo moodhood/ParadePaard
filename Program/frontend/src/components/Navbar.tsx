@@ -1,26 +1,32 @@
 import { type JSX, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
+import { clearAuthCache, readCachedIsAdmin, writeCachedIsAdmin } from "../utils/authCache";
 import "../stylesheets/Navbar.css";
 
 export default function Navbar(): JSX.Element {
+    const location = useLocation();
     const navigate = useNavigate();
     const { setStatus } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
     const searchRef = useRef<HTMLDivElement | null>(null);
+    const headerRef = useRef<HTMLElement | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarInitial, setAvatarInitial] = useState("P");
-    const [isAdmin, setIsAdmin] = useState(false);
+    const cachedIsAdmin = useMemo(() => readCachedIsAdmin(), []);
+    const [isAdmin, setIsAdmin] = useState(cachedIsAdmin ?? false);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
-    const [canViewPayslips, setCanViewPayslips] = useState(false);
+    const personalView = useMemo(() => {
+        return new URLSearchParams(location.search).get("view") === "personal";
+    }, [location.search]);
 
     useEffect(() => {
         return () => {
@@ -33,10 +39,14 @@ export default function Navbar(): JSX.Element {
 
         AuthServices.isAdmin()
             .then((value) => {
-                if (!cancelled) setIsAdmin(Boolean(value));
+                if (!cancelled) {
+                    const nextValue = Boolean(value);
+                    setIsAdmin(nextValue);
+                    writeCachedIsAdmin(nextValue);
+                }
             })
             .catch(() => {
-                if (!cancelled) setIsAdmin(false);
+                if (!cancelled && cachedIsAdmin === null) setIsAdmin(false);
             });
 
         return () => {
@@ -45,27 +55,14 @@ export default function Navbar(): JSX.Element {
     }, []);
 
     useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((perms) => {
-                if (cancelled) return;
-                const list = perms ?? [];
-                setCanViewPayslips(
-                    list.includes("CAN_VIEW_PAYSLIPS") || list.includes("CAN_VIEW_ALL_PAYSLIPS")
-                );
-            })
-            .catch(() => {
-                if (!cancelled) setCanViewPayslips(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!isAdmin) return;
+        if (!isAdmin || personalView) {
+            setUsers([]);
+            setSearchOpen(false);
+            setSearchTerm("");
+            setSearchLoading(false);
+            setSearchError(null);
+            return;
+        }
         let cancelled = false;
 
         const loadUsers = async () => {
@@ -87,7 +84,7 @@ export default function Navbar(): JSX.Element {
         return () => {
             cancelled = true;
         };
-    }, [isAdmin]);
+    }, [isAdmin, personalView]);
 
     useEffect(() => {
         let cancelled = false;
@@ -161,6 +158,32 @@ export default function Navbar(): JSX.Element {
     }, [menuOpen]);
 
     useEffect(() => {
+        const node = headerRef.current;
+        if (!node) return;
+
+        const updateHeight = () => {
+            const rect = node.getBoundingClientRect();
+            const height = Math.ceil(rect.height);
+            document.documentElement.style.setProperty("--navbar-height", `${height}px`);
+        };
+
+        updateHeight();
+
+        let observer: ResizeObserver | null = null;
+        if (typeof ResizeObserver !== "undefined") {
+            observer = new ResizeObserver(() => updateHeight());
+            observer.observe(node);
+        } else {
+            window.addEventListener("resize", updateHeight);
+        }
+
+        return () => {
+            observer?.disconnect();
+            window.removeEventListener("resize", updateHeight);
+        };
+    }, []);
+
+    useEffect(() => {
         if (!searchOpen) return;
 
         const handlePointerDown = (event: MouseEvent | TouchEvent) => {
@@ -228,6 +251,8 @@ export default function Navbar(): JSX.Element {
             localStorage.removeItem("refreshToken");
             localStorage.removeItem("authToken");
             localStorage.removeItem("passwordResetToken");
+            localStorage.removeItem("userStatus");
+            clearAuthCache();
             sessionStorage.removeItem("token");
             sessionStorage.removeItem("accessToken");
             sessionStorage.removeItem("refreshToken");
@@ -264,173 +289,60 @@ export default function Navbar(): JSX.Element {
                 </div>
             ) : null}
 
-            <header className="nav_wrap">
+            <header className="nav_wrap" ref={headerRef}>
                 <div className="nav_left">
-                    <div className="brand">
-                        <span className="brand_main">ParadePaard</span>
+                    <div className="nav_top">
+                        <div className="brand">
+                            <span className="brand_main">ParadePaard</span>
+                        </div>
+                        {isAdmin && !personalView ? (
+                            <div className="nav_search" ref={searchRef}>
+                                <input
+                                    className="nav_search_input"
+                                    type="search"
+                                    placeholder="Search users"
+                                    aria-label="Search users"
+                                    value={searchTerm}
+                                    onFocus={() => setSearchOpen(true)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setSearchOpen(true);
+                                    }}
+                                    disabled={loggingOut}
+                                />
+                                {searchOpen ? (
+                                    <div className="nav_search_results" role="listbox">
+                                        {searchLoading ? (
+                                            <div className="nav_search_empty">Loading users...</div>
+                                        ) : searchError ? (
+                                            <div className="nav_search_empty">{searchError}</div>
+                                        ) : searchTerm.trim().length === 0 ? (
+                                            <div className="nav_search_empty">Start typing to search.</div>
+                                        ) : searchResults.length === 0 ? (
+                                            <div className="nav_search_empty">No matches found.</div>
+                                        ) : (
+                                            searchResults.map(({ user, name }) => (
+                                                <button
+                                                    key={user.userId}
+                                                    type="button"
+                                                    className="nav_search_item"
+                                                    role="option"
+                                                    onClick={() => handleSelectUser(user.userId)}
+                                                >
+                                                    <span className="nav_search_name">{name}</span>
+                                                    <span className="nav_search_email">{user.email}</span>
+                                                </button>
+                                            ))
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
+                        ) : null}
                     </div>
+                    
                 </div>
 
                 <div className="nav_right">
-                    <Link
-                        to="/dashboard"
-                        className={`nav_quick_link ${loggingOut ? "nav_quick_link--disabled" : ""}`}
-                        aria-label="Dashboard"
-                        aria-disabled={loggingOut}
-                        tabIndex={loggingOut ? -1 : 0}
-                        onClick={(e) => {
-                            if (loggingOut) e.preventDefault();
-                        }}
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <path d="M3 11l9-8 9 8" />
-                            <path d="M5 10v10h14V10" />
-                        </svg>
-                        <span className="nav_quick_text">Dashboard</span>
-                    </Link>
-                    <Link
-                        to="/work-history"
-                        className={`nav_quick_link ${loggingOut ? "nav_quick_link--disabled" : ""}`}
-                        aria-label="Work history"
-                        aria-disabled={loggingOut}
-                        tabIndex={loggingOut ? -1 : 0}
-                        onClick={(e) => {
-                            if (loggingOut) e.preventDefault();
-                        }}
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <circle cx="12" cy="12" r="9" />
-                            <path d="M12 7v6l4 2" />
-                        </svg>
-                        <span className="nav_quick_text">Work history</span>
-                    </Link>
-                    {canViewPayslips ? (
-                        <Link
-                            to="/payslips"
-                            className={`nav_quick_link ${loggingOut ? "nav_quick_link--disabled" : ""}`}
-                            aria-label="Payslips"
-                            aria-disabled={loggingOut}
-                            tabIndex={loggingOut ? -1 : 0}
-                            onClick={(e) => {
-                                if (loggingOut) e.preventDefault();
-                            }}
-                        >
-                            <svg
-                                className="nav_quick_icon"
-                                viewBox="0 0 24 24"
-                                width="18"
-                                height="18"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                            >
-                                <path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-                                <path d="M14 3v5h5" />
-                                <path d="M9 13h6" />
-                                <path d="M9 17h6" />
-                            </svg>
-                            <span className="nav_quick_text">Payslips</span>
-                        </Link>
-                    ) : null}
-                    {isAdmin ? (
-                        <Link
-                            to="/admin/users"
-                            className={`nav_quick_link ${loggingOut ? "nav_quick_link--disabled" : ""}`}
-                            aria-label="Users"
-                            aria-disabled={loggingOut}
-                            tabIndex={loggingOut ? -1 : 0}
-                            onClick={(e) => {
-                                if (loggingOut) e.preventDefault();
-                            }}
-                        >
-                            <svg
-                                className="nav_quick_icon"
-                                viewBox="0 0 24 24"
-                                width="18"
-                                height="18"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                aria-hidden="true"
-                            >
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                            <span className="nav_quick_text">Users</span>
-                        </Link>
-                    ) : null}
-                    {isAdmin ? (
-                        <div className="nav_search" ref={searchRef}>
-                            <input
-                                className="nav_search_input"
-                                type="search"
-                                placeholder="Search users"
-                                aria-label="Search users"
-                                value={searchTerm}
-                                onFocus={() => setSearchOpen(true)}
-                                onChange={(e) => {
-                                    setSearchTerm(e.target.value);
-                                    setSearchOpen(true);
-                                }}
-                                disabled={loggingOut}
-                            />
-                            {searchOpen ? (
-                                <div className="nav_search_results" role="listbox">
-                                    {searchLoading ? (
-                                        <div className="nav_search_empty">Loading users...</div>
-                                    ) : searchError ? (
-                                        <div className="nav_search_empty">{searchError}</div>
-                                    ) : searchTerm.trim().length === 0 ? (
-                                        <div className="nav_search_empty">Start typing to search.</div>
-                                    ) : searchResults.length === 0 ? (
-                                        <div className="nav_search_empty">No matches found.</div>
-                                    ) : (
-                                        searchResults.map(({ user, name }) => (
-                                            <button
-                                                key={user.userId}
-                                                type="button"
-                                                className="nav_search_item"
-                                                role="option"
-                                                onClick={() => handleSelectUser(user.userId)}
-                                            >
-                                                <span className="nav_search_name">{name}</span>
-                                                <span className="nav_search_email">{user.email}</span>
-                                            </button>
-                                        ))
-                                    )}
-                                </div>
-                            ) : null}
-                        </div>
-                    ) : null}
                     <div className="nav_user_menu" ref={menuRef}>
                         <button
                             type="button"
@@ -461,10 +373,30 @@ export default function Navbar(): JSX.Element {
 
                         {menuOpen && (
                             <div className="nav_dropdown" role="menu" aria-label="User menu">
+                                {isAdmin && !personalView ? (
+                                    <Link
+                                        className="nav_dropdown_item"
+                                        role="menuitem"
+                                        to="/dashboard?view=personal"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Personal Account
+                                    </Link>
+                                ) : null}
+                                {isAdmin && personalView ? (
+                                    <Link
+                                        className="nav_dropdown_item"
+                                        role="menuitem"
+                                        to="/dashboard"
+                                        onClick={() => setMenuOpen(false)}
+                                    >
+                                        Admin Dashboard
+                                    </Link>
+                                ) : null}
                                 <Link
                                     className="nav_dropdown_item"
                                     role="menuitem"
-                                    to="/account"
+                                    to={personalView ? "/account?view=personal" : "/account"}
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     Account

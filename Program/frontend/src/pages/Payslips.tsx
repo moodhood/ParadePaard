@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
+import { readCachedIsAdmin, readCachedPermissions, writeCachedIsAdmin, writeCachedPermissions } from "../utils/authCache";
 import { formatDate } from "../utils/dateFormat";
 import "../stylesheets/PayslipsPage.css";
 
@@ -39,6 +41,7 @@ const normalizeStatus = (status?: string) => (status ?? "RELEASED").toUpperCase(
 
 const formatStatus = (status?: string) => {
     const value = normalizeStatus(status);
+    if (value === "NOT_ACCEPTED") return "Not accepted";
     return value
         .split("_")
         .map((part) => part[0] + part.slice(1).toLowerCase())
@@ -84,7 +87,11 @@ const filterPayslips = (payslips: PayslipResponseDTO[], filters: FilterState) =>
 
     return payslips.filter((payslip) => {
         const status = normalizeStatus(payslip.status);
-        if (filters.status !== "ALL" && status !== filters.status) return false;
+        if (filters.status === "NOT_ACCEPTED") {
+            if (status === "RELEASED" || status === "APPROVED") return false;
+        } else if (filters.status !== "ALL" && status !== filters.status) {
+            return false;
+        }
 
         if (term) {
             const haystack = [
@@ -119,8 +126,13 @@ const filterPayslips = (payslips: PayslipResponseDTO[], filters: FilterState) =>
 
 export default function Payslips() {
     const navigate = useNavigate();
-    const [permissions, setPermissions] = useState<string[]>([]);
-    const [permissionsLoading, setPermissionsLoading] = useState(true);
+    const [searchParams] = useSearchParams();
+    const personalView = searchParams.get("view") === "personal";
+    const cachedPermissions = useMemo(() => readCachedPermissions(), []);
+    const cachedIsAdmin = useMemo(() => readCachedIsAdmin(), []);
+    const [isAdmin, setIsAdmin] = useState(cachedIsAdmin ?? false);
+    const [permissions, setPermissions] = useState<string[]>(cachedPermissions ?? []);
+    const [permissionsLoading, setPermissionsLoading] = useState(cachedPermissions === null);
     const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
     const [activeScope, setActiveScope] = useState<PayslipScope>("mine");
@@ -142,16 +154,24 @@ export default function Payslips() {
 
     useEffect(() => {
         let cancelled = false;
-        setPermissionsLoading(true);
-        setPermissionsError(null);
+        if (cachedPermissions === null) {
+            setPermissionsLoading(true);
+            setPermissionsError(null);
+        }
 
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (!cancelled) setPermissions(data ?? []);
+        Promise.all([AuthServices.getPermissions(), AuthServices.isAdmin()])
+            .then(([data, adminValue]) => {
+                if (cancelled) return;
+                const nextPermissions = data ?? [];
+                const nextIsAdmin = Boolean(adminValue);
+                setPermissions(nextPermissions);
+                setIsAdmin(nextIsAdmin);
+                writeCachedPermissions(nextPermissions);
+                writeCachedIsAdmin(nextIsAdmin);
             })
             .catch((err: unknown) => {
                 const message = err instanceof Error ? err.message : "Failed to load permissions";
-                if (!cancelled) setPermissionsError(message);
+                if (!cancelled && cachedPermissions === null) setPermissionsError(message);
             })
             .finally(() => {
                 if (!cancelled) setPermissionsLoading(false);
@@ -160,13 +180,21 @@ export default function Payslips() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [cachedPermissions]);
 
     const canViewOwn = permissions.includes("CAN_VIEW_PAYSLIPS");
     const canViewAll = permissions.includes("CAN_VIEW_ALL_PAYSLIPS");
 
     useEffect(() => {
         if (permissionsLoading) return;
+        if (personalView) {
+            setActiveScope("mine");
+            return;
+        }
+        if (isAdmin && canViewAll) {
+            setActiveScope("all");
+            return;
+        }
         if (canViewOwn && activeScope !== "mine" && !canViewAll) {
             setActiveScope("mine");
             return;
@@ -174,7 +202,35 @@ export default function Payslips() {
         if (canViewAll && activeScope !== "all" && !canViewOwn) {
             setActiveScope("all");
         }
-    }, [permissionsLoading, canViewOwn, canViewAll, activeScope]);
+    }, [permissionsLoading, personalView, isAdmin, canViewOwn, canViewAll, activeScope]);
+
+    useEffect(() => {
+        if (permissionsLoading) return;
+        const scopeParam = (searchParams.get("scope") ?? "").toLowerCase();
+        const statusParam = searchParams.get("status");
+        const normalizedStatus = statusParam ? statusParam.toUpperCase() : null;
+
+        let targetScope: PayslipScope | null = null;
+        if (scopeParam === "all" && canViewAll && !personalView) {
+            targetScope = "all";
+            setActiveScope("all");
+        } else if (scopeParam === "mine" && canViewOwn) {
+            targetScope = "mine";
+            setActiveScope("mine");
+        }
+
+        if (normalizedStatus) {
+            const statusValue = normalizedStatus === "NOT_ACCEPTED" ? "NOT_ACCEPTED" : normalizedStatus;
+            const scopeForFilter = targetScope ?? activeScope;
+            setFilters((prev) => ({
+                ...prev,
+                [scopeForFilter]: {
+                    ...prev[scopeForFilter],
+                    status: statusValue,
+                },
+            }));
+        }
+    }, [activeScope, canViewAll, canViewOwn, permissionsLoading, searchParams]);
 
     const loadPayslips = useCallback(async (scope: PayslipScope) => {
         setLoading((prev) => ({ ...prev, [scope]: true }));
@@ -212,8 +268,13 @@ export default function Payslips() {
 
     const statusOptions = useMemo(() => {
         const statuses = new Set(activePayslips.map((p) => normalizeStatus(p.status)));
-        return ["ALL", ...Array.from(statuses).sort()];
+        statuses.delete("NOT_ACCEPTED");
+        return ["ALL", "NOT_ACCEPTED", ...Array.from(statuses).sort()];
     }, [activePayslips]);
+    const searchPlaceholder =
+        activeScope === "all"
+            ? "Name, function, user ID, payslip ID"
+            : "Function or date";
 
     const filteredPayslips = useMemo(() => {
         return filterPayslips(activePayslips, activeFilters).sort((a, b) =>
@@ -271,249 +332,259 @@ export default function Payslips() {
         <>
             <Navbar />
             <div className="payslipsPage">
-                <div className="payslipsCard">
-                    <div className="pageHeader">
-                        <PageBack />
-                        <h1 className="pageTitle">Payslips</h1>
-                        <p className="pageSubtitle">
-                            Review personal and company payslips based on your permissions.
-                        </p>
-                    </div>
-
-                <div className="payslipsTabs">
-                    {canViewOwn ? (
-                        <button
-                            className={`payslipsTab ${activeScope === "mine" ? "payslipsTab--active" : ""}`}
-                            type="button"
-                            onClick={() => setActiveScope("mine")}
-                        >
-                            My payslips
-                        </button>
-                    ) : null}
-                    {canViewAll ? (
-                        <button
-                            className={`payslipsTab ${activeScope === "all" ? "payslipsTab--active" : ""}`}
-                            type="button"
-                            onClick={() => setActiveScope("all")}
-                        >
-                            All payslips
-                        </button>
-                    ) : null}
-                    <div className="payslipsTabMeta">
-                        {filteredPayslips.length} shown
-                        {activePayslips.length !== filteredPayslips.length
-                            ? ` of ${activePayslips.length}`
-                            : ""}
-                    </div>
-                </div>
-
-                {permissionsLoading ? (
-                    <div className="payslipsNotice">Loading permissions...</div>
-                ) : null}
-                {permissionsError ? (
-                    <div className="payslipsError">{permissionsError}</div>
-                ) : null}
-
-                {!scopeUnavailable && canSeeAnyPayslips ? (
-                    <>
-                        <div className="payslipsFilterPanel">
-                            <div className="payslipsFilterGrid">
-                                <label className="payslipsFilterField">
-                                    <span>Search</span>
-                                    <input
-                                        type="search"
-                                        value={activeFilters.search}
-                                        onChange={(e) => updateFilter("search", e.target.value)}
-                                        placeholder="Name, function, user ID, payslip ID"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Status</span>
-                                    <select
-                                        value={activeFilters.status}
-                                        onChange={(e) => updateFilter("status", e.target.value)}
-                                    >
-                                        {statusOptions.map((status) => (
-                                            <option key={status} value={status}>
-                                                {status === "ALL" ? "All statuses" : formatStatus(status)}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Date from</span>
-                                    <input
-                                        type="date"
-                                        value={activeFilters.dateFrom}
-                                        onChange={(e) => updateFilter("dateFrom", e.target.value)}
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Date to</span>
-                                    <input
-                                        type="date"
-                                        value={activeFilters.dateTo}
-                                        onChange={(e) => updateFilter("dateTo", e.target.value)}
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Week year</span>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        value={activeFilters.weekYear}
-                                        onChange={(e) => updateFilter("weekYear", e.target.value)}
-                                        placeholder="2026"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Week number</span>
-                                    <input
-                                        type="number"
-                                        inputMode="numeric"
-                                        value={activeFilters.weekNumber}
-                                        onChange={(e) => updateFilter("weekNumber", e.target.value)}
-                                        placeholder="1-53"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Min hours</span>
-                                    <input
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={activeFilters.minHours}
-                                        onChange={(e) => updateFilter("minHours", e.target.value)}
-                                        placeholder="0"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Max hours</span>
-                                    <input
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={activeFilters.maxHours}
-                                        onChange={(e) => updateFilter("maxHours", e.target.value)}
-                                        placeholder="60"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Min net pay</span>
-                                    <input
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={activeFilters.minNet}
-                                        onChange={(e) => updateFilter("minNet", e.target.value)}
-                                        placeholder="0"
-                                    />
-                                </label>
-
-                                <label className="payslipsFilterField">
-                                    <span>Max net pay</span>
-                                    <input
-                                        type="number"
-                                        inputMode="decimal"
-                                        value={activeFilters.maxNet}
-                                        onChange={(e) => updateFilter("maxNet", e.target.value)}
-                                        placeholder="5000"
-                                    />
-                                </label>
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <div className="pageShellContent">
+                        <div className="payslipsCard">
+                            <div className="pageHeader">
+                                <PageBack />
+                                <h1 className="pageTitle">Payslips</h1>
+                                <p className="pageSubtitle">
+                                    Review personal and company payslips based on your permissions.
+                                </p>
                             </div>
-                            <div className="payslipsFilterActions">
-                                <button type="button" className="buttonSecondary" onClick={resetFilters}>
-                                    Reset filters
-                                </button>
-                            </div>
-                        </div>
 
-                        {downloadError ? (
-                            <div className="payslipsError">{downloadError}</div>
-                        ) : null}
+                            {permissionsLoading ? (
+                                <div className="payslipsNotice">Loading permissions...</div>
+                            ) : null}
+                            {permissionsError ? (
+                                <div className="payslipsError">{permissionsError}</div>
+                            ) : null}
 
-                        {loading[activeScope] ? (
-                            <div className="payslipsNotice">Loading {headerLabel.toLowerCase()}...</div>
-                        ) : errors[activeScope] ? (
-                            <div className="payslipsError">{errors[activeScope]}</div>
-                        ) : filteredPayslips.length === 0 ? (
-                            <div className="payslipsNotice">No payslips match these filters.</div>
-                        ) : (
-                            <div className="payslipsListWrap">
-                                <div
-                                    className={`payslipsListHeader payslipsGrid ${
-                                        activeScope === "all" ? "payslipsGrid--all" : "payslipsGrid--mine"
-                                    }`}
-                                >
-                                    <div>Date</div>
-                                    {activeScope === "all" ? <div>User</div> : null}
-                                    <div>Week</div>
-                                    <div>Function</div>
-                                    <div>Hours</div>
-                                    <div>Net</div>
-                                    <div>Status</div>
-                                    <div>Action</div>
-                                </div>
-                                <div className="payslipsListBody">
-                                    {filteredPayslips.map((payslip) => (
-                                        <div
-                                            key={payslip.payslipId}
-                                            className={`payslipsListRow payslipsGrid ${
-                                                activeScope === "all" ? "payslipsGrid--all" : "payslipsGrid--mine"
-                                            }`}
-                                            role="button"
-                                            tabIndex={0}
-                                            onClick={() => openPayslip(payslip.payslipId)}
-                                            onKeyDown={(event) => {
-                                                if (event.key === "Enter" || event.key === " ") {
-                                                    event.preventDefault();
-                                                    openPayslip(payslip.payslipId);
-                                                }
-                                            }}
-                                        >
-                                            <div className="payslipsCellMain">
-                                                {formatDate(payslip.dateOfIssue)}
-                                            </div>
-                                            {activeScope === "all" ? (
-                                                <div>
-                                                    <div className="payslipsCellMain">{payslip.name}</div>
-                                                    <div className="payslipsCellSub">{payslip.userId}</div>
-                                                </div>
-                                            ) : null}
-                                            <div className="payslipsCellSub">
-                                                {formatWeek(payslip.weekBasedYear, payslip.weekNumber)}
-                                            </div>
-                                            <div className="payslipsCellSub">{payslip.functionName}</div>
-                                            <div className="payslipsCellSub">{formatHours(payslip.totalHoursWorked)}</div>
-                                            <div className="payslipsCellSub">{formatCurrency(payslip.totalNetAmount)}</div>
-                                            <div className={`payslipStatus payslipStatus--${normalizeStatus(payslip.status)}`}>
-                                                {formatStatus(payslip.status)}
-                                            </div>
-                                            <div>
-                                                <button
-                                                    type="button"
-                                                    className="linkButton"
-                                                    disabled={downloadId === payslip.payslipId}
-                                                    onClick={(event) => {
-                                                        event.stopPropagation();
-                                                        void downloadPayslipPdf(payslip);
-                                                    }}
+                            {!scopeUnavailable && canSeeAnyPayslips ? (
+                                <>
+                                    <div className="payslipsFilterPanel">
+                                        <div className="payslipsFilterGrid">
+                                            <label className="payslipsFilterField">
+                                                <span>Search</span>
+                                                <input
+                                                    type="search"
+                                                    value={activeFilters.search}
+                                                    onChange={(e) => updateFilter("search", e.target.value)}
+                                                    placeholder={searchPlaceholder}
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Status</span>
+                                                <select
+                                                    value={activeFilters.status}
+                                                    onChange={(e) => updateFilter("status", e.target.value)}
                                                 >
-                                                    {downloadId === payslip.payslipId ? "Downloading..." : "Download PDF"}
-                                                </button>
+                                                    {statusOptions.map((status) => (
+                                                        <option key={status} value={status}>
+                                                            {status === "ALL" ? "All statuses" : formatStatus(status)}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Date from</span>
+                                                <input
+                                                    type="date"
+                                                    value={activeFilters.dateFrom}
+                                                    onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Date to</span>
+                                                <input
+                                                    type="date"
+                                                    value={activeFilters.dateTo}
+                                                    onChange={(e) => updateFilter("dateTo", e.target.value)}
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Week year</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    value={activeFilters.weekYear}
+                                                    onChange={(e) => updateFilter("weekYear", e.target.value)}
+                                                    placeholder="2026"
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Week number</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="numeric"
+                                                    value={activeFilters.weekNumber}
+                                                    onChange={(e) => updateFilter("weekNumber", e.target.value)}
+                                                    placeholder="1-53"
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Min hours</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    value={activeFilters.minHours}
+                                                    onChange={(e) => updateFilter("minHours", e.target.value)}
+                                                    placeholder="0"
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Max hours</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    value={activeFilters.maxHours}
+                                                    onChange={(e) => updateFilter("maxHours", e.target.value)}
+                                                    placeholder="60"
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Min net pay</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    value={activeFilters.minNet}
+                                                    onChange={(e) => updateFilter("minNet", e.target.value)}
+                                                    placeholder="0"
+                                                />
+                                            </label>
+
+                                            <label className="payslipsFilterField">
+                                                <span>Max net pay</span>
+                                                <input
+                                                    type="number"
+                                                    inputMode="decimal"
+                                                    value={activeFilters.maxNet}
+                                                    onChange={(e) => updateFilter("maxNet", e.target.value)}
+                                                    placeholder="5000"
+                                                />
+                                            </label>
+                                        </div>
+                                        <div className="payslipsFilterActions">
+                                            <div className="payslipsFilterMeta">
+                                                {filteredPayslips.length} shown
+                                                {activePayslips.length !== filteredPayslips.length
+                                                    ? ` of ${activePayslips.length}`
+                                                    : ""}
+                                            </div>
+                                            <button type="button" className="buttonSecondary" onClick={resetFilters}>
+                                                Reset filters
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {downloadError ? (
+                                        <div className="payslipsError">{downloadError}</div>
+                                    ) : null}
+
+                                    {loading[activeScope] ? (
+                                        <div className="payslipsNotice">Loading {headerLabel.toLowerCase()}...</div>
+                                    ) : errors[activeScope] ? (
+                                        <div className="payslipsError">{errors[activeScope]}</div>
+                                    ) : (
+                                        <div className="payslipsListWrap">
+                                            <div
+                                                className={`payslipsListHeader payslipsGrid ${
+                                                    activeScope === "all"
+                                                        ? "payslipsGrid--all"
+                                                        : "payslipsGrid--mine"
+                                                }`}
+                                            >
+                                                <div>Date</div>
+                                                {activeScope === "all" ? <div>User</div> : null}
+                                                <div>Week</div>
+                                                <div>Function</div>
+                                                <div>Hours</div>
+                                                <div>Net</div>
+                                                <div>Status</div>
+                                                <div>Action</div>
+                                            </div>
+                                            <div className="payslipsListBody">
+                                                {filteredPayslips.length === 0 ? (
+                                                    <div
+                                                        className={`payslipsListRow payslipsListRow--empty payslipsGrid ${
+                                                            activeScope === "all"
+                                                                ? "payslipsGrid--all"
+                                                                : "payslipsGrid--mine"
+                                                        }`}
+                                                    >
+                                                        <div className="payslipsEmptyCell">
+                                                            No payslips match these filters.
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    filteredPayslips.map((payslip) => (
+                                                        <div
+                                                            key={payslip.payslipId}
+                                                            className={`payslipsListRow payslipsGrid ${
+                                                                activeScope === "all"
+                                                                    ? "payslipsGrid--all"
+                                                                    : "payslipsGrid--mine"
+                                                            }`}
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={() => openPayslip(payslip.payslipId)}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Enter" || event.key === " ") {
+                                                                    event.preventDefault();
+                                                                    openPayslip(payslip.payslipId);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <div className="payslipsCellMain">
+                                                                {formatDate(payslip.dateOfIssue)}
+                                                            </div>
+                                                            {activeScope === "all" ? (
+                                                                <div>
+                                                                    <div className="payslipsCellMain">{payslip.name}</div>
+                                                                    <div className="payslipsCellSub">{payslip.userId}</div>
+                                                                </div>
+                                                            ) : null}
+                                                            <div className="payslipsCellSub">
+                                                                {formatWeek(payslip.weekBasedYear, payslip.weekNumber)}
+                                                            </div>
+                                                            <div className="payslipsCellSub">{payslip.functionName}</div>
+                                                            <div className="payslipsCellSub">
+                                                                {formatHours(payslip.totalHoursWorked)}
+                                                            </div>
+                                                            <div className="payslipsCellSub">
+                                                                {formatCurrency(payslip.totalNetAmount)}
+                                                            </div>
+                                                            <div
+                                                                className={`payslipStatus payslipStatus--${normalizeStatus(
+                                                                    payslip.status
+                                                                )}`}
+                                                            >
+                                                                {formatStatus(payslip.status)}
+                                                            </div>
+                                                            <div>
+                                                                <button
+                                                                    type="button"
+                                                                    className="linkButton"
+                                                                    disabled={downloadId === payslip.payslipId}
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        void downloadPayslipPdf(payslip);
+                                                                    }}
+                                                                >
+                                                                    {downloadId === payslip.payslipId
+                                                                        ? "Downloading..."
+                                                                        : "Download PDF"}
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                )}
                                             </div>
                                         </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </>
-                ) : null}
+                                    )}
+                                </>
+                            ) : null}
+                        </div>
+                    </div>
                 </div>
             </div>
         </>

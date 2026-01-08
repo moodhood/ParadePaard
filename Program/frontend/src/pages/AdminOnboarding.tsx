@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Modal from "../components/common/Modal";
+import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
+import Card from "../components/common/Card";
 import { UserServices, type AdminOnboardingRequestDTO, type AdminOnboardingResponseDTO } from "../services/user-service/UserServices";
+import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/Modal.css";
 import "../stylesheets/AdminOnboarding.css";
 
@@ -30,14 +34,17 @@ export default function AdminOnboarding() {
 
     const canSubmit = useMemo(() => {
         const wage = Number(grossHourlyWage);
+        const dobIso = parseDateToIso(dateOfBirth);
+        const startIso = parseDateToIso(contractStartDate);
+        const endIso = parseDateToIso(contractEndDate);
         return (
             email.trim().length > 0 &&
             firstNames.trim().length > 0 &&
             lastName.trim().length > 0 &&
-            dateOfBirth.trim().length > 0 &&
+            dobIso !== "" &&
             mobileNumber.trim().length > 0 &&
-            contractStartDate.trim().length > 0 &&
-            contractEndDate.trim().length > 0 &&
+            startIso !== "" &&
+            endIso !== "" &&
             Number.isFinite(wage) &&
             wage > 0
         );
@@ -63,6 +70,14 @@ export default function AdminOnboarding() {
             return;
         }
 
+        const dateOfBirthIso = parseDateToIso(dateOfBirth);
+        const contractStartIso = parseDateToIso(contractStartDate);
+        const contractEndIso = parseDateToIso(contractEndDate);
+        if (!dateOfBirthIso || !contractStartIso || !contractEndIso) {
+            setErrorMsg("Please use dd-mm-yyyy for all dates.");
+            return;
+        }
+
         const payload: AdminOnboardingRequestDTO = {
             email: email.trim(),
             firstNames: firstNames.trim(),
@@ -70,12 +85,12 @@ export default function AdminOnboarding() {
             middleNamePrefix: middleNamePrefix.trim() ? middleNamePrefix.trim() : null,
             lastName: lastName.trim(),
             gender: gender.trim() ? gender.trim() : null,
-            dateOfBirth,
+            dateOfBirth: dateOfBirthIso,
             mobileNumber: mobileNumber.trim(),
             workedForUsBefore,
             position,
-            startDate: contractStartDate,
-            endDate: contractEndDate,
+            startDate: contractStartIso,
+            endDate: contractEndIso,
             contractType,
             grossHourlyWage: wage,
             travelAllowance,
@@ -94,198 +109,265 @@ export default function AdminOnboarding() {
     };
 
     return (
-        <Modal
-            open={true}
-            title="Onboard employee"
-            onClose={() => navigate("/dashboard")}
-            maxHeight={720}
-        >
-            <form className="adminOnboardingForm" onSubmit={submit}>
-                <div className="adminOnboardingIntro">
-                    Create an employee account and send an onboarding email. The employee must change their password on first login.
+        <>
+            <Navbar />
+            <div className="adminDashboardPage adminOnboardingPage">
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <div className="pageShellContent">
+                        <div className="adminDashboardCard">
+                            <header className="pageHeader">
+                                <PageBack />
+                                <h1 className="pageTitle">Onboard employee</h1>
+                                <p className="pageSubtitle">
+                                    Create an employee account and send an onboarding email.
+                                </p>
+                            </header>
+
+                            <Card title="Employee details">
+                                <form className="adminOnboardingForm" onSubmit={submit}>
+                                    <div className="adminOnboardingIntro">
+                                        The employee will be asked to change their password on first login.
+                                    </div>
+
+                                    <div className="adminOnboardingGrid form_grid">
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Preferred name</label>
+                                            <input
+                                                className="modal_input"
+                                                value={preferredName}
+                                                onChange={(e) => setPreferredName(e.target.value)}
+                                                placeholder="Ben"
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Full first names</label>
+                                            <input
+                                                className="modal_input"
+                                                value={firstNames}
+                                                onChange={(e) => setFirstNames(e.target.value)}
+                                                placeholder="Benjamin"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Prefix</label>
+                                            <input
+                                                className="modal_input"
+                                                value={middleNamePrefix}
+                                                onChange={(e) => setMiddleNamePrefix(e.target.value)}
+                                                placeholder="van"
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Surname</label>
+                                            <input
+                                                className="modal_input"
+                                                value={lastName}
+                                                onChange={(e) => setLastName(e.target.value)}
+                                                placeholder="Rhee"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Gender</label>
+                                            <select
+                                                className={`modal_input${gender ? "" : " selectPlaceholder"}`}
+                                                value={gender}
+                                                onChange={(e) => setGender(e.target.value)}
+                                            >
+                                                <option value="">(optional)</option>
+                                                <option value="MALE">Male</option>
+                                                <option value="FEMALE">Female</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Date of birth</label>
+                                            <input
+                                                className="modal_input"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="\d{2}-\d{2}-\d{4}"
+                                                value={dateOfBirth}
+                                                onChange={(e) => setDateOfBirth(formatDateInput(e.target.value))}
+                                                placeholder="dd-mm-yyyy"
+                                                maxLength={10}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Email address</label>
+                                            <input
+                                                className="modal_input"
+                                                type="email"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
+                                                placeholder="employee@domain.com"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Mobile number</label>
+                                            <input
+                                                className="modal_input"
+                                                value={mobileNumber}
+                                                onChange={(e) => setMobileNumber(e.target.value)}
+                                                placeholder="0612345678"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Worked for us before</label>
+                                            <label className="adminOnboardingToggle">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={workedForUsBefore}
+                                                    onChange={(e) => setWorkedForUsBefore(e.target.checked)}
+                                                />
+                                                <span>Yes</span>
+                                            </label>
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Position</label>
+                                            <select
+                                                className={`modal_input${position === "BAR" ? " selectPlaceholder" : ""}`}
+                                                value={position}
+                                                onChange={(e) => setPosition(e.target.value as any)}
+                                            >
+                                                <option value="BAR">Bar</option>
+                                                <option value="RUNNER">Runner</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Contract start date</label>
+                                            <input
+                                                className="modal_input"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="\d{2}-\d{2}-\d{4}"
+                                                value={contractStartDate}
+                                                onChange={(e) => setContractStartDate(formatDateInput(e.target.value))}
+                                                placeholder="dd-mm-yyyy"
+                                                maxLength={10}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Contract end date</label>
+                                            <input
+                                                className="modal_input"
+                                                type="text"
+                                                inputMode="numeric"
+                                                pattern="\d{2}-\d{2}-\d{4}"
+                                                value={contractEndDate}
+                                                onChange={(e) => setContractEndDate(formatDateInput(e.target.value))}
+                                                placeholder="dd-mm-yyyy"
+                                                maxLength={10}
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Contract type</label>
+                                            <select
+                                                className={`modal_input${contractType === "ON_CALL" ? " selectPlaceholder" : ""}`}
+                                                value={contractType}
+                                                onChange={(e) => setContractType(e.target.value as any)}
+                                            >
+                                                <option value="FIXED">Fixed</option>
+                                                <option value="ON_CALL">On-call</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Gross hourly wage</label>
+                                            <input
+                                                className="modal_input"
+                                                inputMode="decimal"
+                                                value={grossHourlyWage}
+                                                onChange={(e) => setGrossHourlyWage(e.target.value)}
+                                                placeholder="15.00"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Travel allowance</label>
+                                            <label className="adminOnboardingToggle">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={travelAllowance}
+                                                    onChange={(e) => setTravelAllowance(e.target.checked)}
+                                                />
+                                                <span>EUR 0.23 net / km</span>
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    {errorMsg ? <div className="adminOnboardingError">{errorMsg}</div> : null}
+
+                                    {result ? (
+                                        <div className="adminOnboardingResult">
+                                            <div><strong>Username:</strong> {result.username}</div>
+                                            <div><strong>Temporary password:</strong> {result.temporaryPassword}</div>
+                                            <div className="adminOnboardingHint">
+                                                Onboarding email sent to {email.trim()}.
+                                            </div>
+                                        </div>
+                                    ) : null}
+
+                                    <div className="actions_row">
+                                        <button className="button" type="submit" disabled={!canSubmit || loading}>
+                                            {loading ? "Creating..." : "Create employee & send email"}
+                                        </button>
+                                    </div>
+                                </form>
+                            </Card>
+                        </div>
+                    </div>
                 </div>
-
-                <div className="adminOnboardingGrid form_grid">
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Preferred name</label>
-                        <input
-                            className="modal_input"
-                            value={preferredName}
-                            onChange={(e) => setPreferredName(e.target.value)}
-                            placeholder="Ben"
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Full first names</label>
-                        <input
-                            className="modal_input"
-                            value={firstNames}
-                            onChange={(e) => setFirstNames(e.target.value)}
-                            placeholder="Benjamin"
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Prefix</label>
-                        <input
-                            className="modal_input"
-                            value={middleNamePrefix}
-                            onChange={(e) => setMiddleNamePrefix(e.target.value)}
-                            placeholder="van"
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Surname</label>
-                        <input
-                            className="modal_input"
-                            value={lastName}
-                            onChange={(e) => setLastName(e.target.value)}
-                            placeholder="Rhee"
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Gender</label>
-                        <select className="modal_input" value={gender} onChange={(e) => setGender(e.target.value)}>
-                            <option value="">(optional)</option>
-                            <option value="MALE">Male</option>
-                            <option value="FEMALE">Female</option>
-                            <option value="OTHER">Other</option>
-                        </select>
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Date of birth</label>
-                        <input
-                            className="modal_input"
-                            type="date"
-                            value={dateOfBirth}
-                            onChange={(e) => setDateOfBirth(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Email address</label>
-                        <input
-                            className="modal_input"
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="employee@domain.com"
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Mobile number</label>
-                        <input
-                            className="modal_input"
-                            value={mobileNumber}
-                            onChange={(e) => setMobileNumber(e.target.value)}
-                            placeholder="0612345678"
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Worked for us before</label>
-                        <label className="adminOnboardingToggle">
-                            <input
-                                type="checkbox"
-                                checked={workedForUsBefore}
-                                onChange={(e) => setWorkedForUsBefore(e.target.checked)}
-                            />
-                            <span>Yes</span>
-                        </label>
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Position</label>
-                        <select className="modal_input" value={position} onChange={(e) => setPosition(e.target.value as any)}>
-                            <option value="BAR">Bar</option>
-                            <option value="RUNNER">Runner</option>
-                        </select>
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Contract start date</label>
-                        <input
-                            className="modal_input"
-                            type="date"
-                            value={contractStartDate}
-                            onChange={(e) => setContractStartDate(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Contract end date</label>
-                        <input
-                            className="modal_input"
-                            type="date"
-                            value={contractEndDate}
-                            onChange={(e) => setContractEndDate(e.target.value)}
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Contract type</label>
-                        <select className="modal_input" value={contractType} onChange={(e) => setContractType(e.target.value as any)}>
-                            <option value="FIXED">Fixed</option>
-                            <option value="ON_CALL">On-call</option>
-                        </select>
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Gross hourly wage</label>
-                        <input
-                            className="modal_input"
-                            inputMode="decimal"
-                            value={grossHourlyWage}
-                            onChange={(e) => setGrossHourlyWage(e.target.value)}
-                            placeholder="15.00"
-                            required
-                        />
-                    </div>
-
-                    <div className="form_row">
-                        <label className="adminOnboardingLabel">Travel allowance</label>
-                        <label className="adminOnboardingToggle">
-                            <input
-                                type="checkbox"
-                                checked={travelAllowance}
-                                onChange={(e) => setTravelAllowance(e.target.checked)}
-                            />
-                            <span>€0.23 net / km</span>
-                        </label>
-                    </div>
-                </div>
-
-                {errorMsg ? <div className="adminOnboardingError">{errorMsg}</div> : null}
-
-                {result ? (
-                    <div className="adminOnboardingResult">
-                        <div><strong>Username:</strong> {result.username}</div>
-                        <div><strong>Temporary password:</strong> {result.temporaryPassword}</div>
-                        <div className="adminOnboardingHint">Onboarding email sent to {email.trim()}.</div>
-                    </div>
-                ) : null}
-
-                <div className="actions_row">
-                    <button className="btn btn_secondary" type="button" onClick={() => navigate("/dashboard")} disabled={loading}>
-                        Cancel
-                    </button>
-                    <button className="btn" type="submit" disabled={!canSubmit || loading}>
-                        {loading ? "Creating..." : "Create employee & send email"}
-                    </button>
-                </div>
-            </form>
-        </Modal>
+            </div>
+        </>
     );
+}
+
+function parseDateToIso(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const match = trimmed.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+    if (!match) return "";
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+    if (month < 1 || month > 12 || day < 1 || day > 31) return "";
+    const date = new Date(year, month - 1, day);
+    if (
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return "";
+    }
+    const mm = String(month).padStart(2, "0");
+    const dd = String(day).padStart(2, "0");
+    return `${year}-${mm}-${dd}`;
+}
+
+function formatDateInput(value: string): string {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}-${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}-${digits.slice(2, 4)}-${digits.slice(4)}`;
 }

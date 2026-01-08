@@ -12,9 +12,14 @@ public class CreateRoleRequestDTO {
     @NotEmpty(message = "At least one permission is required")
     private List<String> permissions;
 
+    private String color;
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
 
     public List<String> getPermissions() { return permissions; }
     public void setPermissions(List<String> permissions) { this.permissions = permissions; }
+
+    public String getColor() { return color; }
+    public void setColor(String color) { this.color = color; }
 }

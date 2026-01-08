@@ -2,6 +2,11 @@
   gap: 20px;
 }
 
+.userDashboardCard.accountPage {
+  width: 96%;
+  max-width: 1600px;
+}
+
 .settingsLayout {
   display: grid;
   grid-template-columns: 220px minmax(0, 1fr);
@@ -13,6 +18,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  text-align: left;
 }
 
 .settingsNavLink {
@@ -68,6 +74,10 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.settingsRoleCard {
+  grid-column: 1 / -1;
 }
 
 .settingsHelperText {
@@ -158,12 +168,14 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 6px;
+  padding: 8px;
   border: 1px solid #d1d5db;
   border-radius: 12px;
   background: #ffffff;
   max-height: 220px;
   overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .settingsUserSearchWrap {
@@ -182,7 +194,7 @@
 .settingsUserItem {
   width: 100%;
   text-align: left;
-  padding: 8px 10px;
+  padding: 8px;
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
@@ -192,6 +204,8 @@
   gap: 2px;
   color: #1f2937;
   font-size: 13px;
+  box-sizing: border-box;
+  max-width: 100%;
 }
 
 .settingsUserItem:hover {
@@ -204,27 +218,33 @@
 }
 
 .settingsUserItem--selected {
-  flex-direction: row;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: flex-start;
   gap: 12px;
   cursor: default;
+  width: 100%;
 }
 
 .settingsUserMeta {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  width: 100%;
 }
 
 .settingsUserName {
   font-weight: 700;
   color: #111827;
+  overflow-wrap: anywhere;
 }
 
 .settingsUserEmail {
   font-size: 12px;
   color: #6b7280;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .settingsUserRemove {
@@ -234,10 +254,125 @@
   font-weight: 600;
   font-size: 12px;
   cursor: pointer;
+  justify-self: end;
 }
 
 .settingsUserRemove:hover {
   color: #7f1d1d;
+}
+
+.settingsUserRoles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.settingsUserRolePill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef2ff;
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.settingsUserRoleRemove {
+  border: 0;
+  background: transparent;
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.settingsUserRoleRemove:hover {
+  color: #7f1d1d;
+}
+
+.settingsUserRoleRemove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settingsUserRoleAdd {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #1f2937;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsUserRoleAdd:hover {
+  background: #f5f5f5;
+  border-color: #cbd5f5;
+}
+
+.settingsRolePicker {
+  position: fixed;
+  z-index: 3000;
+  width: 240px;
+  background: #ffffff;
+  border: 1px solid rgba(15, 23, 42, 0.16);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  padding: 10px;
+}
+
+.settingsRolePickerHeader {
+  font-weight: 700;
+  font-size: 13px;
+  color: #111827;
+  margin-bottom: 8px;
+}
+
+.settingsRolePickerList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.settingsRolePickerItem {
+  text-align: left;
+  border: 1px solid transparent;
+  background: #f9fafb;
+  color: #111827;
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settingsRolePickerItem:hover {
+  background: #eef2ff;
+  border-color: #c7d2fe;
+}
+
+.settingsRolePickerItem:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.settingsRolePickerEmpty {
+  font-size: 12px;
+  color: #6b7280;
+  padding: 6px 4px;
 }
 
 .settingsCheckboxGrid {
@@ -263,27 +398,75 @@
   background: #eef3ff;
 }
 
+.settingsCheckboxItem--danger {
+  border-color: #fca5a5;
+  background: #fee2e2;
+}
+
 .settingsRoleList {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.settingsRoleRow {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.settingsRoleHeader {
+.settingsRoleHeaderRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 12px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.settingsRoleHeaderRow span:last-child {
+  min-width: 120px;
+  text-align: right;
+}
+
+.settingsRoleRow {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+
+.settingsRoleRow--clickable {
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.settingsRoleRow--clickable:hover {
+  border-color: #2f6bff;
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+  background: #f8faff;
+}
+
+.settingsRoleRow--clickable:focus-visible {
+  outline: 2px solid #2f6bff;
+  outline-offset: 2px;
+}
+
+.settingsRoleInfo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.settingsRoleDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  flex-shrink: 0;
 }
 
 .settingsRoleName {
@@ -294,22 +477,320 @@
 
 .settingsRoleCount {
   font-size: 12px;
-  color: #6b7280;
+  color: #111827;
+  font-weight: 600;
+  min-width: 120px;
+  text-align: right;
 }
 
-.settingsPillRow {
+.roleWizard {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.roleWizardTabs {
+  display: flex;
+  gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 8px;
+}
+
+.roleWizardTab {
+  background: transparent;
+  border: none;
+  color: rgba(230,231,235,0.65);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 6px 4px;
+  cursor: pointer;
+}
+
+.roleWizardTab--active {
+  color: #e6e7eb;
+  border-bottom: 2px solid #58a8ff;
+}
+
+.roleWizardTab:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roleWizardPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.roleWizardField {
+  display: flex;
+  flex-direction: column;
   gap: 6px;
 }
 
-.settingsPill {
-  padding: 4px 8px;
-  border-radius: 999px;
-  background: #eef2ff;
-  color: #3730a3;
-  font-size: 12px;
+.roleWizardLabel {
   font-weight: 600;
+  color: #e6e7eb;
+  font-size: 13px;
+}
+
+.roleWizardMeta {
+  font-size: 12px;
+  color: rgba(230,231,235,0.7);
+}
+
+.roleWizardHeaderRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.roleColorPicker {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.roleColorSwatch {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  cursor: pointer;
+  padding: 0;
+}
+
+.roleColorSwatch--active {
+  border-color: rgba(88,168,255,0.9);
+  box-shadow: 0 0 0 2px rgba(88,168,255,0.35);
+}
+
+.roleColorSwatch:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roleColorInput {
+  width: 34px;
+  height: 26px;
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.roleColorPreview {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.roleColorPreviewDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+.roleColorPreviewText {
+  color: #e6e7eb;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.roleWizardCheckboxGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px;
+}
+
+.roleWizardCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04);
+  font-size: 13px;
+  color: #e6e7eb;
+}
+
+.roleWizardCheckbox--active {
+  border-color: rgba(88,168,255,0.8);
+  background: rgba(88,168,255,0.18);
+}
+
+.roleWizardSearchWrap {
+  position: relative;
+}
+
+.roleWizardUserList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  background: rgba(18,21,28,0.95);
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.roleWizardUserList--dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 5;
+  box-shadow: 0 12px 24px rgba(0,0,0,0.4);
+}
+
+.roleWizardUserItem {
+  width: 100%;
+  text-align: left;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: rgba(255,255,255,0.04);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #e6e7eb;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.roleWizardUserItem:hover {
+  background: rgba(88,168,255,0.18);
+  border-color: rgba(88,168,255,0.35);
+}
+
+.roleWizardUserItem--selected {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  cursor: default;
+}
+
+.roleWizardUserMeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.roleWizardUserName {
+  font-weight: 700;
+  color: #f9fafb;
+  overflow-wrap: anywhere;
+}
+
+.roleWizardUserEmail {
+  font-size: 12px;
+  color: rgba(230,231,235,0.65);
+  overflow-wrap: anywhere;
+}
+
+.roleWizardUserRemove {
+  border: 0;
+  background: none;
+  color: #fda4af;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.roleWizardUserRemove:hover {
+  color: #fecdd3;
+}
+
+.roleWizardUserRemove:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roleWizardAlert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.roleWizardAlert--warning {
+  background: rgba(251, 191, 36, 0.15);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  color: #fcd34d;
+}
+
+.roleWizardAlert--error {
+  background: rgba(248,113,113,0.18);
+  border: 1px solid rgba(248,113,113,0.4);
+  color: #fecaca;
+}
+
+.roleWizardAlert--success {
+  background: rgba(34,197,94,0.18);
+  border: 1px solid rgba(34,197,94,0.4);
+  color: #bbf7d0;
+}
+
+.roleWizardActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.roleWizardPrimary {
+  background: #2f6bff;
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.2);
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.roleWizardPrimary:hover:not(:disabled) {
+  background: #1e5bf0;
+  border-color: rgba(255,255,255,0.4);
+}
+
+.roleWizardPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.roleWizardDangerButton {
+  align-self: flex-start;
+  background: #7f1d1d;
+  color: #ffffff;
+  border: 1px solid rgba(248, 113, 113, 0.5);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.roleWizardDangerButton:hover:not(:disabled) {
+  background: #b91c1c;
+  border-color: rgba(248, 113, 113, 0.8);
+}
+
+.roleWizardDangerButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .settingsAction {

@@ -1,7 +1,8 @@
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
+import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
@@ -24,6 +25,16 @@ export type AccountOutletContext = {
 };
 
 export default function Account() {
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [searchParams] = useSearchParams();
+    const personalView = searchParams.get("view") === "personal";
+    const accountRoot = personalView ? "/account?view=personal" : "/account";
+    const accountBank = personalView ? "/account/bank?view=personal" : "/account/bank";
+    const accountEmployment = personalView
+        ? "/account/employment?view=personal"
+        : "/account/employment";
+    const accountCompany = personalView ? "/account/company?view=personal" : "/account/company";
     const [user, setUser] = useState<UserResponseDTO | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [avatarErrorMsg, setAvatarErrorMsg] = useState<string | null>(null);
@@ -86,6 +97,13 @@ export default function Account() {
             if (profilePictureUrl) URL.revokeObjectURL(profilePictureUrl);
         };
     }, [profilePictureUrl]);
+
+    useEffect(() => {
+        if (!personalView) return;
+        if (location.pathname.startsWith("/account/company")) {
+            navigate("/account?view=personal", { replace: true });
+        }
+    }, [location.pathname, navigate, personalView]);
 
     const canManageCompany =
         permissions.includes("CAN_CREATE_ROLE") || permissions.includes("CAN_ASSIGN_ROLES");
@@ -155,67 +173,72 @@ export default function Account() {
     return (
         <>
             <Navbar />
-            <div className="userDashboardCard settingsCard">
-                <header className="pageHeader">
-                    <PageBack />
-                    <h1 className="pageTitle">Account</h1>
-                    <p className="pageSubtitle">Manage your personal and employment details</p>
-                </header>
+            <div className="pageShell">
+                <PrimaryNav />
+                <div className="pageShellContent">
+                    <div className="userDashboardCard settingsCard accountPage">
+                        <header className="pageHeader">
+                            <PageBack />
+                            <h1 className="pageTitle">Account</h1>
+                            <p className="pageSubtitle">Manage your personal and employment details</p>
+                        </header>
 
-                <div className="settingsLayout">
-                    <aside className="settingsNav">
-                        <NavLink
-                            to="/account"
-                            end
-                            className={({ isActive }) =>
-                                `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                            }
-                        >
-                            Personal info
-                        </NavLink>
-                        <NavLink
-                            to="/account/bank"
-                            className={({ isActive }) =>
-                                `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                            }
-                        >
-                            Bank details
-                        </NavLink>
-                        <NavLink
-                            to="/account/employment"
-                            className={({ isActive }) =>
-                                `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                            }
-                        >
-                            Employment details
-                        </NavLink>
-                        {permissionsLoaded && canManageCompany ? (
-                            <NavLink
-                                to="/account/company"
-                                className={({ isActive }) =>
-                                    `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                                }
-                            >
-                                Company settings
-                            </NavLink>
-                        ) : null}
-                    </aside>
+                        <div className="settingsLayout">
+                            <aside className="settingsNav">
+                                <NavLink
+                                    to={accountRoot}
+                                    end
+                                    className={({ isActive }) =>
+                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                    }
+                                >
+                                    Personal info
+                                </NavLink>
+                                <NavLink
+                                    to={accountBank}
+                                    className={({ isActive }) =>
+                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                    }
+                                >
+                                    Bank details
+                                </NavLink>
+                                <NavLink
+                                    to={accountEmployment}
+                                    className={({ isActive }) =>
+                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                    }
+                                >
+                                    Employment details
+                                </NavLink>
+                                {permissionsLoaded && canManageCompany && !personalView ? (
+                                    <NavLink
+                                        to={accountCompany}
+                                        className={({ isActive }) =>
+                                            `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Company settings
+                                    </NavLink>
+                                ) : null}
+                            </aside>
 
-                    <div className="settingsContent">
-                        <Outlet
-                            context={{
-                                user,
-                                fullName,
-                                defaultAvatarLetter,
-                                profilePictureUrl,
-                                profilePictureLoading,
-                                avatarErrorMsg,
-                                formatValue,
-                                formatPosition,
-                                onSelectProfilePicture: handleSelectProfilePicture,
-                                onRemoveProfilePicture: handleRemoveProfilePicture,
-                            }}
-                        />
+                            <div className="settingsContent">
+                                <Outlet
+                                    context={{
+                                        user,
+                                        fullName,
+                                        defaultAvatarLetter,
+                                        profilePictureUrl,
+                                        profilePictureLoading,
+                                        avatarErrorMsg,
+                                        formatValue,
+                                        formatPosition,
+                                        onSelectProfilePicture: handleSelectProfilePicture,
+                                        onRemoveProfilePicture: handleRemoveProfilePicture,
+                                    }}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

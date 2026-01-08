@@ -6,8 +6,16 @@ import GetPermissions from "./GetPermissions";
 import GetAllPermissions from "./GetAllPermissions";
 import GetRoles from "./GetRoles";
 import CreateRole from "./CreateRole";
+import UpdateRole from "./UpdateRole";
+import DeleteRole from "./DeleteRole";
 import SetUserRoles from "./SetUserRoles";
-import type { CreateRoleRequestDTO, RoleResponseDTO } from "./types";
+import GetUserRoles from "./GetUserRoles";
+import type {
+    CreateRoleRequestDTO,
+    RoleResponseDTO,
+    UpdateRoleRequestDTO,
+    UserRolesResponseDTO,
+} from "./types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004";
 
@@ -33,12 +41,21 @@ export const AuthServices = {
     getRoles: async (): Promise<RoleResponseDTO[]> => {
         return await GetRoles(API_BASE_URL);
     },
+    getUserRoles: async (userIds: string[]): Promise<UserRolesResponseDTO[]> => {
+        return await GetUserRoles(API_BASE_URL, userIds);
+    },
     createRole: async (payload: CreateRoleRequestDTO): Promise<RoleResponseDTO> => {
         return await CreateRole(API_BASE_URL, payload);
+    },
+    updateRole: async (roleId: string, payload: UpdateRoleRequestDTO): Promise<RoleResponseDTO> => {
+        return await UpdateRole(API_BASE_URL, roleId, payload);
+    },
+    deleteRole: async (roleId: string): Promise<void> => {
+        return await DeleteRole(API_BASE_URL, roleId);
     },
     setUserRoles: async (userId: string, roles: string[]): Promise<void> => {
         return await SetUserRoles(API_BASE_URL, userId, roles);
     },
 };
 
-export type { CreateRoleRequestDTO, RoleResponseDTO };
+export type { CreateRoleRequestDTO, RoleResponseDTO, UpdateRoleRequestDTO, UserRolesResponseDTO };
