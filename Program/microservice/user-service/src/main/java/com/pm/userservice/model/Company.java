@@ -19,6 +19,12 @@ public class Company {
     @Column(name = "payout_frequency_minutes", nullable = false)
     private Integer payoutFrequencyMinutes = 10080;
 
+    @Column(name = "logo_bytes")
+    private byte[] logo;
+
+    @Column(name = "logo_content_type")
+    private String logoContentType;
+
     public UUID getId() {
         return id;
     }
@@ -41,5 +47,21 @@ public class Company {
 
     public void setPayoutFrequencyMinutes(Integer payoutFrequencyMinutes) {
         this.payoutFrequencyMinutes = payoutFrequencyMinutes;
+    }
+
+    public byte[] getLogo() {
+        return logo;
+    }
+
+    public void setLogo(byte[] logo) {
+        this.logo = logo;
+    }
+
+    public String getLogoContentType() {
+        return logoContentType;
+    }
+
+    public void setLogoContentType(String logoContentType) {
+        this.logoContentType = logoContentType;
     }
 }

@@ -14,6 +14,9 @@ import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
 import GetMyCompany from "./GetMyCompany";
 import UpdateMyCompany, { type UpdateCompanyRequestDTO } from "./UpdateMyCompany";
+import GetMyCompanyLogo from "./GetMyCompanyLogo";
+import UpdateMyCompanyLogo from "./UpdateMyCompanyLogo";
+import DeleteMyCompanyLogo from "./DeleteMyCompanyLogo";
 import GetMyPayslips, { type PayslipResponseDTO } from "./GetMyPayslips";
 import GetAllPayslips from "./GetAllPayslips";
 import GetPayslipsForReview from "./GetPayslipsForReview";
@@ -81,6 +84,15 @@ export const UserServices = {
     },
     updateMyCompany: async (payload: UpdateCompanyRequestDTO): Promise<CompanyResponseDTO> => {
         return await UpdateMyCompany(API_BASE_URL, payload);
+    },
+    getMyCompanyLogo: async (): Promise<Blob | null> => {
+        return await GetMyCompanyLogo(API_BASE_URL);
+    },
+    updateMyCompanyLogo: async (file: File): Promise<void> => {
+        return await UpdateMyCompanyLogo(API_BASE_URL, file);
+    },
+    deleteMyCompanyLogo: async (): Promise<void> => {
+        return await DeleteMyCompanyLogo(API_BASE_URL);
     },
     getMyTimesheets: async (): Promise<
         MyTimesheetRow[]

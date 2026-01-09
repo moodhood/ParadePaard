@@ -74,6 +74,10 @@ export default function SettingsCompany() {
     const [companySaving, setCompanySaving] = useState(false);
     const [companySaveError, setCompanySaveError] = useState<string | null>(null);
     const [companySaveSuccess, setCompanySaveSuccess] = useState<string | null>(null);
+    const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
+    const [companyLogoLoading, setCompanyLogoLoading] = useState(false);
+    const [companyLogoError, setCompanyLogoError] = useState<string | null>(null);
+    const [companyLogoSaving, setCompanyLogoSaving] = useState(false);
 
     const [roleName, setRoleName] = useState("");
     const [roleColor, setRoleColor] = useState(roleColorOptions[0] ?? "#2f6bff");
@@ -154,6 +158,35 @@ export default function SettingsCompany() {
         if (!company) return;
         setCompanyNameDraft(company.name ?? "");
     }, [company?.name]);
+
+    useEffect(() => {
+        if (!company) return;
+        let cancelled = false;
+        setCompanyLogoLoading(true);
+        setCompanyLogoError(null);
+
+        UserServices.getMyCompanyLogo()
+            .then((blob) => {
+                if (cancelled) return;
+                setCompanyLogoUrl(blob ? URL.createObjectURL(blob) : null);
+            })
+            .catch(() => {
+                if (!cancelled) setCompanyLogoUrl(null);
+            })
+            .finally(() => {
+                if (!cancelled) setCompanyLogoLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [company?.companyId]);
+
+    useEffect(() => {
+        return () => {
+            if (companyLogoUrl) URL.revokeObjectURL(companyLogoUrl);
+        };
+    }, [companyLogoUrl]);
 
     const canCreateRole = permissions.includes("CAN_CREATE_ROLE");
     const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
@@ -434,6 +467,46 @@ export default function SettingsCompany() {
             setCompanySaveError(message);
         } finally {
             setCompanySaving(false);
+        }
+    };
+
+    const handleSelectCompanyLogo = async (file: File | null) => {
+        if (!file || !canManageCompany) return;
+        if (!file.type.startsWith("image/")) {
+            setCompanyLogoError("Please select an image file.");
+            return;
+        }
+        if (file.size > 2_000_000) {
+            setCompanyLogoError("Logo must be 2MB or smaller.");
+            return;
+        }
+
+        try {
+            setCompanyLogoSaving(true);
+            setCompanyLogoError(null);
+            await UserServices.updateMyCompanyLogo(file);
+            const blob = await UserServices.getMyCompanyLogo();
+            setCompanyLogoUrl(blob ? URL.createObjectURL(blob) : null);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not upload company logo.";
+            setCompanyLogoError(message);
+        } finally {
+            setCompanyLogoSaving(false);
+        }
+    };
+
+    const handleRemoveCompanyLogo = async () => {
+        if (!canManageCompany) return;
+        try {
+            setCompanyLogoSaving(true);
+            setCompanyLogoError(null);
+            await UserServices.deleteMyCompanyLogo();
+            setCompanyLogoUrl(null);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not remove company logo.";
+            setCompanyLogoError(message);
+        } finally {
+            setCompanyLogoSaving(false);
         }
     };
 
@@ -742,24 +815,63 @@ export default function SettingsCompany() {
                         <>
                             <div className="profile_avatar_body settingsCompanyAvatar">
                                 <div
-                                    className="profile_avatar_circle profile_avatar_circle--default"
+                                    className={`profile_avatar_circle ${
+                                        companyLogoUrl ? "profile_avatar_circle--image" : "profile_avatar_circle--default"
+                                    }`}
                                     aria-label="Company logo"
                                 >
-                                    <span className="profile_avatar_letter">{companyInitial}</span>
-                                    <label className="profile_avatar_overlay">
-                                        Upload
-                                        <input
-                                            className="profile_avatar_file_input"
-                                            type="file"
-                                            accept="image/*"
-                                            disabled
+                                    {companyLogoUrl ? (
+                                        <img
+                                            className="profile_avatar_img"
+                                            src={companyLogoUrl}
+                                            alt="Company logo"
                                         />
-                                    </label>
+                                    ) : (
+                                        <span className="profile_avatar_letter">{companyInitial}</span>
+                                    )}
+                                    {canManageCompany ? (
+                                        <label className="profile_avatar_overlay">
+                                            {companyLogoUrl ? "Change" : "Upload"}
+                                            <input
+                                                className="profile_avatar_file_input"
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={(event) =>
+                                                    void handleSelectCompanyLogo(event.target.files?.[0] ?? null)
+                                                }
+                                                disabled={companyLogoSaving}
+                                            />
+                                        </label>
+                                    ) : null}
                                 </div>
                                 <div className="profile_avatar_actions">
-                                    <div className="profile_avatar_hint">
-                                        Company logo uploads aren&apos;t available yet.
-                                    </div>
+                                    {companyLogoUrl ? (
+                                        canManageCompany ? (
+                                            <button
+                                                type="button"
+                                                className="profile_avatar_remove_btn"
+                                                onClick={() => void handleRemoveCompanyLogo()}
+                                                disabled={companyLogoSaving}
+                                            >
+                                                {companyLogoSaving ? "Updating..." : "Remove"}
+                                            </button>
+                                        ) : (
+                                            <div className="profile_avatar_hint">
+                                                Logo managed by administrators.
+                                            </div>
+                                        )
+                                    ) : (
+                                        <div className="profile_avatar_hint">
+                                            {companyLogoLoading
+                                                ? "Loading..."
+                                                : canManageCompany
+                                                  ? "No logo uploaded yet."
+                                                  : "Logo uploads require the manage company permission."}
+                                        </div>
+                                    )}
+                                    {companyLogoError ? (
+                                        <div className="profile_avatar_error">{companyLogoError}</div>
+                                    ) : null}
                                 </div>
                             </div>
                             <div className="settingsCardBody">

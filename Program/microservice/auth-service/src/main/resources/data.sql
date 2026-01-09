@@ -15,6 +15,14 @@ SELECT '00000000-0000-0000-0000-000000000001'::uuid, 'Default Company'
            OR name = 'Default Company'
     );
 
+INSERT INTO companies (id, name)
+SELECT '00000000-0000-0000-0000-000000000002'::uuid, 'testcompany2'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM companies
+        WHERE id = '00000000-0000-0000-0000-000000000002'::uuid
+           OR name = 'testcompany2'
+    );
+
 -- clean up old join tables if they exist
 DROP TABLE IF EXISTS user_roles;
 DROP TABLE IF EXISTS auth_user_roles;
@@ -24,7 +32,7 @@ CREATE TABLE IF NOT EXISTS "users" (
                                        id UUID PRIMARY KEY,
                                        first_name VARCHAR(255) NOT NULL,
                                        last_name VARCHAR(255) NOT NULL,
-                                       email VARCHAR(255) UNIQUE NOT NULL,
+                                       email VARCHAR(255) NOT NULL,
                                        username VARCHAR(255) UNIQUE NOT NULL,
                                        password VARCHAR(255) NOT NULL,
                                        must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
@@ -62,6 +70,9 @@ ALTER TABLE IF EXISTS "users" ALTER COLUMN first_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN last_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN password SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN company_id SET NOT NULL;
+ALTER TABLE IF EXISTS "users" DROP CONSTRAINT IF EXISTS users_email_key;
+ALTER TABLE IF EXISTS "users" DROP CONSTRAINT IF EXISTS users_company_email_key;
+ALTER TABLE IF EXISTS "users" ADD CONSTRAINT users_company_email_key UNIQUE (company_id, email);
 
 -- drop legacy column if it exists
 ALTER TABLE "users" DROP COLUMN IF EXISTS role;
@@ -117,10 +128,10 @@ SELECT
     'testuser',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
     '00000000-0000-0000-0000-000000000001'::uuid
-    WHERE NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '223e4567-e89b-12d3-a456-426614174006'::uuid
-       OR email = 'testuser@test.com'
+       OR (email = 'testuser@test.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
        OR username = 'testuser'
 );
 
@@ -134,10 +145,10 @@ SELECT
     'jane.doe',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
     '00000000-0000-0000-0000-000000000001'::uuid
-    WHERE NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '11111111-1111-1111-1111-111111111111'::uuid
-       OR email = 'jane.doe@example.com'
+       OR (email = 'jane.doe@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
        OR username = 'jane.doe'
 );
 
@@ -151,10 +162,10 @@ SELECT
     'joost.vanstam',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
     '00000000-0000-0000-0000-000000000001'::uuid
-    WHERE NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
-       OR email = 'joost.vanstam@example.com'
+       OR (email = 'joost.vanstam@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
        OR username = 'joost.vanstam'
 );
 
@@ -168,10 +179,10 @@ SELECT
     'sanne.admin',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
     '00000000-0000-0000-0000-000000000001'::uuid
-    WHERE NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
-       OR email = 'sanne.admin@example.com'
+       OR (email = 'sanne.admin@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
        OR username = 'sanne.admin'
 );
 
@@ -185,11 +196,61 @@ SELECT
     'super.admin',
     '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu',
     '00000000-0000-0000-0000-000000000001'::uuid
-    WHERE NOT EXISTS (
+WHERE NOT EXISTS (
     SELECT 1 FROM "users"
     WHERE id = '99999999-9999-9999-9999-999999999999'::uuid
-       OR email = 'super.admin@example.com'
+       OR (email = 'super.admin@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
        OR username = 'super.admin'
+);
+
+-- seed testcompany2 admin account
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
+SELECT
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002'::uuid,
+    'Super',
+    'Admin',
+    'superadmintestcompany2@example.com',
+    'superadmintestcompany2',
+    '$2b$12$1R8wo3m2pq6PPPfzvgw6IenkJgSMAy4Oh7JASaJduS8RrzhPSeGYa',
+    '00000000-0000-0000-0000-000000000002'::uuid
+WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002'::uuid
+       OR (email = 'superadmintestcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+       OR username = 'superadmintestcompany2'
+);
+
+-- seed testcompany2 users
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
+SELECT
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002'::uuid,
+    'Anna',
+    'Tester',
+    'anna.testcompany2@example.com',
+    'anna.testcompany2',
+    '$2b$12$1R8wo3m2pq6PPPfzvgw6IenkJgSMAy4Oh7JASaJduS8RrzhPSeGYa',
+    '00000000-0000-0000-0000-000000000002'::uuid
+WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002'::uuid
+       OR (email = 'anna.testcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+       OR username = 'anna.testcompany2'
+);
+
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id)
+SELECT
+    'cccccccc-cccc-cccc-cccc-cccccccc0002'::uuid,
+    'Ben',
+    'Tester',
+    'ben.testcompany2@example.com',
+    'ben.testcompany2',
+    '$2b$12$1R8wo3m2pq6PPPfzvgw6IenkJgSMAy4Oh7JASaJduS8RrzhPSeGYa',
+    '00000000-0000-0000-0000-000000000002'::uuid
+WHERE NOT EXISTS (
+    SELECT 1 FROM "users"
+    WHERE id = 'cccccccc-cccc-cccc-cccc-cccccccc0002'::uuid
+       OR (email = 'ben.testcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+       OR username = 'ben.testcompany2'
 );
 
 -- seed roles
@@ -215,6 +276,22 @@ SELECT '33333333-cccc-cccc-cccc-333333333333'::uuid, 'SUPER_ADMIN', '00000000-00
         SELECT 1 FROM roles
         WHERE id = '33333333-cccc-cccc-cccc-333333333333'::uuid
            OR (name = 'SUPER_ADMIN' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
+    );
+
+INSERT INTO roles (id, name, company_id)
+SELECT '44444444-dddd-dddd-dddd-444444444444'::uuid, 'ADMIN', '00000000-0000-0000-0000-000000000002'::uuid
+    WHERE NOT EXISTS (
+        SELECT 1 FROM roles
+        WHERE id = '44444444-dddd-dddd-dddd-444444444444'::uuid
+           OR (name = 'ADMIN' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+    );
+
+INSERT INTO roles (id, name, company_id)
+SELECT '55555555-eeee-eeee-eeee-555555555555'::uuid, 'USER', '00000000-0000-0000-0000-000000000002'::uuid
+    WHERE NOT EXISTS (
+        SELECT 1 FROM roles
+        WHERE id = '55555555-eeee-eeee-eeee-555555555555'::uuid
+           OR (name = 'USER' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
     );
 
 -- seed permissions
@@ -374,7 +451,7 @@ WHERE r.name = 'SUPER_ADMIN'
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
-         JOIN roles r ON r.name = 'ADMIN'
+         JOIN roles r ON r.name = 'ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = '223e4567-e89b-12d3-a456-426614174006'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
@@ -385,7 +462,7 @@ WHERE u.id = '223e4567-e89b-12d3-a456-426614174006'::uuid
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
-         JOIN roles r ON r.name = 'USER'
+         JOIN roles r ON r.name = 'USER' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = '11111111-1111-1111-1111-111111111111'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
@@ -396,7 +473,7 @@ WHERE u.id = '11111111-1111-1111-1111-111111111111'::uuid
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
-         JOIN roles r ON r.name = 'USER'
+         JOIN roles r ON r.name = 'USER' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
@@ -407,7 +484,7 @@ WHERE u.id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
-         JOIN roles r ON r.name = 'ADMIN'
+         JOIN roles r ON r.name = 'ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
@@ -418,8 +495,40 @@ WHERE u.id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
 INSERT INTO auth_user_roles (user_id, role_id)
 SELECT u.id, r.id
 FROM "users" u
-         JOIN roles r ON r.name = 'SUPER_ADMIN'
+         JOIN roles r ON r.name = 'SUPER_ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = '99999999-9999-9999-9999-999999999999'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+-- give testcompany2 admin the ADMIN role
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000002'::uuid
+WHERE u.id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+-- give testcompany2 users the USER role
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'USER' AND r.company_id = '00000000-0000-0000-0000-000000000002'::uuid
+WHERE u.id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+         JOIN roles r ON r.name = 'USER' AND r.company_id = '00000000-0000-0000-0000-000000000002'::uuid
+WHERE u.id = 'cccccccc-cccc-cccc-cccc-cccccccc0002'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
       WHERE ur.user_id = u.id AND ur.role_id = r.id

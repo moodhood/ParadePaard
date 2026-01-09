@@ -111,6 +111,74 @@ public class UserController {
         }
     }
 
+    @GetMapping("/me/company-logo")
+    @Operation(summary = "Get current company logo")
+    public ResponseEntity<byte[]> getMyCompanyLogo(Authentication authentication) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        return userService.getCompanyLogo(companyId)
+                .map(logo -> {
+                    MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
+                    try {
+                        if (logo.contentType() != null && !logo.contentType().isBlank()) {
+                            mediaType = MediaType.parseMediaType(logo.contentType());
+                        }
+                    } catch (Exception ignored) {
+                        // fallback to octet-stream
+                    }
+                    return ResponseEntity.ok()
+                            .cacheControl(CacheControl.noStore())
+                            .contentType(mediaType)
+                            .body(logo.data());
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping(value = "/me/company-logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Upload current company logo")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_COMPANY')")
+    public ResponseEntity<Map<String, String>> uploadMyCompanyLogo(
+            Authentication authentication,
+            @RequestParam("file") MultipartFile file
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "No file uploaded"));
+        }
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Invalid file type"));
+        }
+        if (file.getSize() > 2_000_000) {
+            return ResponseEntity.status(413).body(Map.of("message", "File too large (max 2MB)"));
+        }
+
+        try {
+            userService.updateCompanyLogo(companyId, file.getBytes(), contentType);
+            return ResponseEntity.ok(Map.of("message", "Company logo updated"));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Could not upload company logo"));
+        }
+    }
+
+    @DeleteMapping("/me/company-logo")
+    @Operation(summary = "Remove current company logo")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_COMPANY')")
+    public ResponseEntity<Void> deleteMyCompanyLogo(Authentication authentication) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (companyId == null) {
+            return ResponseEntity.status(401).build();
+        }
+        userService.removeCompanyLogo(companyId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/me/profile-picture")
     @Operation(summary = "Get current user's profile picture")
     public ResponseEntity<byte[]> getMyProfilePicture(Authentication authentication) {

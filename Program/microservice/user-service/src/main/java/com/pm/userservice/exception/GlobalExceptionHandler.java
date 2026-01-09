@@ -5,6 +5,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.client.ResourceAccessException;
@@ -70,7 +72,7 @@ public class GlobalExceptionHandler {
         log.warn("Upstream service returned {}: {}", ex.getRawStatusCode(), ex.getMessage());
         Map<String, String> errors = new HashMap<>();
         String body = ex.getResponseBodyAsString();
-        errors.put("message", (body == null || body.isBlank()) ? "Upstream service error" : body);
+        errors.put("message", resolveUpstreamMessage(body));
         return ResponseEntity.status(ex.getRawStatusCode()).body(errors);
     }
 
@@ -86,8 +88,27 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage());
         Map<String, String> errors = new HashMap<>();
-        errors.put("message", "Data integrity violation");
+        String detail = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : ex.getMessage();
+        if (detail != null && detail.contains("users_company_email_key")) {
+            errors.put("message", "Email Already Exists");
+        } else {
+            errors.put("message", "Data integrity violation");
+        }
         return ResponseEntity.badRequest().body(errors);
     }
 
+    private String resolveUpstreamMessage(String body) {
+        if (body == null || body.isBlank()) {
+            return "Upstream service error";
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode node = mapper.readTree(body);
+            if (node.hasNonNull("message")) {
+                return node.get("message").asText();
+            }
+        } catch (Exception ignored) {
+        }
+        return body;
+    }
 }

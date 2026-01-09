@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import {
     UserServices,
     type TimesheetRow,
@@ -25,6 +26,8 @@ import {
     type Timeframe,
 } from "../utils/hoursSummary";
 
+const normalizeRoleName = (value: string) => value.trim().toUpperCase();
+
 export default function AdminUserDetails() {
     const { userId } = useParams<{ userId: string }>();
     const [user, setUser] = useState<UserResponseDTO | null>(null);
@@ -38,6 +41,29 @@ export default function AdminUserDetails() {
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
     const [profilePictureError, setProfilePictureError] = useState<string | null>(null);
+    const [permissions, setPermissions] = useState<string[]>([]);
+    const [permissionsLoading, setPermissionsLoading] = useState(true);
+    const [permissionsError, setPermissionsError] = useState<string | null>(null);
+    const [userRoles, setUserRoles] = useState<string[]>([]);
+    const [rolesLoading, setRolesLoading] = useState(false);
+    const [rolesError, setRolesError] = useState<string | null>(null);
+    const [roleOptions, setRoleOptions] = useState<RoleResponseDTO[]>([]);
+    const [roleOptionsLoading, setRoleOptionsLoading] = useState(false);
+    const [roleOptionsError, setRoleOptionsError] = useState<string | null>(null);
+    const [roleSaveError, setRoleSaveError] = useState<string | null>(null);
+    const [roleSaveSuccess, setRoleSaveSuccess] = useState<string | null>(null);
+    const [roleSaving, setRoleSaving] = useState(false);
+    const [selectedRoleToAdd, setSelectedRoleToAdd] = useState("");
+
+    const uniqueRoles = useCallback((roles: string[]) => {
+        const map = new Map<string, string>();
+        roles.forEach((role) => {
+            const key = normalizeRoleName(role);
+            if (!key || map.has(key)) return;
+            map.set(key, role);
+        });
+        return Array.from(map.values());
+    }, []);
 
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
     const [dateOfIssue, setDateOfIssue] = useState(today);
@@ -82,6 +108,36 @@ export default function AdminUserDetails() {
         }
     }, [userId]);
 
+    const loadUserRoles = useCallback(async () => {
+        if (!userId) return;
+        try {
+            setRolesLoading(true);
+            setRolesError(null);
+            const data = await AuthServices.getUserRoles([userId]);
+            const roles = data[0]?.roles ?? [];
+            setUserRoles(uniqueRoles(roles));
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to load user roles.";
+            setRolesError(message);
+        } finally {
+            setRolesLoading(false);
+        }
+    }, [uniqueRoles, userId]);
+
+    const loadRoleOptions = useCallback(async () => {
+        try {
+            setRoleOptionsLoading(true);
+            setRoleOptionsError(null);
+            const data = await AuthServices.getRoles();
+            setRoleOptions(data ?? []);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to load roles.";
+            setRoleOptionsError(message);
+        } finally {
+            setRoleOptionsLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         void loadUser();
     }, [loadUser]);
@@ -89,6 +145,41 @@ export default function AdminUserDetails() {
     useEffect(() => {
         void loadTimesheets();
     }, [loadTimesheets]);
+
+    useEffect(() => {
+        let cancelled = false;
+        setPermissionsLoading(true);
+        setPermissionsError(null);
+
+        AuthServices.getPermissions()
+            .then((data) => {
+                if (!cancelled) setPermissions(data ?? []);
+            })
+            .catch((err: unknown) => {
+                const message = err instanceof Error ? err.message : "Failed to load permissions.";
+                if (!cancelled) setPermissionsError(message);
+            })
+            .finally(() => {
+                if (!cancelled) setPermissionsLoading(false);
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        void loadUserRoles();
+    }, [loadUserRoles]);
+
+    useEffect(() => {
+        void loadRoleOptions();
+    }, [loadRoleOptions]);
+
+    useEffect(() => {
+        setRoleSaveError(null);
+        setRoleSaveSuccess(null);
+    }, [userId]);
 
     useEffect(() => {
         if (!userId) return;
@@ -156,6 +247,40 @@ export default function AdminUserDetails() {
         if (typeof value === "boolean") return value ? "Yes" : "No";
         return value;
     };
+
+    const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
+    const canRemoveRoles = permissions.includes("CAN_REMOVE_ROLES");
+
+    const sortedUserRoles = useMemo(() => {
+        const list = uniqueRoles(userRoles);
+        return [...list].sort((a, b) => a.localeCompare(b));
+    }, [uniqueRoles, userRoles]);
+
+    const availableRoles = useMemo(() => {
+        const assigned = new Set(sortedUserRoles.map((role) => normalizeRoleName(role)));
+        return roleOptions
+            .map((role) => role.name)
+            .filter((role) => !assigned.has(normalizeRoleName(role)))
+            .sort((a, b) => a.localeCompare(b));
+    }, [roleOptions, sortedUserRoles]);
+
+    useEffect(() => {
+        if (availableRoles.length === 0) {
+            if (selectedRoleToAdd) setSelectedRoleToAdd("");
+            return;
+        }
+        const normalized = normalizeRoleName(selectedRoleToAdd);
+        if (!normalized) {
+            setSelectedRoleToAdd(availableRoles[0]);
+            return;
+        }
+        const exists = availableRoles.some(
+            (role) => normalizeRoleName(role) === normalized
+        );
+        if (!exists) {
+            setSelectedRoleToAdd(availableRoles[0]);
+        }
+    }, [availableRoles, selectedRoleToAdd]);
 
     const userTimesheets = useMemo(
         () => timesheets.filter((t) => t.userId === userId),
@@ -254,6 +379,39 @@ export default function AdminUserDetails() {
         }
     };
 
+    const updateUserRoles = async (nextRoles: string[], successMessage: string) => {
+        if (!userId) return;
+        try {
+            setRoleSaving(true);
+            setRoleSaveError(null);
+            setRoleSaveSuccess(null);
+            await AuthServices.setUserRoles(userId, nextRoles);
+            setUserRoles(uniqueRoles(nextRoles));
+            setRoleSaveSuccess(successMessage);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to update roles.";
+            setRoleSaveError(message);
+        } finally {
+            setRoleSaving(false);
+        }
+    };
+
+    const handleRemoveRole = async (roleName: string) => {
+        if (!canRemoveRoles) return;
+        const normalized = normalizeRoleName(roleName);
+        const nextRoles = sortedUserRoles.filter(
+            (role) => normalizeRoleName(role) !== normalized
+        );
+        if (nextRoles.length === sortedUserRoles.length) return;
+        await updateUserRoles(nextRoles, "Role removed.");
+    };
+
+    const handleAddRole = async () => {
+        if (!canAssignRoles || !selectedRoleToAdd) return;
+        const nextRoles = uniqueRoles([...sortedUserRoles, selectedRoleToAdd]);
+        await updateUserRoles(nextRoles, "Role added.");
+    };
+
     if (!userId) {
         return (
             <>
@@ -336,6 +494,81 @@ export default function AdminUserDetails() {
                                     </div>
                                 </div>
                             ) : null}
+                        </Card>
+
+                        <Card title="Roles" className="dashboardCardHeight">
+                            <div className="roleManager">
+                                {rolesLoading ? <div className="helperText">Loading roles...</div> : null}
+                                {rolesError ? <div className="errorText">{rolesError}</div> : null}
+                                {roleOptionsError ? <div className="errorText">{roleOptionsError}</div> : null}
+                                {permissionsError ? <div className="errorText">{permissionsError}</div> : null}
+
+                                <div className="roleManagerList">
+                                    {sortedUserRoles.length === 0 ? (
+                                        <div className="roleManagerEmpty">No roles assigned.</div>
+                                    ) : (
+                                        sortedUserRoles.map((role) => (
+                                            <div key={role} className="roleManagerItem">
+                                                <span className="roleManagerName">{role}</span>
+                                                <button
+                                                    type="button"
+                                                    className="roleManagerRemove"
+                                                    onClick={() => void handleRemoveRole(role)}
+                                                    disabled={!canRemoveRoles || roleSaving}
+                                                    aria-label={`Remove role ${role}`}
+                                                >
+                                                    x
+                                                </button>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+
+                                <div className="roleManagerAdd">
+                                    <select
+                                        className="uiSelect roleManagerSelect"
+                                        value={selectedRoleToAdd}
+                                        onChange={(e) => setSelectedRoleToAdd(e.target.value)}
+                                        disabled={
+                                            !canAssignRoles ||
+                                            roleSaving ||
+                                            roleOptionsLoading ||
+                                            availableRoles.length === 0
+                                        }
+                                        aria-label="Select role to add"
+                                    >
+                                        {availableRoles.length === 0 ? (
+                                            <option value="">No roles available</option>
+                                        ) : (
+                                            availableRoles.map((role) => (
+                                                <option key={role} value={role}>
+                                                    {role}
+                                                </option>
+                                            ))
+                                        )}
+                                    </select>
+                                    <button
+                                        type="button"
+                                        className="roleManagerAddBtn"
+                                        onClick={() => void handleAddRole()}
+                                        disabled={
+                                            !canAssignRoles ||
+                                            roleSaving ||
+                                            roleOptionsLoading ||
+                                            !selectedRoleToAdd
+                                        }
+                                        aria-label="Add role"
+                                    >
+                                        {roleSaving ? "Saving..." : "+ Add"}
+                                    </button>
+                                </div>
+
+                                {!permissionsLoading && !canAssignRoles && !canRemoveRoles ? (
+                                    <div className="helperText">You do not have permission to manage roles.</div>
+                                ) : null}
+                                {roleSaveError ? <div className="errorText">{roleSaveError}</div> : null}
+                                {roleSaveSuccess ? <div className="helperText">{roleSaveSuccess}</div> : null}
+                            </div>
                         </Card>
 
                         <Card title="Log Worked Hours" className="dashboardCardHeight">

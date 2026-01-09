@@ -16,6 +16,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -78,22 +79,22 @@ public class PasswordResetService {
         try {
             String email = normalizeEmail(rawEmail);
 
-            Optional<User> userOpt = userRepository.findByEmail(email);
-            if (userOpt.isEmpty()) {
+            List<User> users = userRepository.findAllByEmail(email);
+            if (users.isEmpty()) {
                 return ResponseEntity.noContent().build();
             }
 
-            User user = userOpt.get();
-            Optional<IssuedResetToken> issuedOpt = issueResetToken(user);
-            if (issuedOpt.isEmpty()) {
-                return ResponseEntity.noContent().build();
-            }
-            IssuedResetToken issued = issuedOpt.get();
-
-            try {
-                emailSender.sendPasswordResetEmail(user.getEmail(), issued.getResetUrl(), issued.getTtl());
-            } catch (Exception e) {
-                log.error("Failed to send password reset email", e);
+            for (User user : users) {
+                Optional<IssuedResetToken> issuedOpt = issueResetToken(user);
+                if (issuedOpt.isEmpty()) {
+                    continue;
+                }
+                IssuedResetToken issued = issuedOpt.get();
+                try {
+                    emailSender.sendPasswordResetEmail(user.getEmail(), issued.getResetUrl(), issued.getTtl());
+                } catch (Exception e) {
+                    log.error("Failed to send password reset email", e);
+                }
             }
 
             return ResponseEntity.noContent().build();

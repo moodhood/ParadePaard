@@ -1,0 +1,24 @@
+import axios from "axios";
+
+export default async function UpdateMyCompanyLogo(API_BASE_URL: string, file: File): Promise<void> {
+    try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await axios.put(`${API_BASE_URL}/api/users/me/company-logo`, formData, {
+            withCredentials: true,
+            headers: {
+                "Content-Type": "multipart/form-data",
+            },
+        });
+
+        if (response.status !== 200) {
+            throw new Error("Failed to upload company logo with status: " + response.status);
+        }
+    } catch (error) {
+        if (axios.isAxiosError(error)) {
+            throw new Error(error.response?.data?.message || "Could not upload company logo");
+        }
+        throw error;
+    }
+}

@@ -10,6 +10,7 @@ import com.pm.authservice.model.Role;
 import com.pm.authservice.model.User;
 import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
+import com.pm.authservice.security.AuthUserPrincipal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -57,7 +58,8 @@ public class AdminOnboardingService {
     @Transactional
     public AdminOnboardUserResponseDTO onboardUser(AdminOnboardUserRequestDTO request, Authentication authentication) {
         String email = normalizeEmail(request.getEmail());
-        if (userRepository.existsByEmail(email)) {
+        UUID companyId = resolveCompanyId(authentication);
+        if (userRepository.existsByEmailAndCompanyId(email, companyId)) {
             throw new EmailAlreadyExistsException("A user with this email already exists " + email);
         }
 
@@ -75,7 +77,6 @@ public class AdminOnboardingService {
         user.setPassword(passwordEncoder.encode(tempPassword));
         user.setMustChangePassword(true);
 
-        UUID companyId = resolveCompanyId(authentication);
         user.setCompanyId(companyId);
 
         Role userRole = roleRepository.findByNameAndCompanyId("USER", companyId)
@@ -106,16 +107,46 @@ public class AdminOnboardingService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalArgumentException("Missing authentication");
         }
+        AuthUserPrincipal principal = extractPrincipal(authentication);
+        if (principal != null && principal.getCompanyId() != null) {
+            return principal.getCompanyId();
+        }
+        if (principal != null && principal.getUserId() != null) {
+            User user = userRepository.findById(principal.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+            if (user.getCompanyId() == null) {
+                throw new IllegalStateException("User is missing company assignment");
+            }
+            return user.getCompanyId();
+        }
+
         String email = authentication.getName();
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("Missing user identity");
         }
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFoundException("User not found for " + email));
+        List<User> matches = userRepository.findAllByEmail(email);
+        if (matches.isEmpty()) {
+            throw new UserNotFoundException("User not found for " + email);
+        }
+        if (matches.size() > 1) {
+            throw new IllegalStateException("Multiple users found for email");
+        }
+        User user = matches.get(0);
         if (user.getCompanyId() == null) {
             throw new IllegalStateException("User is missing company assignment");
         }
         return user.getCompanyId();
+    }
+
+    private static AuthUserPrincipal extractPrincipal(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof AuthUserPrincipal authUserPrincipal) {
+            return authUserPrincipal;
+        }
+        return null;
     }
 
     private String ensureUniqueUsername(String base) {

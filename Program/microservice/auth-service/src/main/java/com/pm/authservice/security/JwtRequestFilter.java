@@ -1,6 +1,7 @@
 package com.pm.authservice.security;
 
 import com.pm.authservice.util.JwtUtil;
+import com.pm.authservice.security.AuthUserPrincipal;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,6 +17,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
@@ -57,6 +59,8 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             try {
                 jwtUtil.validateToken(token);
                 String email = jwtUtil.extractEmail(token);
+                String userId = jwtUtil.extractClaims(token).get("userId", String.class);
+                String companyId = jwtUtil.extractClaims(token).get("companyId", String.class);
                 List<String> permissions = jwtUtil.extractPermissions(token);
 
                 List<SimpleGrantedAuthority> authorities =
@@ -68,7 +72,12 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                                 .map(SimpleGrantedAuthority::new)
                                 .toList();
 
-                var auth = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                var principal = new AuthUserPrincipal(
+                        email,
+                        parseUuid(userId),
+                        parseUuid(companyId)
+                );
+                var auth = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
             } catch (JwtException ex) {
@@ -96,5 +105,16 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         }
 
         return null;
+    }
+
+    private static UUID parseUuid(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        try {
+            return UUID.fromString(raw.trim());
+        } catch (IllegalArgumentException ex) {
+            return null;
+        }
     }
 }

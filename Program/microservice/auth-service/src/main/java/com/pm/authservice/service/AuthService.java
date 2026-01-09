@@ -22,6 +22,7 @@ import com.pm.authservice.repository.CompanyRepository;
 import com.pm.authservice.repository.PermissionRepository;
 import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
+import com.pm.authservice.security.AuthUserPrincipal;
 import com.pm.authservice.util.JwtUtil;
 import io.jsonwebtoken.JwtException;
 import jakarta.transaction.Transactional;
@@ -112,16 +113,16 @@ public class AuthService {
 
     @Transactional
     public ResponseEntity<AuthResponseDTO> register(RegisterRequestDTO registerRequestDTO) {
-        // Check Email
-        if (userRepository.existsByEmail(registerRequestDTO.getEmail())) {
+        Company company = resolveOrCreateCompany(registerRequestDTO);
+
+        // Check Email within the company scope
+        if (userRepository.existsByEmailAndCompanyId(registerRequestDTO.getEmail(), company.getId())) {
             throw new EmailAlreadyExistsException(
                     "A user with this email already exists " + registerRequestDTO.getEmail()
             );
         }
 
         User user = RegisterMapper.toModel(registerRequestDTO, passwordEncoder);
-
-        Company company = resolveOrCreateCompany(registerRequestDTO);
         user.setCompanyId(company.getId());
         ensureDefaultRoles(company.getId());
 
@@ -291,20 +292,45 @@ public class AuthService {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalArgumentException("Missing authentication");
         }
+        AuthUserPrincipal principal = extractPrincipal(authentication);
+        if (principal != null && principal.getUserId() != null) {
+            return userRepository.findById(principal.getUserId())
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+        }
         String email = authentication.getName();
         if (email == null || email.isBlank()) {
             throw new IllegalArgumentException("Missing user identity");
         }
-        return userRepository.findByEmail(email)
+        if (principal != null && principal.getCompanyId() != null) {
+            return userRepository.findByEmailAndCompanyId(email, principal.getCompanyId())
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+        }
+        return userRepository.findAllByEmail(email).stream()
+                .findFirst()
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
     }
 
     private UUID requireCompanyId(Authentication authentication) {
+        AuthUserPrincipal principal = extractPrincipal(authentication);
+        if (principal != null && principal.getCompanyId() != null) {
+            return principal.getCompanyId();
+        }
         User user = requireAuthenticatedUser(authentication);
         if (user.getCompanyId() == null) {
             throw new IllegalStateException("User is missing company assignment");
         }
         return user.getCompanyId();
+    }
+
+    private static AuthUserPrincipal extractPrincipal(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof AuthUserPrincipal authUserPrincipal) {
+            return authUserPrincipal;
+        }
+        return null;
     }
 
     // ... [Rest of the file remains unchanged: refreshToken, logout, cookies, helper methods] ...

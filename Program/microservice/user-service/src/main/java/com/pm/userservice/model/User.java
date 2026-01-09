@@ -4,6 +4,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.Email;
@@ -13,13 +14,18 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "users")
+@Table(
+        name = "users",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "users_company_email_key", columnNames = {"company_id", "email"})
+        }
+)
 public class User {
     @Id
     private UUID userId;
 
     @Email
-    @Column(unique = true)
+    @Column
     private String email;
 
     private String preferredName;

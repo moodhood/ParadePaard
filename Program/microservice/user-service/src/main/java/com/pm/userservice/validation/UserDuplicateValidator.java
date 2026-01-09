@@ -17,11 +17,18 @@ public class UserDuplicateValidator {
         this.userRepository = userRepository;
     }
 
-    public void validateNoDuplicate(UUID currentId, UserRequestDTO userRequestDTO) {
-
-        if (userRepository.existsByEmailAndUserIdNot(userRequestDTO.getEmail(), currentId)) {
+    public void validateNoDuplicate(UUID currentId, UUID companyId, UserRequestDTO userRequestDTO) {
+        String email = userRequestDTO.getEmail();
+        if (email != null && companyId != null
+                && userRepository.existsByEmailAndCompanyIdAndUserIdNot(email, companyId, currentId)) {
             throw new EmailAlreadyExistsException(
-                    "Email already exists " + userRequestDTO.getEmail());
+                    "Email already exists " + email);
+        }
+
+        if (email != null && companyId == null
+                && userRepository.existsByEmailAndUserIdNot(email, currentId)) {
+            throw new EmailAlreadyExistsException(
+                    "Email already exists " + email);
         }
 
         if (userRequestDTO.getMobileNumber() != null

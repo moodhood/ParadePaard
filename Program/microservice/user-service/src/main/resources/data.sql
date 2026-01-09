@@ -3,8 +3,13 @@
 CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY,
     name VARCHAR(255) UNIQUE NOT NULL,
-    payout_frequency_minutes INTEGER NOT NULL DEFAULT 10080
+    payout_frequency_minutes INTEGER NOT NULL DEFAULT 10080,
+    logo_bytes BYTEA,
+    logo_content_type VARCHAR(255)
 );
+
+ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS logo_bytes BYTEA;
+ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS logo_content_type VARCHAR(255);
 
 INSERT INTO companies (id, name, payout_frequency_minutes)
 SELECT '00000000-0000-0000-0000-000000000001'::uuid, 'Default Company', 10080
@@ -12,6 +17,14 @@ SELECT '00000000-0000-0000-0000-000000000001'::uuid, 'Default Company', 10080
         SELECT 1 FROM companies
         WHERE id = '00000000-0000-0000-0000-000000000001'::uuid
            OR name = 'Default Company'
+    );
+
+INSERT INTO companies (id, name, payout_frequency_minutes)
+SELECT '00000000-0000-0000-0000-000000000002'::uuid, 'testcompany2', 10080
+    WHERE NOT EXISTS (
+        SELECT 1 FROM companies
+        WHERE id = '00000000-0000-0000-0000-000000000002'::uuid
+           OR name = 'testcompany2'
     );
 
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS position VARCHAR(255);
@@ -26,6 +39,9 @@ UPDATE users SET status = 'PENDING_SETUP' WHERE status IS NULL;
 UPDATE users SET company_id = COALESCE(company_id, '00000000-0000-0000-0000-000000000001'::uuid)
     WHERE company_id IS NULL;
 ALTER TABLE IF EXISTS users ALTER COLUMN company_id SET NOT NULL;
+ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_email_key;
+ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_company_email_key;
+ALTER TABLE IF EXISTS users ADD CONSTRAINT users_company_email_key UNIQUE (company_id, email);
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
 SELECT '11111111-1111-1111-1111-111111111111',
@@ -52,7 +68,7 @@ SELECT '11111111-1111-1111-1111-111111111111',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = '11111111-1111-1111-1111-111111111111'
-           OR email = 'jane.doe@example.com'
+           OR (email = 'jane.doe@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
@@ -80,7 +96,7 @@ SELECT '22222222-2222-2222-2222-222222222222',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = '22222222-2222-2222-2222-222222222222'
-           OR email = 'mark.vos@example.com'
+           OR (email = 'mark.vos@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
@@ -108,7 +124,7 @@ SELECT '223e4567-e89b-12d3-a456-426614174006',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = '223e4567-e89b-12d3-a456-426614174006'
-           OR email = 'testuser@test.com'
+           OR (email = 'testuser@test.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
@@ -136,7 +152,7 @@ SELECT 'b825a6bd-50d3-47e0-890d-78bfc59911b7',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = 'b825a6bd-50d3-47e0-890d-78bfc59911b7'
-           OR email = 'joost.vanstam@example.com'
+           OR (email = 'joost.vanstam@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
@@ -164,7 +180,7 @@ SELECT '7b962433-6bde-4642-a011-5b56bf4f18e1',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = '7b962433-6bde-4642-a011-5b56bf4f18e1'
-           OR email = 'sanne.admin@example.com'
+           OR (email = 'sanne.admin@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
     );
 
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
@@ -192,7 +208,91 @@ SELECT '99999999-9999-9999-9999-999999999999',
     WHERE NOT EXISTS (
         SELECT 1 FROM users
         WHERE user_id = '99999999-9999-9999-9999-999999999999'
-           OR email = 'super.admin@example.com'
+           OR (email = 'super.admin@example.com' AND company_id = '00000000-0000-0000-0000-000000000001'::uuid)
+    );
+
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
+SELECT 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002',
+       'superadmintestcompany2@example.com',
+       'Super Admin',
+       'Super',
+       NULL,
+       'Admin',
+       'OTHER',
+       '1984-02-02',
+       '0600000002',
+       'MANAGER',
+       true,
+       'Testlaan',
+       '2',
+       NULL,
+       '2000 AA',
+       'Rotterdam',
+       'Netherlands',
+       'NL02TEST0123456789',
+       10080,
+       'ACTIVE',
+       '00000000-0000-0000-0000-000000000002'::uuid
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users
+        WHERE user_id = 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002'
+           OR (email = 'superadmintestcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+    );
+
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
+SELECT 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002',
+       'anna.testcompany2@example.com',
+       'Anna',
+       'Anna',
+       NULL,
+       'Tester',
+       'FEMALE',
+       '1993-06-10',
+       '0612340002',
+       'BAR',
+       false,
+       'Kade',
+       '12',
+       'A',
+       '3000 BB',
+       'Rotterdam',
+       'Netherlands',
+       'NL12TEST0123456789',
+       10080,
+       'ACTIVE',
+       '00000000-0000-0000-0000-000000000002'::uuid
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users
+        WHERE user_id = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002'
+           OR (email = 'anna.testcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
+    );
+
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
+SELECT 'cccccccc-cccc-cccc-cccc-cccccccc0002',
+       'ben.testcompany2@example.com',
+       'Ben',
+       'Ben',
+       NULL,
+       'Tester',
+       'MALE',
+       '1990-11-05',
+       '0612340003',
+       'RUNNER',
+       false,
+       'Havenweg',
+       '8',
+       NULL,
+       '3000 CC',
+       'Rotterdam',
+       'Netherlands',
+       'NL34TEST0123456789',
+       10080,
+       'ACTIVE',
+       '00000000-0000-0000-0000-000000000002'::uuid
+    WHERE NOT EXISTS (
+        SELECT 1 FROM users
+        WHERE user_id = 'cccccccc-cccc-cccc-cccc-cccccccc0002'
+           OR (email = 'ben.testcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
     );
 
 INSERT INTO leave_requests (request_id, user_id, type, start_date, end_date, hours, reason, status, created_at, updated_at)

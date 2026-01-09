@@ -27,6 +27,7 @@ public class UserService {
     private final UserDuplicateValidator userDuplicateValidator;
 
     public record ProfilePicture(byte[] data, String contentType) {}
+    public record CompanyLogo(byte[] data, String contentType) {}
 
     public UserService(UserRepository userRepository,
                        CompanyRepository companyRepository,
@@ -84,7 +85,8 @@ public class UserService {
                 : userRepository.findByUserId(id)
                     .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
 
-        userDuplicateValidator.validateNoDuplicate(id, userRequestDTO);
+        UUID scopedCompanyId = companyId != null ? companyId : existing.getCompanyId();
+        userDuplicateValidator.validateNoDuplicate(id, scopedCompanyId, userRequestDTO);
 
         existing.setEmail(userRequestDTO.getEmail());
         existing.setPreferredName(userRequestDTO.getPreferredName());
@@ -163,6 +165,42 @@ public class UserService {
         dto.setCompanyId(company.getId().toString());
         dto.setName(company.getName());
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CompanyLogo> getCompanyLogo(UUID companyId) {
+        if (companyId == null) {
+            throw new IllegalArgumentException("Missing company");
+        }
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalStateException("Company not found"));
+        byte[] data = company.getLogo();
+        if (data == null || data.length == 0) return Optional.empty();
+        return Optional.of(new CompanyLogo(data, company.getLogoContentType()));
+    }
+
+    @Transactional
+    public void updateCompanyLogo(UUID companyId, byte[] data, String contentType) {
+        if (companyId == null) {
+            throw new IllegalArgumentException("Missing company");
+        }
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalStateException("Company not found"));
+        company.setLogo(data);
+        company.setLogoContentType(contentType);
+        companyRepository.save(company);
+    }
+
+    @Transactional
+    public void removeCompanyLogo(UUID companyId) {
+        if (companyId == null) {
+            throw new IllegalArgumentException("Missing company");
+        }
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalStateException("Company not found"));
+        company.setLogo(null);
+        company.setLogoContentType(null);
+        companyRepository.save(company);
     }
 
     @Transactional(readOnly = true)
