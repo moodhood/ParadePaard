@@ -18,6 +18,7 @@ export default function Navbar(): JSX.Element {
     const companyRef = useRef<HTMLDivElement | null>(null);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarInitial, setAvatarInitial] = useState("P");
+    const [avatarName, setAvatarName] = useState("Profile");
     const cachedIsAdmin = useMemo(() => readCachedIsAdmin(), []);
     const [isAdmin, setIsAdmin] = useState(cachedIsAdmin ?? false);
     const [searchTerm, setSearchTerm] = useState("");
@@ -31,6 +32,17 @@ export default function Navbar(): JSX.Element {
     const personalView = useMemo(() => {
         return new URLSearchParams(location.search).get("view") === "personal";
     }, [location.search]);
+    const currentPath = `${location.pathname}${location.search}`;
+    const fallbackAccountReturnTo = personalView ? "/dashboard?view=personal" : "/dashboard";
+    const accountReturnTo =
+        location.pathname.startsWith("/account") &&
+        location.state &&
+        typeof location.state === "object" &&
+        typeof (location.state as { accountReturnTo?: unknown }).accountReturnTo === "string"
+            ? ((location.state as { accountReturnTo: string }).accountReturnTo)
+            : location.pathname.startsWith("/account")
+              ? fallbackAccountReturnTo
+              : currentPath;
 
     useEffect(() => {
         return () => {
@@ -156,8 +168,12 @@ export default function Navbar(): JSX.Element {
                     (me.preferredName ?? "").trim() ||
                     "";
 
+                const displayName = fullName || me.email || "Profile";
                 const initial = (fullName.trim()[0] ?? "P").toUpperCase();
-                if (!cancelled) setAvatarInitial(initial);
+                if (!cancelled) {
+                    setAvatarInitial(initial);
+                    setAvatarName(displayName);
+                }
             } catch {
                 // ignore
             }
@@ -458,6 +474,7 @@ export default function Navbar(): JSX.Element {
                                         className="nav_dropdown_item"
                                         role="menuitem"
                                         to="/account/company"
+                                        state={{ accountReturnTo }}
                                         onClick={() => setCompanyOpen(false)}
                                     >
                                         Company settings
@@ -496,6 +513,12 @@ export default function Navbar(): JSX.Element {
 
                         {menuOpen && (
                             <div className="nav_dropdown" role="menu" aria-label="User menu">
+                                <div className="nav_dropdown_header" role="presentation">
+                                    <div className="nav_dropdown_label">Signed in as</div>
+                                    <div className="nav_dropdown_name" title={avatarName}>
+                                        {avatarName}
+                                    </div>
+                                </div>
                                 {isAdmin && !personalView ? (
                                     <Link
                                         className="nav_dropdown_item"
@@ -520,6 +543,7 @@ export default function Navbar(): JSX.Element {
                                     className="nav_dropdown_item"
                                     role="menuitem"
                                     to={personalView ? "/account?view=personal" : "/account"}
+                                    state={{ accountReturnTo }}
                                     onClick={() => setMenuOpen(false)}
                                 >
                                     Account
