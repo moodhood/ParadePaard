@@ -9,7 +9,18 @@ export default function PrimaryNav() {
     const [canManagePlanning, setCanManagePlanning] = useState(false);
     const location = useLocation();
     const path = location.pathname;
+    const currentPath = `${location.pathname}${location.search}`;
     const personalView = new URLSearchParams(location.search).get("view") === "personal";
+    const fallbackAccountReturnTo = personalView ? "/dashboard?view=personal" : "/dashboard";
+    const accountReturnTo =
+        path.startsWith("/account") &&
+        location.state &&
+        typeof location.state === "object" &&
+        typeof (location.state as { accountReturnTo?: unknown }).accountReturnTo === "string"
+            ? ((location.state as { accountReturnTo: string }).accountReturnTo)
+            : path.startsWith("/account")
+              ? fallbackAccountReturnTo
+              : currentPath;
 
     const isDashboardActive = path === "/dashboard";
     const isUsersActive = path.startsWith("/admin/user");
@@ -264,6 +275,7 @@ export default function PrimaryNav() {
                 <Link
                     className={linkClass(isAccountActive)}
                     to={withPersonalView("/account")}
+                    state={{ accountReturnTo }}
                     aria-current={isAccountActive ? "page" : undefined}
                     aria-label="Account"
                     title="Account"

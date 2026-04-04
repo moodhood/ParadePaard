@@ -1,18 +1,128 @@
 .gridPlanningClients {
-  grid-template-columns: minmax(180px, 1.1fr) minmax(180px, 1fr) minmax(160px, 0.9fr) minmax(220px, 1.15fr) minmax(280px, 1.5fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.planningClientListScroll {
+  overflow-x: hidden;
 }
 
 .planningClientRow {
   align-items: stretch;
 }
 
+.planningClientRowButton {
+  width: 100%;
+  padding: 16px 18px;
+  text-align: left;
+  border: 0;
+  cursor: pointer;
+  background: transparent;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.listHeaderGrid.gridPlanningClients {
+  padding: 14px 18px;
+}
+
+.listHeaderGrid.gridPlanningClients > :last-child,
+.listRowGrid.gridPlanningClients > :last-child {
+  text-align: left;
+}
+
+.planningClientRowButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+}
+
+.planningClientRowButton:focus-visible {
+  outline: 2px solid #2f6fed;
+  outline-offset: 2px;
+}
+
 .planningClientCell {
   display: flex;
   align-items: flex-start;
+  min-width: 0;
 }
 
-.planningClientNotesCell {
-  white-space: pre-wrap;
+.planningClientIdentityCell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.planningClientNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planningClientAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+  color: #1e3a8a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex: 0 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  position: relative;
+}
+
+.planningClientAvatar--large {
+  width: 72px;
+  height: 72px;
+}
+
+.planningClientAvatar--image {
+  background: #eef2ff;
+}
+
+.planningClientAvatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.planningClientAvatarLetter {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.planningClientPictureEditor {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.planningClientPictureActions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.planningClientPictureButton {
+  position: relative;
+  overflow: hidden;
+}
+
+.planningClientAvatarButton {
+  cursor: pointer;
+}
+
+.planningClientPictureInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
 }
 
 .planningClientContactsCell {
@@ -65,6 +175,54 @@
   border: 1px solid rgba(255,255,255,0.08);
 }
 
+.planningClientContactToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #f9fafb;
+  cursor: pointer;
+  text-align: left;
+}
+
+.planningClientContactToggleTitle {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.planningClientContactToggleIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 auto;
+  position: relative;
+}
+
+.planningClientContactToggleIcon::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid #f9fafb;
+  border-bottom: 2px solid #f9fafb;
+  transform: rotate(45deg) translateY(-1px);
+  transition: transform 0.16s ease;
+}
+
+.planningClientContactToggleIcon--expanded::before {
+  transform: rotate(225deg) translateY(-1px);
+}
+
+.planningClientContactToggle:focus-visible {
+  outline: 2px solid #2f6fed;
+  outline-offset: 3px;
+}
+
 .planningClientDraftGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -77,6 +235,25 @@
 
 .planningClientAddContact {
   align-self: flex-start;
+}
+
+.planningClientModalPanel {
+  gap: 18px;
+}
+
+.planningClientSectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.planningClientSectionTitle {
+  color: #f9fafb;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
 }
 
 .planningClientNotesInput {
@@ -209,6 +386,11 @@
 
   .planningClientDraftGrid {
     grid-template-columns: 1fr;
+  }
+
+  .planningClientPictureEditor {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

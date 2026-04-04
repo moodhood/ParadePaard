@@ -1,6 +1,7 @@
 package com.pm.userservice.service;
 
 import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.exception.UserNotFoundException;
@@ -12,6 +13,10 @@ import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 import java.util.HashMap;
 import java.util.List;
@@ -62,6 +67,30 @@ public class UserService {
         return users.stream()
                 .map(user -> UserMapper.toDTO(user, payoutByCompany.get(user.getCompanyId())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponseDTO<UserResponseDTO> getUsersPage(UUID companyId, int page, int size, String sortKey, String sortDirection) {
+        Pageable pageable = PageRequest.of(page, size, buildSort(sortKey, sortDirection));
+        Page<User> users = companyId != null
+                ? userRepository.findAllByCompanyId(companyId, pageable)
+                : userRepository.findAll(pageable);
+
+        if (users.isEmpty()) {
+            return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, null));
+        }
+
+        if (companyId != null) {
+            Integer payoutFrequency = resolveCompanyPayoutFrequency(companyId);
+            return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, payoutFrequency));
+        }
+
+        Set<UUID> companyIds = users.getContent().stream()
+                .map(User::getCompanyId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        var payoutByCompany = resolveCompanyPayoutFrequencies(companyIds);
+        return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, payoutByCompany.get(user.getCompanyId())));
     }
 
     @Transactional(readOnly = true)
@@ -255,5 +284,16 @@ public class UserService {
         }
         return companyRepository.findAllById(companyIds).stream()
                 .collect(Collectors.toMap(Company::getId, Company::getPayoutFrequencyMinutes));
+    }
+
+    private Sort buildSort(String sortKey, String sortDirection) {
+        Sort.Direction direction = "desc".equalsIgnoreCase(sortDirection) ? Sort.Direction.DESC : Sort.Direction.ASC;
+        String normalizedKey = sortKey == null ? "name" : sortKey.trim().toLowerCase();
+        return switch (normalizedKey) {
+            case "status" -> Sort.by(direction, "status").and(Sort.by(Sort.Direction.ASC, "lastName", "firstNames", "email"));
+            case "position" -> Sort.by(direction, "position").and(Sort.by(Sort.Direction.ASC, "lastName", "firstNames", "email"));
+            case "dateadded" -> Sort.by(direction, "registeredDate").and(Sort.by(Sort.Direction.ASC, "lastName", "firstNames", "email"));
+            default -> Sort.by(direction, "lastName", "firstNames", "preferredName", "email");
+        };
     }
 }

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
+import PaginationControls from "../components/common/PaginationControls";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type UserResponseDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
@@ -10,6 +11,8 @@ import { formatDate } from "../utils/dateFormat";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
 import "../stylesheets/AdminUsers.css";
+
+const DEFAULT_PAGE_SIZE = 50;
 
 const statusLabel = (status?: string | null) => {
     const normalized = (status ?? "").toUpperCase();
@@ -36,6 +39,10 @@ export default function AdminUsers() {
     const [tenureFilter, setTenureFilter] = useState<"all" | "new" | "longer">("all");
     const [rolesByUser, setRolesByUser] = useState<Record<string, string[]>>({});
     const [rolesLoading, setRolesLoading] = useState(false);
+    const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
 
     const [avatarUrls, setAvatarUrls] = useState<Record<string, string | null>>({});
     const avatarUrlsRef = useRef<Record<string, string | null>>({});
@@ -65,25 +72,28 @@ export default function AdminUsers() {
         [displayNameForUser]
     );
 
-    const loadUsers = useCallback(async () => {
+    const loadUsers = useCallback(async (targetPage = page, targetPageSize = pageSize) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await UserServices.getUsers();
+            const data = await UserServices.getUsersPage(targetPage, targetPageSize, sortKey, sortDirection);
             Object.values(avatarUrlsRef.current).forEach((url) => {
                 if (url) URL.revokeObjectURL(url);
             });
             avatarUrlsRef.current = {};
             requestedRef.current.clear();
             setAvatarUrls({});
-            setUsers(data);
+            setUsers(data.items);
+            setPage(data.page);
+            setTotalUsers(data.totalElements);
+            setTotalPages(data.totalPages);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load users.";
             setError(message);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize, sortDirection, sortKey]);
 
     useEffect(() => {
         void loadUsers();
@@ -243,7 +253,7 @@ export default function AdminUsers() {
                         right={
                             <div className="adminUsersToolbar">
                                 <div className="adminUsersCount">
-                                    {filteredUsers.length} of {users.length}
+                                    {filteredUsers.length} of {users.length} on this page | {totalUsers} total
                                 </div>
                                 <input
                                     className="adminUsersSearchInput"
@@ -257,7 +267,10 @@ export default function AdminUsers() {
                                     className="uiSelect"
                                     value={sortKey}
                                     onChange={(e) =>
-                                        setSortKey(e.target.value as "name" | "status" | "position" | "dateAdded")
+                                        {
+                                            setSortKey(e.target.value as "name" | "status" | "position" | "dateAdded");
+                                            setPage(0);
+                                        }
                                     }
                                     disabled={loading}
                                     aria-label="Sort users by"
@@ -270,7 +283,10 @@ export default function AdminUsers() {
                                 <select
                                     className="uiSelect"
                                     value={sortDirection}
-                                    onChange={(e) => setSortDirection(e.target.value as "asc" | "desc")}
+                                    onChange={(e) => {
+                                        setSortDirection(e.target.value as "asc" | "desc");
+                                        setPage(0);
+                                    }}
                                     disabled={loading}
                                     aria-label="Sort direction"
                                 >
@@ -361,6 +377,18 @@ export default function AdminUsers() {
                                       })
                                     : null}
                             </div>
+                            <PaginationControls
+                                page={page}
+                                totalPages={totalPages}
+                                pageSize={pageSize}
+                                loading={loading}
+                                onPageChange={(nextPage) => void loadUsers(nextPage)}
+                                onPageSizeChange={(nextPageSize) => {
+                                    setPageSize(nextPageSize);
+                                    setPage(0);
+                                    void loadUsers(0, nextPageSize);
+                                }}
+                            />
                         </div>
                     </Card>
 

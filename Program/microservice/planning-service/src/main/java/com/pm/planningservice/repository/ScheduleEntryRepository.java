@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -18,4 +19,6 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
     List<ScheduleEntry> findByShiftIdInAndStatusNot(Collection<UUID> shiftIds, ScheduleEntryStatus status);
 
     List<ScheduleEntry> findByShiftIdInAndStatusIn(Collection<UUID> shiftIds, Collection<ScheduleEntryStatus> statuses);
+
+    Optional<ScheduleEntry> findFirstByShiftIdAndUserId(UUID shiftId, UUID userId);
 }

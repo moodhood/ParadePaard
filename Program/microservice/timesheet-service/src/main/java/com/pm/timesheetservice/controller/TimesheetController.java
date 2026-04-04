@@ -2,6 +2,7 @@ package com.pm.timesheetservice.controller;
 
 
 import com.pm.timesheetservice.dto.TimesheetRequestDTO;
+import com.pm.timesheetservice.dto.PagedResponseDTO;
 import com.pm.timesheetservice.dto.TimesheetResponseDTO;
 import com.pm.timesheetservice.service.TimesheetService;
 import com.pm.timesheetservice.dto.validators.CreateTimesheetValidationGroup;
@@ -37,12 +38,45 @@ public class TimesheetController {
         return ResponseEntity.ok().body(timesheets);
     }
 
+    @GetMapping("/paged")
+    @Operation(summary = "Get paged timesheets")
+    @PreAuthorize("hasAuthority('CAN_VIEW_ALL_TIMESHEETS')")
+    public ResponseEntity<PagedResponseDTO<TimesheetResponseDTO>> getTimesheetsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ResponseEntity.ok(
+                timesheetService.getTimesheetsPage(
+                        Math.max(page, 0),
+                        Math.min(Math.max(size, 1), 100)
+                )
+        );
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get my work history (timesheets)")
     @PreAuthorize("hasAuthority('CAN_VIEW_OWN_TIMESHEETS')")
     public ResponseEntity<List<TimesheetResponseDTO>> getMyTimesheets(Authentication authentication) {
         UUID userId = requireUserId(authentication);
         return ResponseEntity.ok(timesheetService.getTimesheetsByUserId(userId));
+    }
+
+    @GetMapping("/me/paged")
+    @Operation(summary = "Get my paged work history (timesheets)")
+    @PreAuthorize("hasAuthority('CAN_VIEW_OWN_TIMESHEETS')")
+    public ResponseEntity<PagedResponseDTO<TimesheetResponseDTO>> getMyTimesheetsPage(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        UUID userId = requireUserId(authentication);
+        return ResponseEntity.ok(
+                timesheetService.getTimesheetsByUserIdPage(
+                        userId,
+                        Math.max(page, 0),
+                        Math.min(Math.max(size, 1), 100)
+                )
+        );
     }
 
     @GetMapping("/{id}")

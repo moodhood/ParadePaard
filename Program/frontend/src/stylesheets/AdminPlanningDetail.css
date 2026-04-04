@@ -4,8 +4,168 @@
   gap: 24px;
 }
 
+.planningDetailGrid--supporting {
+  margin-top: 24px;
+}
+
+.planningDetailSchedulerLayout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
 .planningDetailCard {
   min-height: 320px;
+}
+
+.planningDetailEventCard {
+  min-height: 680px;
+}
+
+.planningDetailEventCard > .uiCardBody {
+  display: flex;
+  flex: 1 1 auto;
+}
+
+.planningDetailSplitLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 4fr) minmax(280px, 1fr);
+  min-height: 100%;
+  flex: 1 1 auto;
+  align-items: stretch;
+}
+
+.planningDetailSplitMain,
+.planningDetailSplitSide {
+  min-width: 0;
+}
+
+.planningDetailSplitMain {
+  padding: 24px;
+  border-right: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+}
+
+.planningDetailSplitSide {
+  display: flex;
+  flex-direction: column;
+  padding: 24px 0 16px;
+  background: #f8fbff;
+}
+
+.planningDetailPanelHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.planningDetailPanelHeader--side {
+  padding: 0 24px 6px;
+  margin-bottom: 10px;
+}
+
+.planningDetailPanelTitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.planningDetailEventTitle {
+  display: inline-block;
+}
+
+.planningDetailEventCard--empty > .uiCardHeader {
+  background: var(--planning-status-empty-strong);
+  color: #ffffff;
+}
+
+.planningDetailEventCard--partial > .uiCardHeader {
+  background: var(--planning-status-partial-strong);
+  color: #ffffff;
+}
+
+.planningDetailEventCard--staffed > .uiCardHeader {
+  background: var(--planning-status-staffed-strong);
+  color: #ffffff;
+}
+
+.planningDetailEventCard > .uiCardHeader .uiCardTitle {
+  color: inherit;
+}
+
+.planningDetailEventCard > .uiCardHeader .uiCardRight {
+  color: inherit;
+}
+
+.planningDetailEventCard > .uiCardHeader .planningDetailShiftRequirement--summary {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.planningDetailPanelSubtitle {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.planningDetailPanelRequirement {
+  align-self: flex-start;
+}
+
+.planningDetailSideAction {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.planningDetailHeaderAction {
+  align-self: flex-start;
+}
+
+.planningDetailIconButton {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease, opacity 0.18s ease;
+}
+
+.planningDetailIconButton svg {
+  width: 16px;
+  height: 16px;
+}
+
+.planningDetailIconButton--side {
+  background: #ffffff;
+  color: #16345b;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.planningDetailIconButton--side:hover:not(:disabled) {
+  background: #eef4ff;
+}
+
+.planningDetailIconButton--header {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.planningDetailIconButton--header:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.planningDetailIconButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
 }
 
 .planningDetailBreadcrumbs {
@@ -38,6 +198,16 @@
 
 .planningDetailRows {
   padding: 10px 0;
+}
+
+.planningDetailSplitSide .planningDetailRows {
+  padding: 0;
+  flex: 1 1 auto;
+}
+
+.planningDetailSplitSide .planningDetailRow {
+  padding-left: 24px;
+  padding-right: 24px;
 }
 
 .planningDetailRow {
@@ -76,31 +246,228 @@
   padding: 18px;
 }
 
+.planningDetailShiftList--main {
+  gap: 16px;
+  padding: 0;
+}
+
+.planningDetailAssignmentList--scheduler {
+  padding: 0;
+}
+
 .planningDetailShiftCard,
 .planningDetailAssignmentCard {
-  border: 1px solid #d9e4f2;
-  border-radius: 14px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 12px 14px;
   color: inherit;
   text-decoration: none;
 }
 
 .planningDetailShiftCard {
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  padding: 12px 14px;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.planningDetailAssignmentCard--person {
+  background: #f8fafc;
+}
+
+.planningDetailAssignmentCard--pending {
+  border-color: #f6c36d;
+  background: #fff6e4;
+}
+
+.planningDetailAssignmentCard--declined {
+  border-color: #ef9a9a;
+  background: #fef1f1;
+}
+
+.planningDetailAssignmentCard--confirmed {
+  border-color: #8fd5b3;
+  background: #eefaf3;
 }
 
 .planningDetailShiftCard:hover {
-  transform: translateY(-1px);
-  border-color: #b9ccef;
+  border-color: #d1d5db;
+  background: #eef2f6;
+}
+
+.planningDetailShiftCard--empty {
+  border-color: var(--planning-status-empty-border);
+}
+
+.planningDetailShiftCard--empty:hover,
+.planningDetailShiftCard--empty.planningDetailShiftCard--expanded {
+  border-color: var(--planning-status-empty-hover-border);
+}
+
+.planningDetailShiftCard--partial {
+  border-color: var(--planning-status-partial-border);
+}
+
+.planningDetailShiftCard--partial:hover,
+.planningDetailShiftCard--partial.planningDetailShiftCard--expanded {
+  border-color: var(--planning-status-partial-hover-border);
+}
+
+.planningDetailShiftCard--staffed {
+  border-color: var(--planning-status-staffed-border);
+}
+
+.planningDetailShiftCard--staffed:hover,
+.planningDetailShiftCard--staffed.planningDetailShiftCard--expanded {
+  border-color: var(--planning-status-staffed-hover-border);
+}
+
+.planningDetailShiftCard--expanded {
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.planningDetailShiftCard--highlighted {
+  scroll-margin-top: 24px;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.18);
+}
+
+.planningDetailShiftToggle {
+  flex: 1 1 auto;
+  width: auto;
+  display: block;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.planningDetailShiftToggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 4px;
+  border-radius: 10px;
 }
 
 .planningDetailShiftHeader {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
+  margin: -12px -14px 0;
+  padding: 12px 14px;
+  border-radius: 6px 6px 0 0;
+}
+
+.planningDetailShiftCard--empty .planningDetailShiftHeader {
+  background: var(--planning-status-empty-strong);
+  color: #ffffff;
+}
+
+.planningDetailShiftCard--partial .planningDetailShiftHeader {
+  background: var(--planning-status-partial-strong);
+  color: #ffffff;
+}
+
+.planningDetailShiftCard--staffed .planningDetailShiftHeader {
+  background: var(--planning-status-staffed-strong);
+  color: #ffffff;
+}
+
+.planningDetailShiftHeaderAside {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.planningDetailShiftSummaryLine {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: inherit;
+}
+
+.planningDetailShiftRequirement {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  cursor: help;
+}
+
+.planningDetailShiftRequirement--empty,
+.planningDetailShiftRequirement--partial,
+.planningDetailShiftRequirement--staffed {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.planningDetailShiftRequirement--summary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.planningDetailShiftRequirement::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(71, 85, 105, 0.96);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 12;
+}
+
+.planningDetailShiftRequirement::before {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: calc(100% + 4px);
+  width: 10px;
+  height: 10px;
+  background: rgba(71, 85, 105, 0.96);
+  transform: translateY(-4px) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 11;
+}
+
+.planningDetailShiftRequirement:hover::after,
+.planningDetailShiftRequirement:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.planningDetailShiftRequirement:hover::before,
+.planningDetailShiftRequirement:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0) rotate(45deg);
+}
+
+.planningDetailShiftRequirement:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 4px;
+  border-radius: 6px;
 }
 
 .planningDetailShiftTitle {
@@ -121,20 +488,64 @@
   margin-top: 14px;
 }
 
+.planningDetailShiftPanel {
+  padding-top: 10px;
+}
+
+.planningDetailShiftWorkspace {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.planningDetailShiftWorkspaceColumn {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.planningDetailShiftWorkspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.planningDetailStatusToggle {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.planningDetailShiftWorkspaceHeader--search {
+  align-items: stretch;
+  flex-direction: column;
+}
+
+.planningDetailShiftWorkspaceTitle {
+  margin: 0;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
 .planningDetailMiniRow {
   display: flex;
-  flex-direction: column;
-  gap: 3px;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
   padding-top: 10px;
   border-top: 1px solid rgba(148, 163, 184, 0.2);
 }
 
 .planningDetailMiniLabel {
   color: #64748b;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  flex: 0 0 88px;
 }
 
 .planningDetailMiniValue {
@@ -142,6 +553,105 @@
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.planningDetailShiftActions {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.planningDetailSchedulerSearchBar {
+  margin-bottom: 16px;
+}
+
+.planningDetailSearchInput {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 14px;
+  padding: 11px 13px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.planningDetailSearchInput:focus {
+  outline: none;
+  border-color: #94a3b8;
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18);
+}
+
+.planningDetailSearchInput:disabled {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
+.planningDetailSchedulerAlert {
+  margin-bottom: 16px;
+}
+
+.planningDetailPersonCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.planningDetailPersonIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.planningDetailPersonText {
+  min-width: 0;
+}
+
+.planningDetailPersonAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e7edf8;
+  color: #2f6bff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.planningDetailPersonAvatar--image {
+  background: #dbe7f8;
+}
+
+.planningDetailPersonAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.planningDetailPersonCardActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.planningDetailShiftChevron {
+  font-size: 14px;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.planningDetailShiftChevron--expanded {
+  transform: rotate(180deg);
 }
 
 .planningDetailEmpty {
@@ -159,9 +669,114 @@
   background: rgba(254, 242, 242, 0.92);
 }
 
+.planningDetailEmpty--inset {
+  padding: 20px;
+}
+
+.planningDetailPrimaryButton,
+.planningDetailSecondaryButton {
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.planningDetailPrimaryButton {
+  border: 1px solid #1d4ed8;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+}
+
+.planningDetailPrimaryButton:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.planningDetailSecondaryButton {
+  border: 1px solid #d1d9e6;
+  background: #ffffff;
+  color: #334155;
+}
+
+.planningDetailSecondaryButton:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #b9c7dc;
+}
+
+.planningDetailPrimaryButton:disabled,
+.planningDetailSecondaryButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.planningDetailModalForm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.planningDetailModalGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.planningDetailModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planningDetailModalLabel {
+  color: #e6e7eb;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.planningDetailModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.planningDetailModalAlert {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(248, 113, 113, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  color: #fecaca;
+  font-size: 13px;
+}
+
 @media (max-width: 1100px) {
   .planningDetailGrid {
     grid-template-columns: 1fr;
+  }
+
+  .planningDetailSchedulerLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .planningDetailSplitLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .planningDetailShiftWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .planningDetailSplitMain {
+    border-right: none;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  }
+
+  .planningDetailSplitSide {
+    padding-top: 20px;
   }
 }
 
@@ -174,5 +789,51 @@
   .planningDetailValue {
     max-width: none;
     text-align: left;
+  }
+
+  .planningDetailPanelHeader,
+  .planningDetailPanelHeader--side {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .planningDetailShiftHeader {
+    align-items: flex-start;
+  }
+
+  .planningDetailShiftHeaderAside {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .planningDetailPersonCardHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .planningDetailPersonCardActions {
+    justify-content: space-between;
+  }
+
+  .planningDetailPrimaryButton,
+  .planningDetailSecondaryButton {
+    width: 100%;
+  }
+
+  .planningDetailHeaderAction {
+    width: 100%;
+  }
+
+  .planningDetailSideAction {
+    width: 34px;
+    align-self: flex-end;
+  }
+
+  .planningDetailModalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .planningDetailModalActions {
+    flex-direction: column-reverse;
   }
 }

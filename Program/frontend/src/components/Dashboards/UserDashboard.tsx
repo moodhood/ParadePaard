@@ -19,13 +19,11 @@ import PrimaryNav from "../PrimaryNav";
 import { summarizeHours } from "../../utils/hoursSummary";
 import { formatDate } from "../../utils/dateFormat";
 import {
-    applyPlanningFilters,
     flattenPlanningEvents,
     groupPlanningRows,
-    summarizePlanningRows,
-    type PlanningExplorerFilters,
-    type PlanningGroupKey,
+    type PlanningExplorerRow,
 } from "../../utils/planningExplorer";
+import { getAllocationStatusLabel, getAllocationStatusTone } from "../../utils/planningSummary";
 
 type Timesheet = {
     timesheetId: string;
@@ -36,21 +34,7 @@ type Timesheet = {
 
 const BASE_LEAVE_ALLOWANCE_HOURS = 120;
 const MAX_ERROR_TITLE_LENGTH = 80;
-const USER_PLANNING_FILTERS: PlanningExplorerFilters = {
-    rangeMode: "upcoming",
-    startDate: "",
-    endDate: "",
-    eventId: "",
-    employeeId: "",
-    status: "ALL",
-};
-
-const USER_GROUP_OPTIONS: Array<{ value: PlanningGroupKey; label: string }> = [
-    { value: "day", label: "Day" },
-    { value: "week", label: "Week" },
-    { value: "month", label: "Month" },
-    { value: "event", label: "Event" },
-];
+type UserPlanningViewFilter = "all" | "accepted" | "pending";
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
@@ -91,8 +75,9 @@ export default function UserDashboard() {
     const [planningEvents, setPlanningEvents] = useState<PlanningEventDTO[]>([]);
     const [planningLoading, setPlanningLoading] = useState(false);
     const [planningError, setPlanningError] = useState<string | null>(null);
-    const [planningFilters, setPlanningFilters] = useState<PlanningExplorerFilters>(USER_PLANNING_FILTERS);
-    const [planningGroupBy, setPlanningGroupBy] = useState<PlanningGroupKey>("day");
+    const [planningActionError, setPlanningActionError] = useState<string | null>(null);
+    const [pendingPlanningActionId, setPendingPlanningActionId] = useState<string | null>(null);
+    const [planningViewFilter, setPlanningViewFilter] = useState<UserPlanningViewFilter>("all");
 
     // fetch me
     useEffect(() => {
@@ -184,30 +169,30 @@ export default function UserDashboard() {
         };
     }, [meLoading, meError, fetchPayslips]);
 
+    const loadPlanning = useCallback(async (isCancelled?: () => boolean) => {
+        if (isCancelled?.()) return;
+        try {
+            setPlanningLoading(true);
+            setPlanningError(null);
+            const company = await UserServices.getMyCompany();
+            const data = await UserServices.getPlanningOverview(company.companyId);
+            if (!isCancelled?.()) setPlanningEvents(data);
+        } catch (err: unknown) {
+            const msg = err instanceof Error ? err.message : "Could not load your planning";
+            if (!isCancelled?.()) setPlanningError(msg);
+        } finally {
+            if (!isCancelled?.()) setPlanningLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (!userId) return;
         let cancelled = false;
-
-        const fetchPlanning = async () => {
-            try {
-                setPlanningLoading(true);
-                setPlanningError(null);
-                const company = await UserServices.getMyCompany();
-                const data = await UserServices.getPlanningOverview(company.companyId);
-                if (!cancelled) setPlanningEvents(data);
-            } catch (err: unknown) {
-                const msg = err instanceof Error ? err.message : "Could not load your planning";
-                if (!cancelled) setPlanningError(msg);
-            } finally {
-                if (!cancelled) setPlanningLoading(false);
-            }
-        };
-
-        void fetchPlanning();
+        void loadPlanning(() => cancelled);
         return () => {
             cancelled = true;
         };
-    }, [userId]);
+    }, [loadPlanning, userId]);
 
     const money = (n: number | null | undefined) =>
         new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(n ?? 0));
@@ -301,28 +286,55 @@ ${note}` : title;
 
     const leaveHoursAvailableNow = Math.max(0, BASE_LEAVE_ALLOWANCE_HOURS - leaveHoursApproved);
 
-    const myPlanningRows = useMemo(() => {
+    const allMyPlanningRows = useMemo(() => {
         if (!userId) return [];
-        return applyPlanningFilters(
-            flattenPlanningEvents(planningEvents),
-            {
-                ...planningFilters,
-                employeeId: userId,
-            }
-        );
-    }, [planningEvents, planningFilters, userId]);
+        return flattenPlanningEvents(planningEvents).filter((row) => row.employeeId === userId);
+    }, [planningEvents, userId]);
+    const planningRowsForCard = useMemo(
+        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" || row.status === "CONFIRMED"),
+        [allMyPlanningRows]
+    );
+    const myPlanningRows = useMemo(() => {
+        if (planningViewFilter === "accepted") {
+            return planningRowsForCard.filter((row) => row.status === "CONFIRMED");
+        }
+        if (planningViewFilter === "pending") {
+            return planningRowsForCard.filter((row) => row.status === "ASSIGNED");
+        }
+        return planningRowsForCard;
+    }, [planningRowsForCard, planningViewFilter]);
 
     const myPlanningGroups = useMemo(
-        () => groupPlanningRows(myPlanningRows, planningGroupBy, "none"),
-        [myPlanningRows, planningGroupBy]
-    );
-
-    const myPlanningSummary = useMemo(
-        () => summarizePlanningRows(myPlanningRows),
+        () => groupPlanningRows(myPlanningRows, "day", "none"),
         [myPlanningRows]
     );
 
-    const renderPlanningGroup = (label: string, rows: ReturnType<typeof flattenPlanningEvents>) => (
+    const pendingPlanningRequests = useMemo(
+        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" && row.allocationId),
+        [allMyPlanningRows]
+    );
+    const planningEmptyMessage = planningViewFilter === "accepted"
+        ? "No accepted shifts yet."
+        : planningViewFilter === "pending"
+            ? "No pending shifts right now."
+            : "No shifts yet.";
+
+    const handlePlanningResponse = useCallback(async (row: PlanningExplorerRow, status: "CONFIRMED" | "CANCELLED") => {
+        if (!row.allocationId || !userId) return;
+        try {
+            setPendingPlanningActionId(`${row.allocationId}:${status}`);
+            setPlanningActionError(null);
+            await UserServices.updatePlanningAssignment(row.allocationId, { userId, status });
+            await loadPlanning();
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not update this shift response";
+            setPlanningActionError(message);
+        } finally {
+            setPendingPlanningActionId(null);
+        }
+    }, [loadPlanning, userId]);
+
+    const renderPlanningGroup = (label: string, rows: PlanningExplorerRow[]) => (
         <section key={label} className="planningGroupSection userPlanningGroup">
             <div className="planningGroupHeader">
                 <div className="planningGroupTitleBlock">
@@ -347,8 +359,10 @@ ${note}` : title;
                             <div className="cellSub">{formatDate(row.shiftDate)}</div>
                             <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
                             <div className="cellSub">{row.functionName}</div>
-                            <div className={`cellSub ${row.status === "CONFIRMED" ? "cellOk" : row.status === "ASSIGNED" ? "cellWarn" : "cellSub"}`}>
-                                {row.status}
+                            <div
+                                className={`cellSub userPlanningStatus userPlanningStatus--${getAllocationStatusTone(row.status)}`}
+                            >
+                                {getAllocationStatusLabel(row.status)}
                             </div>
                         </div>
                     ))}
@@ -520,41 +534,25 @@ ${note}` : title;
                     title="My planning"
                     className="dashboardCardHeight userPlanningCard"
                     right={
-                        <div className="planningToolbar">
-                            <label className="planningFilterField">
-                                <span className="planningFilterLabel">Range</span>
-                                <select
-                                    className="uiSelect"
-                                    value={planningFilters.rangeMode}
-                                    onChange={(e) =>
-                                        setPlanningFilters((current) => ({
-                                            ...current,
-                                            rangeMode: e.target.value as PlanningExplorerFilters["rangeMode"],
-                                            startDate: "",
-                                            endDate: "",
-                                        }))
-                                    }
+                        <div className="planningModeToggle userPlanningStatusToggle" role="tablist" aria-label="My planning filter">
+                            {([
+                                { value: "all", label: "All" },
+                                { value: "accepted", label: "Accepted" },
+                                { value: "pending", label: "Pending" },
+                            ] as const).map((option) => (
+                                <button
+                                    key={option.value}
+                                    type="button"
+                                    className={[
+                                        "planningModeButton",
+                                        planningViewFilter === option.value ? "planningModeButton--active" : "",
+                                    ].filter(Boolean).join(" ")}
+                                    onClick={() => setPlanningViewFilter(option.value)}
+                                    aria-pressed={planningViewFilter === option.value}
                                 >
-                                    <option value="upcoming">Upcoming</option>
-                                    <option value="thisWeek">This week</option>
-                                    <option value="thisMonth">This month</option>
-                                    <option value="all">All</option>
-                                </select>
-                            </label>
-                            <label className="planningFilterField">
-                                <span className="planningFilterLabel">Group by</span>
-                                <select
-                                    className="uiSelect"
-                                    value={planningGroupBy}
-                                    onChange={(e) => setPlanningGroupBy(e.target.value as PlanningGroupKey)}
-                                >
-                                    {USER_GROUP_OPTIONS.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
+                                    {option.label}
+                                </button>
+                            ))}
                         </div>
                     }
                 >
@@ -562,19 +560,60 @@ ${note}` : title;
                     {planningError ? <p className="errorText">{planningError}</p> : null}
                     {!planningLoading && !planningError ? (
                         <div className="planningOverviewLayout">
-                            <div className="planningSummaryBar">
-                                <div className="planningSummaryItem">
-                                    <span className="planningMetaLabel">Upcoming shifts</span>
-                                    <span className="planningMetaValue">{myPlanningSummary.shiftCount}</span>
-                                </div>
-                                <div className="planningSummaryItem">
-                                    <span className="planningMetaLabel">Assigned</span>
-                                    <span className="planningMetaValue">{myPlanningSummary.assignedCount}</span>
-                                </div>
-                            </div>
-
+                            {planningActionError ? <p className="errorText userPlanningActionError">{planningActionError}</p> : null}
+                            {planningViewFilter !== "accepted" && pendingPlanningRequests.length > 0 ? (
+                                <section className="userPlanningRequestSection">
+                                    <div className="userPlanningRequestSectionHeader">
+                                        <div>
+                                            <div className="planningGroupTitle">Shift requests</div>
+                                            <div className="planningMetaSecondary">
+                                                Accept or decline newly scheduled shifts.
+                                            </div>
+                                        </div>
+                                        <span className="planningEntryBadge">{pendingPlanningRequests.length} pending</span>
+                                    </div>
+                                    <div className="userPlanningRequestList">
+                                        {pendingPlanningRequests.map((row) => {
+                                            const confirmActionId = `${row.allocationId}:CONFIRMED`;
+                                            const declineActionId = `${row.allocationId}:CANCELLED`;
+                                            return (
+                                                <article
+                                                    key={`request-${row.rowId}`}
+                                                    className="userPlanningRequestCard userPlanningRequestCard--pending"
+                                                >
+                                                    <div className="userPlanningRequestMain">
+                                                        <div className="userPlanningRequestTitle">{row.eventName}</div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {formatDate(row.shiftDate)} · {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
+                                                        </div>
+                                                        <div className="userPlanningRequestMeta">{row.functionName}</div>
+                                                    </div>
+                                                    <div className="userPlanningRequestActions">
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningDeclineButton"
+                                                            onClick={() => void handlePlanningResponse(row, "CANCELLED")}
+                                                            disabled={Boolean(pendingPlanningActionId)}
+                                                        >
+                                                            {pendingPlanningActionId === declineActionId ? "Declining..." : "Decline"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningAcceptButton"
+                                                            onClick={() => void handlePlanningResponse(row, "CONFIRMED")}
+                                                            disabled={Boolean(pendingPlanningActionId)}
+                                                        >
+                                                            {pendingPlanningActionId === confirmActionId ? "Accepting..." : "Accept"}
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                </section>
+                            ) : null}
                             {myPlanningRows.length === 0 ? (
-                                <p className="requestListEmpty">No shifts match this view.</p>
+                                <p className="requestListEmpty">{planningEmptyMessage}</p>
                             ) : (
                                 <div className="planningGroupList">
                                     {myPlanningGroups.map((group) => renderPlanningGroup(group.label, group.rows))}

@@ -12,35 +12,58 @@ import {
 } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
 import {
+    getEventCheckedInCount,
     getEventClientName,
+    getEventRequiredCount,
+    getEventScheduledCount,
     getEventShiftRecords,
-    getEventStaffingLabel,
+    getEventStaffingTone,
     getEventTimeLabel,
+    getShiftCheckedInCount,
     getShiftDisplayName,
-    getShiftLocation,
-    getShiftStaffingLabel,
+    getShiftRequiredCount,
+    getShiftScheduledCount,
+    getShiftStaffingTone,
     getShiftTimeLabel,
+    type PlanningStaffingTone,
 } from "../utils/planningSummary";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminPlanningOverview.css";
 import "../stylesheets/Settings.css";
 
 type PlannerMode = "events" | "shifts";
+type PlanningView = "week" | "month";
 type EventCreateStep = "details" | "client" | "notes";
+
+function parseDutchTimeInput(value: string): string | null {
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+    if (!match) return null;
+    return trimmed;
+}
 
 type PlannerEntry = {
     id: string;
     title: string;
-    meta: string;
-    submeta?: string;
-    badge?: string;
+    subtitle?: string;
+    timeLabel: string;
+    clientLabel: string;
+    ratioLabel: string;
+    completionLabel: string;
+    staffingTone: PlanningStaffingTone;
     tone: PlannerMode;
     href?: string;
-    detailRows?: Array<{
-        label: string;
-        value: string;
-    }>;
 };
+
+function getStaffingTooltipLabel(): string {
+    return "Required / Scheduled / Checked in";
+}
+
+function getCompletionLabel(required: number, scheduled: number): string {
+    if (required <= 0) return "0%";
+    return `${Math.min(100, Math.round((scheduled / required) * 100))}%`;
+}
 
 function toIsoDate(date: Date): string {
     const year = date.getFullYear();
@@ -70,6 +93,41 @@ function startOfWeek(value: string): string {
 function buildWeek(value: string): string[] {
     const weekStart = startOfWeek(value);
     return Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
+}
+
+function startOfMonth(value: string): string {
+    const date = parseIsoDate(value);
+    date.setDate(1);
+    return toIsoDate(date);
+}
+
+function endOfWeek(value: string): string {
+    const weekStart = startOfWeek(value);
+    return addDays(weekStart, 6);
+}
+
+function endOfMonth(value: string): string {
+    const date = parseIsoDate(value);
+    date.setMonth(date.getMonth() + 1, 0);
+    return toIsoDate(date);
+}
+
+function addMonths(value: string, amount: number): string {
+    const current = parseIsoDate(value);
+    const targetDay = current.getDate();
+    const next = new Date(current.getFullYear(), current.getMonth() + amount, 1);
+    const lastDay = new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate();
+    next.setDate(Math.min(targetDay, lastDay));
+    return toIsoDate(next);
+}
+
+function buildMonth(value: string): string[] {
+    const monthStart = startOfMonth(value);
+    const monthEnd = endOfMonth(value);
+    const gridStart = startOfWeek(monthStart);
+    const gridEnd = endOfWeek(monthEnd);
+    const totalDays = Math.round((parseIsoDate(gridEnd).getTime() - parseIsoDate(gridStart).getTime()) / 86400000) + 1;
+    return Array.from({ length: totalDays }, (_, index) => addDays(gridStart, index));
 }
 
 function buildDayRange(startDate: string, endDate: string): string[] {
@@ -145,35 +203,23 @@ function getEventEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
             const dateLabel = event.startDate === event.endDate
                 ? formatDate(event.startDate)
                 : `${formatDate(event.startDate)} to ${formatDate(event.endDate)}`;
+            const requiredCount = getEventRequiredCount(event);
+            const scheduledCount = getEventScheduledCount(event);
+            const checkedInCount = getEventCheckedInCount(event);
 
             entries.push({
                 id: `${event.eventId}-${day}`,
                 title: event.eventName,
-                meta: dateLabel,
-                submeta: totalShiftCount === 0
+                subtitle: totalShiftCount === 0
                     ? "No shifts planned"
                     : `${totalShiftCount} shift${totalShiftCount === 1 ? "" : "s"} planned`,
-                badge: event.finalized ? "Finalized" : undefined,
+                timeLabel: `${dateLabel}${getEventTimeLabel(event) === "No time set" ? "" : ` - ${getEventTimeLabel(event)}`}`,
+                clientLabel: getEventClientName(event),
+                ratioLabel: `(${requiredCount}/${scheduledCount}/${checkedInCount})`,
+                completionLabel: getCompletionLabel(requiredCount, scheduledCount),
+                staffingTone: getEventStaffingTone(event),
                 tone: "events",
                 href: `/admin/planning/events/${event.eventId}`,
-                detailRows: [
-                    {
-                        label: "Staffing",
-                        value: getEventStaffingLabel(event),
-                    },
-                    {
-                        label: "Location",
-                        value: event.location?.trim() || "No location",
-                    },
-                    {
-                        label: "Time",
-                        value: getEventTimeLabel(event),
-                    },
-                    {
-                        label: "Client",
-                        value: getEventClientName(event),
-                    },
-                ],
             });
 
             entriesByDay.set(day, entries);
@@ -197,33 +243,21 @@ function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
 
             for (const shift of sortedShifts) {
                 const shiftName = getShiftDisplayName(shift);
+                const requiredCount = getShiftRequiredCount(shift);
+                const scheduledCount = getShiftScheduledCount(shift);
+                const checkedInCount = getShiftCheckedInCount(shift);
 
                 entries.push({
                     id: `${day.day}-${shift.shiftId}`,
-                    title: event.eventName,
-                    meta: shiftName,
-                    submeta: shift.functionName && shift.functionName !== shiftName ? shift.functionName : undefined,
-                    badge: shift.staffingStatus ?? undefined,
+                    title: shiftName,
+                    subtitle: event.eventName,
+                    timeLabel: getShiftTimeLabel(shift),
+                    clientLabel: getEventClientName(event),
+                    ratioLabel: `(${requiredCount}/${scheduledCount}/${checkedInCount})`,
+                    completionLabel: getCompletionLabel(requiredCount, scheduledCount),
+                    staffingTone: getShiftStaffingTone(shift),
                     tone: "shifts",
-                    href: `/admin/planning/events/${event.eventId}/shifts/${shift.shiftId}`,
-                    detailRows: [
-                        {
-                            label: "Staffing",
-                            value: getShiftStaffingLabel(shift),
-                        },
-                        {
-                            label: "Location",
-                            value: getShiftLocation(event, shift),
-                        },
-                        {
-                            label: "Time",
-                            value: getShiftTimeLabel(shift),
-                        },
-                        {
-                            label: "Client",
-                            value: getEventClientName(event),
-                        },
-                    ],
+                    href: `/admin/planning/events/${event.eventId}?shift=${shift.shiftId}`,
                 });
             }
 
@@ -232,7 +266,7 @@ function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
     }
 
     for (const [day, entries] of entriesByDay.entries()) {
-        entriesByDay.set(day, [...entries].sort((left, right) => left.meta.localeCompare(right.meta)));
+        entriesByDay.set(day, [...entries].sort((left, right) => left.title.localeCompare(right.title)));
     }
 
     return entriesByDay;
@@ -277,6 +311,7 @@ export default function AdminPlanningOverview() {
     const [clients, setClients] = useState<PlanningClientCompanyDTO[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(today);
     const [expandedDay, setExpandedDay] = useState<string>(today);
+    const [planningView, setPlanningView] = useState<PlanningView>("week");
     const [plannerMode, setPlannerMode] = useState<PlannerMode>("events");
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
     const [createEventStep, setCreateEventStep] = useState<EventCreateStep>("details");
@@ -335,11 +370,22 @@ export default function AdminPlanningOverview() {
     const eventEntriesByDay = useMemo(() => getEventEntriesByDay(events), [events]);
     const shiftEntriesByDay = useMemo(() => getShiftEntriesByDay(events), [events]);
     const weekDays = useMemo(() => buildWeek(selectedDate), [selectedDate]);
-    const visibleMonthLabel = useMemo(() => getMajorityMonthLabel(weekDays, selectedDate), [selectedDate, weekDays]);
+    const monthDays = useMemo(() => buildMonth(selectedDate), [selectedDate]);
+    const activeMonthKey = selectedDate.slice(0, 7);
+    const visibleMonthLabel = useMemo(
+        () => (planningView === "week" ? getMajorityMonthLabel(weekDays, selectedDate) : formatMonthHeader(startOfMonth(selectedDate))),
+        [planningView, selectedDate, weekDays]
+    );
 
-    const shiftVisibleWeek = (direction: -1 | 1) => {
-        setSelectedDate((current) => addDays(current, direction * 7));
-        setExpandedDay((current) => current ? addDays(current, direction * 7) : current);
+    const shiftVisibleRange = (direction: -1 | 1) => {
+        if (planningView === "week") {
+            setSelectedDate((current) => addDays(current, direction * 7));
+            setExpandedDay((current) => current ? addDays(current, direction * 7) : current);
+            return;
+        }
+
+        setSelectedDate((current) => addMonths(current, direction));
+        setExpandedDay((current) => current ? addMonths(current, direction) : current);
     };
 
     const resetCreateEventForm = useCallback(() => {
@@ -353,6 +399,8 @@ export default function AdminPlanningOverview() {
             clientCompanyId: "",
             location: "",
             internalDescription: "",
+            defaultStartTime: "",
+            defaultEndTime: "",
         });
     }, [selectedDate]);
 
@@ -370,6 +418,9 @@ export default function AdminPlanningOverview() {
     const handleCreateEvent = async (event: FormEvent) => {
         event.preventDefault();
 
+        const defaultStartTime = parseDutchTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
+        const defaultEndTime = parseDutchTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
+
         const payload: PlanningEventSaveDTO = {
             name: eventDraft.name.trim(),
             startDate: eventDraft.startDate,
@@ -377,6 +428,8 @@ export default function AdminPlanningOverview() {
             clientCompanyId: eventDraft.clientCompanyId?.trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.trim() || null,
             internalDescription: eventDraft.internalDescription?.trim() || null,
+            defaultStartTime,
+            defaultEndTime,
         };
 
         if (!payload.name) {
@@ -391,6 +444,16 @@ export default function AdminPlanningOverview() {
 
         if (payload.endDate < payload.startDate) {
             setEventSaveError("End date cannot be before start date.");
+            return;
+        }
+
+        if (eventDraft.defaultStartTime?.toString().trim() && !defaultStartTime) {
+            setEventSaveError("Default start time must use 24-hour format: HH:mm.");
+            return;
+        }
+
+        if (eventDraft.defaultEndTime?.toString().trim() && !defaultEndTime) {
+            setEventSaveError("Default end time must use 24-hour format: HH:mm.");
             return;
         }
 
@@ -419,6 +482,41 @@ export default function AdminPlanningOverview() {
         && Boolean(eventDraft.endDate)
         && eventDraft.endDate >= eventDraft.startDate;
 
+    const renderPlannerEntry = (day: string, entry: PlannerEntry) => (
+        <button
+            type="button"
+            key={`${day}-${entry.id}`}
+            className={`planningEntryCard planningEntryCard--compact planningEntryCard--${entry.tone} planningEntryCard--${entry.staffingTone}${entry.href ? " planningEntryCard--interactive" : ""}`}
+            onClick={() => {
+                if (entry.href) navigate(entry.href);
+            }}
+        >
+            <div className="planningEntryHeaderBand">
+                <div className="planningEntryHeaderText">
+                    <div className="planningEntryTitle">{entry.title}</div>
+                    {entry.subtitle ? (
+                        <div className="planningEntrySubtitle">{entry.subtitle}</div>
+                    ) : null}
+                </div>
+                <span
+                    className="planningEntryRatio"
+                    data-tooltip={getStaffingTooltipLabel()}
+                    aria-label={getStaffingTooltipLabel()}
+                    tabIndex={0}
+                >
+                    {entry.ratioLabel}
+                </span>
+            </div>
+            <div className="planningEntryBodyRow">
+                <span className="planningEntryMeta">{entry.timeLabel}</span>
+                <span className="planningEntryCompletion">{entry.completionLabel}</span>
+            </div>
+            <div className="planningEntryFooter">
+                <span className="planningEntryClientTag">{entry.clientLabel}</span>
+            </div>
+        </button>
+    );
+
     return (
         <>
             <Navbar />
@@ -428,18 +526,18 @@ export default function AdminPlanningOverview() {
                     <div className="pageShellContent">
                         <header className="pageHeader">
                             <h1 className="pageTitle">Planning Overview</h1>
-                            <p className="pageSubtitle">Week view for events and shifts.</p>
+                            <p className="pageSubtitle">Weekly or monthly view for events and shifts.</p>
                         </header>
 
                         <div className="adminDashboardCard">
                             <Card
                                 title={(
-                                    <div className="planningTitleNavigation" aria-label="Week navigation">
+                                    <div className="planningTitleNavigation" aria-label={`${planningView === "week" ? "Week" : "Month"} navigation`}>
                                         <button
                                             type="button"
                                             className="planningIconButton"
-                                            onClick={() => shiftVisibleWeek(-1)}
-                                            aria-label="Previous week"
+                                            onClick={() => shiftVisibleRange(-1)}
+                                            aria-label={planningView === "week" ? "Previous week" : "Previous month"}
                                             disabled={loading}
                                         >
                                             <ChevronLeftIcon />
@@ -448,8 +546,8 @@ export default function AdminPlanningOverview() {
                                         <button
                                             type="button"
                                             className="planningIconButton"
-                                            onClick={() => shiftVisibleWeek(1)}
-                                            aria-label="Next week"
+                                            onClick={() => shiftVisibleRange(1)}
+                                            aria-label={planningView === "week" ? "Next week" : "Next month"}
                                             disabled={loading}
                                         >
                                             <ChevronRightIcon />
@@ -460,6 +558,16 @@ export default function AdminPlanningOverview() {
                                 right={(
                                     <div className="planningHeaderRow">
                                         <div className="planningHeaderDateActions">
+                                            <select
+                                                className="planningViewSelect"
+                                                value={planningView}
+                                                onChange={(event) => setPlanningView(event.target.value as PlanningView)}
+                                                aria-label="Planning view"
+                                                disabled={loading}
+                                            >
+                                                <option value="week">Weekly view</option>
+                                                <option value="month">Monthly view</option>
+                                            </select>
                                             <button
                                                 type="button"
                                                 className="buttonSecondary planningTodayButton"
@@ -511,99 +619,123 @@ export default function AdminPlanningOverview() {
                                 ) : null}
 
                                 {!loading && !error && events.length > 0 ? (
-                                    <div className="planningWeekLayout">
-                                        <div className="planningWeekGrid">
-                                            {weekDays.map((day) => {
-                                                const dayEntries = plannerMode === "events"
-                                                    ? eventEntriesByDay.get(day) ?? []
-                                                    : shiftEntriesByDay.get(day) ?? [];
-                                                const isSelected = day === expandedDay;
-                                                const isToday = day === today;
-                                                const visibleEntries = isSelected ? dayEntries : dayEntries.slice(0, 4);
+                                    planningView === "week" ? (
+                                        <div className="planningWeekLayout">
+                                            <div className="planningWeekGrid">
+                                                {weekDays.map((day) => {
+                                                    const dayEntries = plannerMode === "events"
+                                                        ? eventEntriesByDay.get(day) ?? []
+                                                        : shiftEntriesByDay.get(day) ?? [];
+                                                    const isSelected = day === expandedDay;
+                                                    const isToday = day === today;
+                                                    const visibleEntries = isSelected ? dayEntries : dayEntries.slice(0, 4);
 
-                                                return (
-                                                    <section
-                                                        key={day}
-                                                        className={`planningDayColumn${isSelected ? " planningDayColumn--selected" : ""}${isToday ? " planningDayColumn--today" : ""}`}
-                                                    >
-                                                        <button
-                                                            type="button"
-                                                            className="planningDayHeader"
-                                                            onClick={() => setExpandedDay(day)}
+                                                    return (
+                                                        <section
+                                                            key={day}
+                                                            className={`planningDayColumn${isSelected ? " planningDayColumn--selected" : ""}${isToday ? " planningDayColumn--today" : ""}`}
                                                         >
-                                                            <div className="planningDayHeaderMain">
-                                                                <span className="planningDayName">{formatWeekday(day)}</span>
-                                                                <span className="planningDayNumber">{formatDayNumber(day)}</span>
-                                                            </div>
-                                                            <span className="planningDayCount">
-                                                                {dayEntries.length} {plannerMode === "events" ? "events" : "shifts"}
-                                                            </span>
-                                                        </button>
-
-                                                        <div className="planningDayItems">
-                                                            {visibleEntries.length === 0 ? (
-                                                                <div className="planningDayEmpty">
-                                                                    {plannerMode === "events" ? "No events" : "No shifts"}
+                                                            <button
+                                                                type="button"
+                                                                className="planningDayHeader"
+                                                                onClick={() => setExpandedDay(day)}
+                                                            >
+                                                                <div className="planningDayHeaderMain">
+                                                                    <span className="planningDayName">{formatWeekday(day)}</span>
+                                                                    <span className="planningDayNumber">{formatDayNumber(day)}</span>
                                                                 </div>
-                                                            ) : (
-                                                                visibleEntries.map((entry) => (
+                                                                <span className="planningDayCount">
+                                                                    {dayEntries.length} {plannerMode === "events" ? "events" : "shifts"}
+                                                                </span>
+                                                            </button>
+
+                                                            <div className="planningDayItems">
+                                                                {visibleEntries.length === 0 ? (
+                                                                    <div className="planningDayEmpty">
+                                                                        {plannerMode === "events" ? "No events" : "No shifts"}
+                                                                    </div>
+                                                                ) : (
+                                                                    visibleEntries.map((entry) => renderPlannerEntry(day, entry))
+                                                                )}
+
+                                                                {dayEntries.length > visibleEntries.length ? (
                                                                     <button
                                                                         type="button"
-                                                                        key={`${day}-${entry.id}`}
-                                                                        className={`planningEntryCard planningEntryCard--compact planningEntryCard--${entry.tone}${entry.href ? " planningEntryCard--interactive" : ""}`}
-                                                                        onClick={() => {
-                                                                            if (entry.href) navigate(entry.href);
-                                                                        }}
+                                                                        className="planningMoreButton"
+                                                                        onClick={() => setExpandedDay(day)}
                                                                     >
-                                                                        <div className="planningEntryCardTop">
-                                                                            <div className="planningEntryTitle">{entry.title}</div>
-                                                                            {entry.badge ? (
-                                                                                <span className="planningEntryBadge">{entry.badge}</span>
-                                                                            ) : null}
-                                                                        </div>
-                                                                        <div className="planningEntryMeta">{entry.meta}</div>
-                                                                        {entry.submeta ? (
-                                                                            <div className="planningEntrySubmeta">{entry.submeta}</div>
-                                                                        ) : null}
-                                                                        {entry.detailRows?.length ? (
-                                                                            <div className="planningEntryDetails">
-                                                                                {entry.detailRows.map((detail) => (
-                                                                                    <div key={`${entry.id}-${detail.label}`} className="planningEntryDetailRow">
-                                                                                        <span className="planningEntryDetailLabel">{detail.label}</span>
-                                                                                        <span className="planningEntryDetailValue">{detail.value}</span>
-                                                                                    </div>
-                                                                                ))}
-                                                                            </div>
-                                                                        ) : null}
+                                                                        +{dayEntries.length - visibleEntries.length} more
                                                                     </button>
-                                                                ))
-                                                            )}
+                                                                ) : null}
 
-                                                            {dayEntries.length > visibleEntries.length ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="planningMoreButton"
-                                                                    onClick={() => setExpandedDay(day)}
-                                                                >
-                                                                    +{dayEntries.length - visibleEntries.length} more
-                                                                </button>
-                                                            ) : null}
-
-                                                            {isSelected && dayEntries.length > 4 ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="planningMoreButton"
-                                                                    onClick={() => setExpandedDay("")}
-                                                                >
-                                                                    Collapse
-                                                                </button>
-                                                            ) : null}
-                                                        </div>
-                                                    </section>
-                                                );
-                                            })}
+                                                                {isSelected && dayEntries.length > 4 ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="planningMoreButton"
+                                                                        onClick={() => setExpandedDay("")}
+                                                                    >
+                                                                        Collapse
+                                                                    </button>
+                                                                ) : null}
+                                                            </div>
+                                                        </section>
+                                                    );
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
+                                    ) : (
+                                        <div className="planningMonthLayout">
+                                            <div className="planningMonthGrid">
+                                                {monthDays.map((day) => {
+                                                    const dayEntries = plannerMode === "events"
+                                                        ? eventEntriesByDay.get(day) ?? []
+                                                        : shiftEntriesByDay.get(day) ?? [];
+                                                    const isToday = day === today;
+                                                    const isSelected = day === selectedDate;
+                                                    const isOutsideMonth = !day.startsWith(activeMonthKey);
+
+                                                    return (
+                                                        <section
+                                                            key={day}
+                                                            className={[
+                                                                "planningMonthDay",
+                                                                isToday ? "planningMonthDay--today" : "",
+                                                                isSelected ? "planningMonthDay--selected" : "",
+                                                                isOutsideMonth ? "planningMonthDay--outside" : "",
+                                                            ].filter(Boolean).join(" ")}
+                                                        >
+                                                            <button
+                                                                type="button"
+                                                                className="planningMonthDayHeader"
+                                                                onClick={() => {
+                                                                    setSelectedDate(day);
+                                                                    setExpandedDay(day);
+                                                                }}
+                                                            >
+                                                                <div className="planningDayHeaderMain">
+                                                                    <span className="planningDayName">{formatWeekday(day)}</span>
+                                                                    <span className="planningDayNumber">{formatDayNumber(day)}</span>
+                                                                </div>
+                                                                <span className="planningDayCount">
+                                                                    {dayEntries.length} {plannerMode === "events" ? "events" : "shifts"}
+                                                                </span>
+                                                            </button>
+
+                                                            <div className="planningMonthDayItems">
+                                                                {dayEntries.length === 0 ? (
+                                                                    <div className="planningDayEmpty">
+                                                                        {plannerMode === "events" ? "No events" : "No shifts"}
+                                                                    </div>
+                                                                ) : (
+                                                                    dayEntries.map((entry) => renderPlannerEntry(day, entry))
+                                                                )}
+                                                            </div>
+                                                        </section>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )
                                 ) : null}
                             </Card>
                         </div>
@@ -710,6 +842,38 @@ export default function AdminPlanningOverview() {
                                     min={eventDraft.startDate}
                                     onChange={(event) => {
                                         setEventDraft((current) => ({ ...current, endDate: event.target.value }));
+                                        if (eventSaveError) setEventSaveError(null);
+                                    }}
+                                    disabled={savingEvent}
+                                />
+                            </label>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Default start time</span>
+                                <input
+                                    className="modal_input"
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="HH:mm"
+                                    value={eventDraft.defaultStartTime ?? ""}
+                                    onChange={(event) => {
+                                        setEventDraft((current) => ({ ...current, defaultStartTime: event.target.value }));
+                                        if (eventSaveError) setEventSaveError(null);
+                                    }}
+                                    disabled={savingEvent}
+                                />
+                            </label>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Default end time</span>
+                                <input
+                                    className="modal_input"
+                                    type="text"
+                                    inputMode="numeric"
+                                    placeholder="HH:mm"
+                                    value={eventDraft.defaultEndTime ?? ""}
+                                    onChange={(event) => {
+                                        setEventDraft((current) => ({ ...current, defaultEndTime: event.target.value }));
                                         if (eventSaveError) setEventSaveError(null);
                                     }}
                                     disabled={savingEvent}

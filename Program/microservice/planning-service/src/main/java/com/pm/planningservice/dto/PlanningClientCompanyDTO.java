@@ -10,6 +10,7 @@ public class PlanningClientCompanyDTO {
     private String address;
     private String companyLine;
     private String notes;
+    private String profilePictureUrl;
     private List<PlanningClientCompanyContactDTO> contacts;
     private LocalDateTime createdAt;
 
@@ -51,6 +52,14 @@ public class PlanningClientCompanyDTO {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     public List<PlanningClientCompanyContactDTO> getContacts() {

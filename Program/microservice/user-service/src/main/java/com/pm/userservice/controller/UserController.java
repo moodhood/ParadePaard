@@ -2,6 +2,7 @@
 package com.pm.userservice.controller;
 
 import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.UpdateCompanyRequestDTO;
 import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.dto.UserRequestDTO;
@@ -302,6 +303,27 @@ public class UserController {
     public ResponseEntity<List<UserResponseDTO>> getUsers(Authentication authentication){
         UUID companyId = resolveCompanyId(authentication);
         List<UserResponseDTO> users = userService.getUsers(companyId);
+        return ResponseEntity.ok(users);
+    }
+
+    @GetMapping("/paged")
+    @Operation(summary = "Get paged users admin only")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USERS')")
+    public ResponseEntity<PagedResponseDTO<UserResponseDTO>> getUsersPage(
+            Authentication authentication,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "name") String sortKey,
+            @RequestParam(defaultValue = "asc") String sortDirection
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        PagedResponseDTO<UserResponseDTO> users = userService.getUsersPage(
+                companyId,
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100),
+                sortKey,
+                sortDirection
+        );
         return ResponseEntity.ok(users);
     }
 

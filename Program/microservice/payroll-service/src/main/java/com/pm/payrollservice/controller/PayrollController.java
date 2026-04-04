@@ -1,6 +1,7 @@
 package com.pm.payrollservice.controller;
 
 import com.pm.payrollservice.dto.PayslipErrorReportDTO;
+import com.pm.payrollservice.dto.PagedResponseDTO;
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
 import com.pm.payrollservice.dto.validators.CreatePayslipValidationGroup;
@@ -54,12 +55,40 @@ public class PayrollController {
         return ResponseEntity.ok().body(payslips);
     }
 
+    @GetMapping("/paged")
+    @Operation(summary = "Get paged payslips admin only")
+    @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS')")
+    public ResponseEntity<PagedResponseDTO<PayslipResponseDTO>> getPayslipsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        return ResponseEntity.ok(payrollService.getPayslipsPage(Math.max(page, 0), Math.min(Math.max(size, 1), 100)));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "Get my payslips")
     @PreAuthorize("hasAuthority('CAN_VIEW_PAYSLIPS')")
     public ResponseEntity<List<PayslipResponseDTO>> getMyPayslips(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         return ResponseEntity.ok(payrollService.getReleasedPayslipsByUserId(userId));
+    }
+
+    @GetMapping("/me/paged")
+    @Operation(summary = "Get my paged payslips")
+    @PreAuthorize("hasAuthority('CAN_VIEW_PAYSLIPS')")
+    public ResponseEntity<PagedResponseDTO<PayslipResponseDTO>> getMyPayslipsPage(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size
+    ) {
+        UUID userId = extractUserId(jwt);
+        return ResponseEntity.ok(
+                payrollService.getReleasedPayslipsByUserIdPage(
+                        userId,
+                        Math.max(page, 0),
+                        Math.min(Math.max(size, 1), 100)
+                )
+        );
     }
 
     @GetMapping("/review")

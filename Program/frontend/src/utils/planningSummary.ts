@@ -9,9 +9,16 @@ export type PlanningEventShiftRecord = {
     shift: PlanningShiftDTO;
 };
 
+export type PlanningStaffingTone = "empty" | "partial" | "staffed";
+export type PlanningAllocationTone = "pending" | "declined" | "confirmed";
+
 function normalizeText(value: string | null | undefined, fallback: string): string {
     const trimmed = value?.trim();
     return trimmed || fallback;
+}
+
+function normalizeAllocationStatus(value: string | null | undefined): string {
+    return (value ?? "").trim().toUpperCase();
 }
 
 function toTimeLabel(value: string | null | undefined): string {
@@ -43,15 +50,35 @@ export function getShiftRequiredCount(shift: PlanningShiftDTO): number {
 }
 
 export function getShiftScheduledCount(shift: PlanningShiftDTO): number {
-    return shift.assignedCount ?? shift.allocations.length;
+    return shift.allocations.filter((allocation) => normalizeAllocationStatus(allocation.status) !== "CANCELLED").length;
 }
 
 export function getShiftCheckedInCount(shift: PlanningShiftDTO): number {
-    return shift.allocations.filter((allocation) => allocation.status === "CONFIRMED").length;
+    return shift.allocations.filter((allocation) => normalizeAllocationStatus(allocation.status) === "CONFIRMED").length;
 }
 
 export function getShiftStaffingLabel(shift: PlanningShiftDTO): string {
     return `${getShiftRequiredCount(shift)} required, ${getShiftScheduledCount(shift)} scheduled, ${getShiftCheckedInCount(shift)} checked in`;
+}
+
+function getStaffingTone(required: number, scheduled: number): PlanningStaffingTone {
+    if (scheduled <= 0) {
+        return "empty";
+    }
+
+    if (scheduled >= required) {
+        return "staffed";
+    }
+
+    return "partial";
+}
+
+export function getShiftStaffingTone(shift: PlanningShiftDTO): PlanningStaffingTone {
+    return getStaffingTone(getShiftRequiredCount(shift), getShiftScheduledCount(shift));
+}
+
+export function isShiftStaffed(shift: PlanningShiftDTO): boolean {
+    return getShiftStaffingTone(shift) === "staffed";
 }
 
 export function getEventShiftRecords(event: PlanningEventDTO): PlanningEventShiftRecord[] {
@@ -86,6 +113,14 @@ export function getEventStaffingLabel(event: PlanningEventDTO): string {
     return `${getEventRequiredCount(event)} required, ${getEventScheduledCount(event)} scheduled, ${getEventCheckedInCount(event)} checked in`;
 }
 
+export function getEventStaffingTone(event: PlanningEventDTO): PlanningStaffingTone {
+    return getStaffingTone(getEventRequiredCount(event), getEventScheduledCount(event));
+}
+
+export function isEventStaffed(event: PlanningEventDTO): boolean {
+    return getEventStaffingTone(event) === "staffed";
+}
+
 export function getShiftTimeLabel(shift: PlanningShiftDTO): string {
     const start = toTimeLabel(shift.startTime);
     const end = toTimeLabel(shift.endTime);
@@ -108,6 +143,31 @@ export function getEventTimeLabel(event: PlanningEventDTO): string {
 
 export function getAllocationDisplayName(allocation: PlanningResourceAllocationDTO): string {
     return normalizeText(allocation.userDisplayName, "Unnamed employee");
+}
+
+export function getAllocationStatusLabel(status: string | null | undefined): string {
+    switch (normalizeAllocationStatus(status)) {
+        case "ASSIGNED":
+            return "Scheduled";
+        case "CONFIRMED":
+            return "Accepted";
+        case "CANCELLED":
+            return "Declined";
+        default:
+            return normalizeText(status, "Scheduled");
+    }
+}
+
+export function getAllocationStatusTone(status: string | null | undefined): PlanningAllocationTone {
+    switch (normalizeAllocationStatus(status)) {
+        case "CONFIRMED":
+            return "confirmed";
+        case "CANCELLED":
+            return "declined";
+        case "ASSIGNED":
+        default:
+            return "pending";
+    }
 }
 
 export function findShiftRecord(

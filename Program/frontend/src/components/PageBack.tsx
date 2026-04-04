@@ -3,13 +3,18 @@ import "../stylesheets/PageBack.css";
 
 type Props = {
     label?: string;
+    to?: string;
 };
 
-export default function PageBack({ label = "Back" }: Props) {
+export default function PageBack({ label = "Back", to }: Props) {
     const navigate = useNavigate();
     const location = useLocation();
 
     const handleBack = () => {
+        if (to) {
+            navigate(to);
+            return;
+        }
         const path = location.pathname.toLowerCase();
         if (path.startsWith("/account/")) {
             navigate("/dashboard");

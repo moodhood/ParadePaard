@@ -8,3 +8,12 @@ body {
 #root {
   min-height: 100vh;
 }
+
+select {
+  border-radius: 16px;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+
+select:focus {
+  outline: none;
+}

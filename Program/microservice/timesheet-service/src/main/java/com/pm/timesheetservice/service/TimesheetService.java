@@ -2,12 +2,14 @@ package com.pm.timesheetservice.service;
 
 import com.pm.timesheetservice.dto.TimesheetRequestDTO;
 import com.pm.timesheetservice.dto.TimesheetResponseDTO;
+import com.pm.timesheetservice.dto.PagedResponseDTO;
 
 import com.pm.timesheetservice.exception.TimesheetNotFoundException;
 import com.pm.timesheetservice.model.Timesheet;
 import com.pm.timesheetservice.repository.TimesheetRepository;
 import com.pm.timesheetservice.mapper.TimesheetMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
 import java.time.temporal.WeekFields;
@@ -27,11 +29,25 @@ public class TimesheetService {
         return timesheets.stream().map(TimesheetMapper::toDTO).toList();
     }
 
+    public PagedResponseDTO<TimesheetResponseDTO> getTimesheetsPage(int page, int size) {
+        return PagedResponseDTO.from(
+                timesheetRepository.findAllByOrderByDateOfIssueDesc(PageRequest.of(page, size)),
+                TimesheetMapper::toDTO
+        );
+    }
+
     public List<TimesheetResponseDTO> getTimesheetsByUserId(UUID userId) {
         return timesheetRepository.findByUserIdOrderByDateOfIssueDesc(userId)
                 .stream()
                 .map(TimesheetMapper::toDTO)
                 .toList();
+    }
+
+    public PagedResponseDTO<TimesheetResponseDTO> getTimesheetsByUserIdPage(UUID userId, int page, int size) {
+        return PagedResponseDTO.from(
+                timesheetRepository.findByUserIdOrderByDateOfIssueDesc(userId, PageRequest.of(page, size)),
+                TimesheetMapper::toDTO
+        );
     }
 
     public TimesheetResponseDTO getTimesheetById(UUID id) {

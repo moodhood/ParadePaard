@@ -22,11 +22,25 @@ export type AccountOutletContext = {
     onRemoveProfilePicture: () => Promise<void>;
 };
 
+type AccountNavigationState = Record<string, unknown> & {
+    accountReturnTo?: string;
+};
+
 export default function Account() {
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const personalView = searchParams.get("view") === "personal";
+    const fallbackBackTo = personalView ? "/dashboard?view=personal" : "/dashboard";
+    const locationState =
+        location.state && typeof location.state === "object"
+            ? (location.state as AccountNavigationState)
+            : null;
+    const backTo = locationState?.accountReturnTo ?? fallbackBackTo;
+    const navState: AccountNavigationState =
+        locationState?.accountReturnTo === backTo
+            ? locationState
+            : { ...(locationState ?? {}), accountReturnTo: backTo };
     const accountRoot = personalView ? "/account?view=personal" : "/account";
     const accountBank = personalView ? "/account/bank?view=personal" : "/account/bank";
     const accountEmployment = personalView
@@ -77,9 +91,9 @@ export default function Account() {
     useEffect(() => {
         if (!personalView) return;
         if (location.pathname.startsWith("/account/company")) {
-            navigate("/account?view=personal", { replace: true });
+            navigate("/account?view=personal", { replace: true, state: navState });
         }
-    }, [location.pathname, navigate, personalView]);
+    }, [location.pathname, navState, navigate, personalView]);
 
     const isCompanyPage = location.pathname.startsWith("/account/company");
 
@@ -152,7 +166,7 @@ export default function Account() {
                 <div className="accountLayout">
                     <aside className="accountSidebarHeader">
                         <header className="pageHeader">
-                            <PageBack />
+                            <PageBack to={backTo} />
                             <h1 className="pageTitle">
                                 {isCompanyPage ? "Company settings" : "Account"}
                             </h1>
@@ -163,6 +177,7 @@ export default function Account() {
                             {isCompanyPage ? (
                                 <NavLink
                                     to={accountCompany}
+                                    state={navState}
                                     className={({ isActive }) =>
                                         `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                     }
@@ -174,6 +189,7 @@ export default function Account() {
                                     <NavLink
                                         to={accountRoot}
                                         end
+                                        state={navState}
                                         className={({ isActive }) =>
                                             `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                         }
@@ -182,6 +198,7 @@ export default function Account() {
                                     </NavLink>
                                     <NavLink
                                         to={accountBank}
+                                        state={navState}
                                         className={({ isActive }) =>
                                             `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                         }
@@ -190,6 +207,7 @@ export default function Account() {
                                     </NavLink>
                                     <NavLink
                                         to={accountEmployment}
+                                        state={navState}
                                         className={({ isActive }) =>
                                             `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
                                         }

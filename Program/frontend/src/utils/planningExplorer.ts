@@ -167,10 +167,19 @@ function getGroupInfo(row: PlanningExplorerRow, key: PlanningGroupKey): GroupInf
         case "status": {
             const status = normalizeStatus(row.status);
             const order = ["UNASSIGNED", "ASSIGNED", "CONFIRMED", "CANCELLED"];
+            const label = status === "UNASSIGNED"
+                ? "Unassigned"
+                : status === "ASSIGNED"
+                    ? "Scheduled"
+                    : status === "CONFIRMED"
+                        ? "Accepted"
+                        : status === "CANCELLED"
+                            ? "Declined"
+                            : status;
             const sortIndex = order.indexOf(status);
             return {
                 value: status,
-                label: status === "UNASSIGNED" ? "Unassigned" : status,
+                label,
                 sortValue: `${String(sortIndex === -1 ? order.length : sortIndex).padStart(2, "0")}-${status}`,
             };
         }

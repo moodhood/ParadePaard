@@ -8,6 +8,7 @@ export type PlanningClientCompanySaveDTO = {
     address?: string | null;
     companyLine?: string | null;
     notes?: string | null;
+    profilePictureUrl?: string | null;
     contacts?: PlanningClientCompanyContactSaveDTO[];
 };
 

@@ -10,6 +10,7 @@ public class PlanningClientCompanySaveRequestDTO {
     private String address;
     private String companyLine;
     private String notes;
+    private String profilePictureUrl;
     private List<PlanningClientCompanyContactSaveRequestDTO> contacts;
 
     public String getName() {
@@ -42,6 +43,14 @@ public class PlanningClientCompanySaveRequestDTO {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
     }
 
     public List<PlanningClientCompanyContactSaveRequestDTO> getContacts() {

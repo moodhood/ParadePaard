@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pm.payrollservice.dto.PayslipRequestDTO;
 import com.pm.payrollservice.dto.PayslipResponseDTO;
+import com.pm.payrollservice.dto.PagedResponseDTO;
 import com.pm.payrollservice.exception.PayslipNotFoundException;
 import com.pm.payrollservice.grpc.ContractServiceGrpcClient;
 import com.pm.payrollservice.grpc.TimesheetServiceGrpcClient;
@@ -16,6 +17,7 @@ import contract.ContractDataResponse;
 import io.grpc.StatusRuntimeException;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.PageRequest;
 import timesheet.TimesheetDataResponse;
 import user.UserDataResponse;
 
@@ -62,6 +64,14 @@ public class PayrollService {
         return payslipRepository.findAll().stream().map(PayslipMapper::toDTO).toList();
     }
 
+    public PagedResponseDTO<PayslipResponseDTO> getPayslipsPage(int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        return PagedResponseDTO.from(
+                payslipRepository.findAllByOrderByDateOfIssueDesc(pageable),
+                PayslipMapper::toDTO
+        );
+    }
+
     public List<PayslipResponseDTO> getPayslipsByUserId(UUID userId) {
         return payslipRepository.findByUserIdOrderByDateOfIssueDesc(userId)
                 .stream()
@@ -77,6 +87,15 @@ public class PayrollService {
                         || p.getStatus() == PayslipStatus.APPROVED)
                 .map(PayslipMapper::toDTO)
                 .toList();
+    }
+
+    public PagedResponseDTO<PayslipResponseDTO> getReleasedPayslipsByUserIdPage(UUID userId, int page, int size) {
+        var pageable = PageRequest.of(page, size);
+        var visibleStatuses = List.of(PayslipStatus.RELEASED, PayslipStatus.APPROVED);
+        return PagedResponseDTO.from(
+                payslipRepository.findVisibleByUserIdOrderByDateOfIssueDesc(userId, visibleStatuses, pageable),
+                PayslipMapper::toDTO
+        );
     }
 
     public List<PayslipResponseDTO> getPayslipsPendingReview() {

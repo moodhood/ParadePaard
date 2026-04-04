@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import PaginationControls from "../components/common/PaginationControls";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices } from "../services/user-service/UserServices";
 import "../stylesheets/WorkHistory.css";
@@ -46,6 +47,7 @@ const parseNumber = (value: string) => {
 };
 
 const getDatePart = (value: string) => value.split("T")[0].split(" ")[0];
+const DEFAULT_PAGE_SIZE = 50;
 
 export interface Timesheet {
     timesheetId: string;
@@ -67,6 +69,10 @@ export default function WorkHistory() {
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [filters, setFilters] = useState<FilterState>(() => createFilters());
+    const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+    const [totalTimesheets, setTotalTimesheets] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const showAllTimesheets = isAdmin && !personalView;
 
     const userOptions = useMemo(() => {
@@ -143,14 +149,19 @@ export default function WorkHistory() {
     useEffect(() => {
         let cancelled = false;
 
-        const load = async () => {
+        const load = async (targetPage = page, targetPageSize = pageSize) => {
             try {
                 setLoading(true);
                 setErrorMsg(null);
                 const data = showAllTimesheets
-                    ? await UserServices.getTimesheets()
-                    : await UserServices.getMyTimesheets();
-                if (!cancelled) setTimesheets(data);
+                    ? await UserServices.getTimesheetsPage(targetPage, targetPageSize)
+                    : await UserServices.getMyTimesheetsPage(targetPage, targetPageSize);
+                if (!cancelled) {
+                    setTimesheets(data.items);
+                    setPage(data.page);
+                    setTotalTimesheets(data.totalElements);
+                    setTotalPages(data.totalPages);
+                }
             } catch (err: unknown) {
                 const message =
                     err instanceof Error ? err.message : "Failed to load work history";
@@ -165,7 +176,7 @@ export default function WorkHistory() {
         return () => {
             cancelled = true;
         };
-    }, [showAllTimesheets]);
+    }, [page, pageSize, showAllTimesheets]);
 
     useEffect(() => {
         let cancelled = false;
@@ -362,6 +373,7 @@ export default function WorkHistory() {
                                         {timesheets.length !== filteredTimesheets.length
                                             ? ` of ${timesheets.length}`
                                             : ""}
+                                        {` on this page | ${totalTimesheets} total`}
                                     </div>
                                     <button
                                         type="button"
@@ -402,6 +414,17 @@ export default function WorkHistory() {
                                     </tbody>
                                 </table>
                             </div>
+                            <PaginationControls
+                                page={page}
+                                totalPages={totalPages}
+                                pageSize={pageSize}
+                                loading={loading}
+                                onPageChange={(nextPage) => setPage(Math.max(0, nextPage))}
+                                onPageSizeChange={(nextPageSize) => {
+                                    setPageSize(nextPageSize);
+                                    setPage(0);
+                                }}
+                            />
                             <div
                                 className={`workHistoryTotalBar${
                                     showAllTimesheets ? " workHistoryTotalBar--admin" : ""

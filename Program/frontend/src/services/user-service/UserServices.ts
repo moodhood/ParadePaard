@@ -6,6 +6,7 @@ import GetLeaveRequestsByStatus from "./GetLeaveRequestsByStatus";
 import GetListUserLeaveRequests from "./GetListUserLeaveRequests";
 import GetMe from "./GetMe";
 import GetUsers from "./GetUsers";
+import GetUsersPage from "./GetUsersPage";
 import GetUserById from "./GetUserById";
 import RejectLeaveRequest from "./RejectLeaveRequest";
 import AdminOnboardEmployee from "./AdminOnboardEmployee";
@@ -18,11 +19,15 @@ import GetMyCompanyLogo from "./GetMyCompanyLogo";
 import UpdateMyCompanyLogo from "./UpdateMyCompanyLogo";
 import DeleteMyCompanyLogo from "./DeleteMyCompanyLogo";
 import GetMyPayslips, { type PayslipResponseDTO } from "./GetMyPayslips";
+import GetMyPayslipsPage from "./GetMyPayslipsPage";
 import GetAllPayslips from "./GetAllPayslips";
+import GetAllPayslipsPage from "./GetAllPayslipsPage";
 import GetPayslipsForReview from "./GetPayslipsForReview";
 import UpdateMyPayslipFrequency, { type UpdatePayslipFrequencyRequestDTO } from "./UpdateMyPayslipFrequency";
 import GetMyTimesheets, { type MyTimesheetRow } from "./GetMyTimesheets";
+import GetMyTimesheetsPage from "./GetMyTimesheetsPage";
 import GetAllTimesheets, { type TimesheetRow } from "./GetAllTimesheets";
+import GetAllTimesheetsPage from "./GetAllTimesheetsPage";
 import GetPayslipPdf from "./GetPayslipPdf";
 import CreateTimesheet, { type CreateTimesheetRequestDTO, type CreateTimesheetResponseDTO } from "./CreateTimesheet";
 import GetContracts, { type ContractResponseDTO } from "./GetContracts";
@@ -44,6 +49,9 @@ import GetPlanningClients, {
     type PlanningClientCompanyContactDTO,
     type PlanningClientCompanyDTO,
 } from "./GetPlanningClients";
+import GetPlanningClientsPage from "./GetPlanningClientsPage";
+import UpdatePlanningClient from "./UpdatePlanningClient";
+import type { PaginatedResponse } from "./Pagination";
 import FinalizePlanningEvent, {
     type FinalizePlanningRequestDTO,
     type FinalizePlanningResponseDTO,
@@ -112,6 +120,7 @@ export type {
     PlanningEventMutationResponseDTO,
     PlanningShiftMutationResponseDTO,
     PlanningAssignmentMutationResponseDTO,
+    PaginatedResponse,
 };
 
 export const UserServices = {
@@ -122,6 +131,9 @@ export const UserServices = {
     },
     getUsers: async (): Promise<UserResponseDTO[]> => {
         return await GetUsers(API_BASE_URL);
+    },
+    getUsersPage: async (page: number, size = 50, sortKey?: string, sortDirection?: "asc" | "desc"): Promise<PaginatedResponse<UserResponseDTO>> => {
+        return await GetUsersPage(API_BASE_URL, { page, size, sortKey, sortDirection });
     },
     getUserById: async (userId: string): Promise<UserResponseDTO> => {
         return await GetUserById(API_BASE_URL, userId);
@@ -149,8 +161,14 @@ export const UserServices = {
     > => {
         return await GetMyTimesheets(API_BASE_URL);
     },
+    getMyTimesheetsPage: async (page: number, size = 50): Promise<PaginatedResponse<MyTimesheetRow>> => {
+        return await GetMyTimesheetsPage(API_BASE_URL, { page, size });
+    },
     getTimesheets: async (): Promise<TimesheetRow[]> => {
         return await GetAllTimesheets(API_BASE_URL);
+    },
+    getTimesheetsPage: async (page: number, size = 50): Promise<PaginatedResponse<TimesheetRow>> => {
+        return await GetAllTimesheetsPage(API_BASE_URL, { page, size });
     },
     getContracts: async (): Promise<ContractResponseDTO[]> => {
         return await GetContracts(API_BASE_URL);
@@ -161,8 +179,17 @@ export const UserServices = {
     getPlanningClients: async (): Promise<PlanningClientCompanyDTO[]> => {
         return await GetPlanningClients(API_BASE_URL);
     },
+    getPlanningClientsPage: async (page: number, size = 50): Promise<PaginatedResponse<PlanningClientCompanyDTO>> => {
+        return await GetPlanningClientsPage(API_BASE_URL, { page, size });
+    },
     createPlanningClient: async (payload: PlanningClientCompanySaveDTO): Promise<PlanningClientCompanyDTO> => {
         return await CreatePlanningClient(API_BASE_URL, payload);
+    },
+    updatePlanningClient: async (
+        clientCompanyId: string,
+        payload: PlanningClientCompanySaveDTO
+    ): Promise<PlanningClientCompanyDTO> => {
+        return await UpdatePlanningClient(API_BASE_URL, clientCompanyId, payload);
     },
     createPlanningEvent: async (payload: PlanningEventSaveDTO): Promise<PlanningEventMutationResponseDTO> => {
         return await CreatePlanningEvent(API_BASE_URL, payload);
@@ -206,8 +233,14 @@ export const UserServices = {
     getMyPayslips: async (): Promise<PayslipResponseDTO[]> => {
         return await GetMyPayslips(API_BASE_URL);
     },
+    getMyPayslipsPage: async (page: number, size = 50): Promise<PaginatedResponse<PayslipResponseDTO>> => {
+        return await GetMyPayslipsPage(API_BASE_URL, { page, size });
+    },
     getAllPayslips: async (): Promise<PayslipResponseDTO[]> => {
         return await GetAllPayslips(API_BASE_URL);
+    },
+    getAllPayslipsPage: async (page: number, size = 50): Promise<PaginatedResponse<PayslipResponseDTO>> => {
+        return await GetAllPayslipsPage(API_BASE_URL, { page, size });
     },
     getPayslipsForReview: async (): Promise<PayslipResponseDTO[]> => {
         return await GetPayslipsForReview(API_BASE_URL);

@@ -1,3 +1,21 @@
+:root {
+  --planning-status-empty-strong: #b95f5f;
+  --planning-status-empty-border: #ddb1b1;
+  --planning-status-empty-surface: #f9efef;
+  --planning-status-empty-hover-border: #c98989;
+  --planning-status-empty-hover-surface: #f5e3e3;
+  --planning-status-partial-strong: #c08a32;
+  --planning-status-partial-border: #e1c28f;
+  --planning-status-partial-surface: #fcf6ea;
+  --planning-status-partial-hover-border: #cea45f;
+  --planning-status-partial-hover-surface: #f8eedc;
+  --planning-status-staffed-strong: #4f9b76;
+  --planning-status-staffed-border: #9bcdb5;
+  --planning-status-staffed-surface: #eef7f1;
+  --planning-status-staffed-hover-border: #71b18f;
+  --planning-status-staffed-hover-surface: #e5f2ea;
+}
+
 .planningOverviewCard {
   min-height: 720px;
   display: flex;
@@ -101,6 +119,25 @@
   white-space: nowrap;
 }
 
+.planningViewSelect {
+  min-width: 144px;
+  height: 38px;
+  border: 1px solid #d7dfeb;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #16345b;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.planningViewSelect:focus {
+  outline: 2px solid rgba(47, 107, 255, 0.24);
+  outline-offset: 2px;
+}
+
 .planningModeToggle {
   padding: 4px;
   border-radius: 999px;
@@ -130,6 +167,14 @@
   gap: 0;
   flex: 1 1 auto;
   min-height: 0;
+}
+
+.planningMonthLayout {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: #e3e8ef;
+  padding: 1px;
 }
 
 .planningCreateEventToast {
@@ -271,6 +316,15 @@
   align-items: stretch;
 }
 
+.planningMonthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 1px;
+  background: #e3e8ef;
+  min-height: 100%;
+  align-items: stretch;
+}
+
 .planningDayColumn {
   border: 0;
   border-radius: 0;
@@ -281,16 +335,57 @@
   min-height: 100%;
 }
 
+.planningMonthDay {
+  border: 0;
+  border-radius: 0;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+}
+
 .planningDayColumn--selected {
   border-color: #b8c7df;
   box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.12);
+}
+
+.planningMonthDay--selected {
+  box-shadow: inset 0 0 0 1px rgba(47, 107, 255, 0.16);
 }
 
 .planningDayColumn--today .planningDayHeader {
   background: #f5f9ff;
 }
 
+.planningMonthDay--today .planningMonthDayHeader {
+  background: #f5f9ff;
+}
+
+.planningMonthDay--outside .planningMonthDayHeader {
+  background: #f8fafc;
+}
+
+.planningMonthDay--outside .planningDayName,
+.planningMonthDay--outside .planningDayNumber,
+.planningMonthDay--outside .planningDayCount {
+  color: #94a3b8;
+}
+
 .planningDayHeader {
+  border: 0;
+  border-bottom: 1px solid #e3e8ef;
+  background: transparent;
+  color: #0f172a;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.planningMonthDayHeader {
   border: 0;
   border-bottom: 1px solid #e3e8ef;
   background: transparent;
@@ -339,43 +434,73 @@
   flex: 1 1 auto;
 }
 
-.planningEntryCard {
-  border: 1px solid #d9e4f2;
-  border-radius: 10px;
-  background: #ffffff;
-  padding: 12px;
+.planningMonthDayItems {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
+  padding: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.planningEntryCard {
+  border: 1px solid #d7dde7;
+  border-radius: 6px;
+  background: #f8fafc;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
   width: 100%;
   text-align: left;
   font: inherit;
   appearance: none;
+  overflow: hidden;
 }
 
 .planningEntryCard--compact {
-  padding: 10px;
-}
-
-.planningEntryCard--events {
-  border-color: #d9e5ff;
-  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
-}
-
-.planningEntryCard--shifts {
-  border-color: #dce7de;
-  background: linear-gradient(180deg, #ffffff 0%, #f7fbf7 100%);
+  padding: 0;
 }
 
 .planningEntryCard--interactive {
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, background-color 0.18s ease;
 }
 
 .planningEntryCard--interactive:hover {
   transform: translateY(-1px);
-  border-color: #bdd1eb;
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
+.planningEntryCard--empty {
+  border-color: var(--planning-status-empty-border);
+  background: var(--planning-status-empty-surface);
+}
+
+.planningEntryCard--empty.planningEntryCard--interactive:hover {
+  border-color: var(--planning-status-empty-hover-border);
+  background: var(--planning-status-empty-hover-surface);
+}
+
+.planningEntryCard--partial {
+  border-color: var(--planning-status-partial-border);
+  background: var(--planning-status-partial-surface);
+}
+
+.planningEntryCard--partial.planningEntryCard--interactive:hover {
+  border-color: var(--planning-status-partial-hover-border);
+  background: var(--planning-status-partial-hover-surface);
+}
+
+.planningEntryCard--staffed {
+  border-color: var(--planning-status-staffed-border);
+  background: var(--planning-status-staffed-surface);
+}
+
+.planningEntryCard--staffed.planningEntryCard--interactive:hover {
+  border-color: var(--planning-status-staffed-hover-border);
+  background: var(--planning-status-staffed-hover-surface);
 }
 
 .planningEntryCard--interactive:focus-visible {
@@ -383,17 +508,116 @@
   outline-offset: 2px;
 }
 
-.planningEntryCardTop {
+.planningEntryHeaderBand {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 8px;
+  padding: 10px 12px;
+  color: #ffffff;
+}
+
+.planningEntryCard--empty .planningEntryHeaderBand {
+  background: var(--planning-status-empty-strong);
+}
+
+.planningEntryCard--partial .planningEntryHeaderBand {
+  background: var(--planning-status-partial-strong);
+}
+
+.planningEntryCard--staffed .planningEntryHeaderBand {
+  background: var(--planning-status-staffed-strong);
+}
+
+.planningEntryHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
 }
 
 .planningEntryTitle {
-  color: #111827;
+  color: inherit;
   font-size: 14px;
   font-weight: 700;
+}
+
+.planningEntrySubtitle {
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.planningEntryRatio {
+  position: relative;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.planningEntryRatio::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(71, 85, 105, 0.96);
+  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 12;
+}
+
+.planningEntryRatio::before {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: calc(100% + 4px);
+  width: 10px;
+  height: 10px;
+  background: rgba(71, 85, 105, 0.96);
+  transform: translateY(-4px) rotate(45deg);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+  z-index: 11;
+}
+
+.planningEntryRatio:hover::after,
+.planningEntryRatio:focus-visible::after {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.planningEntryRatio:hover::before,
+.planningEntryRatio:focus-visible::before {
+  opacity: 1;
+  transform: translateY(0) rotate(45deg);
+}
+
+.planningEntryRatio:focus-visible {
+  outline: 2px solid rgba(37, 99, 235, 0.45);
+  outline-offset: 4px;
+  border-radius: 999px;
+}
+
+.planningEntryBodyRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px 6px;
 }
 
 .planningEntryMeta {
@@ -402,40 +626,37 @@
   font-weight: 600;
 }
 
-.planningEntrySubmeta {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.4;
+.planningEntryCompletion {
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.planningEntryDetails {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 4px;
+.planningEntryCard--empty .planningEntryCompletion {
+  color: var(--planning-status-empty-strong);
 }
 
-.planningEntryDetailRow {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding-top: 8px;
-  border-top: 1px solid rgba(148, 163, 184, 0.18);
+.planningEntryCard--partial .planningEntryCompletion {
+  color: var(--planning-status-partial-strong);
 }
 
-.planningEntryDetailLabel {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: #64748b;
+.planningEntryCard--staffed .planningEntryCompletion {
+  color: var(--planning-status-staffed-strong);
 }
 
-.planningEntryDetailValue {
-  color: #0f172a;
+.planningEntryFooter {
+  padding: 0 12px 12px;
+}
+
+.planningEntryClientTag {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 4px;
+  background: #e5e7eb;
+  color: #334155;
+  padding: 4px 8px;
   font-size: 12px;
   font-weight: 600;
-  line-height: 1.4;
 }
 
 .planningEntryBadge {
@@ -479,7 +700,8 @@
 }
 
 @media (max-width: 1200px) {
-  .planningWeekGrid {
+  .planningWeekGrid,
+  .planningMonthGrid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
@@ -497,7 +719,8 @@
     justify-content: flex-start;
   }
 
-  .planningWeekGrid {
+  .planningWeekGrid,
+  .planningMonthGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -521,11 +744,13 @@
     width: 100%;
   }
 
-  .planningWeekGrid {
+  .planningWeekGrid,
+  .planningMonthGrid {
     grid-template-columns: 1fr;
   }
 
-  .planningDayColumn {
+  .planningDayColumn,
+  .planningMonthDay {
     min-height: 320px;
   }
 
@@ -543,6 +768,7 @@
   }
 
   .planningTodayButton,
+  .planningViewSelect,
   .planningCardHeaderActions .button {
     width: 100%;
   }

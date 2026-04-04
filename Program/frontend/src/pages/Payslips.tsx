@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
+import PaginationControls from "../components/common/PaginationControls";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
 import { readCachedIsAdmin, readCachedPermissions, writeCachedIsAdmin, writeCachedPermissions } from "../utils/authCache";
@@ -22,6 +23,8 @@ type FilterState = {
     minNet: string;
     maxNet: string;
 };
+
+const DEFAULT_PAGE_SIZE = 50;
 
 const createFilters = (): FilterState => ({
     search: "",
@@ -148,6 +151,10 @@ export default function Payslips() {
         all: null,
     });
     const [loaded, setLoaded] = useState({ mine: false, all: false });
+    const [pages, setPages] = useState<Record<PayslipScope, number>>({ mine: 0, all: 0 });
+    const [pageSizes, setPageSizes] = useState<Record<PayslipScope, number>>({ mine: DEFAULT_PAGE_SIZE, all: DEFAULT_PAGE_SIZE });
+    const [totals, setTotals] = useState<Record<PayslipScope, number>>({ mine: 0, all: 0 });
+    const [totalPagesByScope, setTotalPagesByScope] = useState<Record<PayslipScope, number>>({ mine: 0, all: 0 });
     const [downloadError, setDownloadError] = useState<string | null>(null);
     const [downloadId, setDownloadId] = useState<string | null>(null);
 
@@ -231,19 +238,26 @@ export default function Payslips() {
         }
     }, [activeScope, canViewAll, canViewOwn, permissionsLoading, searchParams]);
 
-    const loadPayslips = useCallback(async (scope: PayslipScope) => {
+    const loadPayslips = useCallback(async (
+        scope: PayslipScope,
+        targetPage = pages[scope],
+        targetPageSize = pageSizes[scope]
+    ) => {
         setLoading((prev) => ({ ...prev, [scope]: true }));
         setErrors((prev) => ({ ...prev, [scope]: null }));
         try {
             const data =
                 scope === "mine"
-                    ? await UserServices.getMyPayslips()
-                    : await UserServices.getAllPayslips();
+                    ? await UserServices.getMyPayslipsPage(targetPage, targetPageSize)
+                    : await UserServices.getAllPayslipsPage(targetPage, targetPageSize);
             if (scope === "mine") {
-                setMyPayslips(data ?? []);
+                setMyPayslips(data.items ?? []);
             } else {
-                setAllPayslips(data ?? []);
+                setAllPayslips(data.items ?? []);
             }
+            setPages((prev) => ({ ...prev, [scope]: data.page }));
+            setTotals((prev) => ({ ...prev, [scope]: data.totalElements }));
+            setTotalPagesByScope((prev) => ({ ...prev, [scope]: data.totalPages }));
             setLoaded((prev) => ({ ...prev, [scope]: true }));
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load payslips";
@@ -251,7 +265,7 @@ export default function Payslips() {
         } finally {
             setLoading((prev) => ({ ...prev, [scope]: false }));
         }
-    }, []);
+    }, [pageSizes, pages]);
 
     useEffect(() => {
         if (activeScope === "mine" && canViewOwn && !loaded.mine) {
@@ -463,6 +477,7 @@ export default function Payslips() {
                                                 {activePayslips.length !== filteredPayslips.length
                                                     ? ` of ${activePayslips.length}`
                                                     : ""}
+                                                {` on this page | ${totals[activeScope]} total`}
                                             </div>
                                             <button type="button" className="buttonSecondary" onClick={resetFilters}>
                                                 Reset filters
@@ -479,101 +494,117 @@ export default function Payslips() {
                                     ) : errors[activeScope] ? (
                                         <div className="payslipsError">{errors[activeScope]}</div>
                                     ) : (
-                                        <div className="payslipsListWrap">
-                                            <div
-                                                className={`payslipsListHeader payslipsGrid ${
-                                                    activeScope === "all"
-                                                        ? "payslipsGrid--all"
-                                                        : "payslipsGrid--mine"
-                                                }`}
-                                            >
-                                                <div>Date</div>
-                                                {activeScope === "all" ? <div>User</div> : null}
-                                                <div>Week</div>
-                                                <div>Function</div>
-                                                <div>Hours</div>
-                                                <div>Net</div>
-                                                <div>Status</div>
-                                                <div>Action</div>
-                                            </div>
-                                            <div className="payslipsListBody">
-                                                {filteredPayslips.length === 0 ? (
+                                        <>
+                                            <div className="payslipsListCard">
+                                                <div className="payslipsListWrap">
                                                     <div
-                                                        className={`payslipsListRow payslipsListRow--empty payslipsGrid ${
+                                                        className={`payslipsListHeader payslipsGrid ${
                                                             activeScope === "all"
                                                                 ? "payslipsGrid--all"
                                                                 : "payslipsGrid--mine"
                                                         }`}
                                                     >
-                                                        <div className="payslipsEmptyCell">
-                                                            No payslips match these filters.
-                                                        </div>
+                                                        <div>Date</div>
+                                                        {activeScope === "all" ? <div>User</div> : null}
+                                                        <div>Week</div>
+                                                        <div>Function</div>
+                                                        <div>Hours</div>
+                                                        <div>Net</div>
+                                                        <div>Status</div>
+                                                        <div>Action</div>
                                                     </div>
-                                                ) : (
-                                                    filteredPayslips.map((payslip) => (
-                                                        <div
-                                                            key={payslip.payslipId}
-                                                            className={`payslipsListRow payslipsGrid ${
-                                                                activeScope === "all"
-                                                                    ? "payslipsGrid--all"
-                                                                    : "payslipsGrid--mine"
-                                                            }`}
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            onClick={() => openPayslip(payslip.payslipId)}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter" || event.key === " ") {
-                                                                    event.preventDefault();
-                                                                    openPayslip(payslip.payslipId);
-                                                                }
-                                                            }}
-                                                        >
-                                                            <div className="payslipsCellMain">
-                                                                {formatDate(payslip.dateOfIssue)}
-                                                            </div>
-                                                            {activeScope === "all" ? (
-                                                                <div>
-                                                                    <div className="payslipsCellMain">{payslip.name}</div>
-                                                                    <div className="payslipsCellSub">{payslip.userId}</div>
-                                                                </div>
-                                                            ) : null}
-                                                            <div className="payslipsCellSub">
-                                                                {formatWeek(payslip.weekBasedYear, payslip.weekNumber)}
-                                                            </div>
-                                                            <div className="payslipsCellSub">{payslip.functionName}</div>
-                                                            <div className="payslipsCellSub">
-                                                                {formatHours(payslip.totalHoursWorked)}
-                                                            </div>
-                                                            <div className="payslipsCellSub">
-                                                                {formatCurrency(payslip.totalNetAmount)}
-                                                            </div>
+                                                    <div className="payslipsListBody">
+                                                        {filteredPayslips.length === 0 ? (
                                                             <div
-                                                                className={`payslipStatus payslipStatus--${normalizeStatus(
-                                                                    payslip.status
-                                                                )}`}
+                                                                className={`payslipsListRow payslipsListRow--empty payslipsGrid ${
+                                                                    activeScope === "all"
+                                                                        ? "payslipsGrid--all"
+                                                                        : "payslipsGrid--mine"
+                                                                }`}
                                                             >
-                                                                {formatStatus(payslip.status)}
+                                                                <div className="payslipsEmptyCell">
+                                                                    No payslips match these filters.
+                                                                </div>
                                                             </div>
-                                                            <div>
-                                                                <button
-                                                                    type="button"
-                                                                    className="linkButton"
-                                                                    disabled={downloadId === payslip.payslipId}
-                                                                    onClick={(event) => {
-                                                                        event.stopPropagation();
-                                                                        void downloadPayslipPdf(payslip);
+                                                        ) : (
+                                                            filteredPayslips.map((payslip) => (
+                                                                <div
+                                                                    key={payslip.payslipId}
+                                                                    className={`payslipsListRow payslipsGrid ${
+                                                                        activeScope === "all"
+                                                                            ? "payslipsGrid--all"
+                                                                            : "payslipsGrid--mine"
+                                                                    }`}
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    onClick={() => openPayslip(payslip.payslipId)}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter" || event.key === " ") {
+                                                                            event.preventDefault();
+                                                                            openPayslip(payslip.payslipId);
+                                                                        }
                                                                     }}
                                                                 >
-                                                                    {downloadId === payslip.payslipId
-                                                                        ? "Downloading..."
-                                                                        : "Download PDF"}
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                                )}
+                                                                    <div className="payslipsCellMain">
+                                                                        {formatDate(payslip.dateOfIssue)}
+                                                                    </div>
+                                                                    {activeScope === "all" ? (
+                                                                        <div>
+                                                                            <div className="payslipsCellMain">{payslip.name}</div>
+                                                                            <div className="payslipsCellSub">{payslip.userId}</div>
+                                                                        </div>
+                                                                    ) : null}
+                                                                    <div className="payslipsCellSub">
+                                                                        {formatWeek(payslip.weekBasedYear, payslip.weekNumber)}
+                                                                    </div>
+                                                                    <div className="payslipsCellSub">{payslip.functionName}</div>
+                                                                    <div className="payslipsCellSub">
+                                                                        {formatHours(payslip.totalHoursWorked)}
+                                                                    </div>
+                                                                    <div className="payslipsCellSub">
+                                                                        {formatCurrency(payslip.totalNetAmount)}
+                                                                    </div>
+                                                                    <div
+                                                                        className={`payslipStatus payslipStatus--${normalizeStatus(
+                                                                            payslip.status
+                                                                        )}`}
+                                                                    >
+                                                                        {formatStatus(payslip.status)}
+                                                                    </div>
+                                                                    <div>
+                                                                        <button
+                                                                            type="button"
+                                                                            className="linkButton"
+                                                                            disabled={downloadId === payslip.payslipId}
+                                                                            onClick={(event) => {
+                                                                                event.stopPropagation();
+                                                                                void downloadPayslipPdf(payslip);
+                                                                            }}
+                                                                        >
+                                                                            {downloadId === payslip.payslipId
+                                                                                ? "Downloading..."
+                                                                                : "Download PDF"}
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <PaginationControls
+                                                    page={pages[activeScope]}
+                                                    totalPages={totalPagesByScope[activeScope]}
+                                                    pageSize={pageSizes[activeScope]}
+                                                    loading={loading[activeScope]}
+                                                    onPageChange={(nextPage) => void loadPayslips(activeScope, nextPage)}
+                                                    onPageSizeChange={(nextPageSize) => {
+                                                        setPageSizes((prev) => ({ ...prev, [activeScope]: nextPageSize }));
+                                                        setPages((prev) => ({ ...prev, [activeScope]: 0 }));
+                                                        void loadPayslips(activeScope, 0, nextPageSize);
+                                                    }}
+                                                />
                                             </div>
-                                        </div>
+                                        </>
                                     )}
                                 </>
                             ) : null}

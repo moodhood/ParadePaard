@@ -67,7 +67,7 @@ public class PlanningViewService {
 
         List<ScheduleEntry> entries = shiftIds.isEmpty()
                 ? List.of()
-                : scheduleEntryRepository.findByShiftIdInAndStatusNot(shiftIds, ScheduleEntryStatus.CANCELLED);
+                : scheduleEntryRepository.findByShiftIdIn(shiftIds);
         Map<UUID, List<ScheduleEntry>> entriesByShiftId = entries.stream()
                 .collect(Collectors.groupingBy(ScheduleEntry::getShiftId));
 
@@ -123,7 +123,9 @@ public class PlanningViewService {
             List<ScheduleEntry> shiftEntries = entriesByShiftId.getOrDefault(shift.getShiftId(), List.of());
             LocalDate day = shift.getStartTime().toLocalDate();
             int peopleNeeded = resolvePeopleNeeded(shift.getPeopleNeeded());
-            int assignedCount = shiftEntries.size();
+            int assignedCount = (int) shiftEntries.stream()
+                    .filter(entry -> entry.getStatus() != ScheduleEntryStatus.CANCELLED)
+                    .count();
             PlanningShiftDTO shiftDto = new PlanningShiftDTO();
             shiftDto.setShiftId(shift.getShiftId());
             shiftDto.setStartTime(shift.getStartTime());

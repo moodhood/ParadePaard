@@ -1,0 +1,15 @@
+TODO:
+Hard (Days):
+Refactor the frontend implement react native.
+Make the app more efficient.
+Make the logic flow more clear per role, meaning what does an admin see, and what does a normal user see, but also what does a non admin see but with a particular role.
+Messaging/Texting system
+
+Medium (Hours):
+Rethink the permissions and roles.
+Notification system
+Refactor the dashboard, what cards are displayed.
+
+Easy (0-60 min):
+Make individual user page look nicer, also add a section where you can see where they are planned what event and what shift.
+If an event is completed then the hours of that individual need to be logged and become a part of their work history.

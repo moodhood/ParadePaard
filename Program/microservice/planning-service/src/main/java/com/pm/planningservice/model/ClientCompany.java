@@ -10,6 +10,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
@@ -41,6 +42,9 @@ public class ClientCompany {
 
     @Column(length = 4000)
     private String notes;
+
+    @Lob
+    private String profilePictureUrl;
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(
@@ -101,12 +105,20 @@ public class ClientCompany {
         this.notes = notes;
     }
 
+    public String getProfilePictureUrl() {
+        return profilePictureUrl;
+    }
+
+    public void setProfilePictureUrl(String profilePictureUrl) {
+        this.profilePictureUrl = profilePictureUrl;
+    }
+
     public List<ClientCompanyContact> getContacts() {
         return contacts;
     }
 
     public void setContacts(List<ClientCompanyContact> contacts) {
-        this.contacts = contacts;
+        this.contacts = contacts == null ? new ArrayList<>() : new ArrayList<>(contacts);
     }
 
     public LocalDateTime getCreatedAt() {

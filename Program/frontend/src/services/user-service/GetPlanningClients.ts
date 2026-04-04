@@ -14,6 +14,7 @@ export type PlanningClientCompanyDTO = {
     address?: string | null;
     companyLine?: string | null;
     notes?: string | null;
+    profilePictureUrl?: string | null;
     contacts: PlanningClientCompanyContactDTO[];
     createdAt?: string | null;
 };

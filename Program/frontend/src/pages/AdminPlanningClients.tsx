@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
+import PaginationControls from "../components/common/PaginationControls";
 import {
     UserServices,
     type PlanningClientCompanyContactDTO,
@@ -16,8 +17,6 @@ import "../stylesheets/AdminUsers.css";
 import "../stylesheets/AdminPlanningClients.css";
 import "../stylesheets/Settings.css";
 
-type ClientCreateStep = "details" | "contacts" | "notes";
-
 const EMPTY_CONTACT: PlanningClientCompanyContactSaveDTO = {
     firstName: "",
     lastName: "",
@@ -25,6 +24,9 @@ const EMPTY_CONTACT: PlanningClientCompanyContactSaveDTO = {
     email: "",
     phone: "",
 };
+
+const MAX_CLIENT_PROFILE_PICTURE_BYTES = 500_000;
+const DEFAULT_PAGE_SIZE = 50;
 
 function SuccessCheckIcon() {
     return (
@@ -40,37 +42,79 @@ function contactDisplayName(contact: PlanningClientCompanyContactDTO): string {
     return parts.length > 0 ? parts.join(" ") : "Unnamed contact";
 }
 
+function clientInitial(name?: string | null): string {
+    return (name?.trim()?.[0] ?? "C").toUpperCase();
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(new Error("Could not read image file."));
+        reader.readAsDataURL(file);
+    });
+}
+
+function toClientSaveDraft(client: PlanningClientCompanyDTO): PlanningClientCompanySaveDTO {
+    return {
+        name: client.name ?? "",
+        address: client.address ?? "",
+        companyLine: client.companyLine ?? "",
+        notes: client.notes ?? "",
+        profilePictureUrl: client.profilePictureUrl ?? null,
+        contacts: (client.contacts ?? []).map((contact) => ({
+            firstName: contact.firstName ?? "",
+            lastName: contact.lastName ?? "",
+            position: contact.position ?? "",
+            email: contact.email ?? "",
+            phone: contact.phone ?? "",
+        })),
+    };
+}
+
 export default function AdminPlanningClients() {
     const [clients, setClients] = useState<PlanningClientCompanyDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [createClientOpen, setCreateClientOpen] = useState(false);
-    const [createStep, setCreateStep] = useState<ClientCreateStep>("details");
+    const [createSaveError, setCreateSaveError] = useState<string | null>(null);
+    const [selectedClient, setSelectedClient] = useState<PlanningClientCompanyDTO | null>(null);
+    const [clientDetailOpen, setClientDetailOpen] = useState(false);
+    const [detailDraft, setDetailDraft] = useState<PlanningClientCompanySaveDTO | null>(null);
+    const [detailSaveError, setDetailSaveError] = useState<string | null>(null);
+    const [expandedClientContacts, setExpandedClientContacts] = useState<number[]>([]);
+    const [page, setPage] = useState(0);
+    const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+    const [totalClients, setTotalClients] = useState(0);
+    const [totalPages, setTotalPages] = useState(0);
     const [clientDraft, setClientDraft] = useState<PlanningClientCompanySaveDTO>({
         name: "",
         address: "",
         companyLine: "",
         notes: "",
+        profilePictureUrl: null,
         contacts: [],
     });
 
-    const loadClients = useCallback(async () => {
+    const loadClients = useCallback(async (targetPage = page, targetPageSize = pageSize) => {
         try {
             setLoading(true);
             setError(null);
-            const data = await UserServices.getPlanningClients();
-            setClients(data);
+            const data = await UserServices.getPlanningClientsPage(targetPage, targetPageSize);
+            setClients(data.items);
+            setPage(data.page);
+            setTotalClients(data.totalElements);
+            setTotalPages(data.totalPages);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load client companies.";
             setError(message);
         } finally {
             setLoading(false);
         }
-    }, []);
+    }, [page, pageSize]);
 
     useEffect(() => {
         void loadClients();
@@ -112,13 +156,13 @@ export default function AdminPlanningClients() {
     }, [clients, searchTerm]);
 
     const resetCreateClientForm = useCallback(() => {
-        setCreateStep("details");
-        setSaveError(null);
+        setCreateSaveError(null);
         setClientDraft({
             name: "",
             address: "",
             companyLine: "",
             notes: "",
+            profilePictureUrl: null,
             contacts: [],
         });
     }, []);
@@ -134,6 +178,40 @@ export default function AdminPlanningClients() {
         resetCreateClientForm();
     };
 
+    const openClientDetailModal = (client: PlanningClientCompanyDTO) => {
+        setSelectedClient(client);
+        setDetailDraft(toClientSaveDraft(client));
+        setDetailSaveError(null);
+        setExpandedClientContacts([]);
+        setClientDetailOpen(true);
+    };
+
+    const closeClientDetailModal = () => {
+        setClientDetailOpen(false);
+        setSelectedClient(null);
+        setDetailDraft(null);
+        setDetailSaveError(null);
+        setExpandedClientContacts([]);
+    };
+
+    const handleClientRowKeyDown = (
+        event: KeyboardEvent<HTMLDivElement>,
+        client: PlanningClientCompanyDTO
+    ) => {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openClientDetailModal(client);
+        }
+    };
+
+    const toggleClientContact = (index: number) => {
+        setExpandedClientContacts((current) =>
+            current.includes(index)
+                ? current.filter((item) => item !== index)
+                : [...current, index]
+        );
+    };
+
     const updateContact = (index: number, key: keyof PlanningClientCompanyContactSaveDTO, value: string) => {
         setClientDraft((current) => ({
             ...current,
@@ -141,7 +219,7 @@ export default function AdminPlanningClients() {
                 contactIndex === index ? { ...contact, [key]: value } : contact
             ),
         }));
-        if (saveError) setSaveError(null);
+        if (createSaveError) setCreateSaveError(null);
     };
 
     const addContactDraft = () => {
@@ -149,7 +227,7 @@ export default function AdminPlanningClients() {
             ...current,
             contacts: [...(current.contacts ?? []), { ...EMPTY_CONTACT }],
         }));
-        if (saveError) setSaveError(null);
+        if (createSaveError) setCreateSaveError(null);
     };
 
     const removeContactDraft = (index: number) => {
@@ -157,7 +235,98 @@ export default function AdminPlanningClients() {
             ...current,
             contacts: (current.contacts ?? []).filter((_, contactIndex) => contactIndex !== index),
         }));
-        if (saveError) setSaveError(null);
+        if (createSaveError) setCreateSaveError(null);
+    };
+
+    const handleSelectClientProfilePicture = async (file: File | null) => {
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            setCreateSaveError("Please select an image file.");
+            return;
+        }
+        if (file.size > MAX_CLIENT_PROFILE_PICTURE_BYTES) {
+            setCreateSaveError("Client profile picture must be 500KB or smaller.");
+            return;
+        }
+
+        try {
+            const dataUrl = await readFileAsDataUrl(file);
+            setClientDraft((current) => ({ ...current, profilePictureUrl: dataUrl }));
+            if (createSaveError) setCreateSaveError(null);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not read profile picture.";
+            setCreateSaveError(message);
+        }
+    };
+
+    const removeClientProfilePicture = () => {
+        setClientDraft((current) => ({ ...current, profilePictureUrl: null }));
+        if (createSaveError) setCreateSaveError(null);
+    };
+
+    const updateDetailContact = (index: number, key: keyof PlanningClientCompanyContactSaveDTO, value: string) => {
+        setDetailDraft((current) =>
+            current
+                ? {
+                      ...current,
+                      contacts: (current.contacts ?? []).map((contact, contactIndex) =>
+                          contactIndex === index ? { ...contact, [key]: value } : contact
+                      ),
+                  }
+                : current
+        );
+        if (detailSaveError) setDetailSaveError(null);
+    };
+
+    const addDetailContactDraft = () => {
+        setDetailDraft((current) =>
+            current
+                ? {
+                      ...current,
+                      contacts: [...(current.contacts ?? []), { ...EMPTY_CONTACT }],
+                  }
+                : current
+        );
+        if (detailSaveError) setDetailSaveError(null);
+    };
+
+    const removeDetailContactDraft = (index: number) => {
+        setDetailDraft((current) =>
+            current
+                ? {
+                      ...current,
+                      contacts: (current.contacts ?? []).filter((_, contactIndex) => contactIndex !== index),
+                  }
+                : current
+        );
+        setExpandedClientContacts((current) => current.filter((item) => item !== index).map((item) => (item > index ? item - 1 : item)));
+        if (detailSaveError) setDetailSaveError(null);
+    };
+
+    const handleSelectDetailClientProfilePicture = async (file: File | null) => {
+        if (!file) return;
+        if (!file.type.startsWith("image/")) {
+            setDetailSaveError("Please select an image file.");
+            return;
+        }
+        if (file.size > MAX_CLIENT_PROFILE_PICTURE_BYTES) {
+            setDetailSaveError("Client profile picture must be 500KB or smaller.");
+            return;
+        }
+
+        try {
+            const dataUrl = await readFileAsDataUrl(file);
+            setDetailDraft((current) => (current ? { ...current, profilePictureUrl: dataUrl } : current));
+            if (detailSaveError) setDetailSaveError(null);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not read profile picture.";
+            setDetailSaveError(message);
+        }
+    };
+
+    const removeDetailClientProfilePicture = () => {
+        setDetailDraft((current) => (current ? { ...current, profilePictureUrl: null } : current));
+        if (detailSaveError) setDetailSaveError(null);
     };
 
     const handleCreate = async (event: FormEvent) => {
@@ -168,6 +337,7 @@ export default function AdminPlanningClients() {
             address: clientDraft.address?.trim() || null,
             companyLine: clientDraft.companyLine?.trim() || null,
             notes: clientDraft.notes?.trim() || null,
+            profilePictureUrl: clientDraft.profilePictureUrl || null,
             contacts: (clientDraft.contacts ?? [])
                 .map((contact) => ({
                     firstName: contact.firstName?.trim() || null,
@@ -182,28 +352,74 @@ export default function AdminPlanningClients() {
         };
 
         if (!payload.name) {
-            setSaveError("Client name is required.");
+            setCreateSaveError("Client name is required.");
             return;
         }
 
         try {
             setSaving(true);
-            setSaveError(null);
+            setCreateSaveError(null);
             setSaveSuccess(null);
-            const created = await UserServices.createPlanningClient(payload);
-            setClients((current) => [...current, created].sort((left, right) => left.name.localeCompare(right.name)));
+            await UserServices.createPlanningClient(payload);
+            await loadClients(0);
             setCreateClientOpen(false);
             resetCreateClientForm();
             setSaveSuccess("Client added.");
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Could not create client.";
-            setSaveError(message);
+            setCreateSaveError(message);
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const handleUpdateClient = async (event: FormEvent) => {
+        event.preventDefault();
+        if (!selectedClient || !detailDraft) return;
+
+        const payload: PlanningClientCompanySaveDTO = {
+            name: detailDraft.name?.trim() ?? "",
+            address: detailDraft.address?.trim() || null,
+            companyLine: detailDraft.companyLine?.trim() || null,
+            notes: detailDraft.notes?.trim() || null,
+            profilePictureUrl: detailDraft.profilePictureUrl || null,
+            contacts: (detailDraft.contacts ?? [])
+                .map((contact) => ({
+                    firstName: contact.firstName?.trim() || null,
+                    lastName: contact.lastName?.trim() || null,
+                    position: contact.position?.trim() || null,
+                    email: contact.email?.trim() || null,
+                    phone: contact.phone?.trim() || null,
+                }))
+                .filter((contact) =>
+                    contact.firstName || contact.lastName || contact.position || contact.email || contact.phone
+                ),
+        };
+
+        if (!payload.name) {
+            setDetailSaveError("Client name is required.");
+            return;
+        }
+
+        try {
+            setSaving(true);
+            setDetailSaveError(null);
+            setSaveSuccess(null);
+            const updated = await UserServices.updatePlanningClient(selectedClient.clientCompanyId, payload);
+            await loadClients(page);
+            setSelectedClient(updated);
+            setDetailDraft(toClientSaveDraft(updated));
+            setSaveSuccess("Client updated.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not update client.";
+            setDetailSaveError(message);
         } finally {
             setSaving(false);
         }
     };
 
     const canSubmitCreate = Boolean(clientDraft.name?.trim());
+    const canSubmitDetail = Boolean(detailDraft?.name?.trim());
 
     return (
         <>
@@ -225,7 +441,7 @@ export default function AdminPlanningClients() {
                                 right={(
                                     <div className="adminUsersToolbar">
                                         <div className="adminUsersCount">
-                                            {filteredClients.length} of {clients.length}
+                                            {filteredClients.length} of {clients.length} on this page | {totalClients} total
                                         </div>
                                         <input
                                             className="adminUsersSearchInput"
@@ -251,10 +467,8 @@ export default function AdminPlanningClients() {
                                         <div>Name</div>
                                         <div>Address</div>
                                         <div>Company line</div>
-                                        <div>Notes</div>
-                                        <div>Contacts</div>
                                     </div>
-                                    <div className="listScrollArea adminUsersScroll">
+                                    <div className="listScrollArea adminUsersScroll planningClientListScroll">
                                         {loading ? <div className="listEmpty">Loading clients...</div> : null}
                                         {error ? <div className="listEmpty errorText">{error}</div> : null}
                                         {!loading && !error && filteredClients.length === 0 ? (
@@ -263,29 +477,51 @@ export default function AdminPlanningClients() {
 
                                         {!loading && !error
                                             ? filteredClients.map((client) => (
-                                                <div key={client.clientCompanyId} className="listRowGrid gridPlanningClients planningClientRow">
-                                                    <div className="cellMain planningClientCell">{client.name}</div>
+                                                <div
+                                                    key={client.clientCompanyId}
+                                                    className="listRowGrid gridPlanningClients planningClientRow planningClientRowButton"
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={() => openClientDetailModal(client)}
+                                                    onKeyDown={(event) => handleClientRowKeyDown(event, client)}
+                                                >
+                                                    <div className="cellMain planningClientCell planningClientIdentityCell">
+                                                        <div
+                                                            className={`planningClientAvatar ${
+                                                                client.profilePictureUrl ? "planningClientAvatar--image" : ""
+                                                            }`}
+                                                            aria-hidden="true"
+                                                        >
+                                                            {client.profilePictureUrl ? (
+                                                                <img
+                                                                    className="planningClientAvatarImage"
+                                                                    src={client.profilePictureUrl}
+                                                                    alt=""
+                                                                />
+                                                            ) : (
+                                                                <span className="planningClientAvatarLetter">{clientInitial(client.name)}</span>
+                                                            )}
+                                                        </div>
+                                                        <span className="planningClientNameText">{client.name}</span>
+                                                    </div>
                                                     <div className="cellSub planningClientCell">{client.address || "—"}</div>
                                                     <div className="cellSub planningClientCell">{client.companyLine || "—"}</div>
-                                                    <div className="cellSub planningClientCell planningClientNotesCell">{client.notes || "—"}</div>
-                                                    <div className="planningClientContactsCell">
-                                                        {client.contacts.length === 0 ? (
-                                                            <div className="planningClientContactsEmpty">No contacts</div>
-                                                        ) : (
-                                                            client.contacts.map((contact, index) => (
-                                                                <div key={`${client.clientCompanyId}-${index}`} className="planningClientContactCard">
-                                                                    <div className="planningClientContactName">{contactDisplayName(contact)}</div>
-                                                                    <div className="planningClientContactMeta">{contact.position || "No position"}</div>
-                                                                    <div className="planningClientContactMeta">{contact.email || "No email"}</div>
-                                                                    <div className="planningClientContactMeta">{contact.phone || "No phone"}</div>
-                                                                </div>
-                                                            ))
-                                                        )}
-                                                    </div>
                                                 </div>
                                             ))
                                             : null}
                                     </div>
+                                    <PaginationControls
+                                        page={page}
+                                        totalPages={totalPages}
+                                        pageSize={pageSize}
+                                        loading={loading}
+                                        onPageChange={(nextPage) => void loadClients(nextPage)}
+                                        onPageSizeChange={(nextPageSize) => {
+                                            setPageSize(nextPageSize);
+                                            setPage(0);
+                                            void loadClients(0, nextPageSize);
+                                        }}
+                                    />
                                 </div>
                             </Card>
                         </div>
@@ -299,7 +535,7 @@ export default function AdminPlanningClients() {
                         <SuccessCheckIcon />
                     </span>
                     <div className="planningClientToastBody">
-                        <span className="planningClientToastTitle">Client added</span>
+                        <span className="planningClientToastTitle">Client saved</span>
                         <span className="planningClientToastMessage">{saveSuccess}</span>
                     </div>
                 </div>
@@ -309,204 +545,214 @@ export default function AdminPlanningClients() {
                 open={createClientOpen}
                 onClose={closeCreateClientModal}
                 title="Add client"
-                maxHeight={560}
-                height={560}
+                maxHeight={680}
+                height={680}
                 hideDefaultFooter
                 closeOnEscape={false}
                 closeOnOverlayClick={false}
             >
                 <form className="roleWizard" onSubmit={(event) => void handleCreate(event)}>
-                    <div className="roleWizardTabs" role="tablist" aria-label="Client setup steps">
+                    <div className="roleWizardPanel planningClientModalPanel">
+                        <div className="planningClientSectionHeader">
+                            <span className="planningClientSectionTitle">Details</span>
+                        </div>
+
+                        <div className="planningClientPictureEditor">
+                            <div
+                                className={`planningClientAvatar planningClientAvatar--large ${
+                                    clientDraft.profilePictureUrl ? "planningClientAvatar--image" : ""
+                                }`}
+                                aria-label="Client profile picture preview"
+                            >
+                                {clientDraft.profilePictureUrl ? (
+                                    <img
+                                        className="planningClientAvatarImage"
+                                        src={clientDraft.profilePictureUrl}
+                                        alt="Client profile preview"
+                                    />
+                                ) : (
+                                    <span className="planningClientAvatarLetter">{clientInitial(clientDraft.name)}</span>
+                                )}
+                            </div>
+                            <div className="planningClientPictureActions">
+                                <label className="buttonSecondary planningClientPictureButton">
+                                    {clientDraft.profilePictureUrl ? "Change picture" : "Upload picture"}
+                                    <input
+                                        className="planningClientPictureInput"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(event) =>
+                                            void handleSelectClientProfilePicture(event.target.files?.[0] ?? null)
+                                        }
+                                        disabled={saving}
+                                    />
+                                </label>
+                                {clientDraft.profilePictureUrl ? (
+                                    <button
+                                        type="button"
+                                        className="buttonSecondary planningClientPictureButton"
+                                        onClick={removeClientProfilePicture}
+                                        disabled={saving}
+                                    >
+                                        Remove picture
+                                    </button>
+                                ) : (
+                                    <span className="roleWizardMeta">PNG, JPG, WEBP up to 500KB.</span>
+                                )}
+                            </div>
+                        </div>
+
+                        <label className="roleWizardField">
+                            <span className="roleWizardLabel">Name</span>
+                            <input
+                                className="modal_input"
+                                value={clientDraft.name ?? ""}
+                                onChange={(event) => {
+                                    setClientDraft((current) => ({ ...current, name: event.target.value }));
+                                    if (createSaveError) setCreateSaveError(null);
+                                }}
+                                placeholder="Example: Festival Breda"
+                                disabled={saving}
+                            />
+                        </label>
+
+                        <label className="roleWizardField">
+                            <span className="roleWizardLabel">Address</span>
+                            <input
+                                className="modal_input"
+                                value={clientDraft.address ?? ""}
+                                onChange={(event) => {
+                                    setClientDraft((current) => ({ ...current, address: event.target.value }));
+                                    if (createSaveError) setCreateSaveError(null);
+                                }}
+                                placeholder="Street, city, postal code"
+                                disabled={saving}
+                            />
+                        </label>
+
+                        <label className="roleWizardField">
+                            <span className="roleWizardLabel">Company line</span>
+                            <input
+                                className="modal_input"
+                                value={clientDraft.companyLine ?? ""}
+                                onChange={(event) => {
+                                    setClientDraft((current) => ({ ...current, companyLine: event.target.value }));
+                                    if (createSaveError) setCreateSaveError(null);
+                                }}
+                                placeholder="Optional company line"
+                                disabled={saving}
+                            />
+                        </label>
+
+                        <div className="planningClientSectionHeader">
+                            <span className="planningClientSectionTitle">Contacts</span>
+                            <span className="roleWizardMeta">{clientDraft.contacts?.length ?? 0} added</span>
+                        </div>
+
+                        {clientDraft.contacts?.length ? (
+                            <div className="planningClientDraftList">
+                                {clientDraft.contacts.map((contact, index) => (
+                                    <div key={index} className="planningClientDraftCard">
+                                        <div className="planningClientDraftGrid">
+                                            <label className="roleWizardField">
+                                                <span className="roleWizardLabel">First name</span>
+                                                <input
+                                                    className="modal_input"
+                                                    value={contact.firstName ?? ""}
+                                                    onChange={(event) => updateContact(index, "firstName", event.target.value)}
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <label className="roleWizardField">
+                                                <span className="roleWizardLabel">Last name</span>
+                                                <input
+                                                    className="modal_input"
+                                                    value={contact.lastName ?? ""}
+                                                    onChange={(event) => updateContact(index, "lastName", event.target.value)}
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <label className="roleWizardField">
+                                                <span className="roleWizardLabel">Position</span>
+                                                <input
+                                                    className="modal_input"
+                                                    value={contact.position ?? ""}
+                                                    onChange={(event) => updateContact(index, "position", event.target.value)}
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <label className="roleWizardField">
+                                                <span className="roleWizardLabel">Email</span>
+                                                <input
+                                                    className="modal_input"
+                                                    value={contact.email ?? ""}
+                                                    onChange={(event) => updateContact(index, "email", event.target.value)}
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                            <label className="roleWizardField">
+                                                <span className="roleWizardLabel">Phone</span>
+                                                <input
+                                                    className="modal_input"
+                                                    value={contact.phone ?? ""}
+                                                    onChange={(event) => updateContact(index, "phone", event.target.value)}
+                                                    disabled={saving}
+                                                />
+                                            </label>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            className="roleWizardUserRemove planningClientRemoveContact"
+                                            onClick={() => removeContactDraft(index)}
+                                            disabled={saving}
+                                        >
+                                            Remove contact
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="roleWizardMeta">No contacts added yet.</div>
+                        )}
+
                         <button
                             type="button"
-                            className={`roleWizardTab ${createStep === "details" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateStep("details")}
-                            role="tab"
-                            aria-selected={createStep === "details"}
+                            className="buttonSecondary planningClientAddContact"
+                            onClick={addContactDraft}
                             disabled={saving}
                         >
-                            Details
+                            Add contact
                         </button>
-                        <button
-                            type="button"
-                            className={`roleWizardTab ${createStep === "contacts" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateStep("contacts")}
-                            role="tab"
-                            aria-selected={createStep === "contacts"}
-                            disabled={saving}
-                        >
-                            Contacts
-                        </button>
-                        <button
-                            type="button"
-                            className={`roleWizardTab ${createStep === "notes" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateStep("notes")}
-                            role="tab"
-                            aria-selected={createStep === "notes"}
-                            disabled={saving}
-                        >
-                            Notes
-                        </button>
+
+                        <div className="planningClientSectionHeader">
+                            <span className="planningClientSectionTitle">Notes</span>
+                        </div>
+
+                        <label className="roleWizardField">
+                            <span className="roleWizardLabel">Notes</span>
+                            <textarea
+                                className="modal_input planningClientNotesInput"
+                                value={clientDraft.notes ?? ""}
+                                onChange={(event) => {
+                                    setClientDraft((current) => ({ ...current, notes: event.target.value }));
+                                    if (createSaveError) setCreateSaveError(null);
+                                }}
+                                placeholder="Optional notes about this client"
+                                disabled={saving}
+                            />
+                        </label>
+
+                        <div className="planningClientSummary">
+                            <span className="planningClientSummaryLabel">Ready to add</span>
+                            <span className="planningClientSummaryValue">{clientDraft.name?.trim() || "Unnamed client"}</span>
+                            <span className="roleWizardMeta">
+                                {clientDraft.contacts?.length ? `${clientDraft.contacts.length} contact(s) prepared` : "No contacts added"}
+                            </span>
+                        </div>
                     </div>
 
-                    {createStep === "details" ? (
-                        <div className="roleWizardPanel">
-                            <label className="roleWizardField">
-                                <span className="roleWizardLabel">Name</span>
-                                <input
-                                    className="modal_input"
-                                    value={clientDraft.name ?? ""}
-                                    onChange={(event) => {
-                                        setClientDraft((current) => ({ ...current, name: event.target.value }));
-                                        if (saveError) setSaveError(null);
-                                    }}
-                                    placeholder="Example: Festival Breda"
-                                    disabled={saving}
-                                />
-                            </label>
-
-                            <label className="roleWizardField">
-                                <span className="roleWizardLabel">Address</span>
-                                <input
-                                    className="modal_input"
-                                    value={clientDraft.address ?? ""}
-                                    onChange={(event) => {
-                                        setClientDraft((current) => ({ ...current, address: event.target.value }));
-                                        if (saveError) setSaveError(null);
-                                    }}
-                                    placeholder="Street, city, postal code"
-                                    disabled={saving}
-                                />
-                            </label>
-
-                            <label className="roleWizardField">
-                                <span className="roleWizardLabel">Company line</span>
-                                <input
-                                    className="modal_input"
-                                    value={clientDraft.companyLine ?? ""}
-                                    onChange={(event) => {
-                                        setClientDraft((current) => ({ ...current, companyLine: event.target.value }));
-                                        if (saveError) setSaveError(null);
-                                    }}
-                                    placeholder="Optional company line"
-                                    disabled={saving}
-                                />
-                            </label>
-                        </div>
-                    ) : null}
-
-                    {createStep === "contacts" ? (
-                        <div className="roleWizardPanel">
-                            <div className="roleWizardHeaderRow">
-                                <span className="roleWizardLabel">Contacts</span>
-                                <span className="roleWizardMeta">{clientDraft.contacts?.length ?? 0} added</span>
-                            </div>
-
-                            {clientDraft.contacts?.length ? (
-                                <div className="planningClientDraftList">
-                                    {clientDraft.contacts.map((contact, index) => (
-                                        <div key={index} className="planningClientDraftCard">
-                                            <div className="planningClientDraftGrid">
-                                                <label className="roleWizardField">
-                                                    <span className="roleWizardLabel">First name</span>
-                                                    <input
-                                                        className="modal_input"
-                                                        value={contact.firstName ?? ""}
-                                                        onChange={(event) => updateContact(index, "firstName", event.target.value)}
-                                                        disabled={saving}
-                                                    />
-                                                </label>
-                                                <label className="roleWizardField">
-                                                    <span className="roleWizardLabel">Last name</span>
-                                                    <input
-                                                        className="modal_input"
-                                                        value={contact.lastName ?? ""}
-                                                        onChange={(event) => updateContact(index, "lastName", event.target.value)}
-                                                        disabled={saving}
-                                                    />
-                                                </label>
-                                                <label className="roleWizardField">
-                                                    <span className="roleWizardLabel">Position</span>
-                                                    <input
-                                                        className="modal_input"
-                                                        value={contact.position ?? ""}
-                                                        onChange={(event) => updateContact(index, "position", event.target.value)}
-                                                        disabled={saving}
-                                                    />
-                                                </label>
-                                                <label className="roleWizardField">
-                                                    <span className="roleWizardLabel">Email</span>
-                                                    <input
-                                                        className="modal_input"
-                                                        value={contact.email ?? ""}
-                                                        onChange={(event) => updateContact(index, "email", event.target.value)}
-                                                        disabled={saving}
-                                                    />
-                                                </label>
-                                                <label className="roleWizardField">
-                                                    <span className="roleWizardLabel">Phone</span>
-                                                    <input
-                                                        className="modal_input"
-                                                        value={contact.phone ?? ""}
-                                                        onChange={(event) => updateContact(index, "phone", event.target.value)}
-                                                        disabled={saving}
-                                                    />
-                                                </label>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                className="roleWizardUserRemove planningClientRemoveContact"
-                                                onClick={() => removeContactDraft(index)}
-                                                disabled={saving}
-                                            >
-                                                Remove contact
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="roleWizardMeta">No contacts added yet.</div>
-                            )}
-
-                            <button
-                                type="button"
-                                className="buttonSecondary planningClientAddContact"
-                                onClick={addContactDraft}
-                                disabled={saving}
-                            >
-                                Add contact
-                            </button>
-                        </div>
-                    ) : null}
-
-                    {createStep === "notes" ? (
-                        <div className="roleWizardPanel">
-                            <label className="roleWizardField">
-                                <span className="roleWizardLabel">Notes</span>
-                                <textarea
-                                    className="modal_input planningClientNotesInput"
-                                    value={clientDraft.notes ?? ""}
-                                    onChange={(event) => {
-                                        setClientDraft((current) => ({ ...current, notes: event.target.value }));
-                                        if (saveError) setSaveError(null);
-                                    }}
-                                    placeholder="Optional notes about this client"
-                                    disabled={saving}
-                                />
-                            </label>
-
-                            <div className="planningClientSummary">
-                                <span className="planningClientSummaryLabel">Ready to add</span>
-                                <span className="planningClientSummaryValue">{clientDraft.name?.trim() || "Unnamed client"}</span>
-                                <span className="roleWizardMeta">
-                                    {clientDraft.contacts?.length ? `${clientDraft.contacts.length} contact(s) prepared` : "No contacts added"}
-                                </span>
-                            </div>
-                        </div>
-                    ) : null}
-
-                    {saveError ? (
-                        <div className="roleWizardAlert roleWizardAlert--error">{saveError}</div>
+                    {createSaveError ? (
+                        <div className="roleWizardAlert roleWizardAlert--error">{createSaveError}</div>
                     ) : null}
 
                     <div className="roleWizardActions planningClientWizardActions">
@@ -527,6 +773,256 @@ export default function AdminPlanningClients() {
                         </button>
                     </div>
                 </form>
+            </Modal>
+
+            <Modal
+                open={clientDetailOpen}
+                onClose={closeClientDetailModal}
+                title={detailDraft?.name?.trim() || selectedClient?.name || "Client details"}
+                maxHeight={680}
+                height={680}
+                hideDefaultFooter
+            >
+                {selectedClient && detailDraft ? (
+                    <form className="roleWizard" onSubmit={(event) => void handleUpdateClient(event)}>
+                        <div className="roleWizardPanel planningClientModalPanel">
+                            <div className="planningClientSectionHeader">
+                                <span className="planningClientSectionTitle">Details</span>
+                            </div>
+
+                            <div className="planningClientPictureEditor">
+                                <label
+                                    className={`planningClientAvatar planningClientAvatar--large planningClientAvatarButton ${
+                                        detailDraft.profilePictureUrl ? "planningClientAvatar--image" : ""
+                                    }`}
+                                    aria-label="Change client profile picture"
+                                >
+                                    {detailDraft.profilePictureUrl ? (
+                                        <img
+                                            className="planningClientAvatarImage"
+                                            src={detailDraft.profilePictureUrl}
+                                            alt={`${detailDraft.name || "Client"} profile`}
+                                        />
+                                    ) : (
+                                        <span className="planningClientAvatarLetter">{clientInitial(detailDraft.name)}</span>
+                                    )}
+                                    <input
+                                        className="planningClientPictureInput"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(event) =>
+                                            void handleSelectDetailClientProfilePicture(event.target.files?.[0] ?? null)
+                                        }
+                                        disabled={saving}
+                                    />
+                                </label>
+                                <div className="planningClientPictureActions">
+                                    <span className="roleWizardMeta">Click the picture to change it.</span>
+                                    {detailDraft.profilePictureUrl ? (
+                                        <button
+                                            type="button"
+                                            className="buttonSecondary planningClientPictureButton"
+                                            onClick={removeDetailClientProfilePicture}
+                                            disabled={saving}
+                                        >
+                                            Remove picture
+                                        </button>
+                                    ) : (
+                                        <span className="roleWizardMeta">PNG, JPG, WEBP up to 500KB.</span>
+                                    )}
+                                </div>
+                            </div>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Name</span>
+                                <input
+                                    className="modal_input"
+                                    value={detailDraft.name ?? ""}
+                                    onChange={(event) => {
+                                        setDetailDraft((current) => (current ? { ...current, name: event.target.value } : current));
+                                        if (detailSaveError) setDetailSaveError(null);
+                                    }}
+                                    disabled={saving}
+                                />
+                            </label>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Address</span>
+                                <input
+                                    className="modal_input"
+                                    value={detailDraft.address ?? ""}
+                                    onChange={(event) => {
+                                        setDetailDraft((current) => (current ? { ...current, address: event.target.value } : current));
+                                        if (detailSaveError) setDetailSaveError(null);
+                                    }}
+                                    disabled={saving}
+                                />
+                            </label>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Company line</span>
+                                <input
+                                    className="modal_input"
+                                    value={detailDraft.companyLine ?? ""}
+                                    onChange={(event) => {
+                                        setDetailDraft((current) => (current ? { ...current, companyLine: event.target.value } : current));
+                                        if (detailSaveError) setDetailSaveError(null);
+                                    }}
+                                    disabled={saving}
+                                />
+                            </label>
+
+                            <div className="planningClientSectionHeader">
+                                <span className="planningClientSectionTitle">Contacts</span>
+                                <span className="roleWizardMeta">{detailDraft.contacts?.length ?? 0} added</span>
+                            </div>
+
+                            {detailDraft.contacts?.length ? (
+                                <div className="planningClientDraftList">
+                                    {detailDraft.contacts.map((contact, index) => (
+                                        <div key={`${selectedClient.clientCompanyId}-${index}`} className="planningClientDraftCard">
+                                            <button
+                                                type="button"
+                                                className="planningClientContactToggle"
+                                                onClick={() => toggleClientContact(index)}
+                                                aria-expanded={expandedClientContacts.includes(index)}
+                                            >
+                                                <span className="planningClientContactToggleTitle">{contactDisplayName(contact)}</span>
+                                                <span
+                                                    className={`planningClientContactToggleIcon ${
+                                                        expandedClientContacts.includes(index)
+                                                            ? "planningClientContactToggleIcon--expanded"
+                                                            : ""
+                                                    }`}
+                                                    aria-hidden="true"
+                                                />
+                                            </button>
+
+                                            {expandedClientContacts.includes(index) ? (
+                                                <div className="planningClientDraftGrid">
+                                                    <label className="roleWizardField">
+                                                        <span className="roleWizardLabel">First name</span>
+                                                        <input
+                                                            className="modal_input"
+                                                            value={contact.firstName ?? ""}
+                                                            onChange={(event) => updateDetailContact(index, "firstName", event.target.value)}
+                                                            disabled={saving}
+                                                        />
+                                                    </label>
+                                                    <label className="roleWizardField">
+                                                        <span className="roleWizardLabel">Last name</span>
+                                                        <input
+                                                            className="modal_input"
+                                                            value={contact.lastName ?? ""}
+                                                            onChange={(event) => updateDetailContact(index, "lastName", event.target.value)}
+                                                            disabled={saving}
+                                                        />
+                                                    </label>
+                                                    <label className="roleWizardField">
+                                                        <span className="roleWizardLabel">Position</span>
+                                                        <input
+                                                            className="modal_input"
+                                                            value={contact.position ?? ""}
+                                                            onChange={(event) => updateDetailContact(index, "position", event.target.value)}
+                                                            disabled={saving}
+                                                        />
+                                                    </label>
+                                                    <label className="roleWizardField">
+                                                        <span className="roleWizardLabel">Email</span>
+                                                        <input
+                                                            className="modal_input"
+                                                            value={contact.email ?? ""}
+                                                            onChange={(event) => updateDetailContact(index, "email", event.target.value)}
+                                                            disabled={saving}
+                                                        />
+                                                    </label>
+                                                    <label className="roleWizardField">
+                                                        <span className="roleWizardLabel">Phone</span>
+                                                        <input
+                                                            className="modal_input"
+                                                            value={contact.phone ?? ""}
+                                                            onChange={(event) => updateDetailContact(index, "phone", event.target.value)}
+                                                            disabled={saving}
+                                                        />
+                                                    </label>
+                                                </div>
+                                            ) : null}
+
+                                            <button
+                                                type="button"
+                                                className="roleWizardUserRemove planningClientRemoveContact"
+                                                onClick={() => removeDetailContactDraft(index)}
+                                                disabled={saving}
+                                            >
+                                                Remove contact
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="roleWizardMeta">No contacts added yet.</div>
+                            )}
+
+                            <button
+                                type="button"
+                                className="buttonSecondary planningClientAddContact"
+                                onClick={addDetailContactDraft}
+                                disabled={saving}
+                            >
+                                Add contact
+                            </button>
+
+                            <div className="planningClientSectionHeader">
+                                <span className="planningClientSectionTitle">Notes</span>
+                            </div>
+
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Notes</span>
+                                <textarea
+                                    className="modal_input planningClientNotesInput"
+                                    value={detailDraft.notes ?? ""}
+                                    onChange={(event) => {
+                                        setDetailDraft((current) => (current ? { ...current, notes: event.target.value } : current));
+                                        if (detailSaveError) setDetailSaveError(null);
+                                    }}
+                                    disabled={saving}
+                                />
+                            </label>
+
+                            <div className="planningClientSummary">
+                                <span className="planningClientSummaryLabel">Client</span>
+                                <span className="planningClientSummaryValue">{detailDraft.name?.trim() || "Unnamed client"}</span>
+                                <span className="roleWizardMeta">
+                                    {detailDraft.contacts?.length
+                                        ? `${detailDraft.contacts.length} contact(s) available`
+                                        : "No contacts added"}
+                                </span>
+                            </div>
+                        </div>
+
+                        {detailSaveError ? (
+                            <div className="roleWizardAlert roleWizardAlert--error">{detailSaveError}</div>
+                        ) : null}
+
+                        <div className="roleWizardActions planningClientWizardActions">
+                            <button
+                                type="button"
+                                className="buttonSecondary planningClientCancel"
+                                onClick={closeClientDetailModal}
+                                disabled={saving}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="roleWizardPrimary"
+                                disabled={!canSubmitDetail || saving}
+                            >
+                                {saving ? "Saving..." : "Save changes"}
+                            </button>
+                        </div>
+                    </form>
+                ) : null}
             </Modal>
         </>
     );

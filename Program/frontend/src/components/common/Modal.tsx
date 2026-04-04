@@ -1,6 +1,10 @@
 import React, { useEffect } from "react";
 import "../../stylesheets/Modal.css";
 
+let openModalCount = 0;
+let originalBodyOverflow = "";
+let originalHtmlOverflow = "";
+
 type ModalProps = {
     open: boolean;
     title?: string;
@@ -23,17 +27,30 @@ export default function Modal({
     height,
     footer,
     hideDefaultFooter = false,
-    closeOnEscape = true,
-    closeOnOverlayClick = true,
 }: ModalProps) {
     useEffect(() => {
-        if (!open) return;
-        const onKey = (e: KeyboardEvent) => {
-            if (closeOnEscape && e.key === "Escape") onClose();
+        if (!open) {
+            return undefined;
+        }
+
+        if (openModalCount === 0) {
+            originalBodyOverflow = document.body.style.overflow;
+            originalHtmlOverflow = document.documentElement.style.overflow;
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+        }
+
+        openModalCount += 1;
+
+        return () => {
+            openModalCount = Math.max(0, openModalCount - 1);
+
+            if (openModalCount === 0) {
+                document.body.style.overflow = originalBodyOverflow;
+                document.documentElement.style.overflow = originalHtmlOverflow;
+            }
         };
-        document.addEventListener("keydown", onKey);
-        return () => document.removeEventListener("keydown", onKey);
-    }, [open, onClose, closeOnEscape]);
+    }, [open]);
 
     if (!open) return null;
 
@@ -51,9 +68,6 @@ export default function Modal({
             role="dialog"
             aria-modal="true"
             aria-label={title || "Modal"}
-            onClick={(e) => {
-                if (closeOnOverlayClick && e.target === e.currentTarget) onClose();
-            }}
         >
             <div
                 className="modal_box"

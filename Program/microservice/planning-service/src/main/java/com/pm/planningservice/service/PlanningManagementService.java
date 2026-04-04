@@ -6,6 +6,7 @@ import com.pm.planningservice.dto.PlanningClientCompanyDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyContactDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyContactSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningClientCompanySaveRequestDTO;
+import com.pm.planningservice.dto.PagedResponseDTO;
 import com.pm.planningservice.dto.PlanningEventMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningEventSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningShiftMutationResponseDTO;
@@ -22,9 +23,12 @@ import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -32,6 +36,7 @@ import java.util.UUID;
 @Service
 public class PlanningManagementService {
     private static final String DEFAULT_EVENT_STATUS = "DRAFT";
+    private static final int MAX_CLIENT_PROFILE_PICTURE_LENGTH = 800_000;
 
     private final ClientCompanyRepository clientCompanyRepository;
     private final EventRepository eventRepository;
@@ -63,15 +68,52 @@ public class PlanningManagementService {
         clientCompany.setAddress(normalizeOptionalText(request.getAddress()));
         clientCompany.setCompanyLine(normalizeOptionalText(request.getCompanyLine()));
         clientCompany.setNotes(normalizeOptionalText(request.getNotes()));
+        clientCompany.setProfilePictureUrl(normalizeClientProfilePicture(request.getProfilePictureUrl()));
         clientCompany.setContacts(normalizeContacts(request.getContacts()));
         clientCompany.setCreatedAt(LocalDateTime.now());
         return toClientCompanyDto(clientCompanyRepository.save(clientCompany));
     }
 
+    @Transactional
+    public PlanningClientCompanyDTO updateClientCompany(
+            UUID companyId,
+            UUID clientCompanyId,
+            PlanningClientCompanySaveRequestDTO request
+    ) {
+        ClientCompany clientCompany = clientCompanyRepository
+                .findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Client company not found"));
+
+        String name = normalizeRequiredText(request.getName(), "Client company name is required");
+        if (clientCompanyRepository.existsByOwnerCompanyIdAndNameIgnoreCaseAndClientCompanyIdNot(
+                companyId,
+                name,
+                clientCompanyId
+        )) {
+            throw new IllegalArgumentException("A client company with this name already exists");
+        }
+
+        clientCompany.setName(name);
+        clientCompany.setAddress(normalizeOptionalText(request.getAddress()));
+        clientCompany.setCompanyLine(normalizeOptionalText(request.getCompanyLine()));
+        clientCompany.setNotes(normalizeOptionalText(request.getNotes()));
+        clientCompany.setProfilePictureUrl(normalizeClientProfilePicture(request.getProfilePictureUrl()));
+        clientCompany.setContacts(normalizeContacts(request.getContacts()));
+        return toClientCompanyDto(clientCompanyRepository.save(clientCompany));
+    }
+
+    @Transactional(readOnly = true)
     public List<PlanningClientCompanyDTO> listClientCompanies(UUID companyId) {
         return clientCompanyRepository.findByOwnerCompanyIdOrderByNameAsc(companyId).stream()
                 .map(this::toClientCompanyDto)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponseDTO<PlanningClientCompanyDTO> listClientCompaniesPage(UUID companyId, int page, int size) {
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "name", "createdAt"));
+        var companies = clientCompanyRepository.findByOwnerCompanyId(companyId, pageable);
+        return PagedResponseDTO.from(companies, this::toClientCompanyDto);
     }
 
     @Transactional
@@ -200,12 +242,25 @@ public class PlanningManagementService {
     ) {
         Shift shift = requireShift(shiftId);
         requireEditableEvent(companyId, shift.getEventId());
-        ensureAssignmentAbsent(shiftId, request.getUserId(), null);
+        UUID userId = Objects.requireNonNull(request.getUserId(), "User id is required");
+        ScheduleEntryStatus requestedStatus = resolveStatus(request.getStatus());
+        ScheduleEntry existingEntry = scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId).orElse(null);
+        if (existingEntry != null) {
+            if (existingEntry.getStatus() == ScheduleEntryStatus.CANCELLED) {
+                existingEntry.setStatus(requestedStatus);
+                scheduleEntryRepository.save(existingEntry);
+            }
+
+            PlanningAssignmentMutationResponseDTO existingResponse = new PlanningAssignmentMutationResponseDTO();
+            existingResponse.setScheduleEntryId(existingEntry.getScheduleEntryId());
+            existingResponse.setShiftId(shift.getShiftId());
+            return existingResponse;
+        }
 
         ScheduleEntry scheduleEntry = new ScheduleEntry();
         scheduleEntry.setShiftId(shiftId);
-        scheduleEntry.setUserId(request.getUserId());
-        scheduleEntry.setStatus(resolveStatus(request.getStatus()));
+        scheduleEntry.setUserId(userId);
+        scheduleEntry.setStatus(requestedStatus);
         ScheduleEntry saved = scheduleEntryRepository.save(scheduleEntry);
 
         PlanningAssignmentMutationResponseDTO response = new PlanningAssignmentMutationResponseDTO();
@@ -345,6 +400,7 @@ public class PlanningManagementService {
         dto.setAddress(clientCompany.getAddress());
         dto.setCompanyLine(clientCompany.getCompanyLine());
         dto.setNotes(clientCompany.getNotes());
+        dto.setProfilePictureUrl(clientCompany.getProfilePictureUrl());
         dto.setContacts(clientCompany.getContacts().stream()
                 .map(this::toClientCompanyContactDto)
                 .toList());
@@ -364,13 +420,13 @@ public class PlanningManagementService {
 
     private List<ClientCompanyContact> normalizeContacts(List<PlanningClientCompanyContactSaveRequestDTO> contacts) {
         if (contacts == null || contacts.isEmpty()) {
-            return List.of();
+            return new ArrayList<>();
         }
 
         return contacts.stream()
                 .map(this::normalizeContact)
                 .filter(Objects::nonNull)
-                .toList();
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
     }
 
     private ClientCompanyContact normalizeContact(PlanningClientCompanyContactSaveRequestDTO request) {
@@ -420,6 +476,20 @@ public class PlanningManagementService {
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    private String normalizeClientProfilePicture(String value) {
+        String normalized = normalizeOptionalText(value);
+        if (normalized == null) {
+            return null;
+        }
+        if (!normalized.startsWith("data:image/")) {
+            throw new IllegalArgumentException("Client profile picture must be an image");
+        }
+        if (normalized.length() > MAX_CLIENT_PROFILE_PICTURE_LENGTH) {
+            throw new IllegalArgumentException("Client profile picture is too large");
+        }
+        return normalized;
     }
 
     private String normalizeEventStatus(String value) {
