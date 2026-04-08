@@ -156,10 +156,12 @@ services:
       JWT_SECRET: "cc028f2d8dcf1c84ffbf92c9ed5255e8df01bc0ca4a760ebce999a8fdc8741ad"
       TIMESHEET_SERVICE_ADDRESS: "timesheet-service"
       TIMESHEET_SERVICE_GRPC: "9001"
+      USER_SERVICE_BASE_URL: "http://user-service:4006"
       SPRING_DATASOURCE_PASSWORD: "password"
       SPRING_DATASOURCE_URL: "jdbc:postgresql://planning-service-db:5432/db"
       SPRING_DATASOURCE_USERNAME: "admin_user"
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
+      SPRING_SQL_INIT_MODE: "always"
     depends_on: [planning-service-db, timesheet-service]
 
   payroll-service:

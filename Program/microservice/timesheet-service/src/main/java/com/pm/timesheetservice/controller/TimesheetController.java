@@ -55,7 +55,7 @@ public class TimesheetController {
 
     @GetMapping("/me")
     @Operation(summary = "Get my work history (timesheets)")
-    @PreAuthorize("hasAuthority('CAN_VIEW_OWN_TIMESHEETS')")
+    @PreAuthorize("hasAnyAuthority('CAN_VIEW_OWN_TIMESHEETS', 'CAN_VIEW_ALL_TIMESHEETS')")
     public ResponseEntity<List<TimesheetResponseDTO>> getMyTimesheets(Authentication authentication) {
         UUID userId = requireUserId(authentication);
         return ResponseEntity.ok(timesheetService.getTimesheetsByUserId(userId));
@@ -63,7 +63,7 @@ public class TimesheetController {
 
     @GetMapping("/me/paged")
     @Operation(summary = "Get my paged work history (timesheets)")
-    @PreAuthorize("hasAuthority('CAN_VIEW_OWN_TIMESHEETS')")
+    @PreAuthorize("hasAnyAuthority('CAN_VIEW_OWN_TIMESHEETS', 'CAN_VIEW_ALL_TIMESHEETS')")
     public ResponseEntity<PagedResponseDTO<TimesheetResponseDTO>> getMyTimesheetsPage(
             Authentication authentication,
             @RequestParam(defaultValue = "0") int page,

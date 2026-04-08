@@ -5,11 +5,18 @@ CREATE TABLE IF NOT EXISTS companies (
     name VARCHAR(255) UNIQUE NOT NULL,
     payout_frequency_minutes INTEGER NOT NULL DEFAULT 10080,
     logo_bytes BYTEA,
-    logo_content_type VARCHAR(255)
+    logo_content_type VARCHAR(255),
+    timesheet_logging_mode VARCHAR(32) NOT NULL DEFAULT 'ADMIN_FINALIZE',
+    travel_claim_mode VARCHAR(32) NOT NULL DEFAULT 'REQUIRES_APPROVAL'
 );
 
 ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS logo_bytes BYTEA;
 ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS logo_content_type VARCHAR(255);
+ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS timesheet_logging_mode VARCHAR(32) NOT NULL DEFAULT 'ADMIN_FINALIZE';
+ALTER TABLE IF EXISTS companies ADD COLUMN IF NOT EXISTS travel_claim_mode VARCHAR(32) NOT NULL DEFAULT 'REQUIRES_APPROVAL';
+UPDATE companies
+SET timesheet_logging_mode = COALESCE(timesheet_logging_mode, 'ADMIN_FINALIZE'),
+    travel_claim_mode = COALESCE(travel_claim_mode, 'REQUIRES_APPROVAL');
 
 INSERT INTO companies (id, name, payout_frequency_minutes)
 SELECT '00000000-0000-0000-0000-000000000001'::uuid, 'Default Company', 10080

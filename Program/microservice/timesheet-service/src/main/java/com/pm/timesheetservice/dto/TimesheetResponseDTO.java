@@ -1,8 +1,6 @@
 package com.pm.timesheetservice.dto;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.UUID;
 
 public class TimesheetResponseDTO {
     private String timesheetId;
@@ -20,6 +18,17 @@ public class TimesheetResponseDTO {
     private String function;
     private BigDecimal hoursWorked;
     private BigDecimal travelExpenses;
+    private String sourceScheduleEntryId;
+    private String sourceShiftId;
+    private String sourceEventId;
+    private String eventName;
+    private String shiftName;
+    private String shiftDate;
+    private String shiftStartTime;
+    private String shiftEndTime;
+    private Integer breakMinutes;
+    private BigDecimal travelKilometers;
+    private BigDecimal travelRate;
 
 
     public String getTimesheetId() {
@@ -92,5 +101,93 @@ public class TimesheetResponseDTO {
 
     public void setTravelExpenses(BigDecimal travelExpenses) {
         this.travelExpenses = travelExpenses;
+    }
+
+    public String getSourceScheduleEntryId() {
+        return sourceScheduleEntryId;
+    }
+
+    public void setSourceScheduleEntryId(String sourceScheduleEntryId) {
+        this.sourceScheduleEntryId = sourceScheduleEntryId;
+    }
+
+    public String getSourceShiftId() {
+        return sourceShiftId;
+    }
+
+    public void setSourceShiftId(String sourceShiftId) {
+        this.sourceShiftId = sourceShiftId;
+    }
+
+    public String getSourceEventId() {
+        return sourceEventId;
+    }
+
+    public void setSourceEventId(String sourceEventId) {
+        this.sourceEventId = sourceEventId;
+    }
+
+    public String getEventName() {
+        return eventName;
+    }
+
+    public void setEventName(String eventName) {
+        this.eventName = eventName;
+    }
+
+    public String getShiftName() {
+        return shiftName;
+    }
+
+    public void setShiftName(String shiftName) {
+        this.shiftName = shiftName;
+    }
+
+    public String getShiftDate() {
+        return shiftDate;
+    }
+
+    public void setShiftDate(String shiftDate) {
+        this.shiftDate = shiftDate;
+    }
+
+    public String getShiftStartTime() {
+        return shiftStartTime;
+    }
+
+    public void setShiftStartTime(String shiftStartTime) {
+        this.shiftStartTime = shiftStartTime;
+    }
+
+    public String getShiftEndTime() {
+        return shiftEndTime;
+    }
+
+    public void setShiftEndTime(String shiftEndTime) {
+        this.shiftEndTime = shiftEndTime;
+    }
+
+    public Integer getBreakMinutes() {
+        return breakMinutes;
+    }
+
+    public void setBreakMinutes(Integer breakMinutes) {
+        this.breakMinutes = breakMinutes;
+    }
+
+    public BigDecimal getTravelKilometers() {
+        return travelKilometers;
+    }
+
+    public void setTravelKilometers(BigDecimal travelKilometers) {
+        this.travelKilometers = travelKilometers;
+    }
+
+    public BigDecimal getTravelRate() {
+        return travelRate;
+    }
+
+    public void setTravelRate(BigDecimal travelRate) {
+        this.travelRate = travelRate;
     }
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
@@ -59,12 +59,17 @@ export interface Timesheet {
     function: string;
     hoursWorked: number;
     travelExpenses?: number;
+    eventName?: string | null;
+    shiftName?: string | null;
+    shiftDate?: string | null;
+    travelKilometers?: number | null;
+    travelRate?: number | null;
 }
 
 export default function WorkHistory() {
     const [searchParams] = useSearchParams();
     const personalView = searchParams.get("view") === "personal";
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [permissions, setPermissions] = useState<string[]>([]);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -73,7 +78,9 @@ export default function WorkHistory() {
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [totalTimesheets, setTotalTimesheets] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const showAllTimesheets = isAdmin && !personalView;
+    const canViewAllTimesheets = permissions.includes("CAN_VIEW_ALL_TIMESHEETS");
+    const canManageTimesheets = permissions.includes("CAN_MANAGE_TIMESHEETS");
+    const showAllTimesheets = canViewAllTimesheets && !personalView;
 
     const userOptions = useMemo(() => {
         if (!showAllTimesheets) return [];
@@ -114,6 +121,7 @@ export default function WorkHistory() {
 
             if (term) {
                 const haystack = [t.name ?? "", t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
+                    .concat([t.eventName ?? "", t.shiftName ?? ""])
                     .join(" ")
                     .toLowerCase();
                 if (!haystack.includes(term)) return false;
@@ -142,8 +150,10 @@ export default function WorkHistory() {
 
             return true;
         });
+
         return [...filtered].sort((a, b) => (b.dateOfIssue ?? "").localeCompare(a.dateOfIssue ?? ""));
     }, [filters, showAllTimesheets, timesheets]);
+
     const totalHours = useMemo(() => sumHours(filteredTimesheets), [filteredTimesheets]);
 
     useEffect(() => {
@@ -163,8 +173,7 @@ export default function WorkHistory() {
                     setTotalPages(data.totalPages);
                 }
             } catch (err: unknown) {
-                const message =
-                    err instanceof Error ? err.message : "Failed to load work history";
+                const message = err instanceof Error ? err.message : "Failed to load work history";
                 if (!cancelled) setErrorMsg(message);
             } finally {
                 if (!cancelled) setLoading(false);
@@ -181,12 +190,14 @@ export default function WorkHistory() {
     useEffect(() => {
         let cancelled = false;
 
-        AuthServices.isAdmin()
-            .then((value) => {
-                if (!cancelled) setIsAdmin(Boolean(value));
+        AuthServices.getPermissions()
+            .then((permissionValues) => {
+                if (cancelled) return;
+                setPermissions(permissionValues ?? []);
             })
             .catch(() => {
-                if (!cancelled) setIsAdmin(false);
+                if (cancelled) return;
+                setPermissions([]);
             });
 
         return () => {
@@ -211,7 +222,7 @@ export default function WorkHistory() {
         setFilters(createFilters());
     };
 
-    const columnCount = showAllTimesheets ? 4 : 3;
+    const columnCount = showAllTimesheets ? 5 : 4;
 
     return (
         <>
@@ -220,221 +231,237 @@ export default function WorkHistory() {
                 <div className="pageShell">
                     <PrimaryNav />
                     <div className="pageShellContent">
-                        <header className="workHistoryHeader">
+                        <header
+                            className="workHistoryHeader"
+                            style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
+                        >
                             <h1 className="workHistoryTitle">Work History</h1>
+                            {canManageTimesheets && !personalView ? (
+                                <Link className="button" to="/travel-claims">
+                                    Open travel claims
+                                </Link>
+                            ) : null}
                         </header>
                         <div className="workHistoryShell">
-                    {loading ? (
-                        <div className="workHistoryLoading">
-                            <Spinner text="Loading work history" />
-                        </div>
-                    ) : errorMsg ? (
-                        <div className="workHistoryError">{errorMsg}</div>
-                    ) : (
-                        <Card
-                            title="Timesheets"
-                            className="workHistoryCard"
-                        >
-                            <div className="workHistoryFilterPanel">
-                                <div className="workHistoryFilterGrid">
-                                    <label className="workHistoryFilterField">
-                                        <span>Search</span>
-                                        <input
-                                            type="search"
-                                            placeholder={
-                                                showAllTimesheets
-                                                    ? "Name, function, or employee ID"
-                                                    : "Function or date"
-                                            }
-                                            value={filters.search}
-                                            onChange={(e) => updateFilter("search", e.target.value)}
+                            {loading ? (
+                                <div className="workHistoryLoading">
+                                    <Spinner text="Loading work history" />
+                                </div>
+                            ) : errorMsg ? (
+                                <div className="workHistoryError">{errorMsg}</div>
+                            ) : (
+                                <div style={{ display: "grid", gap: 20 }}>
+                                    <Card title="Timesheets" className="workHistoryCard">
+                                        <div className="workHistoryFilterPanel">
+                                            <div className="workHistoryFilterGrid">
+                                                <label className="workHistoryFilterField">
+                                                    <span>Search</span>
+                                                    <input
+                                                        type="search"
+                                                        placeholder={
+                                                            showAllTimesheets
+                                                                ? "Name, function, event, shift, or employee ID"
+                                                                : "Function, event, shift, or date"
+                                                        }
+                                                        value={filters.search}
+                                                        onChange={(e) => updateFilter("search", e.target.value)}
+                                                    />
+                                                </label>
+
+                                                {showAllTimesheets ? (
+                                                    <label className="workHistoryFilterField">
+                                                        <span>Employee</span>
+                                                        <select
+                                                            value={filters.userId}
+                                                            onChange={(e) => updateFilter("userId", e.target.value)}
+                                                        >
+                                                            <option value="all">All employees</option>
+                                                            {userOptions.map((user) => (
+                                                                <option key={user.id} value={user.id}>
+                                                                    {user.name}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </label>
+                                                ) : null}
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Function</span>
+                                                    <select
+                                                        value={filters.functionName}
+                                                        onChange={(e) => updateFilter("functionName", e.target.value)}
+                                                    >
+                                                        <option value="all">All functions</option>
+                                                        {functionOptions.map((value) => (
+                                                            <option key={value} value={value}>
+                                                                {value}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Date from</span>
+                                                    <input
+                                                        type="date"
+                                                        value={filters.dateFrom}
+                                                        onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Date to</span>
+                                                    <input
+                                                        type="date"
+                                                        value={filters.dateTo}
+                                                        onChange={(e) => updateFilter("dateTo", e.target.value)}
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Week year</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={filters.weekYear}
+                                                        onChange={(e) => updateFilter("weekYear", e.target.value)}
+                                                        placeholder="2026"
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Week number</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="numeric"
+                                                        value={filters.weekNumber}
+                                                        onChange={(e) => updateFilter("weekNumber", e.target.value)}
+                                                        placeholder="1-53"
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Min hours</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        value={filters.minHours}
+                                                        onChange={(e) => updateFilter("minHours", e.target.value)}
+                                                        placeholder="0"
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Max hours</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        value={filters.maxHours}
+                                                        onChange={(e) => updateFilter("maxHours", e.target.value)}
+                                                        placeholder="60"
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Min travel</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        value={filters.minTravel}
+                                                        onChange={(e) => updateFilter("minTravel", e.target.value)}
+                                                        placeholder="0"
+                                                    />
+                                                </label>
+
+                                                <label className="workHistoryFilterField">
+                                                    <span>Max travel</span>
+                                                    <input
+                                                        type="number"
+                                                        inputMode="decimal"
+                                                        value={filters.maxTravel}
+                                                        onChange={(e) => updateFilter("maxTravel", e.target.value)}
+                                                        placeholder="100"
+                                                    />
+                                                </label>
+                                            </div>
+                                            <div className="workHistoryFilterActions">
+                                                <div className="workHistoryFilterMeta">
+                                                    {filteredTimesheets.length} shown
+                                                    {timesheets.length !== filteredTimesheets.length
+                                                        ? ` of ${timesheets.length}`
+                                                        : ""}
+                                                    {` on this page | ${totalTimesheets} total`}
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    className="workHistoryButtonSecondary"
+                                                    onClick={resetFilters}
+                                                >
+                                                    Reset filters
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="workHistoryTableWrap">
+                                            <table className="workHistoryTable">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Date</th>
+                                                        {showAllTimesheets ? <th>Employee</th> : null}
+                                                        <th>Shift</th>
+                                                        <th className="workHistoryHoursCol">Hours Worked</th>
+                                                        <th className="workHistoryHoursCol">Travel</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredTimesheets.length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={columnCount} className="workHistoryEmpty">
+                                                                No timesheets match these filters.
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        filteredTimesheets.map((t) => (
+                                                            <tr key={t.timesheetId}>
+                                                                <td>{formatDate(t.dateOfIssue)}</td>
+                                                                {showAllTimesheets ? <td>{t.name ?? "-"}</td> : null}
+                                                                <td>
+                                                                    <div>{t.shiftName ?? t.function}</div>
+                                                                    <div style={{ fontSize: 12, color: "#6b7280" }}>
+                                                                        {t.eventName ?? t.function}
+                                                                    </div>
+                                                                </td>
+                                                                <td className="workHistoryHoursCol">{t.hoursWorked.toFixed(1)}</td>
+                                                                <td className="workHistoryHoursCol">
+                                                                    {Number(t.travelExpenses ?? 0).toFixed(2)}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <PaginationControls
+                                            page={page}
+                                            totalPages={totalPages}
+                                            pageSize={pageSize}
+                                            loading={loading}
+                                            onPageChange={(nextPage) => setPage(Math.max(0, nextPage))}
+                                            onPageSizeChange={(nextPageSize) => {
+                                                setPageSize(nextPageSize);
+                                                setPage(0);
+                                            }}
                                         />
-                                    </label>
-
-                                    {showAllTimesheets ? (
-                                        <label className="workHistoryFilterField">
-                                            <span>Employee</span>
-                                            <select
-                                                value={filters.userId}
-                                                onChange={(e) => updateFilter("userId", e.target.value)}
-                                            >
-                                                <option value="all">All employees</option>
-                                                {userOptions.map((user) => (
-                                                    <option key={user.id} value={user.id}>
-                                                        {user.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </label>
-                                    ) : null}
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Function</span>
-                                        <select
-                                            value={filters.functionName}
-                                            onChange={(e) => updateFilter("functionName", e.target.value)}
+                                        <div
+                                            className={`workHistoryTotalBar${
+                                                showAllTimesheets ? " workHistoryTotalBar--admin" : ""
+                                            }`}
                                         >
-                                            <option value="all">All functions</option>
-                                            {functionOptions.map((value) => (
-                                                <option key={value} value={value}>
-                                                    {value}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Date from</span>
-                                        <input
-                                            type="date"
-                                            value={filters.dateFrom}
-                                            onChange={(e) => updateFilter("dateFrom", e.target.value)}
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Date to</span>
-                                        <input
-                                            type="date"
-                                            value={filters.dateTo}
-                                            onChange={(e) => updateFilter("dateTo", e.target.value)}
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Week year</span>
-                                        <input
-                                            type="number"
-                                            inputMode="numeric"
-                                            value={filters.weekYear}
-                                            onChange={(e) => updateFilter("weekYear", e.target.value)}
-                                            placeholder="2026"
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Week number</span>
-                                        <input
-                                            type="number"
-                                            inputMode="numeric"
-                                            value={filters.weekNumber}
-                                            onChange={(e) => updateFilter("weekNumber", e.target.value)}
-                                            placeholder="1-53"
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Min hours</span>
-                                        <input
-                                            type="number"
-                                            inputMode="decimal"
-                                            value={filters.minHours}
-                                            onChange={(e) => updateFilter("minHours", e.target.value)}
-                                            placeholder="0"
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Max hours</span>
-                                        <input
-                                            type="number"
-                                            inputMode="decimal"
-                                            value={filters.maxHours}
-                                            onChange={(e) => updateFilter("maxHours", e.target.value)}
-                                            placeholder="60"
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Min travel</span>
-                                        <input
-                                            type="number"
-                                            inputMode="decimal"
-                                            value={filters.minTravel}
-                                            onChange={(e) => updateFilter("minTravel", e.target.value)}
-                                            placeholder="0"
-                                        />
-                                    </label>
-
-                                    <label className="workHistoryFilterField">
-                                        <span>Max travel</span>
-                                        <input
-                                            type="number"
-                                            inputMode="decimal"
-                                            value={filters.maxTravel}
-                                            onChange={(e) => updateFilter("maxTravel", e.target.value)}
-                                            placeholder="100"
-                                        />
-                                    </label>
+                                            <div className="workHistoryTotalLabel">Total</div>
+                                            <div className="workHistoryTotalValue">{totalHours.toFixed(1)}</div>
+                                        </div>
+                                    </Card>
                                 </div>
-                                <div className="workHistoryFilterActions">
-                                    <div className="workHistoryFilterMeta">
-                                        {filteredTimesheets.length} shown
-                                        {timesheets.length !== filteredTimesheets.length
-                                            ? ` of ${timesheets.length}`
-                                            : ""}
-                                        {` on this page | ${totalTimesheets} total`}
-                                    </div>
-                                    <button
-                                        type="button"
-                                        className="workHistoryButtonSecondary"
-                                        onClick={resetFilters}
-                                    >
-                                        Reset filters
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="workHistoryTableWrap">
-                                <table className="workHistoryTable">
-                                    <thead>
-                                        <tr>
-                                            <th>Date</th>
-                                            {showAllTimesheets ? <th>Employee</th> : null}
-                                            <th>Function</th>
-                                            <th className="workHistoryHoursCol">Hours Worked</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredTimesheets.length === 0 ? (
-                                            <tr>
-                                                <td colSpan={columnCount} className="workHistoryEmpty">
-                                                    No timesheets match these filters.
-                                                </td>
-                                            </tr>
-                                        ) : (
-                                            filteredTimesheets.map((t) => (
-                                                <tr key={t.timesheetId}>
-                                                    <td>{formatDate(t.dateOfIssue)}</td>
-                                                    {showAllTimesheets ? <td>{t.name ?? "-"}</td> : null}
-                                                    <td>{t.function}</td>
-                                                    <td className="workHistoryHoursCol">{t.hoursWorked.toFixed(1)}</td>
-                                                </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            <PaginationControls
-                                page={page}
-                                totalPages={totalPages}
-                                pageSize={pageSize}
-                                loading={loading}
-                                onPageChange={(nextPage) => setPage(Math.max(0, nextPage))}
-                                onPageSizeChange={(nextPageSize) => {
-                                    setPageSize(nextPageSize);
-                                    setPage(0);
-                                }}
-                            />
-                            <div
-                                className={`workHistoryTotalBar${
-                                    showAllTimesheets ? " workHistoryTotalBar--admin" : ""
-                                }`}
-                            >
-                                <div className="workHistoryTotalLabel">Total</div>
-                                <div className="workHistoryTotalValue">{totalHours.toFixed(1)}</div>
-                            </div>
-                        </Card>
-                    )}
+                            )}
                         </div>
                     </div>
                 </div>

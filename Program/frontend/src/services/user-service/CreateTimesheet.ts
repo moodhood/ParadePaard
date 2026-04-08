@@ -7,6 +7,17 @@ export type CreateTimesheetRequestDTO = {
     function: string;
     hoursWorked: number;
     travelExpenses?: number | null;
+    sourceScheduleEntryId?: string | null;
+    sourceShiftId?: string | null;
+    sourceEventId?: string | null;
+    eventName?: string | null;
+    shiftName?: string | null;
+    shiftDate?: string | null;
+    shiftStartTime?: string | null;
+    shiftEndTime?: string | null;
+    breakMinutes?: number | null;
+    travelKilometers?: number | null;
+    travelRate?: number | null;
 };
 
 export type CreateTimesheetResponseDTO = {
@@ -19,6 +30,17 @@ export type CreateTimesheetResponseDTO = {
     function: string;
     hoursWorked: number;
     travelExpenses?: number | null;
+    sourceScheduleEntryId?: string | null;
+    sourceShiftId?: string | null;
+    sourceEventId?: string | null;
+    eventName?: string | null;
+    shiftName?: string | null;
+    shiftDate?: string | null;
+    shiftStartTime?: string | null;
+    shiftEndTime?: string | null;
+    breakMinutes?: number | null;
+    travelKilometers?: number | null;
+    travelRate?: number | null;
 };
 
 export default async function CreateTimesheet(

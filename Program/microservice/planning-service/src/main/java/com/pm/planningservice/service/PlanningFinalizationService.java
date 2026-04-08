@@ -2,7 +2,6 @@ package com.pm.planningservice.service;
 
 import com.pm.planningservice.dto.FinalizePlanningRequestDTO;
 import com.pm.planningservice.dto.FinalizePlanningResponseDTO;
-import com.pm.planningservice.integration.TimesheetGrpcClient;
 import com.pm.planningservice.model.Event;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
@@ -12,16 +11,10 @@ import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import timesheet.ImportPlannedTimesheetsResponse;
-import timesheet.PlannedTimesheetRecord;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.WeekFields;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
@@ -33,29 +26,31 @@ import java.util.stream.Collectors;
 @Service
 public class PlanningFinalizationService {
     private static final Set<ScheduleEntryStatus> EXPORTABLE_STATUSES = EnumSet.of(
-            ScheduleEntryStatus.ASSIGNED,
             ScheduleEntryStatus.CONFIRMED
     );
 
     private final EventRepository eventRepository;
     private final ShiftRepository shiftRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
-    private final TimesheetGrpcClient timesheetGrpcClient;
+    private final PlanningTimesheetExportService planningTimesheetExportService;
 
     public PlanningFinalizationService(
             EventRepository eventRepository,
             ShiftRepository shiftRepository,
             ScheduleEntryRepository scheduleEntryRepository,
-            TimesheetGrpcClient timesheetGrpcClient) {
+            PlanningTimesheetExportService planningTimesheetExportService) {
         this.eventRepository = eventRepository;
         this.shiftRepository = shiftRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
-        this.timesheetGrpcClient = timesheetGrpcClient;
+        this.planningTimesheetExportService = planningTimesheetExportService;
     }
 
     @Transactional
     public FinalizePlanningResponseDTO finalizePlanning(FinalizePlanningRequestDTO request) {
         validateRequest(request);
+        if (!planningTimesheetExportService.usesAdminFinalize(request.getCompanyId())) {
+            throw new IllegalArgumentException("This company uses automatic timesheet logging");
+        }
 
         TimeWindow weekWindow = request.getEventId() == null
                 ? toIsoWeekWindow(request.getIsoWeek(), request.getWeekBasedYear())
@@ -90,25 +85,16 @@ public class PlanningFinalizationService {
             return empty;
         }
 
-        Map<UUID, Event> eventById = targetEvents.stream()
-                .collect(Collectors.toMap(Event::getEventId, event -> event));
-        Map<UUID, Shift> shiftById = shifts.stream()
-                .collect(Collectors.toMap(Shift::getShiftId, shift -> shift));
-
         List<UUID> shiftIds = shifts.stream().map(Shift::getShiftId).toList();
-        List<ScheduleEntry> entries = scheduleEntryRepository.findByShiftIdInAndStatusIn(shiftIds, EXPORTABLE_STATUSES);
-
-        List<PlannedTimesheetRecord> records = entries.stream()
-                .map(entry -> toTimesheetRecord(entry, shiftById, eventById))
-                .filter(record -> record != null)
-                .toList();
-        if (records.isEmpty()) {
+        List<ScheduleEntry> entries = scheduleEntryRepository.findByShiftIdInAndStatusInAndTimesheetExportedFalse(shiftIds, EXPORTABLE_STATUSES);
+        if (entries.isEmpty()) {
             FinalizePlanningResponseDTO empty = new FinalizePlanningResponseDTO();
             empty.setCreatedTimesheets(0);
             return empty;
         }
 
-        ImportPlannedTimesheetsResponse grpcResponse = timesheetGrpcClient.importPlannedTimesheets("planning-service", records);
+        PlanningTimesheetExportService.ExportResult exportResult =
+                planningTimesheetExportService.exportScheduleEntries(request.getCompanyId(), entries);
 
         LocalDateTime now = LocalDateTime.now();
         targetEvents.forEach(event -> {
@@ -120,9 +106,9 @@ public class PlanningFinalizationService {
         eventRepository.saveAll(targetEvents);
 
         FinalizePlanningResponseDTO response = new FinalizePlanningResponseDTO();
-        response.setCreatedTimesheets(grpcResponse.getCreatedCount());
+        response.setCreatedTimesheets(exportResult.createdCount());
         response.setFinalizedEventIds(targetEvents.stream().map(Event::getEventId).toList());
-        response.setWarnings(new ArrayList<>(grpcResponse.getWarningsList()));
+        response.setWarnings(exportResult.warnings());
         return response;
     }
 
@@ -154,43 +140,6 @@ public class PlanningFinalizationService {
                 .with(WeekFields.ISO.weekOfWeekBasedYear(), isoWeek)
                 .with(WeekFields.ISO.dayOfWeek(), 1);
         return new TimeWindow(startOfWeek.atStartOfDay(), startOfWeek.plusDays(7).atStartOfDay());
-    }
-
-    private PlannedTimesheetRecord toTimesheetRecord(
-            ScheduleEntry scheduleEntry,
-            Map<UUID, Shift> shiftById,
-            Map<UUID, Event> eventById) {
-        Shift shift = shiftById.get(scheduleEntry.getShiftId());
-        if (shift == null) {
-            return null;
-        }
-        Event event = eventById.get(shift.getEventId());
-        if (event == null) {
-            return null;
-        }
-
-        BigDecimal hoursWorked = durationToHours(shift);
-        return PlannedTimesheetRecord.newBuilder()
-                .setUserId(scheduleEntry.getUserId().toString())
-                .setDateOfIssue(shift.getStartTime().toLocalDate().toString())
-                .setName(event.getName())
-                .setFunction(shift.getFunctionName())
-                .setHoursWorked(hoursWorked.toPlainString())
-                .setTravelExpenses("0.00")
-                .setSourceEventId(event.getEventId().toString())
-                .setSourceShiftId(shift.getShiftId().toString())
-                .setSourceScheduleEntryId(scheduleEntry.getScheduleEntryId().toString())
-                .build();
-    }
-
-    private BigDecimal durationToHours(Shift shift) {
-        long breakMinutes = Math.max(0, shift.getBreakMinutes() == null ? 0 : shift.getBreakMinutes());
-        Duration duration = Duration.between(shift.getStartTime(), shift.getEndTime()).minusMinutes(breakMinutes);
-        if (duration.isNegative()) {
-            duration = Duration.ZERO;
-        }
-        BigDecimal minutes = BigDecimal.valueOf(duration.toMinutes());
-        return minutes.divide(BigDecimal.valueOf(60), 2, RoundingMode.HALF_UP);
     }
 
     private void validateRequest(FinalizePlanningRequestDTO request) {

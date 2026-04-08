@@ -22,6 +22,13 @@ export type AccountOutletContext = {
     onRemoveProfilePicture: () => Promise<void>;
 };
 
+type CompanySettingsTab = "details" | "roles" | "workflow";
+
+const normalizeCompanySettingsTab = (value: string | null): CompanySettingsTab => {
+    if (value === "roles" || value === "workflow") return value;
+    return "details";
+};
+
 type AccountNavigationState = Record<string, unknown> & {
     accountReturnTo?: string;
 };
@@ -31,6 +38,7 @@ export default function Account() {
     const location = useLocation();
     const [searchParams] = useSearchParams();
     const personalView = searchParams.get("view") === "personal";
+    const activeCompanyTab = normalizeCompanySettingsTab(searchParams.get("tab"));
     const fallbackBackTo = personalView ? "/dashboard?view=personal" : "/dashboard";
     const locationState =
         location.state && typeof location.state === "object"
@@ -47,6 +55,9 @@ export default function Account() {
         ? "/account/employment?view=personal"
         : "/account/employment";
     const accountCompany = personalView ? "/account/company?view=personal" : "/account/company";
+    const accountCompanyDetails = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=details`;
+    const accountCompanyRoles = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=roles`;
+    const accountCompanyWorkflow = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=workflow`;
     const [user, setUser] = useState<UserResponseDTO | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [avatarErrorMsg, setAvatarErrorMsg] = useState<string | null>(null);
@@ -175,15 +186,35 @@ export default function Account() {
                     <aside className="accountSidebarNav">
                         <nav className="settingsNav">
                             {isCompanyPage ? (
-                                <NavLink
-                                    to={accountCompany}
-                                    state={navState}
-                                    className={({ isActive }) =>
-                                        `settingsNavLink ${isActive ? "settingsNavLink--active" : ""}`
-                                    }
-                                >
-                                    Company settings
-                                </NavLink>
+                                <>
+                                    <NavLink
+                                        to={accountCompanyDetails}
+                                        state={navState}
+                                        className={() =>
+                                            `settingsNavLink ${activeCompanyTab === "details" ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Company details
+                                    </NavLink>
+                                    <NavLink
+                                        to={accountCompanyRoles}
+                                        state={navState}
+                                        className={() =>
+                                            `settingsNavLink ${activeCompanyTab === "roles" ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Roles and permissions
+                                    </NavLink>
+                                    <NavLink
+                                        to={accountCompanyWorkflow}
+                                        state={navState}
+                                        className={() =>
+                                            `settingsNavLink ${activeCompanyTab === "workflow" ? "settingsNavLink--active" : ""}`
+                                        }
+                                    >
+                                        Workflow settings
+                                    </NavLink>
+                                </>
                             ) : (
                                 <>
                                     <NavLink

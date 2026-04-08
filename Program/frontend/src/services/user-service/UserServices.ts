@@ -41,6 +41,17 @@ import GetPlanningOverview, {
     type PlanningResourceAllocationDTO,
     type PlanningShiftDTO,
 } from "./GetPlanningOverview";
+import {
+    GetMyPlanning,
+    GetMyPlanningAssignment,
+    GetPendingTravelClaims,
+    GetTravelClaimProof,
+    RespondToMyPlanningAssignment,
+    ReviewTravelClaim,
+    SubmitTravelClaim,
+    type EmployeePlanningAssignmentDTO,
+    type TravelClaimSummaryDTO,
+} from "./EmployeePlanning";
 import CreatePlanningClient, {
     type PlanningClientCompanyContactSaveDTO,
     type PlanningClientCompanySaveDTO,
@@ -121,6 +132,8 @@ export type {
     PlanningShiftMutationResponseDTO,
     PlanningAssignmentMutationResponseDTO,
     PaginatedResponse,
+    EmployeePlanningAssignmentDTO,
+    TravelClaimSummaryDTO,
 };
 
 export const UserServices = {
@@ -175,6 +188,36 @@ export const UserServices = {
     },
     getPlanningOverview: async (companyId: string, eventId?: string): Promise<PlanningEventDTO[]> => {
         return await GetPlanningOverview(API_BASE_URL, companyId, eventId);
+    },
+    getMyPlanning: async (scope = "all"): Promise<EmployeePlanningAssignmentDTO[]> => {
+        return await GetMyPlanning(API_BASE_URL, scope);
+    },
+    getMyPlanningAssignment: async (scheduleEntryId: string): Promise<EmployeePlanningAssignmentDTO> => {
+        return await GetMyPlanningAssignment(API_BASE_URL, scheduleEntryId);
+    },
+    respondToMyPlanningAssignment: async (
+        scheduleEntryId: string,
+        status: "CONFIRMED" | "CANCELLED"
+    ): Promise<EmployeePlanningAssignmentDTO> => {
+        return await RespondToMyPlanningAssignment(API_BASE_URL, scheduleEntryId, status);
+    },
+    submitTravelClaim: async (
+        scheduleEntryId: string,
+        payload: { kilometers: number; file?: File | null }
+    ): Promise<EmployeePlanningAssignmentDTO> => {
+        return await SubmitTravelClaim(API_BASE_URL, scheduleEntryId, payload);
+    },
+    getTravelClaimProof: async (scheduleEntryId: string, admin = false): Promise<Blob> => {
+        return await GetTravelClaimProof(API_BASE_URL, scheduleEntryId, admin);
+    },
+    getPendingTravelClaims: async (): Promise<EmployeePlanningAssignmentDTO[]> => {
+        return await GetPendingTravelClaims(API_BASE_URL);
+    },
+    reviewTravelClaim: async (
+        scheduleEntryId: string,
+        payload: { status: "APPROVED" | "REJECTED"; rejectionNote?: string }
+    ): Promise<EmployeePlanningAssignmentDTO> => {
+        return await ReviewTravelClaim(API_BASE_URL, scheduleEntryId, payload);
     },
     getPlanningClients: async (): Promise<PlanningClientCompanyDTO[]> => {
         return await GetPlanningClients(API_BASE_URL);

@@ -1,6 +1,12 @@
 -- enable uuid generator
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
+-- Seed credentials:
+-- Default Company admin users: ParadeAdmin123!
+-- Default Company standard users: ParadeUser123!
+-- Default Company super admin: ParadeSuper123!
+-- testcompany2 admin and users: ParadeCompany2123!
+
 -- companies table
 CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY,
@@ -251,6 +257,37 @@ WHERE NOT EXISTS (
     WHERE id = 'cccccccc-cccc-cccc-cccc-cccccccc0002'::uuid
        OR (email = 'ben.testcompany2@example.com' AND company_id = '00000000-0000-0000-0000-000000000002'::uuid)
        OR username = 'ben.testcompany2'
+);
+
+-- enforce deterministic seeded passwords on existing databases too
+UPDATE "users"
+SET password = '$2b$12$HQ6WGmIHSyW.zourNrcJVOygqwNoHHt.YH6M89rdidxxKd8HyG3w6',
+    must_change_password = FALSE
+WHERE id IN (
+    '223e4567-e89b-12d3-a456-426614174006'::uuid,
+    '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
+);
+
+UPDATE "users"
+SET password = '$2b$12$CQGaTe/xATbUrzLA6pJCAucbG7tUm2QyY9aRw/dwxzH1h1Z9UvnHO',
+    must_change_password = FALSE
+WHERE id IN (
+    '11111111-1111-1111-1111-111111111111'::uuid,
+    'b825a6bd-50d3-47e0-890d-78bfc59911b7'::uuid
+);
+
+UPDATE "users"
+SET password = '$2b$12$ZTkS2o5w9tulrSSP3Qj4euIa3I.T8kVE59ypXtQQP3yPRLYf3LHT2',
+    must_change_password = FALSE
+WHERE id = '99999999-9999-9999-9999-999999999999'::uuid;
+
+UPDATE "users"
+SET password = '$2b$12$BTjlYw1oe7vYpRu9./CTVu8c0h6uKdt5E1MkX4dBz2a2/oLw93r/6',
+    must_change_password = FALSE
+WHERE id IN (
+    'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaa0002'::uuid,
+    'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbb0002'::uuid,
+    'cccccccc-cccc-cccc-cccc-cccccccc0002'::uuid
 );
 
 -- seed roles

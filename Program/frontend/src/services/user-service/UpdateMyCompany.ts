@@ -2,7 +2,10 @@ import axios from "axios";
 import type { CompanyResponseDTO } from "./Types";
 
 export type UpdateCompanyRequestDTO = {
-    name: string;
+    name?: string;
+    payoutFrequencyMinutes?: number;
+    timesheetLoggingMode?: "AUTO_ON_SHIFT_END" | "ADMIN_FINALIZE" | string;
+    travelClaimMode?: "AUTO_APPROVE" | "REQUIRES_APPROVAL" | string;
 };
 
 export default async function UpdateMyCompany(

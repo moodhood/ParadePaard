@@ -1,5 +1,5 @@
 ﻿import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom"; //
+import { useNavigate, useSearchParams } from "react-router-dom"; //
 
 import "../../stylesheets/UserDashboard.css"
 import "../../stylesheets/GeneralInfo.css";
@@ -8,7 +8,11 @@ import "../../stylesheets/Payslips.css";
 import "../../stylesheets/LeaveRequests.css";
 import "../../stylesheets/AdminPlanningOverview.css";
 
-import { UserServices, type PayslipResponseDTO, type PlanningEventDTO } from "../../services/user-service/UserServices";
+import {
+    UserServices,
+    type EmployeePlanningAssignmentDTO,
+    type PayslipResponseDTO,
+} from "../../services/user-service/UserServices";
 import { mapLeaves } from "../../utils/mapLeaveDtoToUi";
 import type { LeaveRequestUI } from "../../utils/mapLeaveDtoToUi";
 import LeaveRequestModal from "../requests/LeaveRequestModals.tsx";
@@ -18,12 +22,6 @@ import Modal from "../common/Modal";
 import PrimaryNav from "../PrimaryNav";
 import { summarizeHours } from "../../utils/hoursSummary";
 import { formatDate } from "../../utils/dateFormat";
-import {
-    flattenPlanningEvents,
-    groupPlanningRows,
-    type PlanningExplorerRow,
-} from "../../utils/planningExplorer";
-import { getAllocationStatusLabel, getAllocationStatusTone } from "../../utils/planningSummary";
 
 type Timesheet = {
     timesheetId: string;
@@ -34,10 +32,15 @@ type Timesheet = {
 
 const BASE_LEAVE_ALLOWANCE_HOURS = 120;
 const MAX_ERROR_TITLE_LENGTH = 80;
-type UserPlanningViewFilter = "all" | "accepted" | "pending";
+type UserPlanningViewFilter = "upcoming" | "past";
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
+    const [searchParams] = useSearchParams();
+    const personalView = searchParams.get("view") === "personal";
+    const withPersonalView = useCallback((target: string) => {
+        return personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
+    }, [personalView]);
     
     // me
     const [userId, setUserId] = useState<string | null>(null);
@@ -72,12 +75,12 @@ export default function UserDashboard() {
     const [reportError, setReportError] = useState<string | null>(null);
 
     // planning
-    const [planningEvents, setPlanningEvents] = useState<PlanningEventDTO[]>([]);
+    const [planningAssignments, setPlanningAssignments] = useState<EmployeePlanningAssignmentDTO[]>([]);
     const [planningLoading, setPlanningLoading] = useState(false);
     const [planningError, setPlanningError] = useState<string | null>(null);
     const [planningActionError, setPlanningActionError] = useState<string | null>(null);
     const [pendingPlanningActionId, setPendingPlanningActionId] = useState<string | null>(null);
-    const [planningViewFilter, setPlanningViewFilter] = useState<UserPlanningViewFilter>("all");
+    const [planningViewFilter, setPlanningViewFilter] = useState<UserPlanningViewFilter>("upcoming");
 
     // fetch me
     useEffect(() => {
@@ -174,9 +177,8 @@ export default function UserDashboard() {
         try {
             setPlanningLoading(true);
             setPlanningError(null);
-            const company = await UserServices.getMyCompany();
-            const data = await UserServices.getPlanningOverview(company.companyId);
-            if (!isCancelled?.()) setPlanningEvents(data);
+            const data = await UserServices.getMyPlanning("all");
+            if (!isCancelled?.()) setPlanningAssignments(data);
         } catch (err: unknown) {
             const msg = err instanceof Error ? err.message : "Could not load your planning";
             if (!isCancelled?.()) setPlanningError(msg);
@@ -286,45 +288,54 @@ ${note}` : title;
 
     const leaveHoursAvailableNow = Math.max(0, BASE_LEAVE_ALLOWANCE_HOURS - leaveHoursApproved);
 
-    const allMyPlanningRows = useMemo(() => {
-        if (!userId) return [];
-        return flattenPlanningEvents(planningEvents).filter((row) => row.employeeId === userId);
-    }, [planningEvents, userId]);
-    const planningRowsForCard = useMemo(
-        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" || row.status === "CONFIRMED"),
-        [allMyPlanningRows]
+    const allMyPlanningRows = useMemo(
+        () => planningAssignments,
+        [planningAssignments]
     );
+    const planningRowsForCard = useMemo(() => {
+        return allMyPlanningRows.filter((row) => row.status === "CONFIRMED");
+    }, [allMyPlanningRows]);
     const myPlanningRows = useMemo(() => {
-        if (planningViewFilter === "accepted") {
-            return planningRowsForCard.filter((row) => row.status === "CONFIRMED");
-        }
-        if (planningViewFilter === "pending") {
-            return planningRowsForCard.filter((row) => row.status === "ASSIGNED");
-        }
-        return planningRowsForCard;
+        return planningRowsForCard.filter((row) => {
+            const isPast = Boolean(row.isPast);
+            return planningViewFilter === "past" ? isPast : !isPast;
+        });
     }, [planningRowsForCard, planningViewFilter]);
 
-    const myPlanningGroups = useMemo(
-        () => groupPlanningRows(myPlanningRows, "day", "none"),
-        [myPlanningRows]
-    );
+    const myPlanningGroups = useMemo(() => {
+        const groups = new Map<string, EmployeePlanningAssignmentDTO[]>();
+        myPlanningRows.forEach((row) => {
+            const key = row.shiftDate;
+            const current = groups.get(key) ?? [];
+            current.push(row);
+            groups.set(key, current);
+        });
+        return [...groups.entries()]
+            .sort(([left], [right]) => left.localeCompare(right))
+            .map(([key, rows]) => ({
+                key,
+                label: formatDate(key),
+                rows: [...rows].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+            }));
+    }, [myPlanningRows]);
 
     const pendingPlanningRequests = useMemo(
-        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" && row.allocationId),
+        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" && !row.isPast),
         [allMyPlanningRows]
     );
-    const planningEmptyMessage = planningViewFilter === "accepted"
-        ? "No accepted shifts yet."
-        : planningViewFilter === "pending"
-            ? "No pending shifts right now."
-            : "No shifts yet.";
+    const planningEmptyMessage = planningViewFilter === "past"
+        ? "No past accepted shifts yet."
+        : "No upcoming accepted shifts.";
 
-    const handlePlanningResponse = useCallback(async (row: PlanningExplorerRow, status: "CONFIRMED" | "CANCELLED") => {
-        if (!row.allocationId || !userId) return;
+    const handlePlanningResponse = useCallback(async (
+        row: EmployeePlanningAssignmentDTO,
+        status: "CONFIRMED" | "CANCELLED"
+    ) => {
+        if (!row.scheduleEntryId) return;
         try {
-            setPendingPlanningActionId(`${row.allocationId}:${status}`);
+            setPendingPlanningActionId(`${row.scheduleEntryId}:${status}`);
             setPlanningActionError(null);
-            await UserServices.updatePlanningAssignment(row.allocationId, { userId, status });
+            await UserServices.respondToMyPlanningAssignment(row.scheduleEntryId, status);
             await loadPlanning();
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Could not update this shift response";
@@ -332,9 +343,9 @@ ${note}` : title;
         } finally {
             setPendingPlanningActionId(null);
         }
-    }, [loadPlanning, userId]);
+    }, [loadPlanning]);
 
-    const renderPlanningGroup = (label: string, rows: PlanningExplorerRow[]) => (
+    const renderPlanningGroup = (label: string, rows: EmployeePlanningAssignmentDTO[]) => (
         <section key={label} className="planningGroupSection userPlanningGroup">
             <div className="planningGroupHeader">
                 <div className="planningGroupTitleBlock">
@@ -350,21 +361,28 @@ ${note}` : title;
                     <div>Day</div>
                     <div>Time</div>
                     <div>Function</div>
-                    <div>Status</div>
+                    <div>Timesheet</div>
                 </div>
                 <div className="listScrollArea planningScrollArea userPlanningScrollArea">
                     {rows.map((row) => (
-                        <div key={row.rowId} className="listRowGrid userPlanningGrid">
-                            <div className="cellMain">{row.eventName}</div>
+                        <button
+                            type="button"
+                            key={row.scheduleEntryId}
+                            className="listRowGrid userPlanningGrid"
+                            style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
+                            onClick={() => navigate(withPersonalView(`/my-planning/${row.scheduleEntryId}${planningViewFilter === "past" ? "?tab=past" : ""}`))}
+                        >
+                            <div>
+                                <div className="cellMain">{row.eventName}</div>
+                                <div className="cellSub">{row.shiftName ?? row.functionName}</div>
+                            </div>
                             <div className="cellSub">{formatDate(row.shiftDate)}</div>
                             <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
                             <div className="cellSub">{row.functionName}</div>
-                            <div
-                                className={`cellSub userPlanningStatus userPlanningStatus--${getAllocationStatusTone(row.status)}`}
-                            >
-                                {getAllocationStatusLabel(row.status)}
+                            <div className="cellSub">
+                                {row.timesheetExported ? "Logged" : planningViewFilter === "past" ? "Pending log" : "Scheduled"}
                             </div>
-                        </div>
+                        </button>
                     ))}
                 </div>
             </div>
@@ -534,11 +552,14 @@ ${note}` : title;
                     title="My planning"
                     className="dashboardCardHeight userPlanningCard"
                     right={
-                        <div className="planningModeToggle userPlanningStatusToggle" role="tablist" aria-label="My planning filter">
+                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                            <button className="button" onClick={() => navigate(withPersonalView("/my-planning"))}>
+                                View all
+                            </button>
+                            <div className="planningModeToggle userPlanningStatusToggle" role="tablist" aria-label="My planning filter">
                             {([
-                                { value: "all", label: "All" },
-                                { value: "accepted", label: "Accepted" },
-                                { value: "pending", label: "Pending" },
+                                { value: "upcoming", label: "Upcoming" },
+                                { value: "past", label: "Past" },
                             ] as const).map((option) => (
                                 <button
                                     key={option.value}
@@ -554,6 +575,7 @@ ${note}` : title;
                                 </button>
                             ))}
                         </div>
+                        </div>
                     }
                 >
                     {planningLoading ? <p className="helperText">Loading planning...</p> : null}
@@ -561,7 +583,7 @@ ${note}` : title;
                     {!planningLoading && !planningError ? (
                         <div className="planningOverviewLayout">
                             {planningActionError ? <p className="errorText userPlanningActionError">{planningActionError}</p> : null}
-                            {planningViewFilter !== "accepted" && pendingPlanningRequests.length > 0 ? (
+                            {pendingPlanningRequests.length > 0 ? (
                                 <section className="userPlanningRequestSection">
                                     <div className="userPlanningRequestSectionHeader">
                                         <div>
@@ -574,11 +596,11 @@ ${note}` : title;
                                     </div>
                                     <div className="userPlanningRequestList">
                                         {pendingPlanningRequests.map((row) => {
-                                            const confirmActionId = `${row.allocationId}:CONFIRMED`;
-                                            const declineActionId = `${row.allocationId}:CANCELLED`;
+                                            const confirmActionId = `${row.scheduleEntryId}:CONFIRMED`;
+                                            const declineActionId = `${row.scheduleEntryId}:CANCELLED`;
                                             return (
                                                 <article
-                                                    key={`request-${row.rowId}`}
+                                                    key={`request-${row.scheduleEntryId}`}
                                                     className="userPlanningRequestCard userPlanningRequestCard--pending"
                                                 >
                                                     <div className="userPlanningRequestMain">
@@ -586,7 +608,9 @@ ${note}` : title;
                                                         <div className="userPlanningRequestMeta">
                                                             {formatDate(row.shiftDate)} · {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
                                                         </div>
-                                                        <div className="userPlanningRequestMeta">{row.functionName}</div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {row.functionName} · {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
+                                                        </div>
                                                     </div>
                                                     <div className="userPlanningRequestActions">
                                                         <button

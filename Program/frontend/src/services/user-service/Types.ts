@@ -29,6 +29,9 @@ export type UserResponseDTO = {
 export type CompanyResponseDTO = {
     companyId: string;
     name: string;
+    payoutFrequencyMinutes?: number | null;
+    timesheetLoggingMode?: "AUTO_ON_SHIFT_END" | "ADMIN_FINALIZE" | string | null;
+    travelClaimMode?: "AUTO_APPROVE" | "REQUIRES_APPROVAL" | string | null;
 };
 
 export type LeaveRequestCreateDTO = {

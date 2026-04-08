@@ -27,6 +27,9 @@ import java.util.stream.Collectors;
 
 @Service
 public class UserService {
+    private static final Set<String> TIMESHEET_LOGGING_MODES = Set.of("AUTO_ON_SHIFT_END", "ADMIN_FINALIZE");
+    private static final Set<String> TRAVEL_CLAIM_MODES = Set.of("AUTO_APPROVE", "REQUIRES_APPROVAL");
+
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final UserDuplicateValidator userDuplicateValidator;
@@ -149,6 +152,9 @@ public class UserService {
         if (companyId == null) {
             throw new IllegalArgumentException("Missing company");
         }
+        if (minutes <= 0) {
+            throw new IllegalArgumentException("Payslip timing must be greater than 0 minutes");
+        }
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new IllegalStateException("Company not found"));
         company.setPayoutFrequencyMinutes(minutes);
@@ -167,33 +173,59 @@ public class UserService {
         }
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new IllegalStateException("Company not found"));
-        CompanyResponseDTO dto = new CompanyResponseDTO();
-        dto.setCompanyId(company.getId().toString());
-        dto.setName(company.getName());
-        return dto;
+        return toCompanyResponse(company);
     }
 
     @Transactional
-    public CompanyResponseDTO updateCompanyName(UUID companyId, String name) {
+    public CompanyResponseDTO updateCompany(
+            UUID companyId,
+            String name,
+            Integer payoutFrequencyMinutes,
+            String timesheetLoggingMode,
+            String travelClaimMode
+    ) {
         if (companyId == null) {
             throw new IllegalArgumentException("Missing company");
         }
-        String trimmed = name == null ? "" : name.trim();
-        if (trimmed.isBlank()) {
-            throw new IllegalArgumentException("Company name is required");
-        }
-        Optional<Company> existingByName = companyRepository.findByName(trimmed);
-        if (existingByName.isPresent() && !existingByName.get().getId().equals(companyId)) {
-            throw new IllegalArgumentException("Company name already exists");
-        }
         Company company = companyRepository.findById(companyId)
                 .orElseThrow(() -> new IllegalStateException("Company not found"));
-        company.setName(trimmed);
-        companyRepository.save(company);
-        CompanyResponseDTO dto = new CompanyResponseDTO();
-        dto.setCompanyId(company.getId().toString());
-        dto.setName(company.getName());
-        return dto;
+
+        if (name != null) {
+            String trimmed = name.trim();
+            if (trimmed.isBlank()) {
+                throw new IllegalArgumentException("Company name is required");
+            }
+            Optional<Company> existingByName = companyRepository.findByName(trimmed);
+            if (existingByName.isPresent() && !existingByName.get().getId().equals(companyId)) {
+                throw new IllegalArgumentException("Company name already exists");
+            }
+            company.setName(trimmed);
+        }
+
+        if (payoutFrequencyMinutes != null) {
+            if (payoutFrequencyMinutes <= 0) {
+                throw new IllegalArgumentException("Payslip timing must be greater than 0 minutes");
+            }
+            company.setPayoutFrequencyMinutes(payoutFrequencyMinutes);
+        }
+
+        if (timesheetLoggingMode != null) {
+            company.setTimesheetLoggingMode(normalizeSetting(
+                    timesheetLoggingMode,
+                    TIMESHEET_LOGGING_MODES,
+                    "Invalid timesheet logging mode"
+            ));
+        }
+
+        if (travelClaimMode != null) {
+            company.setTravelClaimMode(normalizeSetting(
+                    travelClaimMode,
+                    TRAVEL_CLAIM_MODES,
+                    "Invalid travel claim mode"
+            ));
+        }
+
+        return toCompanyResponse(companyRepository.save(company));
     }
 
     @Transactional(readOnly = true)
@@ -276,6 +308,24 @@ public class UserService {
         return companyRepository.findById(companyId)
                 .map(Company::getPayoutFrequencyMinutes)
                 .orElse(null);
+    }
+
+    private CompanyResponseDTO toCompanyResponse(Company company) {
+        CompanyResponseDTO dto = new CompanyResponseDTO();
+        dto.setCompanyId(company.getId().toString());
+        dto.setName(company.getName());
+        dto.setPayoutFrequencyMinutes(company.getPayoutFrequencyMinutes());
+        dto.setTimesheetLoggingMode(company.getTimesheetLoggingMode());
+        dto.setTravelClaimMode(company.getTravelClaimMode());
+        return dto;
+    }
+
+    private String normalizeSetting(String value, Set<String> allowed, String message) {
+        String normalized = value == null ? "" : value.trim().toUpperCase();
+        if (!allowed.contains(normalized)) {
+            throw new IllegalArgumentException(message);
+        }
+        return normalized;
     }
 
     private java.util.Map<UUID, Integer> resolveCompanyPayoutFrequencies(Set<UUID> companyIds) {

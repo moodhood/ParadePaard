@@ -67,7 +67,7 @@ public class PayrollController {
 
     @GetMapping("/me")
     @Operation(summary = "Get my payslips")
-    @PreAuthorize("hasAuthority('CAN_VIEW_PAYSLIPS')")
+    @PreAuthorize("hasAnyAuthority('CAN_VIEW_PAYSLIPS', 'CAN_VIEW_ALL_PAYSLIPS')")
     public ResponseEntity<List<PayslipResponseDTO>> getMyPayslips(@AuthenticationPrincipal Jwt jwt) {
         UUID userId = extractUserId(jwt);
         return ResponseEntity.ok(payrollService.getReleasedPayslipsByUserId(userId));
@@ -75,7 +75,7 @@ public class PayrollController {
 
     @GetMapping("/me/paged")
     @Operation(summary = "Get my paged payslips")
-    @PreAuthorize("hasAuthority('CAN_VIEW_PAYSLIPS')")
+    @PreAuthorize("hasAnyAuthority('CAN_VIEW_PAYSLIPS', 'CAN_VIEW_ALL_PAYSLIPS')")
     public ResponseEntity<PagedResponseDTO<PayslipResponseDTO>> getMyPayslipsPage(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,

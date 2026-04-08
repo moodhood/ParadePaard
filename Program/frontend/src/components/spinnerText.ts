@@ -8,6 +8,7 @@ export function spinnerTextForPath(pathname: string): string {
     if (path.startsWith("/admin/users")) return "Loading users";
     if (path.startsWith("/admin/onboarding")) return "Loading admin onboarding";
     if (path.startsWith("/account")) return "Loading account";
+    if (path.startsWith("/travel-claims")) return "Loading travel claims";
     if (path.startsWith("/work-history")) return "Loading work history";
     if (path.startsWith("/onboarding")) return "Loading onboarding";
     if (path.startsWith("/dashboard")) return "Loading dashboard";

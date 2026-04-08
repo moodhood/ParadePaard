@@ -24,10 +24,14 @@ public class PlanningFinalizationController {
 
     @PostMapping
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
-    public ResponseEntity<FinalizePlanningResponseDTO> finalizePlanning(
+    public ResponseEntity<?> finalizePlanning(
             Authentication authentication,
             @Valid @RequestBody FinalizePlanningRequestDTO request) {
-        request.setCompanyId(PlanningAuthentication.requireCompanyId(authentication));
-        return ResponseEntity.ok(planningFinalizationService.finalizePlanning(request));
+        try {
+            request.setCompanyId(PlanningAuthentication.requireCompanyId(authentication));
+            return ResponseEntity.ok(planningFinalizationService.finalizePlanning(request));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("message", ex.getMessage()));
+        }
     }
 }

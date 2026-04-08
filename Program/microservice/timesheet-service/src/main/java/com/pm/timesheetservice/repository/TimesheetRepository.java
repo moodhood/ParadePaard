@@ -13,6 +13,7 @@ import java.util.UUID;
 @Repository
 public interface TimesheetRepository extends JpaRepository<Timesheet, UUID> {
     Optional<Timesheet> findByUserId(UUID userId);
+    Optional<Timesheet> findBySourceScheduleEntryId(UUID sourceScheduleEntryId);
     List<Timesheet> findByUserIdAndWeekNumberAndWeekBasedYear(UUID userId, Integer weekNumber, Integer weekBasedYear);
     List<Timesheet> findByUserIdOrderByDateOfIssueDesc(UUID userId);
     Page<Timesheet> findAllByOrderByDateOfIssueDesc(Pageable pageable);

@@ -1,10 +1,19 @@
-package com.pm.userservice.dto;
+package com.pm.planningservice.integration;
 
-public class UpdateCompanyRequestDTO {
+public class CompanySettingsDTO {
+    private String companyId;
     private String name;
     private Integer payoutFrequencyMinutes;
     private String timesheetLoggingMode;
     private String travelClaimMode;
+
+    public String getCompanyId() {
+        return companyId;
+    }
+
+    public void setCompanyId(String companyId) {
+        this.companyId = companyId;
+    }
 
     public String getName() {
         return name;

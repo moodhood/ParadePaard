@@ -25,6 +25,12 @@ public class Company {
     @Column(name = "logo_content_type")
     private String logoContentType;
 
+    @Column(name = "timesheet_logging_mode", nullable = false, length = 32)
+    private String timesheetLoggingMode = "ADMIN_FINALIZE";
+
+    @Column(name = "travel_claim_mode", nullable = false, length = 32)
+    private String travelClaimMode = "REQUIRES_APPROVAL";
+
     public UUID getId() {
         return id;
     }
@@ -63,5 +69,21 @@ public class Company {
 
     public void setLogoContentType(String logoContentType) {
         this.logoContentType = logoContentType;
+    }
+
+    public String getTimesheetLoggingMode() {
+        return timesheetLoggingMode;
+    }
+
+    public void setTimesheetLoggingMode(String timesheetLoggingMode) {
+        this.timesheetLoggingMode = timesheetLoggingMode;
+    }
+
+    public String getTravelClaimMode() {
+        return travelClaimMode;
+    }
+
+    public void setTravelClaimMode(String travelClaimMode) {
+        this.travelClaimMode = travelClaimMode;
     }
 }

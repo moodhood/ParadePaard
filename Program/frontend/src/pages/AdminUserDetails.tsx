@@ -83,6 +83,39 @@ function formatLocation(user: UserResponseDTO | null): string {
     return parts.join(", ") || "-";
 }
 
+function formatDateWithSlashes(value?: string | null): string {
+    const formatted = formatDate(value);
+    return formatted === "-" ? formatted : formatted.replace(/-/g, "/");
+}
+
+function normalizeDateInput(value: string): string {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function parseDisplayDate(value: string): string | null {
+    const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+    const date = new Date(year, month - 1, day);
+
+    if (
+        Number.isNaN(date.getTime()) ||
+        date.getFullYear() !== year ||
+        date.getMonth() !== month - 1 ||
+        date.getDate() !== day
+    ) {
+        return null;
+    }
+
+    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 function toDateTime(shiftDate: string, value: string): Date | null {
     if (!value) return null;
     const direct = new Date(value);
@@ -174,7 +207,7 @@ export default function AdminUserDetails() {
 
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
     const currentMoment = useMemo(() => new Date(), []);
-    const [dateOfIssue, setDateOfIssue] = useState(today);
+    const [dateOfIssue, setDateOfIssue] = useState(formatDateWithSlashes(today));
     const [functionName, setFunctionName] = useState("");
     const [hoursWorked, setHoursWorked] = useState("");
     const [travelExpenses, setTravelExpenses] = useState("");
@@ -504,11 +537,12 @@ export default function AdminUserDetails() {
         event.preventDefault();
         if (!user || !userId) return;
 
+        const parsedDateOfIssue = parseDisplayDate(dateOfIssue);
         const hours = Number(hoursWorked);
         const travel = travelExpenses.trim() === "" ? 0 : Number(travelExpenses);
 
-        if (!dateOfIssue) {
-            setSaveError("Please choose a date of issue.");
+        if (!parsedDateOfIssue) {
+            setSaveError("Please enter a valid date in dd/mm/yyyy format.");
             return;
         }
         if (!functionName.trim()) {
@@ -531,7 +565,7 @@ export default function AdminUserDetails() {
             await UserServices.createTimesheet({
                 userId,
                 name: displayName,
-                dateOfIssue,
+                dateOfIssue: parsedDateOfIssue,
                 function: functionName.trim(),
                 hoursWorked: hours,
                 travelExpenses: travel,
@@ -642,7 +676,7 @@ export default function AdminUserDetails() {
             { label: "Roles", value: String(sortedUserRoles.length) },
             { label: "Recorded hours", value: `${totalLoggedHours.toFixed(1)} h` },
             { label: "Upcoming shifts", value: String(upcomingPlanningRows.length) },
-            { label: "Last timesheet", value: latestTimesheet ? formatDate(latestTimesheet.dateOfIssue) : "-" },
+            { label: "Last timesheet", value: latestTimesheet ? formatDateWithSlashes(latestTimesheet.dateOfIssue) : "-" },
         ];
 
         const profilePersonalRows = [
@@ -924,9 +958,12 @@ export default function AdminUserDetails() {
                                             <input
                                                 id="admin-ts-date"
                                                 className="uiSelect"
-                                                type="date"
+                                                type="text"
                                                 value={dateOfIssue}
-                                                onChange={(event) => setDateOfIssue(event.target.value)}
+                                                onChange={(event) => setDateOfIssue(normalizeDateInput(event.target.value))}
+                                                inputMode="numeric"
+                                                placeholder="dd/mm/yyyy"
+                                                maxLength={10}
                                                 disabled={saving}
                                             />
                                         </div>
@@ -1151,7 +1188,7 @@ export default function AdminUserDetails() {
                                                 ) : (
                                                     filteredTimesheets.map((timesheet) => (
                                                         <tr key={timesheet.timesheetId}>
-                                                            <td>{formatDate(timesheet.dateOfIssue)}</td>
+                                                            <td>{formatDateWithSlashes(timesheet.dateOfIssue)}</td>
                                                             <td>{timesheet.function}</td>
                                                             <td>
                                                                 {timesheet.weekNumber && timesheet.weekBasedYear

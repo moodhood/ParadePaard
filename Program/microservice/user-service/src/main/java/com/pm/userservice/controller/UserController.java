@@ -100,16 +100,24 @@ public class UserController {
         if (companyId == null) {
             return ResponseEntity.status(401).build();
         }
-        String name = body.getName() == null ? "" : body.getName().trim();
-        if (name.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Company name is required"));
-        }
         try {
-            CompanyResponseDTO response = userService.updateCompanyName(companyId, name);
+            CompanyResponseDTO response = userService.updateCompany(
+                    companyId,
+                    body.getName(),
+                    body.getPayoutFrequencyMinutes(),
+                    body.getTimesheetLoggingMode(),
+                    body.getTravelClaimMode()
+            );
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
+    }
+
+    @GetMapping("/public/company-settings/{companyId}")
+    @Operation(summary = "Get company settings for internal service integration")
+    public ResponseEntity<CompanyResponseDTO> getCompanySettings(@PathVariable UUID companyId) {
+        return ResponseEntity.ok(userService.getCompany(companyId));
     }
 
     @GetMapping("/me/company-logo")

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
@@ -51,7 +52,54 @@ const displayNameForUser = (user: UserResponseDTO) => {
     return preferred || user.email;
 };
 
+const MINUTES_PER_DAY = 60 * 24;
+
+const formatPayoutFrequency = (minutes: number | null | undefined) => {
+    if (!minutes || minutes <= 0) return "-";
+    const frequencyMap = new Map<number, string>([
+        [60 * 24 * 7, "Weekly"],
+        [60 * 24 * 14, "Bi-weekly"],
+        [60 * 24 * 30, "Monthly"],
+    ]);
+    const preset = frequencyMap.get(minutes);
+    if (preset) return preset;
+    if (minutes % MINUTES_PER_DAY === 0) {
+        const days = minutes / MINUTES_PER_DAY;
+        return `Every ${days} day${days === 1 ? "" : "s"}`;
+    }
+    if (minutes % 60 === 0) {
+        const hours = minutes / 60;
+        return `Every ${hours} hour${hours === 1 ? "" : "s"}`;
+    }
+    return `Every ${minutes} minutes`;
+};
+
+const payoutFrequencyMinutesToDaysDraft = (minutes: number | null | undefined) => {
+    if (!minutes || minutes <= 0) return "7";
+    if (minutes % MINUTES_PER_DAY === 0) {
+        return String(minutes / MINUTES_PER_DAY);
+    }
+    return String(Number((minutes / MINUTES_PER_DAY).toFixed(2)));
+};
+
+const parsePayoutFrequencyMinutes = (value: string) => {
+    const normalized = value.trim().replace(",", ".");
+    if (!normalized) return null;
+    const days = Number(normalized);
+    if (!Number.isFinite(days) || days <= 0) return null;
+    return Math.round(days * MINUTES_PER_DAY);
+};
+
+type CompanySettingsTab = "details" | "roles" | "workflow";
+
+const normalizeCompanySettingsTab = (value: string | null): CompanySettingsTab => {
+    if (value === "roles" || value === "workflow") return value;
+    return "details";
+};
+
 export default function SettingsCompany() {
+    const [searchParams] = useSearchParams();
+    const activeTab = normalizeCompanySettingsTab(searchParams.get("tab"));
     const [permissions, setPermissions] = useState<string[]>([]);
     const [permissionsLoading, setPermissionsLoading] = useState(true);
     const [permissionsError, setPermissionsError] = useState<string | null>(null);
@@ -72,6 +120,9 @@ export default function SettingsCompany() {
     const [companyLoading, setCompanyLoading] = useState(true);
     const [companyError, setCompanyError] = useState<string | null>(null);
     const [companyNameDraft, setCompanyNameDraft] = useState("");
+    const [payoutFrequencyDaysDraft, setPayoutFrequencyDaysDraft] = useState("7");
+    const [timesheetLoggingModeDraft, setTimesheetLoggingModeDraft] = useState("ADMIN_FINALIZE");
+    const [travelClaimModeDraft, setTravelClaimModeDraft] = useState("REQUIRES_APPROVAL");
     const [companySaving, setCompanySaving] = useState(false);
     const [companySaveError, setCompanySaveError] = useState<string | null>(null);
     const [companySaveSuccess, setCompanySaveSuccess] = useState<string | null>(null);
@@ -158,7 +209,10 @@ export default function SettingsCompany() {
     useEffect(() => {
         if (!company) return;
         setCompanyNameDraft(company.name ?? "");
-    }, [company?.name]);
+        setPayoutFrequencyDaysDraft(payoutFrequencyMinutesToDaysDraft(company.payoutFrequencyMinutes));
+        setTimesheetLoggingModeDraft(company.timesheetLoggingMode ?? "ADMIN_FINALIZE");
+        setTravelClaimModeDraft(company.travelClaimMode ?? "REQUIRES_APPROVAL");
+    }, [company?.name, company?.payoutFrequencyMinutes, company?.timesheetLoggingMode, company?.travelClaimMode]);
 
     useEffect(() => {
         if (!company) return;
@@ -281,6 +335,11 @@ export default function SettingsCompany() {
         if (editError) setEditError(null);
         if (editSuccess) setEditSuccess(null);
     }, [editRoleName, editRoleColor, editPermissions]);
+
+    useEffect(() => {
+        setCompanySaveError(null);
+        setCompanySaveSuccess(null);
+    }, [activeTab]);
 
     const sortedRoles = useMemo(() => {
         return [...roles].sort((a, b) => a.name.localeCompare(b.name));
@@ -444,8 +503,29 @@ export default function SettingsCompany() {
     const companyAvatarName = companyDraftName || companyDisplayName;
     const companyInitial = (companyAvatarName[0] ?? "C").toUpperCase();
     const companyNameDirty = companyDraftName !== companyOriginalName;
+    const payoutFrequencyMinutesDraft = parsePayoutFrequencyMinutes(payoutFrequencyDaysDraft);
+    const companyModesDirty =
+        (company?.payoutFrequencyMinutes ?? 10080) !== payoutFrequencyMinutesDraft
+        ||
+        (company?.timesheetLoggingMode ?? "ADMIN_FINALIZE") !== timesheetLoggingModeDraft
+        || (company?.travelClaimMode ?? "REQUIRES_APPROVAL") !== travelClaimModeDraft;
 
-    const handleSaveCompanyName = async (event?: React.FormEvent) => {
+    const tabCopy = {
+        details: {
+            title: "Company details",
+            helper: "Manage your company name, branding, and basic profile information.",
+        },
+        roles: {
+            title: "Roles and permissions",
+            helper: "Control role definitions, permissions, and who belongs to each role.",
+        },
+        workflow: {
+            title: "Workflow settings",
+            helper: "Control company-wide timing for payslips, timesheets, and travel claims.",
+        },
+    } satisfies Record<CompanySettingsTab, { title: string; helper: string }>;
+
+    const handleSaveCompanyDetails = async (event?: React.FormEvent) => {
         if (event) event.preventDefault();
         if (!canManageCompany) return;
         if (!companyDraftName) {
@@ -458,13 +538,48 @@ export default function SettingsCompany() {
             setCompanySaving(true);
             setCompanySaveError(null);
             setCompanySaveSuccess(null);
-            const updated = await UserServices.updateMyCompany({ name: companyDraftName });
+            const updated = await UserServices.updateMyCompany({
+                name: companyDraftName,
+            });
             setCompany(updated);
             setCompanyNameDraft(updated.name ?? companyDraftName);
-            setCompanySaveSuccess("Company name updated.");
+            setCompanySaveSuccess("Company details updated.");
             window.dispatchEvent(new Event("companyUpdated"));
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Could not update company name.";
+            const message = err instanceof Error ? err.message : "Could not update company details.";
+            setCompanySaveError(message);
+        } finally {
+            setCompanySaving(false);
+        }
+    };
+
+    const handleSaveWorkflowSettings = async (event?: React.FormEvent) => {
+        if (event) event.preventDefault();
+        if (!canManageCompany) return;
+        if (payoutFrequencyMinutesDraft == null) {
+            setCompanySaveError("Enter a valid payslip timing in days.");
+            return;
+        }
+        if (!companyModesDirty) return;
+
+        try {
+            setCompanySaving(true);
+            setCompanySaveError(null);
+            setCompanySaveSuccess(null);
+            const updated = await UserServices.updateMyCompany({
+                payoutFrequencyMinutes: payoutFrequencyMinutesDraft,
+                timesheetLoggingMode: timesheetLoggingModeDraft,
+                travelClaimMode: travelClaimModeDraft,
+            });
+            setCompany(updated);
+            setPayoutFrequencyDaysDraft(
+                payoutFrequencyMinutesToDaysDraft(updated.payoutFrequencyMinutes ?? payoutFrequencyMinutesDraft)
+            );
+            setTimesheetLoggingModeDraft(updated.timesheetLoggingMode ?? timesheetLoggingModeDraft);
+            setTravelClaimModeDraft(updated.travelClaimMode ?? travelClaimModeDraft);
+            setCompanySaveSuccess("Workflow settings updated.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Could not update workflow settings.";
             setCompanySaveError(message);
         } finally {
             setCompanySaving(false);
@@ -786,10 +901,8 @@ export default function SettingsCompany() {
         <>
             <div className="settingsSectionHeader">
                 <div>
-                    <h2 className="settingsSectionTitle">Company settings</h2>
-                    <p className="settingsHelperText">
-                        Manage company details and access controls.
-                    </p>
+                    <h2 className="settingsSectionTitle">{tabCopy[activeTab].title}</h2>
+                    <p className="settingsHelperText">{tabCopy[activeTab].helper}</p>
                 </div>
                 {permissionsLoading ? (
                     <div className="settingsMeta">Loading permissions...</div>
@@ -801,7 +914,11 @@ export default function SettingsCompany() {
             ) : null}
 
             <div className="settingsSectionGrid">
-                <Card title="Company profile" className="settingsCompanyCard">
+                {activeTab !== "roles" ? (
+                <Card
+                    title={activeTab === "workflow" ? "Workflow settings" : "Company profile"}
+                    className="settingsCompanyCard"
+                >
                     {companyLoading ? (
                         <div className="settingsCardBody">
                             <div className="settingsMeta">Loading company details...</div>
@@ -814,6 +931,7 @@ export default function SettingsCompany() {
                     ) : null}
                     {!companyLoading && !companyError ? (
                         <>
+                            {activeTab === "details" ? (
                             <div className="profile_avatar_body settingsCompanyAvatar">
                                 <div
                                     className={`profile_avatar_circle ${
@@ -875,8 +993,17 @@ export default function SettingsCompany() {
                                     ) : null}
                                 </div>
                             </div>
+                            ) : null}
                             <div className="settingsCardBody">
-                                <form className="settingsForm" onSubmit={(event) => void handleSaveCompanyName(event)}>
+                                <form
+                                    className="settingsForm"
+                                    onSubmit={(event) =>
+                                        void (activeTab === "workflow"
+                                            ? handleSaveWorkflowSettings(event)
+                                            : handleSaveCompanyDetails(event))
+                                    }
+                                >
+                                    {activeTab === "details" ? (
                                     <label className="settingsField">
                                         <div className="settingsLabelRow">
                                             <span className="settingsLabel">Company name</span>
@@ -896,16 +1023,113 @@ export default function SettingsCompany() {
                                             aria-readonly={!canManageCompany}
                                         />
                                     </label>
+                                    ) : null}
+                                    {activeTab === "details" ? (
+                                    <label className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Company ID</span>
+                                            <span className="settingsMeta">Reference only</span>
+                                        </div>
+                                        <input
+                                            className="settingsInput"
+                                            value={company?.companyId ?? ""}
+                                            readOnly
+                                            aria-readonly="true"
+                                        />
+                                    </label>
+                                    ) : null}
+                                    {activeTab === "workflow" ? (
+                                    <label className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Payslip timing</span>
+                                            <span className="settingsMeta">
+                                                Company-wide delay before logged hours become a scheduled payslip
+                                            </span>
+                                        </div>
+                                        <input
+                                            className="settingsInput"
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            inputMode="numeric"
+                                            value={payoutFrequencyDaysDraft}
+                                            onChange={(event) => {
+                                                setPayoutFrequencyDaysDraft(event.target.value);
+                                                if (companySaveError) setCompanySaveError(null);
+                                                if (companySaveSuccess) setCompanySaveSuccess(null);
+                                            }}
+                                            disabled={!canManageCompany}
+                                        />
+                                        <div className="settingsMeta">
+                                            Measured in days. Current cadence: {formatPayoutFrequency(payoutFrequencyMinutesDraft)}.
+                                        </div>
+                                    </label>
+                                    ) : null}
+                                    {activeTab === "workflow" ? (
+                                    <label className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Timesheet logging</span>
+                                            <span className="settingsMeta">Planning hours move into timesheets</span>
+                                        </div>
+                                        <select
+                                            className="settingsSelect"
+                                            value={timesheetLoggingModeDraft}
+                                            onChange={(event) => {
+                                                setTimesheetLoggingModeDraft(event.target.value);
+                                                if (companySaveError) setCompanySaveError(null);
+                                                if (companySaveSuccess) setCompanySaveSuccess(null);
+                                            }}
+                                            disabled={!canManageCompany}
+                                        >
+                                            <option value="ADMIN_FINALIZE">Admin finalize flow</option>
+                                            <option value="AUTO_ON_SHIFT_END">Automatic after shift end</option>
+                                        </select>
+                                    </label>
+                                    ) : null}
+                                    {activeTab === "workflow" ? (
+                                    <label className="settingsField">
+                                        <div className="settingsLabelRow">
+                                            <span className="settingsLabel">Travel claim mode</span>
+                                            <span className="settingsMeta">How travel reimbursement enters payroll</span>
+                                        </div>
+                                        <select
+                                            className="settingsSelect"
+                                            value={travelClaimModeDraft}
+                                            onChange={(event) => {
+                                                setTravelClaimModeDraft(event.target.value);
+                                                if (companySaveError) setCompanySaveError(null);
+                                                if (companySaveSuccess) setCompanySaveSuccess(null);
+                                            }}
+                                            disabled={!canManageCompany}
+                                        >
+                                            <option value="REQUIRES_APPROVAL">Requires admin approval</option>
+                                            <option value="AUTO_APPROVE">Automatically approve</option>
+                                        </select>
+                                    </label>
+                                    ) : null}
                                     {canManageCompany ? (
                                         <button
                                             type="submit"
                                             className="button settingsAction"
-                                            disabled={!companyNameDirty || !companyDraftName || companySaving}
+                                            disabled={
+                                                activeTab === "workflow"
+                                                    ? !companyModesDirty || companySaving
+                                                    : !companyNameDirty || !companyDraftName || companySaving
+                                            }
                                         >
-                                            {companySaving ? "Saving..." : "Save"}
+                                            {companySaving
+                                                ? "Saving..."
+                                                : activeTab === "workflow"
+                                                  ? "Save workflow settings"
+                                                  : "Save details"}
                                         </button>
                                     ) : null}
                                 </form>
+                                {activeTab === "workflow" ? (
+                                    <div className="settingsNotice">
+                                        Workflow changes apply to future company-wide payroll scheduling and approvals.
+                                    </div>
+                                ) : null}
                                 {companySaveError ? (
                                     <div className="settingsError">{companySaveError}</div>
                                 ) : null}
@@ -916,9 +1140,10 @@ export default function SettingsCompany() {
                         </>
                     ) : null}
                 </Card>
-                {canManageRoles ? (
+                ) : null}
+                {activeTab === "roles" ? (canManageRoles ? (
                     <Card
-                        title="Roles"
+                        title="Roles and permissions"
                         className="settingsRoleCard"
                         right={
                             canCreateRole ? (
@@ -985,7 +1210,15 @@ export default function SettingsCompany() {
                             ) : null}
                         </div>
                     </Card>
-                ) : null}
+                ) : (
+                    <Card title="Roles and permissions" className="settingsRoleCard">
+                        <div className="settingsCardBody">
+                            <div className="settingsNotice">
+                                You do not have permission to manage roles and permissions.
+                            </div>
+                        </div>
+                    </Card>
+                )) : null}
             </div>
             <Modal
                 open={editRoleOpen}

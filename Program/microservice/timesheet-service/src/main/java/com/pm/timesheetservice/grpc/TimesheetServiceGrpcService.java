@@ -9,6 +9,7 @@ import net.devh.boot.grpc.server.service.GrpcService;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.WeekFields;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,17 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
                         .setFunctionName(tsEntity.getFunction())
                         .setHoursWorked(tsEntity.getHoursWorked().toString())
                         .setTravelExpenses(tsEntity.getTravelExpenses().toString())
+                        .setSourceEventId(asString(tsEntity.getSourceEventId()))
+                        .setSourceShiftId(asString(tsEntity.getSourceShiftId()))
+                        .setSourceScheduleEntryId(asString(tsEntity.getSourceScheduleEntryId()))
+                        .setEventName(asText(tsEntity.getEventName()))
+                        .setShiftName(asText(tsEntity.getShiftName()))
+                        .setShiftDate(asText(tsEntity.getShiftDate() == null ? null : tsEntity.getShiftDate().toString()))
+                        .setShiftStartTime(asText(tsEntity.getShiftStartTime() == null ? null : tsEntity.getShiftStartTime().toString()))
+                        .setShiftEndTime(asText(tsEntity.getShiftEndTime() == null ? null : tsEntity.getShiftEndTime().toString()))
+                        .setBreakMinutes(tsEntity.getBreakMinutes() == null ? 0 : tsEntity.getBreakMinutes())
+                        .setTravelKilometers(asDecimal(tsEntity.getTravelKilometers()))
+                        .setTravelRate(asDecimal(tsEntity.getTravelRate()))
                         .build();
                 resp.addTimesheets(ts);
             }
@@ -67,24 +79,47 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
         try {
             List<Timesheet> toPersist = new ArrayList<>();
             List<String> warnings = new ArrayList<>();
+            int createdCount = 0;
+            int updatedCount = 0;
 
             for (timesheet.PlannedTimesheetRecord record : request.getRecordsList()) {
                 try {
-                    Timesheet timesheetEntity = new Timesheet();
-
                     UUID userId = UUID.fromString(record.getUserId());
                     LocalDate date = LocalDate.parse(record.getDateOfIssue());
                     BigDecimal hoursWorked = new BigDecimal(record.getHoursWorked());
                     BigDecimal travelExpenses = new BigDecimal(record.getTravelExpenses());
+                    UUID sourceScheduleEntryId = record.getSourceScheduleEntryId().isBlank()
+                            ? null
+                            : UUID.fromString(record.getSourceScheduleEntryId());
+                    Timesheet timesheetEntity = sourceScheduleEntryId == null
+                            ? new Timesheet()
+                            : timesheetRepository.findBySourceScheduleEntryId(sourceScheduleEntryId).orElseGet(Timesheet::new);
+
+                    if (timesheetEntity.getTimesheetId() == null) {
+                        createdCount++;
+                    } else {
+                        updatedCount++;
+                    }
 
                     timesheetEntity.setUserId(userId);
                     timesheetEntity.setDateOfIssue(date);
                     timesheetEntity.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
                     timesheetEntity.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
                     timesheetEntity.setName(record.getName());
+                    timesheetEntity.setEventName(record.getEventName().isBlank() ? record.getName() : record.getEventName());
                     timesheetEntity.setFunction(record.getFunction());
                     timesheetEntity.setHoursWorked(hoursWorked);
                     timesheetEntity.setTravelExpenses(travelExpenses);
+                    timesheetEntity.setSourceEventId(record.getSourceEventId().isBlank() ? null : UUID.fromString(record.getSourceEventId()));
+                    timesheetEntity.setSourceShiftId(record.getSourceShiftId().isBlank() ? null : UUID.fromString(record.getSourceShiftId()));
+                    timesheetEntity.setSourceScheduleEntryId(sourceScheduleEntryId);
+                    timesheetEntity.setShiftName(record.getShiftName().isBlank() ? null : record.getShiftName());
+                    timesheetEntity.setShiftDate(record.getShiftDate().isBlank() ? null : LocalDate.parse(record.getShiftDate()));
+                    timesheetEntity.setShiftStartTime(record.getShiftStartTime().isBlank() ? null : LocalDateTime.parse(record.getShiftStartTime()));
+                    timesheetEntity.setShiftEndTime(record.getShiftEndTime().isBlank() ? null : LocalDateTime.parse(record.getShiftEndTime()));
+                    timesheetEntity.setBreakMinutes(record.getBreakMinutes());
+                    timesheetEntity.setTravelKilometers(record.getTravelKilometers().isBlank() ? null : new BigDecimal(record.getTravelKilometers()));
+                    timesheetEntity.setTravelRate(record.getTravelRate().isBlank() ? null : new BigDecimal(record.getTravelRate()));
                     toPersist.add(timesheetEntity);
                 } catch (Exception recordError) {
                     String warning = "Skipped scheduleEntryId=" + record.getSourceScheduleEntryId()
@@ -98,7 +133,8 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
             }
 
             timesheet.ImportPlannedTimesheetsResponse response = timesheet.ImportPlannedTimesheetsResponse.newBuilder()
-                    .setCreatedCount(toPersist.size())
+                    .setCreatedCount(createdCount)
+                    .setUpdatedCount(updatedCount)
                     .addAllWarnings(warnings)
                     .build();
 
@@ -107,5 +143,17 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
         } catch (Exception e) {
             responseObserver.onError(Status.UNKNOWN.withDescription("server error").withCause(e).asRuntimeException());
         }
+    }
+
+    private String asString(UUID value) {
+        return value == null ? "" : value.toString();
+    }
+
+    private String asText(String value) {
+        return value == null ? "" : value;
+    }
+
+    private String asDecimal(BigDecimal value) {
+        return value == null ? "" : value.toPlainString();
     }
 }

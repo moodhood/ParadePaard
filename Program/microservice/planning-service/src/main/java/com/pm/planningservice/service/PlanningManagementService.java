@@ -248,6 +248,8 @@ public class PlanningManagementService {
         if (existingEntry != null) {
             if (existingEntry.getStatus() == ScheduleEntryStatus.CANCELLED) {
                 existingEntry.setStatus(requestedStatus);
+                existingEntry.setTimesheetExported(false);
+                existingEntry.setTimesheetExportedAt(null);
                 scheduleEntryRepository.save(existingEntry);
             }
 
@@ -261,6 +263,8 @@ public class PlanningManagementService {
         scheduleEntry.setShiftId(shiftId);
         scheduleEntry.setUserId(userId);
         scheduleEntry.setStatus(requestedStatus);
+        scheduleEntry.setTimesheetExported(false);
+        scheduleEntry.setTimesheetExportedAt(null);
         ScheduleEntry saved = scheduleEntryRepository.save(scheduleEntry);
 
         PlanningAssignmentMutationResponseDTO response = new PlanningAssignmentMutationResponseDTO();
@@ -282,6 +286,8 @@ public class PlanningManagementService {
 
         scheduleEntry.setUserId(request.getUserId());
         scheduleEntry.setStatus(resolveStatus(request.getStatus()));
+        scheduleEntry.setTimesheetExported(false);
+        scheduleEntry.setTimesheetExportedAt(null);
         scheduleEntryRepository.save(scheduleEntry);
 
         PlanningAssignmentMutationResponseDTO response = new PlanningAssignmentMutationResponseDTO();

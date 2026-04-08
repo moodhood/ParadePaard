@@ -11,6 +11,7 @@ import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -37,6 +38,11 @@ public class ScheduleEntry {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private ScheduleEntryStatus status = ScheduleEntryStatus.ASSIGNED;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private Boolean timesheetExported = false;
+
+    private LocalDateTime timesheetExportedAt;
 
     public UUID getScheduleEntryId() {
         return scheduleEntryId;
@@ -68,5 +74,21 @@ public class ScheduleEntry {
 
     public void setStatus(ScheduleEntryStatus status) {
         this.status = status;
+    }
+
+    public Boolean getTimesheetExported() {
+        return timesheetExported;
+    }
+
+    public void setTimesheetExported(Boolean timesheetExported) {
+        this.timesheetExported = timesheetExported;
+    }
+
+    public LocalDateTime getTimesheetExportedAt() {
+        return timesheetExportedAt;
+    }
+
+    public void setTimesheetExportedAt(LocalDateTime timesheetExportedAt) {
+        this.timesheetExportedAt = timesheetExportedAt;
     }
 }

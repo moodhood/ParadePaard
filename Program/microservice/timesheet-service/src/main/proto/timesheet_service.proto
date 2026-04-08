@@ -25,6 +25,17 @@ message Timesheet {
   string functionName = 3;
   string hoursWorked = 4;
   string travelExpenses = 5;
+  string sourceEventId = 6;
+  string sourceShiftId = 7;
+  string sourceScheduleEntryId = 8;
+  string eventName = 9;
+  string shiftName = 10;
+  string shiftDate = 11;
+  string shiftStartTime = 12;
+  string shiftEndTime = 13;
+  int32 breakMinutes = 14;
+  string travelKilometers = 15;
+  string travelRate = 16;
 }
 
 message ImportPlannedTimesheetsRequest {
@@ -42,10 +53,19 @@ message PlannedTimesheetRecord {
   string sourceEventId = 7;
   string sourceShiftId = 8;
   string sourceScheduleEntryId = 9;
+  string eventName = 10;
+  string shiftName = 11;
+  string shiftDate = 12;
+  string shiftStartTime = 13;
+  string shiftEndTime = 14;
+  int32 breakMinutes = 15;
+  string travelKilometers = 16;
+  string travelRate = 17;
 }
 
 message ImportPlannedTimesheetsResponse {
   int32 createdCount = 1;
   repeated string warnings = 2;
+  int32 updatedCount = 3;
 }
 

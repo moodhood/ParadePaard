@@ -10,6 +10,17 @@ export type TimesheetRow = {
     function: string;
     hoursWorked: number;
     travelExpenses?: number;
+    sourceScheduleEntryId?: string | null;
+    sourceShiftId?: string | null;
+    sourceEventId?: string | null;
+    eventName?: string | null;
+    shiftName?: string | null;
+    shiftDate?: string | null;
+    shiftStartTime?: string | null;
+    shiftEndTime?: string | null;
+    breakMinutes?: number | null;
+    travelKilometers?: number | null;
+    travelRate?: number | null;
 };
 
 export default async function GetAllTimesheets(API_BASE_URL: string): Promise<TimesheetRow[]> {

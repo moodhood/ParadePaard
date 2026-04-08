@@ -225,6 +225,16 @@
     height: 100%;
 }
 
+.adminUserTimesheetForm .uiSelect {
+    background-image: none;
+    padding-right: 12px;
+}
+
+.adminUserDetailsPage .workHistorySelect {
+    background-image: none;
+    padding-right: 10px;
+}
+
 .adminUserTimesheetTable th:last-child,
 .adminUserTimesheetTable td:last-child,
 .adminUserTimesheetTable th:nth-last-child(2),

@@ -3,6 +3,9 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import WorkHistory from "./pages/WorkHistory";
+import TravelClaims from "./pages/TravelClaims";
+import MyPlanning from "./pages/MyPlanning";
+import MyPlanningShiftDetail from "./pages/MyPlanningShiftDetail";
 import Onboarding from "./pages/Onboarding";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -42,10 +45,36 @@ export default function App() {
                 }
             />
             <Route
+                path="/my-planning"
+                element={
+                    <RequireActiveUser>
+                        <MyPlanning />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/my-planning/:scheduleEntryId"
+                element={
+                    <RequireActiveUser>
+                        <MyPlanningShiftDetail />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
                 path="/work-history"
                 element={
                     <RequireActiveUser>
                         <WorkHistory />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/travel-claims"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_TIMESHEETS">
+                            <TravelClaims />
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />

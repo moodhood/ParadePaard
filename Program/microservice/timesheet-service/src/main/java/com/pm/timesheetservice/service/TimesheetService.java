@@ -79,6 +79,23 @@ public class TimesheetService {
         timesheet.setFunction(timesheetRequestDTO.getFunction());
         timesheet.setHoursWorked(timesheetRequestDTO.getHoursWorked());
         timesheet.setTravelExpenses(timesheetRequestDTO.getTravelExpenses());
+        timesheet.setSourceScheduleEntryId(timesheetRequestDTO.getSourceScheduleEntryId() == null || timesheetRequestDTO.getSourceScheduleEntryId().isBlank()
+                ? null : UUID.fromString(timesheetRequestDTO.getSourceScheduleEntryId()));
+        timesheet.setSourceShiftId(timesheetRequestDTO.getSourceShiftId() == null || timesheetRequestDTO.getSourceShiftId().isBlank()
+                ? null : UUID.fromString(timesheetRequestDTO.getSourceShiftId()));
+        timesheet.setSourceEventId(timesheetRequestDTO.getSourceEventId() == null || timesheetRequestDTO.getSourceEventId().isBlank()
+                ? null : UUID.fromString(timesheetRequestDTO.getSourceEventId()));
+        timesheet.setEventName(timesheetRequestDTO.getEventName());
+        timesheet.setShiftName(timesheetRequestDTO.getShiftName());
+        timesheet.setShiftDate(timesheetRequestDTO.getShiftDate() == null || timesheetRequestDTO.getShiftDate().isBlank()
+                ? null : LocalDate.parse(timesheetRequestDTO.getShiftDate()));
+        timesheet.setShiftStartTime(timesheetRequestDTO.getShiftStartTime() == null || timesheetRequestDTO.getShiftStartTime().isBlank()
+                ? null : java.time.LocalDateTime.parse(timesheetRequestDTO.getShiftStartTime()));
+        timesheet.setShiftEndTime(timesheetRequestDTO.getShiftEndTime() == null || timesheetRequestDTO.getShiftEndTime().isBlank()
+                ? null : java.time.LocalDateTime.parse(timesheetRequestDTO.getShiftEndTime()));
+        timesheet.setBreakMinutes(timesheetRequestDTO.getBreakMinutes());
+        timesheet.setTravelKilometers(timesheetRequestDTO.getTravelKilometers());
+        timesheet.setTravelRate(timesheetRequestDTO.getTravelRate());
 
         timesheet = timesheetRepository.save(timesheet);
         return TimesheetMapper.toDTO(timesheet);
