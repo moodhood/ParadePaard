@@ -19,6 +19,7 @@ import "../stylesheets/UserDashboard.css";
 import "../stylesheets/WorkHistory.css";
 import "../stylesheets/AdminUserDetails.css";
 import { formatDate, formatMaybeDateTime } from "../utils/dateFormat";
+import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import {
     buildTimeframeOptions,
     filterTimesheetsByTimeframe,
@@ -84,36 +85,7 @@ function formatLocation(user: UserResponseDTO | null): string {
 }
 
 function formatDateWithSlashes(value?: string | null): string {
-    const formatted = formatDate(value);
-    return formatted === "-" ? formatted : formatted.replace(/-/g, "/");
-}
-
-function normalizeDateInput(value: string): string {
-    const digits = value.replace(/\D/g, "").slice(0, 8);
-    if (digits.length <= 2) return digits;
-    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
-    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
-}
-
-function parseDisplayDate(value: string): string | null {
-    const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!match) return null;
-
-    const day = Number(match[1]);
-    const month = Number(match[2]);
-    const year = Number(match[3]);
-    const date = new Date(year, month - 1, day);
-
-    if (
-        Number.isNaN(date.getTime()) ||
-        date.getFullYear() !== year ||
-        date.getMonth() !== month - 1 ||
-        date.getDate() !== day
-    ) {
-        return null;
-    }
-
-    return `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    return formatDate(value);
 }
 
 function toDateTime(shiftDate: string, value: string): Date | null {

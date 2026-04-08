@@ -16,19 +16,19 @@ export const formatDate = (value?: string | null): string => {
     if (!value) return "-";
     const date = parseDateOnly(value);
     if (!date || Number.isNaN(date.getTime())) return value;
-    return `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+    return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
 };
 
 export const formatDateObject = (value?: Date | null): string => {
     if (!value || Number.isNaN(value.getTime())) return "-";
-    return `${pad(value.getDate())}-${pad(value.getMonth() + 1)}-${value.getFullYear()}`;
+    return `${pad(value.getDate())}/${pad(value.getMonth() + 1)}/${value.getFullYear()}`;
 };
 
 export const formatDateTime = (value?: string | null): string => {
     if (!value) return "-";
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return formatDate(value);
-    const datePart = `${pad(date.getDate())}-${pad(date.getMonth() + 1)}-${date.getFullYear()}`;
+    const datePart = `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
     const timePart = `${pad(date.getHours())}:${pad(date.getMinutes())}`;
     return `${datePart} - ${timePart}`;
 };

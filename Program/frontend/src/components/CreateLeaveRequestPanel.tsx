@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 
 type LeaveType = "VACATION" | "SICK" | "UNPAID" | "PARENTAL" | "OTHER";
 type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
@@ -75,12 +76,19 @@ export default function CreateLeaveRequestPanel({ onSuccess }: Props) {
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
+        const parsedStartDate = parseDisplayDate(startDate);
+        const parsedEndDate = parseDisplayDate(endDate);
+
         if (!userId) {
             setSubmitError("No user id available");
             return;
         }
-        if (!startDate || !endDate) {
-            setSubmitError("Please fill the dates");
+        if (!parsedStartDate || !parsedEndDate) {
+            setSubmitError("Please enter valid dates in dd/mm/yyyy format");
+            return;
+        }
+        if (parsedEndDate < parsedStartDate) {
+            setSubmitError("End date cannot be before start date");
             return;
         }
         if (!hours || hours <= 0) {
@@ -92,8 +100,8 @@ export default function CreateLeaveRequestPanel({ onSuccess }: Props) {
         setSubmitOk(null);
         const payload: LeaveRequestCreateDTO = {
             type,
-            startDate,
-            endDate,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
             hours,
             reason: reason || undefined,
         };
@@ -148,9 +156,12 @@ export default function CreateLeaveRequestPanel({ onSuccess }: Props) {
                         <label className="grid gap-1">
                             <span>Start date</span>
                             <input
-                                type="date"
+                                type="text"
                                 value={startDate}
-                                onChange={(e) => setStartDate(e.target.value)}
+                                onChange={(e) => setStartDate(normalizeDateInput(e.target.value))}
+                                inputMode="numeric"
+                                placeholder="dd/mm/yyyy"
+                                maxLength={10}
                                 className="border rounded p-2"
                                 required
                             />
@@ -158,9 +169,12 @@ export default function CreateLeaveRequestPanel({ onSuccess }: Props) {
                         <label className="grid gap-1">
                             <span>End date</span>
                             <input
-                                type="date"
+                                type="text"
                                 value={endDate}
-                                onChange={(e) => setEndDate(e.target.value)}
+                                onChange={(e) => setEndDate(normalizeDateInput(e.target.value))}
+                                inputMode="numeric"
+                                placeholder="dd/mm/yyyy"
+                                maxLength={10}
                                 className="border rounded p-2"
                                 required
                             />

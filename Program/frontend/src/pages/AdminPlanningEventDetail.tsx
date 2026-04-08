@@ -15,6 +15,7 @@ import {
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
+import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import {
     getAllocationStatusLabel,
     getAllocationStatusTone,
@@ -122,21 +123,11 @@ function parseDutchTimeInput(value: string): string | null {
 }
 
 function formatDutchDateInput(value: string): string {
-    const [year, month, day] = value.split("-");
-    if (!year || !month || !day) return value;
-    return `${day}/${month}/${year}`;
+    return formatDateInput(value);
 }
 
 function parseDutchDateInput(value: string): string | null {
-    const match = value.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-    if (!match) return null;
-
-    const [, day, month, year] = match;
-    const parsed = new Date(`${year}-${month}-${day}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) return null;
-
-    const isoDate = `${year}-${month}-${day}`;
-    return parsed.toISOString().slice(0, 10) === isoDate ? isoDate : null;
+    return parseDisplayDate(value);
 }
 
 function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
@@ -156,8 +147,8 @@ function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
 function buildEventDraft(event: PlanningEventDTO): PlanningEventSaveDTO {
     return {
         name: event.eventName,
-        startDate: event.startDate,
-        endDate: event.endDate,
+        startDate: formatDutchDateInput(event.startDate),
+        endDate: formatDutchDateInput(event.endDate),
         clientCompanyId: event.clientCompanyId ?? "",
         location: event.location ?? "",
         internalDescription: event.internalDescription ?? "",
@@ -620,11 +611,13 @@ export default function AdminPlanningEventDetail() {
 
         const defaultStartTime = parseDutchTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
         const defaultEndTime = parseDutchTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
+        const startDate = parseDutchDateInput(eventDraft.startDate || "");
+        const endDate = parseDutchDateInput(eventDraft.endDate || "");
 
         const payload: PlanningEventSaveDTO = {
             name: eventDraft.name?.trim() || "",
-            startDate: eventDraft.startDate || "",
-            endDate: eventDraft.endDate || "",
+            startDate: startDate || "",
+            endDate: endDate || "",
             clientCompanyId: eventDraft.clientCompanyId?.toString().trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.toString().trim() || null,
             internalDescription: eventDraft.internalDescription?.toString().trim() || null,
@@ -639,7 +632,7 @@ export default function AdminPlanningEventDetail() {
         }
 
         if (!payload.startDate || !payload.endDate) {
-            return setEventSaveError("Start and end date are required.");
+            return setEventSaveError("Start and end date must use dd/mm/yyyy.");
         }
 
         if (payload.endDate < payload.startDate) {
@@ -678,7 +671,7 @@ export default function AdminPlanningEventDetail() {
         const shiftStartDate = parseDutchDateInput(shiftDraft.startDate);
         const shiftEndDate = parseDutchDateInput(shiftDraft.endDate);
         if (!shiftStartDate || !shiftEndDate) {
-            return setCreateShiftError("Use Dutch date format: dd/mm/jjjj.");
+            return setCreateShiftError("Use Dutch date format: dd/mm/yyyy.");
         }
         const shiftStartDateTime = `${shiftStartDate}T${shiftDraft.startTime}`;
         const shiftEndDateTime = `${shiftEndDate}T${shiftDraft.endTime}`;
@@ -728,7 +721,7 @@ export default function AdminPlanningEventDetail() {
         const shiftStartDate = parseDutchDateInput(editShiftDraft.startDate);
         const shiftEndDate = parseDutchDateInput(editShiftDraft.endDate);
         if (!shiftStartDate || !shiftEndDate) {
-            return setEditShiftError("Use Dutch date format: dd/mm/jjjj.");
+            return setEditShiftError("Use Dutch date format: dd/mm/yyyy.");
         }
         const shiftStartDateTime = `${shiftStartDate}T${editShiftDraft.startTime}`;
         const shiftEndDateTime = `${shiftEndDate}T${editShiftDraft.endTime}`;
@@ -1233,12 +1226,16 @@ export default function AdminPlanningEventDetail() {
                                 className="modal_input"
                                 type="text"
                                 inputMode="numeric"
-                                placeholder="dd/mm/jjjj"
+                                placeholder="dd/mm/yyyy"
                                 value={shiftDraft.startDate}
                                 onChange={(inputEvent) => {
-                                    setShiftDraft((current) => ({ ...current, startDate: inputEvent.target.value }));
+                                    setShiftDraft((current) => ({
+                                        ...current,
+                                        startDate: normalizeDateInput(inputEvent.target.value),
+                                    }));
                                     if (createShiftError) setCreateShiftError(null);
                                 }}
+                                maxLength={10}
                                 disabled={savingShift}
                             />
                         </label>
@@ -1264,12 +1261,16 @@ export default function AdminPlanningEventDetail() {
                                 className="modal_input"
                                 type="text"
                                 inputMode="numeric"
-                                placeholder="dd/mm/jjjj"
+                                placeholder="dd/mm/yyyy"
                                 value={shiftDraft.endDate}
                                 onChange={(inputEvent) => {
-                                    setShiftDraft((current) => ({ ...current, endDate: inputEvent.target.value }));
+                                    setShiftDraft((current) => ({
+                                        ...current,
+                                        endDate: normalizeDateInput(inputEvent.target.value),
+                                    }));
                                     if (createShiftError) setCreateShiftError(null);
                                 }}
+                                maxLength={10}
                                 disabled={savingShift}
                             />
                         </label>
@@ -1400,12 +1401,16 @@ export default function AdminPlanningEventDetail() {
                                 className="modal_input"
                                 type="text"
                                 inputMode="numeric"
-                                placeholder="dd/mm/jjjj"
+                                placeholder="dd/mm/yyyy"
                                 value={editShiftDraft.startDate}
                                 onChange={(inputEvent) => {
-                                    setEditShiftDraft((current) => ({ ...current, startDate: inputEvent.target.value }));
+                                    setEditShiftDraft((current) => ({
+                                        ...current,
+                                        startDate: normalizeDateInput(inputEvent.target.value),
+                                    }));
                                     if (editShiftError) setEditShiftError(null);
                                 }}
+                                maxLength={10}
                                 disabled={savingShift}
                             />
                         </label>
@@ -1431,12 +1436,16 @@ export default function AdminPlanningEventDetail() {
                                 className="modal_input"
                                 type="text"
                                 inputMode="numeric"
-                                placeholder="dd/mm/jjjj"
+                                placeholder="dd/mm/yyyy"
                                 value={editShiftDraft.endDate}
                                 onChange={(inputEvent) => {
-                                    setEditShiftDraft((current) => ({ ...current, endDate: inputEvent.target.value }));
+                                    setEditShiftDraft((current) => ({
+                                        ...current,
+                                        endDate: normalizeDateInput(inputEvent.target.value),
+                                    }));
                                     if (editShiftError) setEditShiftError(null);
                                 }}
+                                maxLength={10}
                                 disabled={savingShift}
                             />
                         </label>
@@ -1593,17 +1602,27 @@ export default function AdminPlanningEventDetail() {
                             <span className="planningDetailModalLabel">Start date</span>
                             <input
                                 className="modal_input"
-                                type="date"
+                                type="text"
                                 value={eventDraft.startDate ?? ""}
                                 onChange={(inputEvent) => {
-                                    const startDate = inputEvent.target.value;
+                                    const startDate = normalizeDateInput(inputEvent.target.value);
                                     setEventDraft((current) => ({
                                         ...current,
                                         startDate,
-                                        endDate: (current.endDate ?? "") < startDate ? startDate : current.endDate,
+                                        endDate: (() => {
+                                            const currentEndDate = parseDutchDateInput(current.endDate ?? "");
+                                            const nextStartDate = parseDutchDateInput(startDate);
+                                            if (currentEndDate && nextStartDate && currentEndDate < nextStartDate) {
+                                                return startDate;
+                                            }
+                                            return current.endDate;
+                                        })(),
                                     }));
                                     if (eventSaveError) setEventSaveError(null);
                                 }}
+                                inputMode="numeric"
+                                placeholder="dd/mm/yyyy"
+                                maxLength={10}
                                 disabled={savingEvent}
                             />
                         </label>
@@ -1611,13 +1630,18 @@ export default function AdminPlanningEventDetail() {
                             <span className="planningDetailModalLabel">End date</span>
                             <input
                                 className="modal_input"
-                                type="date"
-                                min={eventDraft.startDate ?? ""}
+                                type="text"
                                 value={eventDraft.endDate ?? ""}
                                 onChange={(inputEvent) => {
-                                    setEventDraft((current) => ({ ...current, endDate: inputEvent.target.value }));
+                                    setEventDraft((current) => ({
+                                        ...current,
+                                        endDate: normalizeDateInput(inputEvent.target.value),
+                                    }));
                                     if (eventSaveError) setEventSaveError(null);
                                 }}
+                                inputMode="numeric"
+                                placeholder="dd/mm/yyyy"
+                                maxLength={10}
                                 disabled={savingEvent}
                             />
                         </label>

@@ -11,6 +11,7 @@ import {
     type PlanningEventSaveDTO,
 } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
+import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import {
     getEventCheckedInCount,
     getEventClientName,
@@ -317,8 +318,8 @@ export default function AdminPlanningOverview() {
     const [createEventStep, setCreateEventStep] = useState<EventCreateStep>("details");
     const [eventDraft, setEventDraft] = useState<PlanningEventSaveDTO>({
         name: "",
-        startDate: today,
-        endDate: today,
+        startDate: formatDateInput(today),
+        endDate: formatDateInput(today),
         clientCompanyId: "",
         location: "",
         internalDescription: "",
@@ -394,8 +395,8 @@ export default function AdminPlanningOverview() {
         setEventSaveSuccess(null);
         setEventDraft({
             name: "",
-            startDate: selectedDate,
-            endDate: selectedDate,
+            startDate: formatDateInput(selectedDate),
+            endDate: formatDateInput(selectedDate),
             clientCompanyId: "",
             location: "",
             internalDescription: "",
@@ -403,6 +404,9 @@ export default function AdminPlanningOverview() {
             defaultEndTime: "",
         });
     }, [selectedDate]);
+
+    const parsedEventStartDate = parseDisplayDate(eventDraft.startDate);
+    const parsedEventEndDate = parseDisplayDate(eventDraft.endDate);
 
     const openCreateEventModal = () => {
         resetCreateEventForm();
@@ -420,11 +424,13 @@ export default function AdminPlanningOverview() {
 
         const defaultStartTime = parseDutchTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
         const defaultEndTime = parseDutchTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
+        const startDate = parseDisplayDate(eventDraft.startDate);
+        const endDate = parseDisplayDate(eventDraft.endDate);
 
         const payload: PlanningEventSaveDTO = {
             name: eventDraft.name.trim(),
-            startDate: eventDraft.startDate,
-            endDate: eventDraft.endDate,
+            startDate: startDate ?? "",
+            endDate: endDate ?? "",
             clientCompanyId: eventDraft.clientCompanyId?.trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.trim() || null,
             internalDescription: eventDraft.internalDescription?.trim() || null,
@@ -438,7 +444,7 @@ export default function AdminPlanningOverview() {
         }
 
         if (!payload.startDate || !payload.endDate) {
-            setEventSaveError("Start and end date are required.");
+            setEventSaveError("Start and end date must use dd/mm/yyyy.");
             return;
         }
 
@@ -478,9 +484,9 @@ export default function AdminPlanningOverview() {
     };
 
     const canSubmitCreateEvent = Boolean(eventDraft.name.trim())
-        && Boolean(eventDraft.startDate)
-        && Boolean(eventDraft.endDate)
-        && eventDraft.endDate >= eventDraft.startDate;
+        && Boolean(parsedEventStartDate)
+        && Boolean(parsedEventEndDate)
+        && (parsedEventEndDate ?? "") >= (parsedEventStartDate ?? "");
 
     const renderPlannerEntry = (day: string, entry: PlannerEntry) => (
         <button
@@ -818,17 +824,27 @@ export default function AdminPlanningOverview() {
                                 <span className="roleWizardLabel">Start date</span>
                                 <input
                                     className="modal_input"
-                                    type="date"
+                                    type="text"
                                     value={eventDraft.startDate}
                                     onChange={(event) => {
-                                        const startDate = event.target.value;
+                                        const startDate = normalizeDateInput(event.target.value);
                                         setEventDraft((current) => ({
                                             ...current,
                                             startDate,
-                                            endDate: current.endDate < startDate ? startDate : current.endDate,
+                                            endDate: (() => {
+                                                const currentEndDate = parseDisplayDate(current.endDate);
+                                                const nextStartDate = parseDisplayDate(startDate);
+                                                if (currentEndDate && nextStartDate && currentEndDate < nextStartDate) {
+                                                    return startDate;
+                                                }
+                                                return current.endDate;
+                                            })(),
                                         }));
                                         if (eventSaveError) setEventSaveError(null);
                                     }}
+                                    inputMode="numeric"
+                                    placeholder="dd/mm/yyyy"
+                                    maxLength={10}
                                     disabled={savingEvent}
                                 />
                             </label>
@@ -837,13 +853,18 @@ export default function AdminPlanningOverview() {
                                 <span className="roleWizardLabel">End date</span>
                                 <input
                                     className="modal_input"
-                                    type="date"
+                                    type="text"
                                     value={eventDraft.endDate}
-                                    min={eventDraft.startDate}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, endDate: event.target.value }));
+                                        setEventDraft((current) => ({
+                                            ...current,
+                                            endDate: normalizeDateInput(event.target.value),
+                                        }));
                                         if (eventSaveError) setEventSaveError(null);
                                     }}
+                                    inputMode="numeric"
+                                    placeholder="dd/mm/yyyy"
+                                    maxLength={10}
                                     disabled={savingEvent}
                                 />
                             </label>
@@ -883,7 +904,7 @@ export default function AdminPlanningOverview() {
                             <div className="planningWizardSummary">
                                 <span className="planningWizardSummaryLabel">Event window</span>
                                 <span className="planningWizardSummaryValue">
-                                    {formatDate(eventDraft.startDate)} to {formatDate(eventDraft.endDate)}
+                                    {eventDraft.startDate || "dd/mm/yyyy"} to {eventDraft.endDate || "dd/mm/yyyy"}
                                 </span>
                             </div>
                         </div>

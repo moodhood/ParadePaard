@@ -11,6 +11,7 @@ import {
     type UpdatePayslipRequestDTO,
 } from "../services/user-service/UserServices";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
+import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
@@ -82,7 +83,7 @@ export default function AdminPayslipDetails() {
     const applyPayslipToForm = useCallback((data: PayslipResponseDTO) => {
         const parsed = parseErrorDescription(data.errorDescription);
         setForm({
-            dateOfIssue: data.dateOfIssue ?? "",
+            dateOfIssue: formatDateInput(data.dateOfIssue),
             functionName: data.functionName ?? "",
             hourlyWage: data.hourlyWage != null ? String(data.hourlyWage) : "",
             totalHoursWorked: data.totalHoursWorked != null ? String(data.totalHoursWorked) : "",
@@ -176,9 +177,10 @@ export default function AdminPayslipDetails() {
 
     const handleSave = async () => {
         if (!payslip || !payslipId) return;
+        const parsedDateOfIssue = parseDisplayDate(form.dateOfIssue);
 
-        if (!form.dateOfIssue) {
-            setSaveError("Please choose a date of issue.");
+        if (!parsedDateOfIssue) {
+            setSaveError("Please enter a valid date of issue in dd/mm/yyyy format.");
             return;
         }
         if (!form.functionName.trim()) {
@@ -215,7 +217,7 @@ ${note}` : title) : "";
 
         const payload: UpdatePayslipRequestDTO = {
             userId: payslip.userId,
-            dateOfIssue: form.dateOfIssue,
+            dateOfIssue: parsedDateOfIssue,
             functionName: form.functionName.trim(),
             hourlyWage,
             totalHoursWorked: hoursWorked,
@@ -356,9 +358,17 @@ ${note}` : title) : "";
                                         <input
                                             id="payslip-date"
                                             className="uiSelect"
-                                            type="date"
+                                            type="text"
                                             value={form.dateOfIssue}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, dateOfIssue: e.target.value }))}
+                                            onChange={(e) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    dateOfIssue: normalizeDateInput(e.target.value),
+                                                }))
+                                            }
+                                            inputMode="numeric"
+                                            placeholder="dd/mm/yyyy"
+                                            maxLength={10}
                                             disabled={saving}
                                         />
                                     </div>

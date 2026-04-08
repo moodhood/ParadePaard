@@ -10,6 +10,7 @@ import { UserServices } from "../services/user-service/UserServices";
 import "../stylesheets/WorkHistory.css";
 import { getIsoWeek, sumHours } from "../utils/hoursSummary";
 import { formatDate } from "../utils/dateFormat";
+import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 
 type FilterState = {
     search: string;
@@ -110,6 +111,8 @@ export default function WorkHistory() {
         const maxTravel = parseNumber(filters.maxTravel);
         const weekYear = parseNumber(filters.weekYear);
         const weekNumber = parseNumber(filters.weekNumber);
+        const dateFrom = parseDisplayDate(filters.dateFrom);
+        const dateTo = parseDisplayDate(filters.dateTo);
 
         const filtered = timesheets.filter((t) => {
             if (showAllTimesheets && filters.userId !== "all" && t.userId !== filters.userId) {
@@ -128,8 +131,8 @@ export default function WorkHistory() {
             }
 
             const datePart = getDatePart(t.dateOfIssue ?? "");
-            if (filters.dateFrom && datePart < filters.dateFrom) return false;
-            if (filters.dateTo && datePart > filters.dateTo) return false;
+            if (dateFrom && datePart < dateFrom) return false;
+            if (dateTo && datePart > dateTo) return false;
 
             if (weekYear !== null || weekNumber !== null) {
                 const week =
@@ -303,18 +306,24 @@ export default function WorkHistory() {
                                                 <label className="workHistoryFilterField">
                                                     <span>Date from</span>
                                                     <input
-                                                        type="date"
+                                                        type="text"
                                                         value={filters.dateFrom}
-                                                        onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                                                        onChange={(e) => updateFilter("dateFrom", normalizeDateInput(e.target.value))}
+                                                        inputMode="numeric"
+                                                        placeholder="dd/mm/yyyy"
+                                                        maxLength={10}
                                                     />
                                                 </label>
 
                                                 <label className="workHistoryFilterField">
                                                     <span>Date to</span>
                                                     <input
-                                                        type="date"
+                                                        type="text"
                                                         value={filters.dateTo}
-                                                        onChange={(e) => updateFilter("dateTo", e.target.value)}
+                                                        onChange={(e) => updateFilter("dateTo", normalizeDateInput(e.target.value))}
+                                                        inputMode="numeric"
+                                                        placeholder="dd/mm/yyyy"
+                                                        maxLength={10}
                                                     />
                                                 </label>
 

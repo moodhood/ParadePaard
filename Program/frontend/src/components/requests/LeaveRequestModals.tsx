@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import Modal from "../common/Modal";
 import type { LeaveType } from "../../services/user-service/UserServices";
+import { normalizeDateInput, parseDisplayDate } from "../../utils/dateInput";
 
 export type LeaveRequestForm = {
     type: LeaveType;
@@ -34,11 +35,13 @@ export default function LeaveRequestModal({
     const [hoursPerDay, setHoursPerDay] = useState<number>(8);
     const [excludeWeekends, setExcludeWeekends] = useState(true);
     const [note, setNote] = useState("");
+    const parsedFromDate = useMemo(() => parseDisplayDate(fromDate), [fromDate]);
+    const parsedToDate = useMemo(() => parseDisplayDate(toDate), [toDate]);
 
     const totalHours = useMemo(() => {
-        if (!fromDate || !toDate || hoursPerDay <= 0) return 0;
-        const d1 = new Date(fromDate);
-        const d2 = new Date(toDate);
+        if (!parsedFromDate || !parsedToDate || hoursPerDay <= 0) return 0;
+        const d1 = new Date(`${parsedFromDate}T00:00:00`);
+        const d2 = new Date(`${parsedToDate}T00:00:00`);
         if (isNaN(d1.getTime()) || isNaN(d2.getTime())) return 0;
         if (d2 < d1) return 0;
 
@@ -51,17 +54,17 @@ export default function LeaveRequestModal({
             cur.setDate(cur.getDate() + 1);
         }
         return days * hoursPerDay;
-    }, [fromDate, toDate, hoursPerDay, excludeWeekends]);
+    }, [excludeWeekends, hoursPerDay, parsedFromDate, parsedToDate]);
 
     const remaining = availableHours - totalHours;
-    const canSubmit = !!fromDate && !!toDate && totalHours > 0;
+    const canSubmit = !!parsedFromDate && !!parsedToDate && totalHours > 0;
 
     function handleSubmit() {
         if (!canSubmit) return;
         const payload: LeaveRequestForm = {
             type: leaveType,
-            fromDate,
-            toDate,
+            fromDate: parsedFromDate!,
+            toDate: parsedToDate!,
             hoursPerDay,
             excludeWeekends,
             note: note.trim() || undefined,
@@ -93,20 +96,26 @@ export default function LeaveRequestModal({
                 <div className="form_row">
                     <label className="form_label">From date</label>
                     <input
-                        type="date"
+                        type="text"
                         className="modal_input"
                         value={fromDate}
-                        onChange={(e) => setFromDate(e.target.value)}
+                        onChange={(e) => setFromDate(normalizeDateInput(e.target.value))}
+                        inputMode="numeric"
+                        placeholder="dd/mm/yyyy"
+                        maxLength={10}
                     />
                 </div>
 
                 <div className="form_row">
                     <label className="form_label">To date</label>
                     <input
-                        type="date"
+                        type="text"
                         className="modal_input"
                         value={toDate}
-                        onChange={(e) => setToDate(e.target.value)}
+                        onChange={(e) => setToDate(normalizeDateInput(e.target.value))}
+                        inputMode="numeric"
+                        placeholder="dd/mm/yyyy"
+                        maxLength={10}
                     />
                 </div>
 

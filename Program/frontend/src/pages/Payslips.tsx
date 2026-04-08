@@ -7,6 +7,7 @@ import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
 import { readCachedIsAdmin, readCachedPermissions, writeCachedIsAdmin, writeCachedPermissions } from "../utils/authCache";
 import { formatDate } from "../utils/dateFormat";
+import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import "../stylesheets/PayslipsPage.css";
 
 type PayslipScope = "mine" | "all";
@@ -86,6 +87,8 @@ const filterPayslips = (payslips: PayslipResponseDTO[], filters: FilterState) =>
     const maxNet = parseNumber(filters.maxNet);
     const weekYear = parseNumber(filters.weekYear);
     const weekNumber = parseNumber(filters.weekNumber);
+    const dateFrom = parseDisplayDate(filters.dateFrom);
+    const dateTo = parseDisplayDate(filters.dateTo);
 
     return payslips.filter((payslip) => {
         const status = normalizeStatus(payslip.status);
@@ -108,8 +111,8 @@ const filterPayslips = (payslips: PayslipResponseDTO[], filters: FilterState) =>
             if (!haystack.includes(term)) return false;
         }
 
-        if (filters.dateFrom && payslip.dateOfIssue < filters.dateFrom) return false;
-        if (filters.dateTo && payslip.dateOfIssue > filters.dateTo) return false;
+        if (dateFrom && payslip.dateOfIssue < dateFrom) return false;
+        if (dateTo && payslip.dateOfIssue > dateTo) return false;
 
         if (weekYear !== null && payslip.weekBasedYear !== weekYear) return false;
         if (weekNumber !== null && payslip.weekNumber !== weekNumber) return false;
@@ -390,18 +393,24 @@ export default function Payslips() {
                                             <label className="payslipsFilterField">
                                                 <span>Date from</span>
                                                 <input
-                                                    type="date"
+                                                    type="text"
                                                     value={activeFilters.dateFrom}
-                                                    onChange={(e) => updateFilter("dateFrom", e.target.value)}
+                                                    onChange={(e) => updateFilter("dateFrom", normalizeDateInput(e.target.value))}
+                                                    inputMode="numeric"
+                                                    placeholder="dd/mm/yyyy"
+                                                    maxLength={10}
                                                 />
                                             </label>
 
                                             <label className="payslipsFilterField">
                                                 <span>Date to</span>
                                                 <input
-                                                    type="date"
+                                                    type="text"
                                                     value={activeFilters.dateTo}
-                                                    onChange={(e) => updateFilter("dateTo", e.target.value)}
+                                                    onChange={(e) => updateFilter("dateTo", normalizeDateInput(e.target.value))}
+                                                    inputMode="numeric"
+                                                    placeholder="dd/mm/yyyy"
+                                                    maxLength={10}
                                                 />
                                             </label>
 
