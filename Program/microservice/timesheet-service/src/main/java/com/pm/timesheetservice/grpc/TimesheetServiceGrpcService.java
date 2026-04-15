@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.WeekFields;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -64,6 +65,38 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
 
         } catch (NumberFormatException e) {
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("weekNumber, and weekBasedYear must be a number").asRuntimeException());
+        } catch (IllegalArgumentException e) {
+            responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("bad userId").asRuntimeException());
+        } catch (TimesheetNotFoundException e) {
+            responseObserver.onError(Status.NOT_FOUND.withDescription(e.getMessage()).asRuntimeException());
+        } catch (Exception e) {
+            responseObserver.onError(Status.UNKNOWN.withDescription("server error").withCause(e).asRuntimeException());
+        }
+    }
+
+    @Override
+    public void requestLatestTimesheetSummary(timesheet.LatestTimesheetSummaryRequest request,
+                                              StreamObserver<timesheet.LatestTimesheetSummaryResponse> responseObserver) {
+        try {
+            UUID userId = UUID.fromString(request.getUserId());
+
+            Timesheet latest = timesheetRepository.findByUserIdOrderByDateOfIssueDesc(userId).stream()
+                    .max(Comparator
+                            .comparing(this::resolveLoggedAt)
+                            .thenComparing(Timesheet::getDateOfIssue)
+                            .thenComparing(Timesheet::getTimesheetId))
+                    .orElseThrow(() -> new TimesheetNotFoundException("No timesheets for user " + userId));
+
+            timesheet.LatestTimesheetSummaryResponse response = timesheet.LatestTimesheetSummaryResponse.newBuilder()
+                    .setTimesheetId(latest.getTimesheetId().toString())
+                    .setDateOfIssue(latest.getDateOfIssue().toString())
+                    .setWeekNumber(String.valueOf(latest.getWeekNumber()))
+                    .setWeekBasedYear(String.valueOf(latest.getWeekBasedYear()))
+                    .setShiftEndTime(asText(latest.getShiftEndTime() == null ? null : latest.getShiftEndTime().toString()))
+                    .build();
+
+            responseObserver.onNext(response);
+            responseObserver.onCompleted();
         } catch (IllegalArgumentException e) {
             responseObserver.onError(Status.INVALID_ARGUMENT.withDescription("bad userId").asRuntimeException());
         } catch (TimesheetNotFoundException e) {
@@ -155,5 +188,12 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
 
     private String asDecimal(BigDecimal value) {
         return value == null ? "" : value.toPlainString();
+    }
+
+    private LocalDateTime resolveLoggedAt(Timesheet timesheet) {
+        if (timesheet.getShiftEndTime() != null) {
+            return timesheet.getShiftEndTime();
+        }
+        return timesheet.getDateOfIssue().atStartOfDay();
     }
 }

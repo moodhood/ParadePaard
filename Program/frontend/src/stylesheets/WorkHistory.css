@@ -30,6 +30,10 @@
     text-align: left;
 }
 
+.workHistoryHeader--detail {
+    gap: 12px;
+}
+
 .workHistoryTitle {
     margin: 0;
     font-size: 28px;
@@ -217,6 +221,23 @@
     background: rgba(47, 107, 255, 0.06);
 }
 
+.workHistoryRowInteractive {
+    cursor: pointer;
+}
+
+.workHistoryRowInteractive:focus-visible {
+    outline: 2px solid #2f6bff;
+    outline-offset: -2px;
+}
+
+.workHistoryCellMain {
+    font-weight: 700;
+}
+
+.workHistoryCellMain--link {
+    color: #1d4ed8;
+}
+
 .workHistoryTable tfoot td {
     border-top: 1px solid rgba(0, 0, 0, 0.10);
     background: rgba(255, 255, 255, 0.75);
@@ -272,6 +293,47 @@
     font-style: italic;
 }
 
+.workHistoryDetailLayout {
+    display: grid;
+    gap: 20px;
+}
+
+.workHistoryDetailGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.workHistoryDetailItem {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.workHistoryDetailLabel {
+    font-size: 12px;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.workHistoryDetailValue {
+    color: #111827;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.workHistoryDetailActions {
+    display: flex;
+    justify-content: flex-start;
+    margin-top: 16px;
+}
+
 @media (max-width: 640px) {
     .workHistoryShell {
         width: 92%;
@@ -293,6 +355,10 @@
 @media (max-width: 800px) {
     .workHistoryFilterGrid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .workHistoryDetailGrid {
+        grid-template-columns: 1fr;
     }
 }
 

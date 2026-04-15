@@ -5,101 +5,404 @@
     <title>Payslip</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        :root { --pad:16px; --gap:12px; --radius:12px; --border:1px solid #e5e7eb; --text:#111827; --muted:#6b7280; --bg:#ffffff; --bg_alt:#f9fafb; }
-        * { box-sizing:border-box; }
-        html, body { margin:0; color:var(--text); background:var(--bg); font:14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-        .page { max-width:900px; margin:24px auto; padding:var(--pad); }
-        .card { background:#fff; border:var(--border); border-radius:var(--radius); overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.04); }
-        .header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px; background:var(--bg_alt); border-bottom:var(--border); }
-        .hdr_left h1 { font-size:22px; margin:0 0 4px 0; }
-        .hdr_left .sub { color:var(--muted); font-size:13px; }
-        .hdr_right { text-align:right; }
-        .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:600; font-size:12px; }
-        .section { padding:20px; display:grid; gap:var(--gap); }
-        .grid_two { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); }
-        .box { border:var(--border); border-radius:10px; padding:14px; background:#fff; }
-        .box h3 { margin:0 0 8px 0; font-size:14px; }
-        .meta { display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:13px; }
-        .meta .label { color:var(--muted); }
-        table { width:100%; border-collapse:collapse; }
-        thead th { text-align:left; font-size:12px; color:var(--muted); font-weight:600; padding:10px 12px; background:var(--bg_alt); border-bottom:var(--border); }
-        tbody td { padding:10px 12px; border-bottom:var(--border); vertical-align:top; }
-        .num { text-align:right; white-space:nowrap; }
-        .muted { color:var(--muted); }
-        .totals { display:grid; grid-template-columns:1fr 260px; gap:var(--gap); margin-top:8px; }
-        .totals .sum { border:var(--border); border-radius:10px; }
-        .sum_row { display:grid; grid-template-columns:1fr auto; padding:10px 14px; }
-        .sum_row + .sum_row { border-top:var(--border); }
-        .sum_row.total { font-weight:700; background:#f0fdf4; }
-        @media print { @page { size:A4; margin:12mm; } }
+        :root {
+            --paper: #ffffff;
+            --canvas: #eef3f8;
+            --ink: #102235;
+            --muted: #637487;
+            --line: #d8e1ea;
+            --line-strong: #b8c6d3;
+            --accent: #2c628f;
+            --accent-soft: #edf4fa;
+            --summary: #f5f8fb;
+            --success: #e8f5eb;
+        }
+
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--canvas);
+            color: var(--ink);
+            font: 14px/1.45 "Segoe UI", Arial, sans-serif;
+        }
+
+        .page {
+            width: 900px;
+            margin: 24px auto;
+            padding: 28px 32px 32px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            box-shadow: 0 18px 48px rgba(16, 34, 53, 0.12);
+        }
+
+        .header {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 24px;
+        }
+
+        .header td {
+            vertical-align: top;
+        }
+
+        .brandTitle {
+            margin: 0;
+            font-size: 34px;
+            line-height: 1;
+            letter-spacing: 0.04em;
+            font-weight: 800;
+            color: var(--accent);
+            text-transform: uppercase;
+        }
+
+        .brandSub {
+            margin-top: 10px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .docMeta {
+            width: 280px;
+            margin-left: auto;
+            border-collapse: collapse;
+        }
+
+        .docMeta td {
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+        }
+
+        .docMetaLabel {
+            width: 42%;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .docMetaValue {
+            background: var(--accent-soft);
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .sectionGrid {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 18px;
+        }
+
+        .sectionGrid td {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .sectionGrid td:first-child {
+            padding-right: 10px;
+        }
+
+        .sectionGrid td:last-child {
+            padding-left: 10px;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+        }
+
+        .panelTitle {
+            padding: 9px 12px;
+            background: var(--accent);
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .panelBody {
+            padding: 12px;
+            background: #ffffff;
+        }
+
+        .identityName {
+            margin: 0 0 8px;
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .identityLine {
+            margin: 0 0 4px;
+            color: var(--ink);
+        }
+
+        .identityLine.muted {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .infoTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .infoTable td {
+            padding: 8px 0;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .infoTable tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .infoLabel {
+            width: 42%;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .infoValue {
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .ledger {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        .ledger th,
+        .ledger td {
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+        }
+
+        .ledger th {
+            background: #f1f5f9;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .ledger .num {
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .summaryWrap {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0 18px;
+        }
+
+        .summaryWrap td {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .summaryWrap td:first-child {
+            padding-right: 10px;
+        }
+
+        .summaryWrap td:last-child {
+            padding-left: 10px;
+        }
+
+        .summaryTable {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summaryTable td {
+            border: 1px solid var(--line);
+            padding: 10px 12px;
+        }
+
+        .summaryTable .summaryHead {
+            background: #f1f5f9;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .summaryTable .num {
+            text-align: right;
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .netRow td {
+            background: var(--success);
+            font-weight: 800;
+            border-color: #c8decb;
+        }
+
+        .footerNote {
+            margin-top: 22px;
+            padding-top: 14px;
+            border-top: 1px solid var(--line-strong);
+            color: var(--muted);
+            font-size: 12px;
+            text-align: center;
+        }
+
+        code {
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+        }
+
+        @media print {
+            @page { size: A4; margin: 10mm; }
+            body { background: #ffffff; }
+            .page {
+                width: auto;
+                margin: 0;
+                box-shadow: none;
+                border: 0;
+                padding: 0;
+            }
+        }
     </style>
 </head>
 <body>
 <div class="page">
-    <div class="card" id="payslipCard">
-        <div class="header">
-            <div class="hdr_left">
-                <h1>Payslip</h1>
-                <div class="sub" id="payslipId"></div>
-            </div>
-            <div class="hdr_right">
-                <div class="pill" id="dateOfIssue"></div>
-                <div class="muted" id="weekInfo"></div>
-            </div>
-        </div>
-
-        <div class="section grid_two">
-            <div class="box">
-                <h3>Employee</h3>
-                <div class="meta">
-                    <div class="label">Name</div><div id="name"></div>
-                    <div class="label">Date of birth</div><div id="dob"></div>
-                    <div class="label">Address</div><div id="address"></div>
-                    <div class="label">City</div><div id="city"></div>
-                    <div class="label">Country</div><div id="country"></div>
-                    <div class="label">User id</div><div><code id="userId"></code></div>
-                </div>
-            </div>
-            <div class="box">
-                <h3>Contract</h3>
-                <div class="meta">
-                    <div class="label">Start date</div><div id="startDate"></div>
-                    <div class="label">Function</div><div id="functionName"></div>
-                    <div class="label">Hourly wage</div><div id="hourlyWage"></div>
-                    <div class="label">Week number</div><div id="weekNumber"></div>
-                    <div class="label">Year</div><div id="weekYear"></div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h3 style="margin:0 0 6px 0;">Work summary</h3>
-            <div class="box" style="padding:0;">
-                <table id="lines">
-                    <thead>
+    <table class="header">
+        <tr>
+            <td>
+                <h1 class="brandTitle">Payslip</h1>
+                <div class="brandSub" id="payslipId"></div>
+            </td>
+            <td>
+                <table class="docMeta">
                     <tr>
-                        <th>Function</th>
-                        <th class="num">Hours</th>
-                        <th class="num">Rate</th>
-                        <th class="num">Travel</th>
-                        <th class="num">Line total</th>
+                        <td class="docMetaLabel">Issue Date</td>
+                        <td class="docMetaValue" id="dateOfIssue"></td>
                     </tr>
-                    </thead>
-                    <tbody id="linesBody"></tbody>
+                    <tr>
+                        <td class="docMetaLabel">Period</td>
+                        <td class="docMetaValue" id="weekInfo"></td>
+                    </tr>
                 </table>
-            </div>
+            </td>
+        </tr>
+    </table>
 
-            <div class="totals">
-                <div></div>
-                <div class="sum">
-                    <div class="sum_row"><div>Gross</div><div class="num" id="gross"></div></div>
-                    <div class="sum_row"><div>Wage tax</div><div class="num" id="tax"></div></div>
-                    <div class="sum_row"><div>Travel</div><div class="num" id="travel"></div></div>
-                    <div class="sum_row total"><div>Net</div><div class="num" id="net"></div></div>
+    <table class="sectionGrid">
+        <tr>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Employee Information</div>
+                    <div class="panelBody">
+                        <p class="identityName" id="name"></p>
+                        <p class="identityLine" id="address"></p>
+                        <p class="identityLine" id="city"></p>
+                        <p class="identityLine" id="country"></p>
+                        <p class="identityLine muted">Date of birth: <span id="dob"></span></p>
+                        <p class="identityLine muted">User ID: <code id="userId"></code></p>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </td>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Pay Information</div>
+                    <div class="panelBody">
+                        <table class="infoTable">
+                            <tr>
+                                <td class="infoLabel">Function</td>
+                                <td class="infoValue" id="functionName"></td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Start Date</td>
+                                <td class="infoValue" id="startDate"></td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Hourly Wage</td>
+                                <td class="infoValue" id="hourlyWage"></td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Week Number</td>
+                                <td class="infoValue" id="weekNumber"></td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Week Year</td>
+                                <td class="infoValue" id="weekYear"></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="panel">
+        <div class="panelTitle">Earnings</div>
+        <table class="ledger" id="lines">
+            <thead>
+            <tr>
+                <th>Function</th>
+                <th class="num">Hours</th>
+                <th class="num">Rate</th>
+                <th class="num">Travel</th>
+                <th class="num">Amount</th>
+            </tr>
+            </thead>
+            <tbody id="linesBody"></tbody>
+        </table>
     </div>
+
+    <table class="summaryWrap">
+        <tr>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Deductions</div>
+                    <table class="summaryTable">
+                        <tr>
+                            <td class="summaryHead">Type</td>
+                            <td class="summaryHead num">Amount</td>
+                        </tr>
+                        <tr>
+                            <td>Wage tax</td>
+                            <td class="num" id="tax"></td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Summary</div>
+                    <table class="summaryTable">
+                        <tr>
+                            <td>Gross pay</td>
+                            <td class="num" id="gross"></td>
+                        </tr>
+                        <tr>
+                            <td>Travel reimbursement</td>
+                            <td class="num" id="travel"></td>
+                        </tr>
+                        <tr class="netRow">
+                            <td>Net pay</td>
+                            <td class="num" id="net"></td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="footerNote">This payslip summarizes the same payroll content with a clearer document layout.</div>
 </div>
 
 <script id="payload" type="application/json">__PAYSLIP_JSON__</script>
@@ -108,19 +411,19 @@
     function fmtDate(s){ if(!s) return ''; const d=new Date(s); if(Number.isNaN(d.getTime())) return s; return d.toLocaleDateString('nl-NL',{year:'numeric',month:'2-digit',day:'2-digit'}); }
     function safe(v){ return v ?? ''; }
     function render(dto){
-        document.getElementById('payslipId').textContent = 'ID ' + safe(dto.payslipId);
-        document.getElementById('dateOfIssue').textContent = 'Issued ' + fmtDate(dto.dateOfIssue);
-        document.getElementById('weekInfo').textContent = 'Week ' + safe(dto.weekNumber) + ' of ' + safe(dto.weekBasedYear);
+        document.getElementById('payslipId').textContent = 'Payslip ID ' + safe(dto.payslipId);
+        document.getElementById('dateOfIssue').textContent = fmtDate(dto.dateOfIssue);
+        document.getElementById('weekInfo').textContent = 'Week ' + safe(dto.weekNumber) + ' / ' + safe(dto.weekBasedYear);
         document.getElementById('name').textContent = safe(dto.name);
         document.getElementById('dob').textContent = fmtDate(dto.dateOfBirth);
         const addr=[dto.streetName,dto.houseNumber,dto.houseNumberSuffix].filter(Boolean).join(' ');
-        const zip=[dto.postalCode].filter(Boolean).join(' ');
-        document.getElementById('address').textContent=[addr,zip].filter(Boolean).join(', ');
-        document.getElementById('city').textContent=safe(dto.city);
-        document.getElementById('country').textContent=safe(dto.country);
+        const locality=[dto.postalCode,dto.city].filter(Boolean).join(' ');
+        document.getElementById('address').textContent=addr || '-';
+        document.getElementById('city').textContent=locality || '-';
+        document.getElementById('country').textContent=safe(dto.country) || '-';
         document.getElementById('userId').textContent=safe(dto.userId);
         document.getElementById('startDate').textContent=fmtDate(dto.startDate);
-        document.getElementById('functionName').textContent=safe(dto.functionName);
+        document.getElementById('functionName').textContent=safe(dto.functionName) || '-';
         document.getElementById('hourlyWage').textContent=money(dto.hourlyWage);
         document.getElementById('weekNumber').textContent=safe(dto.weekNumber);
         document.getElementById('weekYear').textContent=safe(dto.weekBasedYear);
@@ -131,7 +434,7 @@
         const travel=Number(dto.travelExpenses||0);
         const total=hours*rate+travel;
         body.insertAdjacentHTML('beforeend', `<tr>
-          <td>${safe(dto.functionName)}</td>
+          <td>${safe(dto.functionName) || '-'}</td>
           <td class="num">${hours.toFixed(2)}</td>
           <td class="num">${money(rate)}</td>
           <td class="num">${money(travel)}</td>

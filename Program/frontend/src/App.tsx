@@ -3,6 +3,7 @@ import Login from "./pages/Login";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import WorkHistory from "./pages/WorkHistory";
+import WorkHistoryShiftDetail from "./pages/WorkHistoryShiftDetail";
 import TravelClaims from "./pages/TravelClaims";
 import MyPlanning from "./pages/MyPlanning";
 import MyPlanningShiftDetail from "./pages/MyPlanningShiftDetail";
@@ -65,6 +66,14 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <WorkHistory />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/work-history/:timesheetId"
+                element={
+                    <RequireActiveUser>
+                        <WorkHistoryShiftDetail />
                     </RequireActiveUser>
                 }
             />

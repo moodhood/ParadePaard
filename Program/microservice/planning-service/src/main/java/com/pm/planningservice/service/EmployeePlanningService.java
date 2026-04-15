@@ -2,6 +2,7 @@ package com.pm.planningservice.service;
 
 import com.pm.planningservice.dto.EmployeePlanningAssignmentDTO;
 import com.pm.planningservice.dto.TravelClaimSummaryDTO;
+import com.pm.planningservice.integration.UserDirectoryClient;
 import com.pm.planningservice.model.Event;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
@@ -23,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -35,19 +37,22 @@ public class EmployeePlanningService {
     private final EventRepository eventRepository;
     private final TravelClaimRepository travelClaimRepository;
     private final PlanningTimesheetExportService planningTimesheetExportService;
+    private final UserDirectoryClient userDirectoryClient;
 
     public EmployeePlanningService(
             ScheduleEntryRepository scheduleEntryRepository,
             ShiftRepository shiftRepository,
             EventRepository eventRepository,
             TravelClaimRepository travelClaimRepository,
-            PlanningTimesheetExportService planningTimesheetExportService
+            PlanningTimesheetExportService planningTimesheetExportService,
+            UserDirectoryClient userDirectoryClient
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.shiftRepository = shiftRepository;
         this.eventRepository = eventRepository;
         this.travelClaimRepository = travelClaimRepository;
         this.planningTimesheetExportService = planningTimesheetExportService;
+        this.userDirectoryClient = userDirectoryClient;
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +74,14 @@ public class EmployeePlanningService {
         return dto;
     }
 
+    @Transactional(readOnly = true)
+    public EmployeePlanningAssignmentDTO getAssignmentDetailForAdmin(UUID companyId, UUID scheduleEntryId) {
+        ScheduleEntry entry = scheduleEntryRepository.findById(scheduleEntryId)
+                .orElseThrow(() -> new IllegalArgumentException("Assignment not found"));
+        requireShift(entry.getShiftId(), companyId);
+        return mapAssignment(entry);
+    }
+
     @Transactional
     public EmployeePlanningAssignmentDTO respondToAssignment(UUID companyId, UUID userId, UUID scheduleEntryId, ScheduleEntryStatus status) {
         if (status != ScheduleEntryStatus.CONFIRMED && status != ScheduleEntryStatus.CANCELLED) {
@@ -76,7 +89,8 @@ public class EmployeePlanningService {
         }
         ScheduleEntry entry = requireOwnedEntry(companyId, userId, scheduleEntryId);
         Shift shift = requireShift(entry.getShiftId(), companyId);
-        if (!shift.getEndTime().isAfter(LocalDateTime.now())) {
+        Event event = requireEvent(shift.getEventId(), companyId);
+        if (PlanningTimeZoneSupport.hasShiftEnded(shift, event)) {
             throw new IllegalArgumentException("Past shifts can no longer be accepted or declined");
         }
         entry.setStatus(status);
@@ -98,7 +112,8 @@ public class EmployeePlanningService {
             throw new IllegalArgumentException("Travel claims are only available for accepted shifts");
         }
         Shift shift = requireShift(entry.getShiftId(), companyId);
-        if (shift.getEndTime().isAfter(LocalDateTime.now())) {
+        Event event = requireEvent(shift.getEventId(), companyId);
+        if (!PlanningTimeZoneSupport.hasShiftEnded(shift, event)) {
             throw new IllegalArgumentException("Travel claims can only be submitted after the shift has ended");
         }
 
@@ -254,11 +269,12 @@ public class EmployeePlanningService {
         Event event = eventRepository.findById(shift.getEventId())
                 .orElseThrow(() -> new IllegalArgumentException("Event not found"));
         TravelClaim claim = travelClaimRepository.findByScheduleEntryId(entry.getScheduleEntryId()).orElse(null);
+        String displayName = userDirectoryClient.getDisplayNamesByUserIds(Set.of(entry.getUserId())).get(entry.getUserId());
 
         EmployeePlanningAssignmentDTO dto = new EmployeePlanningAssignmentDTO();
         dto.setScheduleEntryId(entry.getScheduleEntryId());
         dto.setUserId(entry.getUserId());
-        dto.setUserDisplayName(null);
+        dto.setUserDisplayName(displayName);
         dto.setEventId(event.getEventId());
         dto.setEventName(event.getName());
         dto.setClientCompanyName(null);
@@ -266,6 +282,7 @@ public class EmployeePlanningService {
         dto.setEventEndDate(event.getEndDate());
         dto.setInternalDescription(event.getInternalDescription());
         dto.setExternalDescription(event.getExternalDescription());
+        dto.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(event.getEventTimezone()));
         dto.setEventLocation(event.getLocation());
         dto.setShiftId(shift.getShiftId());
         dto.setShiftName(shift.getName() == null || shift.getName().isBlank() ? shift.getFunctionName() : shift.getName());
@@ -276,11 +293,20 @@ public class EmployeePlanningService {
         dto.setFunctionName(shift.getFunctionName());
         dto.setShiftLocation(shift.getLocation() == null || shift.getLocation().isBlank() ? event.getLocation() : shift.getLocation());
         dto.setStatus(entry.getStatus().name());
-        dto.setIsPast(!shift.getEndTime().isAfter(LocalDateTime.now()));
+        dto.setIsPast(PlanningTimeZoneSupport.hasShiftEnded(shift, event));
         dto.setTimesheetExported(Boolean.TRUE.equals(entry.getTimesheetExported()));
         dto.setTimesheetExportedAt(entry.getTimesheetExportedAt());
         dto.setTravelClaim(mapTravelClaim(claim));
         return dto;
+    }
+
+    private Event requireEvent(UUID eventId, UUID companyId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+        if (!companyId.equals(event.getCompanyId())) {
+            throw new IllegalArgumentException("Event not found");
+        }
+        return event;
     }
 
     private TravelClaimSummaryDTO mapTravelClaim(TravelClaim claim) {

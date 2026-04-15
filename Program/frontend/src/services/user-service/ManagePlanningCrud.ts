@@ -4,6 +4,7 @@ export type PlanningEventSaveDTO = {
     name: string;
     startDate: string;
     endDate: string;
+    eventTimezone?: string | null;
     clientCompanyId?: string | null;
     internalDescription?: string | null;
     externalDescription?: string | null;

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
@@ -68,10 +68,12 @@ export interface Timesheet {
 }
 
 export default function WorkHistory() {
+    const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const personalView = searchParams.get("view") === "personal";
     const [permissions, setPermissions] = useState<string[]>([]);
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
+    const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [filters, setFilters] = useState<FilterState>(() => createFilters());
@@ -82,18 +84,24 @@ export default function WorkHistory() {
     const canViewAllTimesheets = permissions.includes("CAN_VIEW_ALL_TIMESHEETS");
     const canManageTimesheets = permissions.includes("CAN_MANAGE_TIMESHEETS");
     const showAllTimesheets = canViewAllTimesheets && !personalView;
+    const getEmployeeName = (timesheet: Timesheet) => {
+        if (!timesheet.userId) {
+            return timesheet.name ?? "-";
+        }
+        return displayNames[timesheet.userId] ?? timesheet.name ?? timesheet.userId;
+    };
 
     const userOptions = useMemo(() => {
         if (!showAllTimesheets) return [];
         const map = new Map<string, string>();
         timesheets.forEach((t) => {
             if (!t.userId) return;
-            map.set(t.userId, t.name ?? t.userId);
+            map.set(t.userId, getEmployeeName(t));
         });
         return [...map.entries()]
             .map(([id, name]) => ({ id, name }))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [showAllTimesheets, timesheets]);
+    }, [displayNames, showAllTimesheets, timesheets]);
 
     const functionOptions = useMemo(() => {
         const values = new Set<string>();
@@ -123,7 +131,7 @@ export default function WorkHistory() {
             }
 
             if (term) {
-                const haystack = [t.name ?? "", t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
+                const haystack = [getEmployeeName(t), t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
                     .concat([t.eventName ?? "", t.shiftName ?? ""])
                     .join(" ")
                     .toLowerCase();
@@ -155,7 +163,7 @@ export default function WorkHistory() {
         });
 
         return [...filtered].sort((a, b) => (b.dateOfIssue ?? "").localeCompare(a.dateOfIssue ?? ""));
-    }, [filters, showAllTimesheets, timesheets]);
+    }, [displayNames, filters, showAllTimesheets, timesheets]);
 
     const totalHours = useMemo(() => sumHours(filteredTimesheets), [filteredTimesheets]);
 
@@ -214,6 +222,34 @@ export default function WorkHistory() {
         }
     }, [showAllTimesheets]);
 
+    useEffect(() => {
+        let cancelled = false;
+        const userIds = timesheets
+            .map((timesheet) => timesheet.userId)
+            .filter((value): value is string => Boolean(value));
+
+        if (userIds.length === 0) {
+            setDisplayNames({});
+            return;
+        }
+
+        UserServices.getUserDisplayNames(userIds)
+            .then((data) => {
+                if (!cancelled) {
+                    setDisplayNames(data);
+                }
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setDisplayNames({});
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [timesheets]);
+
     const updateFilter = (field: keyof FilterState, value: string) => {
         setFilters((prev) => ({
             ...prev,
@@ -223,6 +259,13 @@ export default function WorkHistory() {
 
     const resetFilters = () => {
         setFilters(createFilters());
+    };
+
+    const openShiftDetail = (timesheetId: string) => {
+        const target = personalView
+            ? `/work-history/${timesheetId}?view=personal`
+            : `/work-history/${timesheetId}`;
+        navigate(target);
     };
 
     const columnCount = showAllTimesheets ? 5 : 4;
@@ -430,11 +473,25 @@ export default function WorkHistory() {
                                                         </tr>
                                                     ) : (
                                                         filteredTimesheets.map((t) => (
-                                                            <tr key={t.timesheetId}>
+                                                            <tr
+                                                                key={t.timesheetId}
+                                                                className="workHistoryRowInteractive"
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                onClick={() => openShiftDetail(t.timesheetId)}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter" || event.key === " ") {
+                                                                        event.preventDefault();
+                                                                        openShiftDetail(t.timesheetId);
+                                                                    }
+                                                                }}
+                                                            >
                                                                 <td>{formatDate(t.dateOfIssue)}</td>
-                                                                {showAllTimesheets ? <td>{t.name ?? "-"}</td> : null}
+                                                                {showAllTimesheets ? <td>{getEmployeeName(t)}</td> : null}
                                                                 <td>
-                                                                    <div>{t.shiftName ?? t.function}</div>
+                                                                    <div className="workHistoryCellMain workHistoryCellMain--link">
+                                                                        {t.shiftName ?? t.function}
+                                                                    </div>
                                                                     <div style={{ fontSize: 12, color: "#6b7280" }}>
                                                                         {t.eventName ?? t.function}
                                                                     </div>

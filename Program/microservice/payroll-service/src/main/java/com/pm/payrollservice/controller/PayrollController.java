@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -107,6 +108,9 @@ public class PayrollController {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"payslip_" + id + ".pdf\"");
+        headers.setCacheControl(CacheControl.noStore().mustRevalidate().getHeaderValue());
+        headers.setPragma("no-cache");
+        headers.setExpires(0);
         return ResponseEntity.ok().headers(headers).body(pdf);
     }
 

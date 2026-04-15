@@ -28,6 +28,8 @@ import GetMyTimesheets, { type MyTimesheetRow } from "./GetMyTimesheets";
 import GetMyTimesheetsPage from "./GetMyTimesheetsPage";
 import GetAllTimesheets, { type TimesheetRow } from "./GetAllTimesheets";
 import GetAllTimesheetsPage from "./GetAllTimesheetsPage";
+import GetTimesheetById from "./GetTimesheetById";
+import GetUserDisplayNames from "./GetUserDisplayNames";
 import GetPayslipPdf from "./GetPayslipPdf";
 import CreateTimesheet, { type CreateTimesheetRequestDTO, type CreateTimesheetResponseDTO } from "./CreateTimesheet";
 import GetContracts, { type ContractResponseDTO } from "./GetContracts";
@@ -52,6 +54,7 @@ import {
     type EmployeePlanningAssignmentDTO,
     type TravelClaimSummaryDTO,
 } from "./EmployeePlanning";
+import GetPlanningAssignmentAdmin from "./GetPlanningAssignmentAdmin";
 import CreatePlanningClient, {
     type PlanningClientCompanyContactSaveDTO,
     type PlanningClientCompanySaveDTO,
@@ -183,6 +186,12 @@ export const UserServices = {
     getTimesheetsPage: async (page: number, size = 50): Promise<PaginatedResponse<TimesheetRow>> => {
         return await GetAllTimesheetsPage(API_BASE_URL, { page, size });
     },
+    getTimesheetById: async (timesheetId: string): Promise<TimesheetRow> => {
+        return await GetTimesheetById(API_BASE_URL, timesheetId);
+    },
+    getUserDisplayNames: async (userIds: string[]): Promise<Record<string, string>> => {
+        return await GetUserDisplayNames(API_BASE_URL, userIds);
+    },
     getContracts: async (): Promise<ContractResponseDTO[]> => {
         return await GetContracts(API_BASE_URL);
     },
@@ -194,6 +203,9 @@ export const UserServices = {
     },
     getMyPlanningAssignment: async (scheduleEntryId: string): Promise<EmployeePlanningAssignmentDTO> => {
         return await GetMyPlanningAssignment(API_BASE_URL, scheduleEntryId);
+    },
+    getPlanningAssignmentAdmin: async (scheduleEntryId: string): Promise<EmployeePlanningAssignmentDTO> => {
+        return await GetPlanningAssignmentAdmin(API_BASE_URL, scheduleEntryId);
     },
     respondToMyPlanningAssignment: async (
         scheduleEntryId: string,

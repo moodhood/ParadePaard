@@ -14,6 +14,7 @@ import com.pm.payrollservice.model.Payslip;
 import com.pm.payrollservice.model.PayslipStatus;
 import com.pm.payrollservice.repository.PayslipRepository;
 import contract.ContractDataResponse;
+import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -129,13 +130,12 @@ public class PayrollService {
         payslip.setStatus(PayslipStatus.RELEASED);
         payslip.setAvailableToUserAt(date);
         payslip.setGeneratedAt(OffsetDateTime.now());
-
-        UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
-        PayslipMapper.updateFromUserData(payslip, userData);
-
-        ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
-        TimesheetFetchResult fetchResult = fetchTimesheetData(userId, payslip.getWeekNumber(), payslip.getWeekBasedYear());
-        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, fetchResult.timesheetData());
+        TimesheetFetchResult fetchResult = populatePayslipData(
+                payslip,
+                userId,
+                payslip.getWeekNumber(),
+                payslip.getWeekBasedYear()
+        );
 
         PayslipCalculator.apply(payslip);
         applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.RELEASED);
@@ -155,13 +155,12 @@ public class PayrollService {
         payslip.setStatus(PayslipStatus.PENDING_REVIEW);
         payslip.setAvailableToUserAt(payoutDate);
         payslip.setGeneratedAt(OffsetDateTime.now());
-
-        UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
-        PayslipMapper.updateFromUserData(payslip, userData);
-
-        ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
-        TimesheetFetchResult fetchResult = fetchTimesheetData(userId, payslip.getWeekNumber(), payslip.getWeekBasedYear());
-        PayslipMapper.updateFromContractDataAndTimesheetData(payslip, contractData, fetchResult.timesheetData());
+        TimesheetFetchResult fetchResult = populatePayslipData(
+                payslip,
+                userId,
+                payslip.getWeekNumber(),
+                payslip.getWeekBasedYear()
+        );
 
         PayslipCalculator.apply(payslip);
         applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.PENDING_REVIEW);
@@ -321,6 +320,44 @@ public class PayrollService {
 
     private record TimesheetFetchResult(TimesheetDataResponse timesheetData, List<String> discrepancies) { }
 
+    private TimesheetFetchResult populatePayslipData(Payslip payslip, UUID userId, int weekNumber, int weekBasedYear) {
+        List<String> discrepancies = new ArrayList<>();
+        populateUserData(payslip, userId, discrepancies);
+        populateContractData(payslip, userId, discrepancies);
+
+        TimesheetFetchResult fetchResult = fetchTimesheetData(userId, weekNumber, weekBasedYear);
+        discrepancies.addAll(fetchResult.discrepancies());
+        PayslipMapper.updateFromTimesheetData(payslip, fetchResult.timesheetData());
+
+        if (payslip.getWageTaxWithheldTest() == null) {
+            payslip.setWageTaxWithheldTest(BigDecimal.ZERO);
+        }
+
+        return new TimesheetFetchResult(fetchResult.timesheetData(), discrepancies);
+    }
+
+    private void populateUserData(Payslip payslip, UUID userId, List<String> discrepancies) {
+        try {
+            UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
+            PayslipMapper.updateFromUserData(payslip, userData);
+        } catch (StatusRuntimeException ex) {
+            discrepancies.add(describeGrpcIssue("user data", ex));
+        } catch (Exception ex) {
+            discrepancies.add("Could not load user data");
+        }
+    }
+
+    private void populateContractData(Payslip payslip, UUID userId, List<String> discrepancies) {
+        try {
+            ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
+            PayslipMapper.updateFromContractData(payslip, contractData);
+        } catch (StatusRuntimeException ex) {
+            discrepancies.add(describeGrpcIssue("contract data", ex));
+        } catch (Exception ex) {
+            discrepancies.add("Could not load contract data");
+        }
+    }
+
     private TimesheetFetchResult fetchTimesheetData(UUID userId, int weekNumber, int weekBasedYear) {
         List<String> discrepancies = new ArrayList<>();
         TimesheetDataResponse timesheetData = null;
@@ -331,6 +368,13 @@ public class PayrollService {
             discrepancies.add("Missing timesheet data");
         }
         return new TimesheetFetchResult(timesheetData, discrepancies);
+    }
+
+    private String describeGrpcIssue(String label, StatusRuntimeException ex) {
+        if (ex.getStatus().getCode() == Status.Code.NOT_FOUND) {
+            return "Missing " + label;
+        }
+        return "Could not load " + label;
     }
 
     private void applyDiscrepancyStatus(Payslip payslip, TimesheetFetchResult fetchResult, PayslipStatus defaultStatus) {

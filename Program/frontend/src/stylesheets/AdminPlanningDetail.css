@@ -516,8 +516,19 @@
 }
 
 .planningDetailStatusToggle {
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex: 0 1 400px;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  justify-content: stretch;
+}
+
+.planningDetailStatusToggle .planningModeButton {
+  min-width: 0;
+  padding-inline: 10px;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .planningDetailShiftWorkspaceHeader--search {
@@ -781,6 +792,16 @@
 }
 
 @media (max-width: 640px) {
+  .planningDetailShiftWorkspaceHeader {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .planningDetailStatusToggle {
+    width: 100%;
+    flex-basis: auto;
+  }
+
   .planningDetailRow {
     flex-direction: column;
     gap: 8px;

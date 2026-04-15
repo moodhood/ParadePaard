@@ -38,6 +38,12 @@ import {
     getShiftStaffingTone,
     getShiftTimeLabel,
 } from "../utils/planningSummary";
+import {
+    formatTimeZoneLabel,
+    getBrowserTimeZone,
+    getTimeZoneOptions,
+    isSupportedTimeZone,
+} from "../utils/timezones";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminPlanningOverview.css";
 import "../stylesheets/AdminPlanningDetail.css";
@@ -55,6 +61,7 @@ type ShiftDraft = {
 };
 
 type ScheduledFilter = "all" | "scheduled" | "accepted" | "declined";
+const EVENT_TIMEZONE_DATALIST_ID = "planning-event-detail-timezones";
 
 const shiftDateFormatter = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
 const shiftWeekdayFormatter = new Intl.DateTimeFormat("en-GB", { weekday: "long" });
@@ -114,7 +121,7 @@ function getDefaultTime(value: string | null | undefined, fallback: string): str
     return value?.slice(0, 5) || fallback;
 }
 
-function parseDutchTimeInput(value: string): string | null {
+function parseTimeInput(value: string): string | null {
     const trimmed = value.trim();
     if (!trimmed) return null;
     const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
@@ -122,19 +129,19 @@ function parseDutchTimeInput(value: string): string | null {
     return trimmed;
 }
 
-function formatDutchDateInput(value: string): string {
+function formatDateFieldInput(value: string): string {
     return formatDateInput(value);
 }
 
-function parseDutchDateInput(value: string): string | null {
+function parseDateInput(value: string): string | null {
     return parseDisplayDate(value);
 }
 
 function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
     return {
-        startDate: formatDutchDateInput(event.startDate),
+        startDate: formatDateFieldInput(event.startDate),
         startTime: getDefaultTime(event.defaultStartTime, "09:00"),
-        endDate: formatDutchDateInput(event.startDate),
+        endDate: formatDateFieldInput(event.startDate),
         endTime: getDefaultTime(event.defaultEndTime, "17:00"),
         name: "",
         functionName: "",
@@ -147,8 +154,9 @@ function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
 function buildEventDraft(event: PlanningEventDTO): PlanningEventSaveDTO {
     return {
         name: event.eventName,
-        startDate: formatDutchDateInput(event.startDate),
-        endDate: formatDutchDateInput(event.endDate),
+        startDate: formatDateFieldInput(event.startDate),
+        endDate: formatDateFieldInput(event.endDate),
+        eventTimezone: event.eventTimezone ?? getBrowserTimeZone(),
         clientCompanyId: event.clientCompanyId ?? "",
         location: event.location ?? "",
         internalDescription: event.internalDescription ?? "",
@@ -166,9 +174,9 @@ function buildShiftDraftFromRecord(day: string, shift: PlanningShiftDTO, event: 
     const endDate = endDateTime.split("T")[0] || startDate;
 
     return {
-        startDate: formatDutchDateInput(startDate),
+        startDate: formatDateFieldInput(startDate),
         startTime: getDefaultTime(startDateTime, "09:00"),
-        endDate: formatDutchDateInput(endDate),
+        endDate: formatDateFieldInput(endDate),
         endTime: getDefaultTime(endDateTime, "17:00"),
         name: shift.name?.trim() || "",
         functionName: shift.functionName,
@@ -297,6 +305,8 @@ function mergeShiftAllocations(event: PlanningEventDTO): PlanningEventDTO {
 export default function AdminPlanningEventDetail() {
     const { eventId } = useParams<{ eventId: string }>();
     const [searchParams, setSearchParams] = useSearchParams();
+    const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
+    const timeZoneOptions = useMemo(() => getTimeZoneOptions(), []);
     const [event, setEvent] = useState<PlanningEventDTO | null>(null);
     const [clients, setClients] = useState<PlanningClientCompanyDTO[]>([]);
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
@@ -343,6 +353,7 @@ export default function AdminPlanningEventDetail() {
         name: "",
         startDate: "",
         endDate: "",
+        eventTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
         internalDescription: "",
@@ -418,6 +429,16 @@ export default function AdminPlanningEventDetail() {
     const expandedShiftId = requestedShiftId && validShiftIds.has(requestedShiftId) ? requestedShiftId : null;
     const eventStatusLabel = event?.finalized ? "Finalized" : (event?.status?.trim() || "Draft");
     const eventStaffingTone = event ? getEventStaffingTone(event) : "empty";
+    const selectedClient = useMemo(
+        () => clients.find((client) => client.clientCompanyId === (event?.clientCompanyId ?? "")) ?? null,
+        [clients, event?.clientCompanyId]
+    );
+    const selectedDraftClient = useMemo(
+        () => clients.find((client) => client.clientCompanyId === (eventDraft.clientCompanyId ?? "")) ?? null,
+        [clients, eventDraft.clientCompanyId]
+    );
+    const normalizedEventTimezone = eventDraft.eventTimezone?.trim() || "";
+    const hasValidEventTimezone = isSupportedTimeZone(normalizedEventTimezone);
     const usersById = useMemo(() => Object.fromEntries(users.map((user) => [user.userId, user] as const)), [users]);
     const expandedShiftRecord = useMemo(
         () => shiftRecords.find((record) => record.shift.shiftId === expandedShiftId) ?? null,
@@ -609,15 +630,16 @@ export default function AdminPlanningEventDetail() {
         submitEvent.preventDefault();
         if (!event) return setEventSaveError("Event not found.");
 
-        const defaultStartTime = parseDutchTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
-        const defaultEndTime = parseDutchTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
-        const startDate = parseDutchDateInput(eventDraft.startDate || "");
-        const endDate = parseDutchDateInput(eventDraft.endDate || "");
+        const defaultStartTime = parseTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
+        const defaultEndTime = parseTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
+        const startDate = parseDateInput(eventDraft.startDate || "");
+        const endDate = parseDateInput(eventDraft.endDate || "");
 
         const payload: PlanningEventSaveDTO = {
             name: eventDraft.name?.trim() || "",
             startDate: startDate || "",
             endDate: endDate || "",
+            eventTimezone: normalizedEventTimezone,
             clientCompanyId: eventDraft.clientCompanyId?.toString().trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.toString().trim() || null,
             internalDescription: eventDraft.internalDescription?.toString().trim() || null,
@@ -637,6 +659,10 @@ export default function AdminPlanningEventDetail() {
 
         if (payload.endDate < payload.startDate) {
             return setEventSaveError("End date cannot be before start date.");
+        }
+
+        if (!hasValidEventTimezone) {
+            return setEventSaveError("Event time zone must be a valid value like Europe/Amsterdam.");
         }
 
         if (eventDraft.defaultStartTime?.toString().trim() && !defaultStartTime) {
@@ -668,10 +694,10 @@ export default function AdminPlanningEventDetail() {
             return setCreateShiftError("Shift start and end are required.");
         }
         if (!shiftDraft.functionName.trim()) return setCreateShiftError("Job function is required.");
-        const shiftStartDate = parseDutchDateInput(shiftDraft.startDate);
-        const shiftEndDate = parseDutchDateInput(shiftDraft.endDate);
+        const shiftStartDate = parseDateInput(shiftDraft.startDate);
+        const shiftEndDate = parseDateInput(shiftDraft.endDate);
         if (!shiftStartDate || !shiftEndDate) {
-            return setCreateShiftError("Use Dutch date format: dd/mm/yyyy.");
+            return setCreateShiftError("Use date format: dd/mm/yyyy.");
         }
         const shiftStartDateTime = `${shiftStartDate}T${shiftDraft.startTime}`;
         const shiftEndDateTime = `${shiftEndDate}T${shiftDraft.endTime}`;
@@ -718,10 +744,10 @@ export default function AdminPlanningEventDetail() {
             return setEditShiftError("Shift start and end are required.");
         }
         if (!editShiftDraft.functionName.trim()) return setEditShiftError("Job function is required.");
-        const shiftStartDate = parseDutchDateInput(editShiftDraft.startDate);
-        const shiftEndDate = parseDutchDateInput(editShiftDraft.endDate);
+        const shiftStartDate = parseDateInput(editShiftDraft.startDate);
+        const shiftEndDate = parseDateInput(editShiftDraft.endDate);
         if (!shiftStartDate || !shiftEndDate) {
-            return setEditShiftError("Use Dutch date format: dd/mm/yyyy.");
+            return setEditShiftError("Use date format: dd/mm/yyyy.");
         }
         const shiftStartDateTime = `${shiftStartDate}T${editShiftDraft.startTime}`;
         const shiftEndDateTime = `${shiftEndDate}T${editShiftDraft.endTime}`;
@@ -1181,9 +1207,11 @@ export default function AdminPlanningEventDetail() {
 
                                             <div className="planningDetailRows">
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Client</span><span className="planningDetailValue">{getEventClientName(event)}</span></div>
+                                                <div className="planningDetailRow"><span className="planningDetailLabel">Client line</span><span className="planningDetailValue">{selectedClient?.companyLine?.trim() || "No client line"}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Location</span><span className="planningDetailValue">{getEventLocation(event)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Dates</span><span className="planningDetailValue">{formatDateRange(event.startDate, event.endDate)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Time</span><span className="planningDetailValue">{getEventTimeLabel(event)}</span></div>
+                                                <div className="planningDetailRow"><span className="planningDetailLabel">Time zone</span><span className="planningDetailValue">{formatTimeZoneLabel(event.eventTimezone || browserTimeZone)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Staffing</span><span className="planningDetailValue">{getEventStaffingLabel(event)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Status</span><span className="planningDetailValue">{eventStatusLabel}</span></div>
                                                 <div className="planningDetailRow">
@@ -1221,7 +1249,7 @@ export default function AdminPlanningEventDetail() {
 
                     <div className="planningDetailModalGrid">
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift start datum</span>
+                            <span className="planningDetailModalLabel">Shift start date</span>
                             <input
                                 className="modal_input"
                                 type="text"
@@ -1240,7 +1268,7 @@ export default function AdminPlanningEventDetail() {
                             />
                         </label>
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift start tijd</span>
+                            <span className="planningDetailModalLabel">Shift start time</span>
                             <input
                                 className="modal_input"
                                 type="time"
@@ -1256,7 +1284,7 @@ export default function AdminPlanningEventDetail() {
 
                     <div className="planningDetailModalGrid">
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift eind datum</span>
+                            <span className="planningDetailModalLabel">Shift end date</span>
                             <input
                                 className="modal_input"
                                 type="text"
@@ -1275,7 +1303,7 @@ export default function AdminPlanningEventDetail() {
                             />
                         </label>
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift eind tijd</span>
+                            <span className="planningDetailModalLabel">Shift end time</span>
                             <input
                                 className="modal_input"
                                 type="time"
@@ -1396,7 +1424,7 @@ export default function AdminPlanningEventDetail() {
 
                     <div className="planningDetailModalGrid">
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift start datum</span>
+                            <span className="planningDetailModalLabel">Shift start date</span>
                             <input
                                 className="modal_input"
                                 type="text"
@@ -1415,7 +1443,7 @@ export default function AdminPlanningEventDetail() {
                             />
                         </label>
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift start tijd</span>
+                            <span className="planningDetailModalLabel">Shift start time</span>
                             <input
                                 className="modal_input"
                                 type="time"
@@ -1431,7 +1459,7 @@ export default function AdminPlanningEventDetail() {
 
                     <div className="planningDetailModalGrid">
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift eind datum</span>
+                            <span className="planningDetailModalLabel">Shift end date</span>
                             <input
                                 className="modal_input"
                                 type="text"
@@ -1450,7 +1478,7 @@ export default function AdminPlanningEventDetail() {
                             />
                         </label>
                         <label className="planningDetailModalField">
-                            <span className="planningDetailModalLabel">Shift eind tijd</span>
+                            <span className="planningDetailModalLabel">Shift end time</span>
                             <input
                                 className="modal_input"
                                 type="time"
@@ -1610,8 +1638,8 @@ export default function AdminPlanningEventDetail() {
                                         ...current,
                                         startDate,
                                         endDate: (() => {
-                                            const currentEndDate = parseDutchDateInput(current.endDate ?? "");
-                                            const nextStartDate = parseDutchDateInput(startDate);
+                                            const currentEndDate = parseDateInput(current.endDate ?? "");
+                                            const nextStartDate = parseDateInput(startDate);
                                             if (currentEndDate && nextStartDate && currentEndDate < nextStartDate) {
                                                 return startDate;
                                             }
@@ -1681,6 +1709,31 @@ export default function AdminPlanningEventDetail() {
                     </div>
 
                     <label className="planningDetailModalField">
+                        <span className="planningDetailModalLabel">Time zone</span>
+                        <input
+                            className="modal_input"
+                            list={EVENT_TIMEZONE_DATALIST_ID}
+                            value={eventDraft.eventTimezone ?? ""}
+                            onChange={(inputEvent) => {
+                                setEventDraft((current) => ({ ...current, eventTimezone: inputEvent.target.value }));
+                                if (eventSaveError) setEventSaveError(null);
+                            }}
+                            placeholder="Europe/Amsterdam"
+                            disabled={savingEvent}
+                        />
+                        <datalist id={EVENT_TIMEZONE_DATALIST_ID}>
+                            {timeZoneOptions.map((option) => (
+                                <option key={option.value} value={option.value} label={option.label} />
+                            ))}
+                        </datalist>
+                        <span className="roleWizardMeta">
+                            {hasValidEventTimezone
+                                ? formatTimeZoneLabel(normalizedEventTimezone)
+                                : "Use a valid IANA time zone like Europe/Amsterdam."}
+                        </span>
+                    </label>
+
+                    <label className="planningDetailModalField">
                         <span className="planningDetailModalLabel">Location</span>
                         <input
                             className="modal_input"
@@ -1725,6 +1778,46 @@ export default function AdminPlanningEventDetail() {
 
                     {loadingClients ? <div className="roleWizardMeta">Loading client companies...</div> : null}
                     {!loadingClients && clientError ? <div className="roleWizardMeta">{clientError}</div> : null}
+                    <div className="planningWizardSummary planningWizardSummary--stacked">
+                        <span className="planningWizardSummaryLabel">Event summary</span>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Event</span>
+                            <span className="planningWizardSummaryValue">{eventDraft.name?.trim() || "Unnamed event"}</span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Event window</span>
+                            <span className="planningWizardSummaryValue">{eventDraft.startDate || "dd/mm/yyyy"} to {eventDraft.endDate || "dd/mm/yyyy"}</span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Default time</span>
+                            <span className="planningWizardSummaryValue">
+                                {(() => {
+                                    const start = parseTimeInput(eventDraft.defaultStartTime ?? "");
+                                    const end = parseTimeInput(eventDraft.defaultEndTime ?? "");
+                                    if (start && end) return `${start} to ${end}`;
+                                    if (start) return `Starts at ${start}`;
+                                    if (end) return `Ends at ${end}`;
+                                    return "No default time set";
+                                })()}
+                            </span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Time zone</span>
+                            <span className="planningWizardSummaryValue">{formatTimeZoneLabel(eventDraft.eventTimezone || browserTimeZone)}</span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Client</span>
+                            <span className="planningWizardSummaryValue">{selectedDraftClient?.name?.trim() || "No client/company selected"}</span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Client line</span>
+                            <span className="planningWizardSummaryValue">{selectedDraftClient?.companyLine?.trim() || "No client line added"}</span>
+                        </div>
+                        <div className="planningWizardSummaryRow">
+                            <span className="planningWizardSummaryItemLabel">Internal note</span>
+                            <span className="planningWizardSummaryValue">{eventDraft.internalDescription?.trim() || "No internal note added"}</span>
+                        </div>
+                    </div>
                     {eventSaveError ? <div className="planningDetailModalAlert">{eventSaveError}</div> : null}
 
                     <div className="planningDetailModalActions">

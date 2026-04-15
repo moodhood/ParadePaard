@@ -28,6 +28,12 @@ import {
     getShiftTimeLabel,
     type PlanningStaffingTone,
 } from "../utils/planningSummary";
+import {
+    formatTimeZoneLabel,
+    getBrowserTimeZone,
+    getTimeZoneOptions,
+    isSupportedTimeZone,
+} from "../utils/timezones";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminPlanningOverview.css";
 import "../stylesheets/Settings.css";
@@ -35,8 +41,9 @@ import "../stylesheets/Settings.css";
 type PlannerMode = "events" | "shifts";
 type PlanningView = "week" | "month";
 type EventCreateStep = "details" | "client" | "notes";
+const EVENT_TIMEZONE_DATALIST_ID = "planning-event-timezones";
 
-function parseDutchTimeInput(value: string): string | null {
+function parseTimeInput(value: string): string | null {
     const trimmed = value.trim();
     if (!trimmed) return null;
     const match = trimmed.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
@@ -193,6 +200,62 @@ function getMajorityMonthLabel(days: string[], fallback: string): string {
     return formatMonthHeader(`${dominantMonth ?? fallback.slice(0, 7)}-01`);
 }
 
+function formatEventDefaultTimeSummary(startTime: string | null | undefined, endTime: string | null | undefined): string {
+    const start = parseTimeInput(startTime ?? "");
+    const end = parseTimeInput(endTime ?? "");
+
+    if (start && end) return `${start} to ${end}`;
+    if (start) return `Starts at ${start}`;
+    if (end) return `Ends at ${end}`;
+    return "No default time set";
+}
+
+function renderEventSummaryCard(
+    title: string,
+    eventDraft: PlanningEventSaveDTO,
+    selectedClient: PlanningClientCompanyDTO | null
+) {
+    const summaryRows = [
+        { label: "Event", value: (eventDraft.name ?? "").trim() || "Unnamed event" },
+        {
+            label: "Event window",
+            value: `${eventDraft.startDate || "dd/mm/yyyy"} to ${eventDraft.endDate || "dd/mm/yyyy"}`,
+        },
+        {
+            label: "Default time",
+            value: formatEventDefaultTimeSummary(eventDraft.defaultStartTime, eventDraft.defaultEndTime),
+        },
+        {
+            label: "Time zone",
+            value: formatTimeZoneLabel(eventDraft.eventTimezone || getBrowserTimeZone()),
+        },
+        {
+            label: "Client",
+            value: selectedClient?.name?.trim() || "No client/company selected",
+        },
+        {
+            label: "Client line",
+            value: selectedClient?.companyLine?.trim() || "No client line added",
+        },
+        {
+            label: "Internal note",
+            value: eventDraft.internalDescription?.trim() || "No internal note added",
+        },
+    ];
+
+    return (
+        <div className="planningWizardSummary planningWizardSummary--stacked">
+            <span className="planningWizardSummaryLabel">{title}</span>
+            {summaryRows.map((row) => (
+                <div key={row.label} className="planningWizardSummaryRow">
+                    <span className="planningWizardSummaryItemLabel">{row.label}</span>
+                    <span className="planningWizardSummaryValue">{row.value}</span>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 function getEventEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEntry[]> {
     const entriesByDay = new Map<string, PlannerEntry[]>();
 
@@ -301,6 +364,8 @@ function SuccessCheckIcon() {
 export default function AdminPlanningOverview() {
     const navigate = useNavigate();
     const today = useMemo(() => toIsoDate(new Date()), []);
+    const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
+    const timeZoneOptions = useMemo(() => getTimeZoneOptions(), []);
     const [loading, setLoading] = useState(true);
     const [loadingClients, setLoadingClients] = useState(true);
     const [savingEvent, setSavingEvent] = useState(false);
@@ -320,6 +385,7 @@ export default function AdminPlanningOverview() {
         name: "",
         startDate: formatDateInput(today),
         endDate: formatDateInput(today),
+        eventTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
         internalDescription: "",
@@ -397,16 +463,23 @@ export default function AdminPlanningOverview() {
             name: "",
             startDate: formatDateInput(selectedDate),
             endDate: formatDateInput(selectedDate),
+            eventTimezone: browserTimeZone,
             clientCompanyId: "",
             location: "",
             internalDescription: "",
             defaultStartTime: "",
             defaultEndTime: "",
         });
-    }, [selectedDate]);
+    }, [browserTimeZone, selectedDate]);
 
     const parsedEventStartDate = parseDisplayDate(eventDraft.startDate);
     const parsedEventEndDate = parseDisplayDate(eventDraft.endDate);
+    const selectedClient = useMemo(
+        () => clients.find((client) => client.clientCompanyId === eventDraft.clientCompanyId) ?? null,
+        [clients, eventDraft.clientCompanyId]
+    );
+    const normalizedEventTimezone = eventDraft.eventTimezone?.trim() || "";
+    const hasValidEventTimezone = isSupportedTimeZone(normalizedEventTimezone);
 
     const openCreateEventModal = () => {
         resetCreateEventForm();
@@ -422,8 +495,8 @@ export default function AdminPlanningOverview() {
     const handleCreateEvent = async (event: FormEvent) => {
         event.preventDefault();
 
-        const defaultStartTime = parseDutchTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
-        const defaultEndTime = parseDutchTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
+        const defaultStartTime = parseTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
+        const defaultEndTime = parseTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
         const startDate = parseDisplayDate(eventDraft.startDate);
         const endDate = parseDisplayDate(eventDraft.endDate);
 
@@ -431,6 +504,7 @@ export default function AdminPlanningOverview() {
             name: eventDraft.name.trim(),
             startDate: startDate ?? "",
             endDate: endDate ?? "",
+            eventTimezone: normalizedEventTimezone,
             clientCompanyId: eventDraft.clientCompanyId?.trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.trim() || null,
             internalDescription: eventDraft.internalDescription?.trim() || null,
@@ -450,6 +524,11 @@ export default function AdminPlanningOverview() {
 
         if (payload.endDate < payload.startDate) {
             setEventSaveError("End date cannot be before start date.");
+            return;
+        }
+
+        if (!hasValidEventTimezone) {
+            setEventSaveError("Event time zone must be a valid value like Europe/Amsterdam.");
             return;
         }
 
@@ -486,6 +565,7 @@ export default function AdminPlanningOverview() {
     const canSubmitCreateEvent = Boolean(eventDraft.name.trim())
         && Boolean(parsedEventStartDate)
         && Boolean(parsedEventEndDate)
+        && hasValidEventTimezone
         && (parsedEventEndDate ?? "") >= (parsedEventStartDate ?? "");
 
     const renderPlannerEntry = (day: string, entry: PlannerEntry) => (
@@ -901,12 +981,32 @@ export default function AdminPlanningOverview() {
                                 />
                             </label>
 
-                            <div className="planningWizardSummary">
-                                <span className="planningWizardSummaryLabel">Event window</span>
-                                <span className="planningWizardSummaryValue">
-                                    {eventDraft.startDate || "dd/mm/yyyy"} to {eventDraft.endDate || "dd/mm/yyyy"}
+                            <label className="roleWizardField">
+                                <span className="roleWizardLabel">Time zone</span>
+                                <input
+                                    className="modal_input"
+                                    list={EVENT_TIMEZONE_DATALIST_ID}
+                                    value={eventDraft.eventTimezone ?? ""}
+                                    onChange={(event) => {
+                                        setEventDraft((current) => ({ ...current, eventTimezone: event.target.value }));
+                                        if (eventSaveError) setEventSaveError(null);
+                                    }}
+                                    placeholder="Europe/Amsterdam"
+                                    disabled={savingEvent}
+                                />
+                                <datalist id={EVENT_TIMEZONE_DATALIST_ID}>
+                                    {timeZoneOptions.map((option) => (
+                                        <option key={option.value} value={option.value} label={option.label} />
+                                    ))}
+                                </datalist>
+                                <span className="roleWizardMeta">
+                                    {hasValidEventTimezone
+                                        ? formatTimeZoneLabel(normalizedEventTimezone)
+                                        : "Use a valid IANA time zone like Europe/Amsterdam."}
                                 </span>
-                            </div>
+                            </label>
+
+                            {renderEventSummaryCard("Current event setup", eventDraft, selectedClient)}
                         </div>
                     ) : null}
 
@@ -952,6 +1052,8 @@ export default function AdminPlanningOverview() {
                             {!loadingClients && !clientError && clients.length === 0 ? (
                                 <div className="roleWizardMeta">No saved client companies yet. You can still create the event without one.</div>
                             ) : null}
+
+                            {renderEventSummaryCard("Current event setup", eventDraft, selectedClient)}
                         </div>
                     ) : null}
 
@@ -971,15 +1073,7 @@ export default function AdminPlanningOverview() {
                                 />
                             </label>
 
-                            <div className="planningWizardSummary planningWizardSummary--stacked">
-                                <span className="planningWizardSummaryLabel">Ready to create</span>
-                                <span className="planningWizardSummaryValue">{eventDraft.name.trim() || "Unnamed event"}</span>
-                                <span className="roleWizardMeta">
-                                    {eventDraft.clientCompanyId
-                                        ? clients.find((client) => client.clientCompanyId === eventDraft.clientCompanyId)?.name ?? "Assigned client"
-                                        : "No client/company selected"}
-                                </span>
-                            </div>
+                            {renderEventSummaryCard("Ready to create", eventDraft, selectedClient)}
                         </div>
                     ) : null}
 

@@ -63,7 +63,9 @@ public class PayslipMapper {
 
     public static void updateFromUserData(Payslip payslip, UserDataResponse userData) {
         payslip.setName(userData.getName());
-        payslip.setDateOfBirth(LocalDate.parse(userData.getDateOfBirth()));
+        if (userData.getDateOfBirth() != null && !userData.getDateOfBirth().isBlank()) {
+            payslip.setDateOfBirth(LocalDate.parse(userData.getDateOfBirth()));
+        }
         payslip.setStreetName(userData.getStreetName());
         payslip.setHouseNumber(userData.getHouseNumber());
         payslip.setHouseNumberSuffix(userData.getHouseNumberSuffix());
@@ -72,17 +74,14 @@ public class PayslipMapper {
         payslip.setCountry(userData.getCountry());
     }
 
-    public static void updateFromContractDataAndTimesheetData(
-            Payslip payslip,
-            ContractDataResponse contractData,
-            TimesheetDataResponse timesheetData
-    ) {
+    public static void updateFromContractData(Payslip payslip, ContractDataResponse contractData) {
         payslip.setStartDate(LocalDate.parse(contractData.getStartDate()));
         payslip.setWageTaxWithheldTest(BigDecimal.ZERO);
-
         payslip.setFunctionName(contractTypeDisplayName(contractData.getContractType()));
         payslip.setHourlyWage(new BigDecimal(contractData.getGrossHourlyWage()));
+    }
 
+    public static void updateFromTimesheetData(Payslip payslip, TimesheetDataResponse timesheetData) {
         BigDecimal totalHoursWorked = BigDecimal.ZERO;
         BigDecimal travelExpenses = BigDecimal.ZERO;
         if (timesheetData != null) {
@@ -93,6 +92,15 @@ public class PayslipMapper {
         }
         payslip.setTotalHoursWorked(totalHoursWorked);
         payslip.setTravelExpenses(travelExpenses);
+    }
+
+    public static void updateFromContractDataAndTimesheetData(
+            Payslip payslip,
+            ContractDataResponse contractData,
+            TimesheetDataResponse timesheetData
+    ) {
+        updateFromContractData(payslip, contractData);
+        updateFromTimesheetData(payslip, timesheetData);
     }
 
     private static String contractTypeDisplayName(String contractType) {

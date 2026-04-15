@@ -130,6 +130,7 @@ public class PlanningManagementService {
         event.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
         event.setDefaultStartTime(request.getDefaultStartTime());
         event.setDefaultEndTime(request.getDefaultEndTime());
+        event.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone()));
         event.setLocation(normalizeOptionalText(request.getLocation()));
         event.setStatus(normalizeEventStatus(request.getStatus()));
         event.setCreatedByUserId(userId);
@@ -164,6 +165,7 @@ public class PlanningManagementService {
         event.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
         event.setDefaultStartTime(request.getDefaultStartTime());
         event.setDefaultEndTime(request.getDefaultEndTime());
+        event.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone()));
         event.setLocation(normalizeOptionalText(request.getLocation()));
         event.setStatus(normalizeEventStatus(request.getStatus()));
         event.setUpdatedAt(LocalDateTime.now());
@@ -246,12 +248,10 @@ public class PlanningManagementService {
         ScheduleEntryStatus requestedStatus = resolveStatus(request.getStatus());
         ScheduleEntry existingEntry = scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId).orElse(null);
         if (existingEntry != null) {
-            if (existingEntry.getStatus() == ScheduleEntryStatus.CANCELLED) {
-                existingEntry.setStatus(requestedStatus);
-                existingEntry.setTimesheetExported(false);
-                existingEntry.setTimesheetExportedAt(null);
-                scheduleEntryRepository.save(existingEntry);
-            }
+            existingEntry.setStatus(requestedStatus);
+            existingEntry.setTimesheetExported(false);
+            existingEntry.setTimesheetExportedAt(null);
+            scheduleEntryRepository.save(existingEntry);
 
             PlanningAssignmentMutationResponseDTO existingResponse = new PlanningAssignmentMutationResponseDTO();
             existingResponse.setScheduleEntryId(existingEntry.getScheduleEntryId());
@@ -326,6 +326,7 @@ public class PlanningManagementService {
     private void validateEventRequest(UUID companyId, PlanningEventSaveRequestDTO request) {
         validateEventDates(request.getStartDate(), request.getEndDate());
         validateDefaultTimes(request.getDefaultStartTime(), request.getDefaultEndTime());
+        PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone());
         if (request.getClientCompanyId() != null) {
             resolveClientCompanyId(companyId, request.getClientCompanyId());
         }

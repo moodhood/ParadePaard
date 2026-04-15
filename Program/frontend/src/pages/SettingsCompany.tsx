@@ -67,27 +67,75 @@ const formatPayoutFrequency = (minutes: number | null | undefined) => {
         const days = minutes / MINUTES_PER_DAY;
         return `Every ${days} day${days === 1 ? "" : "s"}`;
     }
-    if (minutes % 60 === 0) {
-        const hours = minutes / 60;
-        return `Every ${hours} hour${hours === 1 ? "" : "s"}`;
-    }
-    return `Every ${minutes} minutes`;
+
+    const days = Math.floor(minutes / MINUTES_PER_DAY);
+    const hours = Math.floor((minutes % MINUTES_PER_DAY) / 60);
+    const remainingMinutes = minutes % 60;
+    const parts = [
+        days > 0 ? `${days} day${days === 1 ? "" : "s"}` : null,
+        hours > 0 ? `${hours} hour${hours === 1 ? "" : "s"}` : null,
+        remainingMinutes > 0 ? `${remainingMinutes} min` : null,
+    ].filter(Boolean);
+
+    if (parts.length === 1) return `Every ${parts[0]}`;
+    if (parts.length === 2) return `Every ${parts[0]} and ${parts[1]}`;
+    return `Every ${parts[0]}, ${parts[1]}, and ${parts[2]}`;
 };
 
-const payoutFrequencyMinutesToDaysDraft = (minutes: number | null | undefined) => {
-    if (!minutes || minutes <= 0) return "7";
-    if (minutes % MINUTES_PER_DAY === 0) {
-        return String(minutes / MINUTES_PER_DAY);
+const MINUTES_PER_HOUR = 60;
+const HOURS_PER_DAY = 24;
+const PAYOUT_FREQUENCY_SEPARATOR = ":";
+const PAYOUT_FREQUENCY_PART_WIDTH = 2;
+
+const payoutFrequencyMinutesToDraft = (minutes: number | null | undefined) => {
+    if (!minutes || minutes <= 0) return "07:00:00";
+    const days = Math.floor(minutes / MINUTES_PER_DAY);
+    const hours = Math.floor((minutes % MINUTES_PER_DAY) / MINUTES_PER_HOUR);
+    const remainingMinutes = minutes % MINUTES_PER_HOUR;
+    return [
+        String(days).padStart(2, "0"),
+        String(hours).padStart(2, "0"),
+        String(remainingMinutes).padStart(2, "0"),
+    ].join(PAYOUT_FREQUENCY_SEPARATOR);
+};
+
+const formatPayoutFrequencyDraftInput = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, PAYOUT_FREQUENCY_PART_WIDTH * 3);
+    if (digits.length <= PAYOUT_FREQUENCY_PART_WIDTH) return digits;
+    if (digits.length <= PAYOUT_FREQUENCY_PART_WIDTH * 2) {
+        return `${digits.slice(0, PAYOUT_FREQUENCY_PART_WIDTH)}${PAYOUT_FREQUENCY_SEPARATOR}${digits.slice(PAYOUT_FREQUENCY_PART_WIDTH)}`;
     }
-    return String(Number((minutes / MINUTES_PER_DAY).toFixed(2)));
+    return [
+        digits.slice(0, PAYOUT_FREQUENCY_PART_WIDTH),
+        digits.slice(PAYOUT_FREQUENCY_PART_WIDTH, PAYOUT_FREQUENCY_PART_WIDTH * 2),
+        digits.slice(PAYOUT_FREQUENCY_PART_WIDTH * 2),
+    ].join(PAYOUT_FREQUENCY_SEPARATOR);
 };
 
 const parsePayoutFrequencyMinutes = (value: string) => {
-    const normalized = value.trim().replace(",", ".");
+    const normalized = value.trim();
     if (!normalized) return null;
-    const days = Number(normalized);
-    if (!Number.isFinite(days) || days <= 0) return null;
-    return Math.round(days * MINUTES_PER_DAY);
+
+    const parts = normalized.split(/\D+/).filter(Boolean);
+    if (parts.length !== 3) return null;
+    if (!parts.every((part) => /^\d+$/.test(part))) return null;
+
+    const [days, hours, minutes] = parts.map((part) => Number(part));
+    if (
+        !Number.isFinite(days)
+        || !Number.isFinite(hours)
+        || !Number.isFinite(minutes)
+        || days < 0
+        || hours < 0
+        || hours >= HOURS_PER_DAY
+        || minutes < 0
+        || minutes >= MINUTES_PER_HOUR
+    ) {
+        return null;
+    }
+
+    const totalMinutes = (days * MINUTES_PER_DAY) + (hours * MINUTES_PER_HOUR) + minutes;
+    return totalMinutes > 0 ? totalMinutes : null;
 };
 
 type CompanySettingsTab = "details" | "roles" | "workflow";
@@ -120,7 +168,7 @@ export default function SettingsCompany() {
     const [companyLoading, setCompanyLoading] = useState(true);
     const [companyError, setCompanyError] = useState<string | null>(null);
     const [companyNameDraft, setCompanyNameDraft] = useState("");
-    const [payoutFrequencyDaysDraft, setPayoutFrequencyDaysDraft] = useState("7");
+    const [payoutFrequencyDraft, setPayoutFrequencyDraft] = useState("07:00:00");
     const [timesheetLoggingModeDraft, setTimesheetLoggingModeDraft] = useState("ADMIN_FINALIZE");
     const [travelClaimModeDraft, setTravelClaimModeDraft] = useState("REQUIRES_APPROVAL");
     const [companySaving, setCompanySaving] = useState(false);
@@ -209,7 +257,7 @@ export default function SettingsCompany() {
     useEffect(() => {
         if (!company) return;
         setCompanyNameDraft(company.name ?? "");
-        setPayoutFrequencyDaysDraft(payoutFrequencyMinutesToDaysDraft(company.payoutFrequencyMinutes));
+        setPayoutFrequencyDraft(payoutFrequencyMinutesToDraft(company.payoutFrequencyMinutes));
         setTimesheetLoggingModeDraft(company.timesheetLoggingMode ?? "ADMIN_FINALIZE");
         setTravelClaimModeDraft(company.travelClaimMode ?? "REQUIRES_APPROVAL");
     }, [company?.name, company?.payoutFrequencyMinutes, company?.timesheetLoggingMode, company?.travelClaimMode]);
@@ -503,7 +551,7 @@ export default function SettingsCompany() {
     const companyAvatarName = companyDraftName || companyDisplayName;
     const companyInitial = (companyAvatarName[0] ?? "C").toUpperCase();
     const companyNameDirty = companyDraftName !== companyOriginalName;
-    const payoutFrequencyMinutesDraft = parsePayoutFrequencyMinutes(payoutFrequencyDaysDraft);
+    const payoutFrequencyMinutesDraft = parsePayoutFrequencyMinutes(payoutFrequencyDraft);
     const companyModesDirty =
         (company?.payoutFrequencyMinutes ?? 10080) !== payoutFrequencyMinutesDraft
         ||
@@ -557,7 +605,7 @@ export default function SettingsCompany() {
         if (event) event.preventDefault();
         if (!canManageCompany) return;
         if (payoutFrequencyMinutesDraft == null) {
-            setCompanySaveError("Enter a valid payslip timing in days.");
+            setCompanySaveError("Enter a valid payslip timing in dd:hh:mm.");
             return;
         }
         if (!companyModesDirty) return;
@@ -572,8 +620,8 @@ export default function SettingsCompany() {
                 travelClaimMode: travelClaimModeDraft,
             });
             setCompany(updated);
-            setPayoutFrequencyDaysDraft(
-                payoutFrequencyMinutesToDaysDraft(updated.payoutFrequencyMinutes ?? payoutFrequencyMinutesDraft)
+            setPayoutFrequencyDraft(
+                payoutFrequencyMinutesToDraft(updated.payoutFrequencyMinutes ?? payoutFrequencyMinutesDraft)
             );
             setTimesheetLoggingModeDraft(updated.timesheetLoggingMode ?? timesheetLoggingModeDraft);
             setTravelClaimModeDraft(updated.travelClaimMode ?? travelClaimModeDraft);
@@ -1048,20 +1096,19 @@ export default function SettingsCompany() {
                                         </div>
                                         <input
                                             className="settingsInput"
-                                            type="number"
-                                            min="1"
-                                            step="1"
+                                            type="text"
                                             inputMode="numeric"
-                                            value={payoutFrequencyDaysDraft}
+                                            placeholder="dd:hh:mm"
+                                            value={payoutFrequencyDraft}
                                             onChange={(event) => {
-                                                setPayoutFrequencyDaysDraft(event.target.value);
+                                                setPayoutFrequencyDraft(formatPayoutFrequencyDraftInput(event.target.value));
                                                 if (companySaveError) setCompanySaveError(null);
                                                 if (companySaveSuccess) setCompanySaveSuccess(null);
                                             }}
                                             disabled={!canManageCompany}
                                         />
                                         <div className="settingsMeta">
-                                            Measured in days. Current cadence: {formatPayoutFrequency(payoutFrequencyMinutesDraft)}.
+                                            Auto-formats as dd:hh:mm. Current cadence: {formatPayoutFrequency(payoutFrequencyMinutesDraft)}.
                                         </div>
                                     </label>
                                     ) : null}

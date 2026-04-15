@@ -1,0 +1,306 @@
+.payslipDetailLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.payslipHero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 24px;
+  padding: 28px;
+  border-radius: 28px;
+  background:
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.18), transparent 36%),
+    linear-gradient(135deg, #123b63 0%, #1f5c8d 45%, #2d76a8 100%);
+  box-shadow: 0 20px 42px rgba(18, 59, 99, 0.22);
+  color: #ffffff;
+}
+
+.payslipHeroIntro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.payslipHeroEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.payslipHeroTitle {
+  margin: 0;
+  font-size: clamp(28px, 4vw, 38px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.payslipHeroSubtitle {
+  margin: 0;
+  max-width: 680px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.payslipHeroMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.payslipStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.payslipStatusBadge--released,
+.payslipStatusBadge--approved {
+  background: rgba(10, 132, 94, 0.24);
+  border-color: rgba(171, 245, 223, 0.36);
+}
+
+.payslipStatusBadge--pending-review,
+.payslipStatusBadge--pending-approval {
+  background: rgba(255, 214, 10, 0.22);
+  border-color: rgba(255, 234, 159, 0.36);
+}
+
+.payslipStatusBadge--needs-attention,
+.payslipStatusBadge--disputed {
+  background: rgba(194, 65, 12, 0.24);
+  border-color: rgba(255, 211, 191, 0.34);
+}
+
+.payslipHeroMetrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-self: stretch;
+}
+
+.payslipHeroMetric {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 124px;
+  padding: 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.payslipHeroMetricLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.payslipHeroMetricValue {
+  font-size: clamp(22px, 3vw, 30px);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.payslipDetailNotices {
+  display: grid;
+  gap: 12px;
+}
+
+.payslipDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.payslipDetailSection {
+  border-radius: 24px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.payslipDetailSection .uiCardHeader {
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(180deg, #f9fbfd 0%, #f2f6fa 100%);
+}
+
+.payslipDetailSection .uiCardTitle {
+  font-size: 20px;
+  letter-spacing: -0.02em;
+}
+
+.payslipDetailSection .uiCardBody {
+  padding: 22px;
+}
+
+.payslipDetailSection--wide {
+  grid-column: 1 / -1;
+}
+
+.payslipDetailFields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.payslipDetailField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 102px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid #dde6ef;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.payslipDetailField--accent {
+  border-color: #f1d59c;
+  background: linear-gradient(180deg, #fff7e6 0%, #fffdf7 100%);
+}
+
+.payslipDetailFieldLabel {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #607284;
+}
+
+.payslipDetailFieldValue {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.35;
+  font-weight: 700;
+  color: #142235;
+  word-break: break-word;
+}
+
+.payslipDetailFieldValue--subtle {
+  font-size: 15px;
+  font-weight: 600;
+  color: #324356;
+}
+
+.payslipDetailFieldValue--numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.payslipDetailField .uiSelect {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  box-sizing: border-box;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.payslipDetailField textarea.uiSelect {
+  min-height: 132px;
+  resize: vertical;
+}
+
+.payslipTimesheetSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 220px));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.payslipTimesheetSummaryItem {
+  padding: 16px 18px;
+  border-radius: 20px;
+  border: 1px solid #dde6ef;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
+.payslipTimesheetSummaryItem span {
+  display: block;
+}
+
+.payslipTimesheetSummaryLabel {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #607284;
+}
+
+.payslipTimesheetSummaryValue {
+  margin-top: 8px;
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: #142235;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 1100px) {
+  .payslipHero {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .payslipDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .payslipDetailSection--wide {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .payslipHero {
+    padding: 22px;
+    border-radius: 22px;
+  }
+
+  .payslipHeroMetrics {
+    grid-template-columns: 1fr;
+  }
+
+  .payslipDetailSection .uiCardBody {
+    padding: 18px;
+  }
+
+  .payslipDetailFields {
+    grid-template-columns: 1fr;
+  }
+
+  .payslipTimesheetSummary {
+    grid-template-columns: 1fr;
+  }
+}

@@ -27,6 +27,8 @@ public class PlanningEventSaveRequestDTO {
 
     private LocalTime defaultEndTime;
 
+    private String eventTimezone;
+
     private String location;
 
     private String status;
@@ -93,6 +95,14 @@ public class PlanningEventSaveRequestDTO {
 
     public void setDefaultEndTime(LocalTime defaultEndTime) {
         this.defaultEndTime = defaultEndTime;
+    }
+
+    public String getEventTimezone() {
+        return eventTimezone;
+    }
+
+    public void setEventTimezone(String eventTimezone) {
+        this.eventTimezone = eventTimezone;
     }
 
     public String getLocation() {

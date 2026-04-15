@@ -5,103 +5,343 @@
     <title>Payslip</title>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
-        :root { --pad:16px; --gap:12px; --radius:12px; --border:1px solid #e5e7eb; --text:#111827; --muted:#6b7280; --bg:#ffffff; --bg_alt:#f9fafb; }
-        * { box-sizing:border-box; }
-        html, body { margin:0; color:var(--text); background:var(--bg); font:14px system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-        .page { max-width:900px; margin:24px auto; padding:var(--pad); }
-        .card { background:#fff; border:var(--border); border-radius:var(--radius); overflow:hidden; }
-        .header { display:flex; justify-content:space-between; align-items:flex-start; padding:20px; background:var(--bg_alt); border-bottom:var(--border); }
-        .hdr_left h1 { font-size:22px; margin:0 0 4px 0; }
-        .hdr_left .sub { color:var(--muted); font-size:13px; }
-        .hdr_right { text-align:right; }
-        .pill { display:inline-block; padding:6px 10px; border-radius:999px; background:#eef2ff; color:#3730a3; font-weight:600; font-size:12px; }
-        .section { padding:20px; display:grid; gap:var(--gap); }
-        .grid_two { display:grid; grid-template-columns:1fr 1fr; gap:var(--gap); }
-        .box { border:var(--border); border-radius:10px; padding:14px; background:#fff; }
-        .box h3 { margin:0 0 8px 0; font-size:14px; }
-        .meta { display:grid; grid-template-columns:140px 1fr; gap:6px 12px; font-size:13px; }
-        .meta .label { color:var(--muted); }
-        table { width:100%; border-collapse:collapse; }
-        thead th { text-align:left; font-size:12px; color:var(--muted); font-weight:600; padding:10px 12px; background:var(--bg_alt); border-bottom:var(--border); }
-        tbody td { padding:10px 12px; border-bottom:var(--border); vertical-align:top; }
-        .num { text-align:right; white-space:nowrap; }
-        .muted { color:var(--muted); }
-        .totals { display:grid; grid-template-columns:1fr 260px; gap:var(--gap); margin-top:8px; }
-        .totals .sum { border:var(--border); border-radius:10px; }
-        .sum_row { display:grid; grid-template-columns:1fr auto; padding:10px 14px; }
-        .sum_row + .sum_row { border-top:var(--border); }
-        .sum_row.total { font-weight:700; background:#f0fdf4; }
-        @page { size:A4; margin:12mm; }
+        @page {
+            size: A4;
+            margin: 10mm;
+        }
+
+        body {
+            margin: 0;
+            color: #102235;
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+        }
+
+        .page {
+            border: 1px solid #d8e1ea;
+            padding: 18px 20px 22px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .header {
+            margin-bottom: 18px;
+        }
+
+        .header td {
+            vertical-align: top;
+        }
+
+        .brandTitle {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: 1px;
+            color: #2c628f;
+            text-transform: uppercase;
+        }
+
+        .brandSub {
+            margin-top: 8px;
+            color: #637487;
+            font-size: 11px;
+        }
+
+        .docMeta {
+            width: 250px;
+            margin-left: auto;
+        }
+
+        .docMeta td {
+            border: 1px solid #d8e1ea;
+            padding: 8px 10px;
+        }
+
+        .docMetaLabel {
+            width: 42%;
+            background: #2c628f;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .docMetaValue {
+            background: #edf4fa;
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .sectionGrid {
+            margin-bottom: 16px;
+        }
+
+        .sectionGrid td {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .sectionGrid td:first-child {
+            padding-right: 8px;
+        }
+
+        .sectionGrid td:last-child {
+            padding-left: 8px;
+        }
+
+        .panel {
+            border: 1px solid #d8e1ea;
+        }
+
+        .panelTitle {
+            padding: 8px 10px;
+            background: #2c628f;
+            color: #ffffff;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .panelBody {
+            padding: 10px;
+        }
+
+        .identityName {
+            margin: 0 0 6px;
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        .identityLine {
+            margin: 0 0 3px;
+        }
+
+        .identityLineMuted {
+            margin: 4px 0 0;
+            color: #637487;
+            font-size: 11px;
+        }
+
+        .infoTable td {
+            padding: 7px 0;
+            border-bottom: 1px solid #d8e1ea;
+        }
+
+        .infoTable tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .infoLabel {
+            width: 42%;
+            color: #637487;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.8px;
+            text-transform: uppercase;
+        }
+
+        .infoValue {
+            text-align: right;
+            font-weight: 700;
+        }
+
+        .ledger {
+            margin-top: 6px;
+            margin-bottom: 16px;
+        }
+
+        .ledger th,
+        .ledger td,
+        .summaryTable td {
+            border: 1px solid #d8e1ea;
+            padding: 8px 10px;
+        }
+
+        .ledger th,
+        .summaryHead {
+            background: #f1f5f9;
+            color: #637487;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            text-align: left;
+        }
+
+        .num {
+            text-align: right;
+            white-space: nowrap;
+        }
+
+        .summaryWrap td {
+            width: 50%;
+            vertical-align: top;
+        }
+
+        .summaryWrap td:first-child {
+            padding-right: 8px;
+        }
+
+        .summaryWrap td:last-child {
+            padding-left: 8px;
+        }
+
+        .netRow td {
+            background: #e8f5eb;
+            font-weight: 800;
+            border-color: #c8decb;
+        }
+
+        .footerNote {
+            margin-top: 16px;
+            padding-top: 10px;
+            border-top: 1px solid #b8c6d3;
+            color: #637487;
+            font-size: 10px;
+            text-align: center;
+        }
+
+        code {
+            font-family: "Courier New", monospace;
+            font-size: 10px;
+        }
     </style>
 </head>
 <body>
 <div class="page">
-    <div class="card">
-        <div class="header">
-            <div class="hdr_left">
-                <h1>Payslip</h1>
-                <div class="sub">ID __PAYSLIP_ID__</div>
-            </div>
-            <div class="hdr_right">
-                <div class="pill">Issued __DATE_OF_ISSUE__</div>
-                <div class="muted">Week __WEEK_NUMBER__ of __WEEK_YEAR__</div>
-            </div>
-        </div>
-
-        <div class="section grid_two">
-            <div class="box">
-                <h3>Employee</h3>
-                <div class="meta">
-                    <div class="label">Name</div><div>__NAME__</div>
-                    <div class="label">Date of birth</div><div>__DOB__</div>
-                    <div class="label">Address</div><div>__ADDRESS__</div>
-                    <div class="label">City</div><div>__CITY__</div>
-                    <div class="label">Country</div><div>__COUNTRY__</div>
-                    <div class="label">User id</div><div><code>__USER_ID__</code></div>
-                </div>
-            </div>
-            <div class="box">
-                <h3>Contract</h3>
-                <div class="meta">
-                    <div class="label">Start date</div><div>__START_DATE__</div>
-                    <div class="label">Function</div><div>__FUNCTION_NAME__</div>
-                    <div class="label">Hourly wage</div><div>__HOURLY_WAGE__</div>
-                    <div class="label">Week number</div><div>__WEEK_NUMBER__</div>
-                    <div class="label">Year</div><div>__WEEK_YEAR__</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h3 style="margin:0 0 6px 0;">Work summary</h3>
-            <div class="box" style="padding:0;">
-                <table>
-                    <thead>
+    <table class="header">
+        <tr>
+            <td>
+                <div class="brandTitle">Payslip</div>
+                <div class="brandSub">Payslip ID __PAYSLIP_ID__</div>
+            </td>
+            <td>
+                <table class="docMeta">
                     <tr>
-                        <th>Function</th>
-                        <th class="num">Hours</th>
-                        <th class="num">Rate</th>
-                        <th class="num">Travel</th>
-                        <th class="num">Line total</th>
+                        <td class="docMetaLabel">Issue Date</td>
+                        <td class="docMetaValue">__DATE_OF_ISSUE__</td>
                     </tr>
-                    </thead>
-                    <tbody>
-                    __LINES__
-                    </tbody>
+                    <tr>
+                        <td class="docMetaLabel">Period</td>
+                        <td class="docMetaValue">Week __WEEK_NUMBER__ / __WEEK_YEAR__</td>
+                    </tr>
                 </table>
-            </div>
+            </td>
+        </tr>
+    </table>
 
-            <div class="totals">
-                <div></div>
-                <div class="sum">
-                    <div class="sum_row"><div>Gross</div><div class="num">__GROSS__</div></div>
-                    <div class="sum_row"><div>Wage tax</div><div class="num">__TAX__</div></div>
-                    <div class="sum_row"><div>Travel</div><div class="num">__TRAVEL__</div></div>
-                    <div class="sum_row total"><div>Net</div><div class="num">__NET__</div></div>
+    <table class="sectionGrid">
+        <tr>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Employee Information</div>
+                    <div class="panelBody">
+                        <p class="identityName">__NAME__</p>
+                        <p class="identityLine">__ADDRESS__</p>
+                        <p class="identityLine">__CITY__</p>
+                        <p class="identityLine">__COUNTRY__</p>
+                        <p class="identityLineMuted">Date of birth: __DOB__</p>
+                        <p class="identityLineMuted">User ID: <code>__USER_ID__</code></p>
+                    </div>
                 </div>
-            </div>
-        </div>
+            </td>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Pay Information</div>
+                    <div class="panelBody">
+                        <table class="infoTable">
+                            <tr>
+                                <td class="infoLabel">Function</td>
+                                <td class="infoValue">__FUNCTION_NAME__</td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Start Date</td>
+                                <td class="infoValue">__START_DATE__</td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Hourly Wage</td>
+                                <td class="infoValue">__HOURLY_WAGE__</td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Week Number</td>
+                                <td class="infoValue">__WEEK_NUMBER__</td>
+                            </tr>
+                            <tr>
+                                <td class="infoLabel">Week Year</td>
+                                <td class="infoValue">__WEEK_YEAR__</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="panel">
+        <div class="panelTitle">Earnings</div>
+        <table class="ledger">
+            <thead>
+            <tr>
+                <th>Function</th>
+                <th class="num">Hours</th>
+                <th class="num">Rate</th>
+                <th class="num">Travel</th>
+                <th class="num">Amount</th>
+            </tr>
+            </thead>
+            <tbody>
+            __LINES__
+            </tbody>
+        </table>
     </div>
+
+    <table class="summaryWrap">
+        <tr>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Deductions</div>
+                    <table class="summaryTable">
+                        <tr>
+                            <td class="summaryHead">Type</td>
+                            <td class="summaryHead num">Amount</td>
+                        </tr>
+                        <tr>
+                            <td>Wage tax</td>
+                            <td class="num">__TAX__</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+            <td>
+                <div class="panel">
+                    <div class="panelTitle">Summary</div>
+                    <table class="summaryTable">
+                        <tr>
+                            <td>Gross pay</td>
+                            <td class="num">__GROSS__</td>
+                        </tr>
+                        <tr>
+                            <td>Travel reimbursement</td>
+                            <td class="num">__TRAVEL__</td>
+                        </tr>
+                        <tr class="netRow">
+                            <td>Net pay</td>
+                            <td class="num">__NET__</td>
+                        </tr>
+                    </table>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="footerNote">This payslip uses the same payroll data with an updated document layout.</div>
 </div>
 </body>
 </html>

@@ -18,6 +18,7 @@ public class PlanningViewResponseDTO {
     private String externalDescription;
     private LocalTime defaultStartTime;
     private LocalTime defaultEndTime;
+    private String eventTimezone;
     private String location;
     private String status;
     private UUID createdByUserId;
@@ -106,6 +107,14 @@ public class PlanningViewResponseDTO {
 
     public void setDefaultEndTime(LocalTime defaultEndTime) {
         this.defaultEndTime = defaultEndTime;
+    }
+
+    public String getEventTimezone() {
+        return eventTimezone;
+    }
+
+    public void setEventTimezone(String eventTimezone) {
+        this.eventTimezone = eventTimezone;
     }
 
     public String getLocation() {

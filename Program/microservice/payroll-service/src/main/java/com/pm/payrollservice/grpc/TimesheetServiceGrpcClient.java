@@ -7,6 +7,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import timesheet.LatestTimesheetSummaryRequest;
+import timesheet.LatestTimesheetSummaryResponse;
 import timesheet.TimesheetDataRequest;
 import timesheet.TimesheetDataResponse;
 import timesheet.TimesheetServiceGrpc;
@@ -41,5 +43,15 @@ public class TimesheetServiceGrpcClient {
         TimesheetDataResponse response = blockingStub.requestTimesheetData(request);
         log.info("Received response from timesheet service via GRPC: {}", response);
         return response; // let StatusRuntimeException bubble to the handler
+    }
+
+    public LatestTimesheetSummaryResponse requestLatestTimesheetSummary(String userId) {
+        LatestTimesheetSummaryRequest request = LatestTimesheetSummaryRequest.newBuilder()
+                .setUserId(userId)
+                .build();
+
+        LatestTimesheetSummaryResponse response = blockingStub.requestLatestTimesheetSummary(request);
+        log.info("Received latest timesheet summary from timesheet service via GRPC: {}", response);
+        return response;
     }
 }

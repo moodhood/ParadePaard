@@ -51,6 +51,9 @@ public class Event {
 
     private LocalTime defaultEndTime;
 
+    @Column(length = 100)
+    private String eventTimezone = "UTC";
+
     private String location;
 
     @Column(length = 20)
@@ -147,6 +150,14 @@ public class Event {
         this.defaultEndTime = defaultEndTime;
     }
 
+    public String getEventTimezone() {
+        return eventTimezone;
+    }
+
+    public void setEventTimezone(String eventTimezone) {
+        this.eventTimezone = eventTimezone;
+    }
+
     public String getLocation() {
         return location;
     }
@@ -215,6 +226,9 @@ public class Event {
         if (status == null || status.isBlank()) {
             status = "DRAFT";
         }
+        if (eventTimezone == null || eventTimezone.isBlank()) {
+            eventTimezone = "UTC";
+        }
         if (finalized == null) {
             finalized = false;
         }
@@ -225,6 +239,9 @@ public class Event {
         updatedAt = LocalDateTime.now();
         if (status == null || status.isBlank()) {
             status = "DRAFT";
+        }
+        if (eventTimezone == null || eventTimezone.isBlank()) {
+            eventTimezone = "UTC";
         }
     }
 }

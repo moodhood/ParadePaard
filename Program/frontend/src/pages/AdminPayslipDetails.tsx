@@ -16,6 +16,7 @@ import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
 import "../stylesheets/GeneralInfo.css";
+import "../stylesheets/PayslipDetails.css";
 import "../stylesheets/UserDashboard.css";
 import "../stylesheets/WorkHistory.css";
 
@@ -51,6 +52,8 @@ const parseErrorDescription = (value?: string | null) => {
     const note = parts.join("\n").trim();
     return { title, note };
 };
+
+const statusTone = (value?: string | null) => (value ?? "UNKNOWN").toLowerCase().replace(/_/g, "-");
 
 export default function AdminPayslipDetails() {
     const { payslipId } = useParams<{ payslipId: string }>();
@@ -174,6 +177,15 @@ export default function AdminPayslipDetails() {
         const line2 = [payslip.postalCode, payslip.city].filter(Boolean).join(" ");
         return [line1, line2].filter(Boolean).join(", ") || "-";
     }, [payslip]);
+
+    const weekLabel = useMemo(() => {
+        if (!payslip) return "-";
+        return `${payslip.weekBasedYear ?? "-"} / Week ${payslip.weekNumber ?? "-"}`;
+    }, [payslip]);
+
+    const timesheetTravelTotal = useMemo(() => {
+        return filteredTimesheets.reduce((sum, t) => sum + (t.travelExpenses ?? 0), 0);
+    }, [filteredTimesheets]);
 
     const handleSave = async () => {
         if (!payslip || !payslipId) return;
@@ -341,290 +353,379 @@ ${note}` : title) : "";
                     ) : error ? (
                         <div className="workHistoryError">{error}</div>
                     ) : payslip ? (
-                        <main className="adminDashboardGrid">
-                            <Card
-                                title="Payslip Overview"
-                                className="dashboardCardHeight"
-                            >
-                                <div className="generalInfoRows">
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Payslip ID</div>
-                                        <div className="generalInfoValue">{payslip.payslipId}</div>
+                        <div className="payslipDetailLayout">
+                            <section className="payslipHero">
+                                <div className="payslipHeroIntro">
+                                    <div className="payslipHeroEyebrow">Admin payroll editor</div>
+                                    <h2 className="payslipHeroTitle">{payslip.name ?? "Employee payslip"}</h2>
+                                    <p className="payslipHeroSubtitle">
+                                        Review and update payroll information for {weekLabel}. Generated on{" "}
+                                        {formatDateTime(payslip.generatedAt)} and scheduled for employee access on{" "}
+                                        {formatDate(payslip.availableToUserAt)}.
+                                    </p>
+                                    <div className="payslipHeroMeta">
+                                        <span
+                                            className={`payslipStatusBadge payslipStatusBadge--${statusTone(
+                                                form.status
+                                            )}`}
+                                        >
+                                            {statusLabel(form.status)}
+                                        </span>
+                                        <span className="payslipStatusBadge">Payslip ID {payslip.payslipId}</span>
                                     </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-date">
-                                            Date of issue
-                                        </label>
-                                        <input
-                                            id="payslip-date"
-                                            className="uiSelect"
-                                            type="text"
-                                            value={form.dateOfIssue}
-                                            onChange={(e) =>
-                                                setForm((prev) => ({
-                                                    ...prev,
-                                                    dateOfIssue: normalizeDateInput(e.target.value),
-                                                }))
-                                            }
-                                            inputMode="numeric"
-                                            placeholder="dd/mm/yyyy"
-                                            maxLength={10}
-                                            disabled={saving}
-                                        />
+                                </div>
+                                <div className="payslipHeroMetrics">
+                                    <div className="payslipHeroMetric">
+                                        <span className="payslipHeroMetricLabel">Hours worked</span>
+                                        <span className="payslipHeroMetricValue">
+                                            {(parseNumber(form.totalHoursWorked) ?? 0).toFixed(2)} h
+                                        </span>
                                     </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Week</div>
-                                        <div className="generalInfoValue">
-                                            {payslip.weekNumber ?? "-"} ({payslip.weekBasedYear ?? "-"})
+                                    <div className="payslipHeroMetric">
+                                        <span className="payslipHeroMetricLabel">Gross pay</span>
+                                        <span className="payslipHeroMetricValue">{money(totals.gross)}</span>
+                                    </div>
+                                    <div className="payslipHeroMetric">
+                                        <span className="payslipHeroMetricLabel">Net pay</span>
+                                        <span className="payslipHeroMetricValue">{money(totals.net)}</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {(saveError || saveSuccess) ? (
+                                <div className="payslipDetailNotices">
+                                    {saveError ? <div className="workHistoryError">{saveError}</div> : null}
+                                    {saveSuccess ? <div className="helperText">{saveSuccess}</div> : null}
+                                </div>
+                            ) : null}
+
+                            <main className="payslipDetailGrid">
+                                <Card title="Overview" className="payslipDetailSection">
+                                    <div className="payslipDetailFields">
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Payslip ID</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                {payslip.payslipId}
+                                            </p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-date">
+                                                Date of issue
+                                            </label>
+                                            <input
+                                                id="payslip-date"
+                                                className="uiSelect"
+                                                type="text"
+                                                value={form.dateOfIssue}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        dateOfIssue: normalizeDateInput(e.target.value),
+                                                    }))
+                                                }
+                                                inputMode="numeric"
+                                                placeholder="dd/mm/yyyy"
+                                                maxLength={10}
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Week</p>
+                                            <p className="payslipDetailFieldValue">{weekLabel}</p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Available to user</p>
+                                            <p className="payslipDetailFieldValue">
+                                                {formatDate(payslip.availableToUserAt)}
+                                            </p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Generated at</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                {formatDateTime(payslip.generatedAt)}
+                                            </p>
                                         </div>
                                     </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Available to user</div>
-                                        <div className="generalInfoValue">{formatDate(payslip.availableToUserAt)}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Generated at</div>
-                                        <div className="generalInfoValue">{formatDateTime(payslip.generatedAt)}</div>
-                                    </div>
-                                </div>
+                                </Card>
 
-                                {saveError ? <p className="errorText">{saveError}</p> : null}
-                                {saveSuccess ? <p className="helperText">{saveSuccess}</p> : null}
-                            </Card>
+                                <Card title="Error handling" className="payslipDetailSection">
+                                    <div className="payslipDetailFields">
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-status">
+                                                Status
+                                            </label>
+                                            <select
+                                                id="payslip-status"
+                                                className="uiSelect"
+                                                value={form.status}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, status: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            >
+                                                {STATUS_OPTIONS.map((option) => (
+                                                    <option key={option} value={option}>
+                                                        {statusLabel(option)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label
+                                                className="payslipDetailFieldLabel"
+                                                htmlFor="payslip-error-title"
+                                            >
+                                                Error title
+                                            </label>
+                                            <input
+                                                id="payslip-error-title"
+                                                className="uiSelect"
+                                                type="text"
+                                                maxLength={MAX_ERROR_TITLE_LENGTH}
+                                                value={form.errorTitle}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, errorTitle: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-error-note">
+                                                Error note
+                                            </label>
+                                            <textarea
+                                                id="payslip-error-note"
+                                                className="uiSelect"
+                                                rows={3}
+                                                value={form.errorNote}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, errorNote: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                    </div>
+                                </Card>
 
-                            <Card title="Error Handling" className="dashboardCardHeight">
-                                <div className="generalInfoRows">
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-status">
-                                            Status
-                                        </label>
-                                        <select
-                                            id="payslip-status"
-                                            className="uiSelect"
-                                            value={form.status}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value }))}
-                                            disabled={saving}
-                                        >
-                                            {STATUS_OPTIONS.map((option) => (
-                                                <option key={option} value={option}>
-                                                    {statusLabel(option)}
-                                                </option>
-                                            ))}
-                                        </select>
+                                <Card title="Pay details" className="payslipDetailSection">
+                                    <div className="payslipDetailFields">
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-function">
+                                                Function
+                                            </label>
+                                            <input
+                                                id="payslip-function"
+                                                className="uiSelect"
+                                                type="text"
+                                                value={form.functionName}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, functionName: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-rate">
+                                                Hourly wage
+                                            </label>
+                                            <input
+                                                id="payslip-rate"
+                                                className="uiSelect"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={form.hourlyWage}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, hourlyWage: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-hours">
+                                                Hours worked
+                                            </label>
+                                            <input
+                                                id="payslip-hours"
+                                                className="uiSelect"
+                                                type="number"
+                                                min="0"
+                                                step="0.25"
+                                                value={form.totalHoursWorked}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        totalHoursWorked: e.target.value,
+                                                    }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-tax">
+                                                Wage tax withheld
+                                            </label>
+                                            <input
+                                                id="payslip-tax"
+                                                className="uiSelect"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={form.wageTaxWithheldTest}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({
+                                                        ...prev,
+                                                        wageTaxWithheldTest: e.target.value,
+                                                    }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <label className="payslipDetailFieldLabel" htmlFor="payslip-travel">
+                                                Travel expenses
+                                            </label>
+                                            <input
+                                                id="payslip-travel"
+                                                className="uiSelect"
+                                                type="number"
+                                                min="0"
+                                                step="0.01"
+                                                value={form.travelExpenses}
+                                                onChange={(e) =>
+                                                    setForm((prev) => ({ ...prev, travelExpenses: e.target.value }))
+                                                }
+                                                disabled={saving}
+                                            />
+                                        </div>
+                                        <div className="payslipDetailField payslipDetailField--accent">
+                                            <p className="payslipDetailFieldLabel">Gross total</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                {money(totals.gross)}
+                                            </p>
+                                        </div>
+                                        <div className="payslipDetailField payslipDetailField--accent">
+                                            <p className="payslipDetailFieldLabel">Net total</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                {money(totals.net)}
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-error-title">
-                                            Error title
-                                        </label>
-                                        <input
-                                            id="payslip-error-title"
-                                            className="uiSelect"
-                                            type="text"
-                                            maxLength={MAX_ERROR_TITLE_LENGTH}
-                                            value={form.errorTitle}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, errorTitle: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-error-note">
-                                            Error note
-                                        </label>
-                                        <textarea
-                                            id="payslip-error-note"
-                                            className="uiSelect"
-                                            rows={3}
-                                            value={form.errorNote}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, errorNote: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                </div>
-                            </Card>
+                                </Card>
 
-                            <Card title="Pay Details" className="dashboardCardHeight">
-                                <div className="generalInfoRows">
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-function">
-                                            Function
-                                        </label>
-                                        <input
-                                            id="payslip-function"
-                                            className="uiSelect"
-                                            type="text"
-                                            value={form.functionName}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, functionName: e.target.value }))}
-                                            disabled={saving}
-                                        />
+                                <Card title="Employee details" className="payslipDetailSection">
+                                    <div className="payslipDetailFields">
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Full name</p>
+                                            <p className="payslipDetailFieldValue">{payslip.name ?? "-"}</p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">User ID</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                {payslip.userId}
+                                            </p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Date of birth</p>
+                                            <p className="payslipDetailFieldValue">{formatDate(payslip.dateOfBirth)}</p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Start date</p>
+                                            <p className="payslipDetailFieldValue">{formatDate(payslip.startDate)}</p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Address</p>
+                                            <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                {addressLine}
+                                            </p>
+                                        </div>
+                                        <div className="payslipDetailField">
+                                            <p className="payslipDetailFieldLabel">Country</p>
+                                            <p className="payslipDetailFieldValue">{payslip.country ?? "-"}</p>
+                                        </div>
                                     </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-rate">
-                                            Hourly wage
-                                        </label>
-                                        <input
-                                            id="payslip-rate"
-                                            className="uiSelect"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={form.hourlyWage}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, hourlyWage: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-hours">
-                                            Hours worked
-                                        </label>
-                                        <input
-                                            id="payslip-hours"
-                                            className="uiSelect"
-                                            type="number"
-                                            min="0"
-                                            step="0.25"
-                                            value={form.totalHoursWorked}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, totalHoursWorked: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-tax">
-                                            Wage tax withheld
-                                        </label>
-                                        <input
-                                            id="payslip-tax"
-                                            className="uiSelect"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={form.wageTaxWithheldTest}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, wageTaxWithheldTest: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <label className="generalInfoLabel" htmlFor="payslip-travel">
-                                            Travel expenses
-                                        </label>
-                                        <input
-                                            id="payslip-travel"
-                                            className="uiSelect"
-                                            type="number"
-                                            min="0"
-                                            step="0.01"
-                                            value={form.travelExpenses}
-                                            onChange={(e) => setForm((prev) => ({ ...prev, travelExpenses: e.target.value }))}
-                                            disabled={saving}
-                                        />
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Gross total</div>
-                                        <div className="generalInfoValue">{money(totals.gross)}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Net total</div>
-                                        <div className="generalInfoValue">{money(totals.net)}</div>
-                                    </div>
-                                </div>
+                                </Card>
 
-                            </Card>
-
-                            <Card
-                                title="Employee Details"
-                                className="dashboardCardHeight"
-                            >
-                                <div className="generalInfoRows">
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Full name</div>
-                                        <div className="generalInfoValue">{payslip.name ?? "-"}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">User ID</div>
-                                        <div className="generalInfoValue">{payslip.userId}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Date of birth</div>
-                                        <div className="generalInfoValue">{formatDate(payslip.dateOfBirth)}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Start date</div>
-                                        <div className="generalInfoValue">{formatDate(payslip.startDate)}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Address</div>
-                                        <div className="generalInfoValue">{addressLine}</div>
-                                    </div>
-                                    <div className="generalInfoRow">
-                                        <div className="generalInfoLabel">Country</div>
-                                        <div className="generalInfoValue">{payslip.country ?? "-"}</div>
-                                    </div>
-                                </div>
-                            </Card>
-
-                            <Card
-                                title={`Timesheets (Week ${payslip.weekNumber ?? "-"})`}
-                                className="workHistoryCard"
-                            >
-                                {timesheetLoading ? (
-                                    <div className="workHistoryLoading">
-                                        <Spinner text="Loading timesheets" />
-                                    </div>
-                                ) : timesheetError ? (
-                                    <div className="workHistoryError">{timesheetError}</div>
-                                ) : (
-                                    <div className="workHistoryTableWrap">
-                                        <table className="workHistoryTable">
-                                            <thead>
-                                                <tr>
-                                                    <th>Date</th>
-                                                    <th>Function</th>
-                                                    <th className="workHistoryHoursCol">Hours</th>
-                                                    <th className="workHistoryHoursCol">Travel</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {filteredTimesheets.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan={4} className="workHistoryEmpty">
-                                                            No timesheets found for this payslip.
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    filteredTimesheets.map((t) => (
-                                                        <tr key={t.timesheetId}>
-                                                            <td>{formatDate(t.dateOfIssue)}</td>
-                                                            <td>{t.function}</td>
+                                <Card
+                                    title={`Timesheets (${weekLabel})`}
+                                    className="payslipDetailSection payslipDetailSection--wide workHistoryCard"
+                                >
+                                    {timesheetLoading ? (
+                                        <div className="workHistoryLoading">
+                                            <Spinner text="Loading timesheets" />
+                                        </div>
+                                    ) : timesheetError ? (
+                                        <div className="workHistoryError">{timesheetError}</div>
+                                    ) : (
+                                        <>
+                                            <div className="payslipTimesheetSummary">
+                                                <div className="payslipTimesheetSummaryItem">
+                                                    <span className="payslipTimesheetSummaryLabel">
+                                                        Recorded hours
+                                                    </span>
+                                                    <span className="payslipTimesheetSummaryValue">
+                                                        {totalTimesheetHours.toFixed(1)}
+                                                    </span>
+                                                </div>
+                                                <div className="payslipTimesheetSummaryItem">
+                                                    <span className="payslipTimesheetSummaryLabel">
+                                                        Travel total
+                                                    </span>
+                                                    <span className="payslipTimesheetSummaryValue">
+                                                        {money(timesheetTravelTotal)}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className="workHistoryTableWrap">
+                                                <table className="workHistoryTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Date</th>
+                                                            <th>Function</th>
+                                                            <th className="workHistoryHoursCol">Hours</th>
+                                                            <th className="workHistoryHoursCol">Travel</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        {filteredTimesheets.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={4} className="workHistoryEmpty">
+                                                                    No timesheets found for this payslip.
+                                                                </td>
+                                                            </tr>
+                                                        ) : (
+                                                            filteredTimesheets.map((t) => (
+                                                                <tr key={t.timesheetId}>
+                                                                    <td>{formatDate(t.dateOfIssue)}</td>
+                                                                    <td>{t.function}</td>
+                                                                    <td className="workHistoryHoursCol">
+                                                                        {Number(t.hoursWorked ?? 0).toFixed(1)}
+                                                                    </td>
+                                                                    <td className="workHistoryHoursCol">
+                                                                        {money(t.travelExpenses ?? 0)}
+                                                                    </td>
+                                                                </tr>
+                                                            ))
+                                                        )}
+                                                    </tbody>
+                                                    <tfoot>
+                                                        <tr className="workHistoryTotalRow">
+                                                            <td colSpan={2}>Total</td>
                                                             <td className="workHistoryHoursCol">
-                                                                {Number(t.hoursWorked ?? 0).toFixed(1)}
+                                                                {totalTimesheetHours.toFixed(1)}
                                                             </td>
                                                             <td className="workHistoryHoursCol">
-                                                                {money(t.travelExpenses ?? 0)}
+                                                                {money(timesheetTravelTotal)}
                                                             </td>
                                                         </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                            <tfoot>
-                                                <tr className="workHistoryTotalRow">
-                                                    <td colSpan={2}>Total</td>
-                                                    <td className="workHistoryHoursCol">
-                                                        {totalTimesheetHours.toFixed(1)}
-                                                    </td>
-                                                    <td className="workHistoryHoursCol">
-                                                        {money(
-                                                            filteredTimesheets.reduce(
-                                                                (sum, t) => sum + (t.travelExpenses ?? 0),
-                                                                0
-                                                            )
-                                                        )}
-                                                    </td>
-                                                </tr>
-                                            </tfoot>
-                                        </table>
-                                    </div>
-                                )}
-                            </Card>
-                        </main>
+                                                    </tfoot>
+                                                </table>
+                                            </div>
+                                        </>
+                                    )}
+                                </Card>
+                            </main>
+                        </div>
                     ) : null}
                         </div>
                     </div>

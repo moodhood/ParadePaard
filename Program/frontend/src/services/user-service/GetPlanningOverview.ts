@@ -38,6 +38,7 @@ export type PlanningEventDTO = {
     eventName: string;
     startDate: string;
     endDate: string;
+    eventTimezone?: string | null;
     clientCompanyId?: string | null;
     clientCompanyName?: string | null;
     internalDescription?: string | null;

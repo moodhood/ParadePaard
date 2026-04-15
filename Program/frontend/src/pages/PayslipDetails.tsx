@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
@@ -9,6 +9,7 @@ import { formatDate, formatDateTime } from "../utils/dateFormat";
 
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/GeneralInfo.css";
+import "../stylesheets/PayslipDetails.css";
 import "../stylesheets/UserDashboard.css";
 import "../stylesheets/WorkHistory.css";
 
@@ -26,9 +27,13 @@ const statusLabel = (value?: string | null) => {
     return value ?? "-";
 };
 
+const statusTone = (value?: string | null) => (value ?? "UNKNOWN").toLowerCase().replace(/_/g, "-");
+
 export default function PayslipDetails() {
     const { payslipId } = useParams<{ payslipId: string }>();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const personalView = searchParams.get("view") === "personal";
 
     const [payslip, setPayslip] = useState<PayslipResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -105,6 +110,11 @@ export default function PayslipDetails() {
         }
     }, [payslip]);
 
+    const weekLabel = useMemo(() => {
+        if (!payslip) return "-";
+        return `${payslip.weekBasedYear ?? "-"} / Week ${payslip.weekNumber ?? "-"}`;
+    }, [payslip]);
+
     const pageHeader = (
         <header className="pageHeader">
             <h1 className="pageTitle">Payslip Overview</h1>
@@ -142,7 +152,7 @@ export default function PayslipDetails() {
                             <div className="pageActions">
                                 <button
                                     className="button buttonSecondary"
-                                    onClick={() => navigate("/payslips")}
+                                    onClick={() => navigate(personalView ? "/payslips?view=personal" : "/payslips")}
                                 >
                                     Back to payslips
                                 </button>
@@ -164,102 +174,165 @@ export default function PayslipDetails() {
                             ) : error ? (
                                 <div className="workHistoryError">{error}</div>
                             ) : payslip ? (
-                                <main className="adminDashboardGrid">
-                                    <Card title="Payslip overview" className="dashboardCardHeight">
-                                        <div className="generalInfoRows">
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Payslip ID</div>
-                                                <div className="generalInfoValue">{payslip.payslipId}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Date of issue</div>
-                                                <div className="generalInfoValue">{formatDate(payslip.dateOfIssue)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Week</div>
-                                                <div className="generalInfoValue">
-                                                    {payslip.weekNumber ?? "-"} ({payslip.weekBasedYear ?? "-"})
-                                                </div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Available to user</div>
-                                                <div className="generalInfoValue">{formatDate(payslip.availableToUserAt)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Generated at</div>
-                                                <div className="generalInfoValue">{formatDateTime(payslip.generatedAt)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Status</div>
-                                                <div className="generalInfoValue">{statusLabel(payslip.status)}</div>
+                                <div className="payslipDetailLayout">
+                                    <section className="payslipHero">
+                                        <div className="payslipHeroIntro">
+                                            <div className="payslipHeroEyebrow">Payslip summary</div>
+                                            <h2 className="payslipHeroTitle">{payslip.name ?? "Employee payslip"}</h2>
+                                            <p className="payslipHeroSubtitle">
+                                                {payslip.functionName ?? "No function assigned"} for {weekLabel}. Issued on{" "}
+                                                {formatDate(payslip.dateOfIssue)} and available to the employee on{" "}
+                                                {formatDate(payslip.availableToUserAt)}.
+                                            </p>
+                                            <div className="payslipHeroMeta">
+                                                <span
+                                                    className={`payslipStatusBadge payslipStatusBadge--${statusTone(
+                                                        payslip.status
+                                                    )}`}
+                                                >
+                                                    {statusLabel(payslip.status)}
+                                                </span>
+                                                <span className="payslipStatusBadge">Payslip ID {payslip.payslipId}</span>
                                             </div>
                                         </div>
-                                    </Card>
-
-                                    <Card title="Pay details" className="dashboardCardHeight">
-                                        <div className="generalInfoRows">
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Function</div>
-                                                <div className="generalInfoValue">{payslip.functionName ?? "-"}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Hourly wage</div>
-                                                <div className="generalInfoValue">{money(payslip.hourlyWage)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Hours worked</div>
-                                                <div className="generalInfoValue">
+                                        <div className="payslipHeroMetrics">
+                                            <div className="payslipHeroMetric">
+                                                <span className="payslipHeroMetricLabel">Hours worked</span>
+                                                <span className="payslipHeroMetricValue">
                                                     {Number(payslip.totalHoursWorked ?? 0).toFixed(2)} h
+                                                </span>
+                                            </div>
+                                            <div className="payslipHeroMetric">
+                                                <span className="payslipHeroMetricLabel">Gross pay</span>
+                                                <span className="payslipHeroMetricValue">{money(totals.gross)}</span>
+                                            </div>
+                                            <div className="payslipHeroMetric">
+                                                <span className="payslipHeroMetricLabel">Net pay</span>
+                                                <span className="payslipHeroMetricValue">{money(totals.net)}</span>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <main className="payslipDetailGrid">
+                                        <Card title="Overview" className="payslipDetailSection">
+                                            <div className="payslipDetailFields">
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Date of issue</p>
+                                                    <p className="payslipDetailFieldValue">{formatDate(payslip.dateOfIssue)}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Week</p>
+                                                    <p className="payslipDetailFieldValue">{weekLabel}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Available to user</p>
+                                                    <p className="payslipDetailFieldValue">
+                                                        {formatDate(payslip.availableToUserAt)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Generated at</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                        {formatDateTime(payslip.generatedAt)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Status</p>
+                                                    <p className="payslipDetailFieldValue">{statusLabel(payslip.status)}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Payslip ID</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                        {payslip.payslipId}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Wage tax withheld</div>
-                                                <div className="generalInfoValue">{money(payslip.wageTaxWithheldTest)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Travel expenses</div>
-                                                <div className="generalInfoValue">{money(payslip.travelExpenses)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Gross total</div>
-                                                <div className="generalInfoValue">{money(totals.gross)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Net total</div>
-                                                <div className="generalInfoValue">{money(totals.net)}</div>
-                                            </div>
-                                        </div>
-                                    </Card>
+                                        </Card>
 
-                                    <Card title="Employee details" className="dashboardCardHeight">
-                                        <div className="generalInfoRows">
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Full name</div>
-                                                <div className="generalInfoValue">{payslip.name ?? "-"}</div>
+                                        <Card title="Pay details" className="payslipDetailSection">
+                                            <div className="payslipDetailFields">
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Function</p>
+                                                    <p className="payslipDetailFieldValue">{payslip.functionName ?? "-"}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Hourly wage</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {money(payslip.hourlyWage)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Hours worked</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {Number(payslip.totalHoursWorked ?? 0).toFixed(2)} h
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Wage tax withheld</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {money(payslip.wageTaxWithheldTest)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Travel expenses</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {money(payslip.travelExpenses)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField payslipDetailField--accent">
+                                                    <p className="payslipDetailFieldLabel">Gross total</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {money(totals.gross)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField payslipDetailField--accent">
+                                                    <p className="payslipDetailFieldLabel">Net total</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--numeric">
+                                                        {money(totals.net)}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">User ID</div>
-                                                <div className="generalInfoValue">{payslip.userId}</div>
+                                        </Card>
+
+                                        <Card
+                                            title="Employee details"
+                                            className="payslipDetailSection payslipDetailSection--wide"
+                                        >
+                                            <div className="payslipDetailFields">
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Full name</p>
+                                                    <p className="payslipDetailFieldValue">{payslip.name ?? "-"}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">User ID</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                        {payslip.userId}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Date of birth</p>
+                                                    <p className="payslipDetailFieldValue">
+                                                        {formatDate(payslip.dateOfBirth)}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Start date</p>
+                                                    <p className="payslipDetailFieldValue">{formatDate(payslip.startDate)}</p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Address</p>
+                                                    <p className="payslipDetailFieldValue payslipDetailFieldValue--subtle">
+                                                        {addressLine}
+                                                    </p>
+                                                </div>
+                                                <div className="payslipDetailField">
+                                                    <p className="payslipDetailFieldLabel">Country</p>
+                                                    <p className="payslipDetailFieldValue">{payslip.country ?? "-"}</p>
+                                                </div>
                                             </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Date of birth</div>
-                                                <div className="generalInfoValue">{formatDate(payslip.dateOfBirth)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Start date</div>
-                                                <div className="generalInfoValue">{formatDate(payslip.startDate)}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Address</div>
-                                                <div className="generalInfoValue">{addressLine}</div>
-                                            </div>
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Country</div>
-                                                <div className="generalInfoValue">{payslip.country ?? "-"}</div>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                </main>
+                                        </Card>
+                                    </main>
+                                </div>
                             ) : null}
                         </div>
                     </div>

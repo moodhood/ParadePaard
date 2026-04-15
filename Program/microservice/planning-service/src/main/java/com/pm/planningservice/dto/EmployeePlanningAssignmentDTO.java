@@ -15,6 +15,7 @@ public class EmployeePlanningAssignmentDTO {
     private LocalDate eventEndDate;
     private String internalDescription;
     private String externalDescription;
+    private String eventTimezone;
     private String eventLocation;
     private UUID shiftId;
     private String shiftName;
@@ -108,6 +109,14 @@ public class EmployeePlanningAssignmentDTO {
 
     public void setExternalDescription(String externalDescription) {
         this.externalDescription = externalDescription;
+    }
+
+    public String getEventTimezone() {
+        return eventTimezone;
+    }
+
+    public void setEventTimezone(String eventTimezone) {
+        this.eventTimezone = eventTimezone;
     }
 
     public String getEventLocation() {

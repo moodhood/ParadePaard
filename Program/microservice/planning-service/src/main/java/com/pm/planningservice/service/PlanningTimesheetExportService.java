@@ -3,6 +3,7 @@ package com.pm.planningservice.service;
 import com.pm.planningservice.integration.CompanySettingsClient;
 import com.pm.planningservice.integration.CompanySettingsDTO;
 import com.pm.planningservice.integration.TimesheetGrpcClient;
+import com.pm.planningservice.integration.UserDirectoryClient;
 import com.pm.planningservice.model.Event;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
@@ -38,6 +39,7 @@ public class PlanningTimesheetExportService {
     private final TravelClaimRepository travelClaimRepository;
     private final TimesheetGrpcClient timesheetGrpcClient;
     private final CompanySettingsClient companySettingsClient;
+    private final UserDirectoryClient userDirectoryClient;
 
     public PlanningTimesheetExportService(
             ShiftRepository shiftRepository,
@@ -45,7 +47,8 @@ public class PlanningTimesheetExportService {
             ScheduleEntryRepository scheduleEntryRepository,
             TravelClaimRepository travelClaimRepository,
             TimesheetGrpcClient timesheetGrpcClient,
-            CompanySettingsClient companySettingsClient
+            CompanySettingsClient companySettingsClient,
+            UserDirectoryClient userDirectoryClient
     ) {
         this.shiftRepository = shiftRepository;
         this.eventRepository = eventRepository;
@@ -53,6 +56,7 @@ public class PlanningTimesheetExportService {
         this.travelClaimRepository = travelClaimRepository;
         this.timesheetGrpcClient = timesheetGrpcClient;
         this.companySettingsClient = companySettingsClient;
+        this.userDirectoryClient = userDirectoryClient;
     }
 
     public String getTimesheetLoggingMode(UUID companyId) {
@@ -100,6 +104,9 @@ public class PlanningTimesheetExportService {
                         entries.stream().map(ScheduleEntry::getScheduleEntryId).toList()
                 ).stream()
                 .collect(Collectors.toMap(TravelClaim::getScheduleEntryId, claim -> claim));
+        Map<UUID, String> userDisplayNamesById = userDirectoryClient.getDisplayNamesByUserIds(
+                entries.stream().map(ScheduleEntry::getUserId).collect(Collectors.toSet())
+        );
 
         List<String> warnings = new ArrayList<>();
         List<PlannedTimesheetRecord> records = new ArrayList<>();
@@ -122,7 +129,7 @@ public class PlanningTimesheetExportService {
             PlannedTimesheetRecord.Builder builder = PlannedTimesheetRecord.newBuilder()
                     .setUserId(entry.getUserId().toString())
                     .setDateOfIssue(shift.getStartTime().toLocalDate().toString())
-                    .setName(event.getName())
+                    .setName(resolveEmployeeName(entry.getUserId(), userDisplayNamesById))
                     .setEventName(event.getName())
                     .setFunction(shift.getFunctionName())
                     .setHoursWorked(calculateWorkedHours(shift).toPlainString())
@@ -202,6 +209,14 @@ public class PlanningTimesheetExportService {
 
     private String resolveShiftName(Shift shift) {
         return shift.getName() == null || shift.getName().isBlank() ? shift.getFunctionName() : shift.getName();
+    }
+
+    private String resolveEmployeeName(UUID userId, Map<UUID, String> userDisplayNamesById) {
+        String displayName = userDisplayNamesById.get(userId);
+        if (displayName == null || displayName.isBlank()) {
+            return userId.toString();
+        }
+        return displayName;
     }
 
     public record ExportResult(int createdCount, int updatedCount, List<String> warnings, int exportedCount) {

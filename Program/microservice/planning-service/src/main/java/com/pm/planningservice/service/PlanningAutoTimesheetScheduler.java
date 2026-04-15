@@ -10,7 +10,6 @@ import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -37,33 +36,34 @@ public class PlanningAutoTimesheetScheduler {
 
     @Scheduled(fixedDelayString = "${planning.auto-timesheet.delay-ms:60000}")
     public void exportEndedConfirmedShifts() {
-        List<Shift> endedShifts = shiftRepository.findByEndTimeLessThanEqual(LocalDateTime.now());
-        if (endedShifts.isEmpty()) {
-            return;
-        }
-
-        List<ScheduleEntry> entries = scheduleEntryRepository.findByShiftIdInAndStatusInAndTimesheetExportedFalse(
-                endedShifts.stream().map(Shift::getShiftId).toList(),
+        List<ScheduleEntry> entries = scheduleEntryRepository.findByStatusInAndTimesheetExportedFalse(
                 List.of(ScheduleEntryStatus.CONFIRMED)
         );
         if (entries.isEmpty()) {
             return;
         }
 
+        Map<UUID, Shift> shiftById = shiftRepository.findAllById(
+                        entries.stream().map(ScheduleEntry::getShiftId).distinct().toList()
+                ).stream()
+                .collect(Collectors.toMap(Shift::getShiftId, shift -> shift));
+        if (shiftById.isEmpty()) {
+            return;
+        }
+
         Map<UUID, Event> eventById = eventRepository.findByEventIdIn(
-                        endedShifts.stream().map(Shift::getEventId).distinct().toList()
+                        shiftById.values().stream().map(Shift::getEventId).distinct().toList()
                 ).stream()
                 .collect(Collectors.toMap(Event::getEventId, event -> event));
 
-        Map<UUID, Shift> shiftById = endedShifts.stream()
-                .collect(Collectors.toMap(Shift::getShiftId, shift -> shift));
-
         Map<UUID, List<ScheduleEntry>> entriesByCompanyId = entries.stream()
-                .filter(entry -> shiftById.containsKey(entry.getShiftId()))
                 .filter(entry -> {
                     Shift shift = shiftById.get(entry.getShiftId());
+                    if (shift == null) {
+                        return false;
+                    }
                     Event event = eventById.get(shift.getEventId());
-                    return event != null;
+                    return event != null && PlanningTimeZoneSupport.hasShiftEnded(shift, event);
                 })
                 .collect(Collectors.groupingBy(entry -> {
                     Shift shift = shiftById.get(entry.getShiftId());

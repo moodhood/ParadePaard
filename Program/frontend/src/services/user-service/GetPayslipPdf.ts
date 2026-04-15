@@ -4,6 +4,13 @@ export default async function GetPayslipPdf(API_BASE_URL: string, payslipId: str
     try {
         const res = await axios.get(`${API_BASE_URL}/api/payroll/${payslipId}`, {
             responseType: "blob",
+            params: {
+                ts: Date.now(),
+            },
+            headers: {
+                "Cache-Control": "no-cache",
+                Pragma: "no-cache",
+            },
             withCredentials: true,
         });
 

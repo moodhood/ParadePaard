@@ -61,6 +61,14 @@ body{
   padding: 16px;
 }
 
+.userPlanningAcceptedCard {
+  min-height: calc(100vh - 180px);
+}
+
+.userPlanningAcceptedCard .uiCardBody {
+  padding: 24px;
+}
+
 .userPlanningStatusToggle {
   flex-wrap: wrap;
   justify-content: flex-end;
@@ -110,6 +118,114 @@ body{
   border-radius: 12px;
   background: #fff6e4;
   padding: 14px 16px;
+}
+
+.userPlanningAcceptedLayout {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  height: 100%;
+}
+
+.userPlanningSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.userPlanningSectionHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.userPlanningSectionTitle {
+  color: #0f172a;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.userPlanningSectionText {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.userPlanningSectionBadge {
+  min-width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #edf3ff;
+  color: #1d4ed8;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 12px;
+  font-size: 13px;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+
+.userPlanningSectionCardList,
+.userPlanningAcceptedList {
+  display: grid;
+  gap: 14px;
+}
+
+.userPlanningPanelCard {
+  padding: 18px 20px;
+}
+
+.userPlanningAcceptedItem {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(130px, 0.85fr) minmax(130px, 0.85fr) minmax(170px, 1fr) minmax(120px, 0.7fr);
+  gap: 16px;
+  width: 100%;
+  font: inherit;
+  border: 1px solid #dbe2ea;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px 20px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.userPlanningAcceptedItem:hover {
+  border-color: #c4d3ff;
+  box-shadow: 0 10px 24px rgba(47, 107, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.userPlanningAcceptedItemMain {
+  min-width: 0;
+}
+
+.userPlanningAcceptedItemTitle {
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.userPlanningAcceptedItemMeta {
+  color: #64748b;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+}
+
+.userPlanningAcceptedItemStatus {
+  color: #0f766e;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.userPlanningSectionMessage {
+  margin: 0;
 }
 
 .userPlanningRequestMain {
@@ -171,6 +287,10 @@ body{
       grid-template-columns: 1fr; /* Stack on mobile */
   }
 
+  .userPlanningAcceptedCard {
+      min-height: auto;
+  }
+
   .userPlanningCard .uiCardHeader {
       align-items: flex-start;
   }
@@ -189,8 +309,25 @@ body{
       align-items: stretch;
   }
 
+  .userPlanningSectionHeader {
+      flex-direction: column;
+      align-items: stretch;
+  }
+
+  .userPlanningSectionBadge {
+      align-self: flex-start;
+  }
+
   .userPlanningRequestActions {
       justify-content: flex-end;
+  }
+
+  .userPlanningAcceptedItem {
+      grid-template-columns: 1fr;
+  }
+
+  .userPlanningAcceptedItemStatus {
+      justify-content: flex-start;
   }
 }
 

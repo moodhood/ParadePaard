@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -107,6 +108,22 @@ public class UserService {
                 ? resolveCompanyPayoutFrequency(user.getCompanyId())
                 : user.getPayslipFrequencyMinutes();
         return UserMapper.toDTO(user, payoutFrequency);
+    }
+
+    @Transactional(readOnly = true)
+    public java.util.Map<String, String> getDisplayNamesByUserIds(List<UUID> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return java.util.Map.of();
+        }
+
+        LinkedHashMap<String, String> displayNames = new LinkedHashMap<>();
+        userIds.stream()
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .map(userRepository::findByUserId)
+                .flatMap(Optional::stream)
+                .forEach((user) -> displayNames.put(user.getUserId().toString(), buildDisplayName(user)));
+        return displayNames;
     }
 
     @Transactional
@@ -345,5 +362,19 @@ public class UserService {
             case "dateadded" -> Sort.by(direction, "registeredDate").and(Sort.by(Sort.Direction.ASC, "lastName", "firstNames", "email"));
             default -> Sort.by(direction, "lastName", "firstNames", "preferredName", "email");
         };
+    }
+
+    private String buildDisplayName(User user) {
+        String fullName = java.util.stream.Stream.of(user.getFirstNames(), user.getMiddleNamePrefix(), user.getLastName())
+                .map(value -> value == null ? "" : value.trim())
+                .filter(value -> !value.isEmpty())
+                .collect(Collectors.joining(" "));
+        if (!fullName.isBlank()) {
+            return fullName;
+        }
+        if (user.getPreferredName() != null && !user.getPreferredName().trim().isEmpty()) {
+            return user.getPreferredName().trim();
+        }
+        return user.getEmail();
     }
 }

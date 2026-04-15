@@ -5,7 +5,7 @@ import PrimaryNav from "../components/PrimaryNav";
 import PaginationControls from "../components/common/PaginationControls";
 import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
-import { readCachedIsAdmin, readCachedPermissions, writeCachedIsAdmin, writeCachedPermissions } from "../utils/authCache";
+import { readCachedPermissions, writeCachedPermissions } from "../utils/authCache";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import "../stylesheets/PayslipsPage.css";
@@ -133,9 +133,10 @@ export default function Payslips() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const personalView = searchParams.get("view") === "personal";
+    const withPersonalView = useCallback((target: string) => {
+        return personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
+    }, [personalView]);
     const cachedPermissions = useMemo(() => readCachedPermissions(), []);
-    const cachedIsAdmin = useMemo(() => readCachedIsAdmin(), []);
-    const [isAdmin, setIsAdmin] = useState(cachedIsAdmin ?? false);
     const [permissions, setPermissions] = useState<string[]>(cachedPermissions ?? []);
     const [permissionsLoading, setPermissionsLoading] = useState(cachedPermissions === null);
     const [permissionsError, setPermissionsError] = useState<string | null>(null);
@@ -168,15 +169,12 @@ export default function Payslips() {
             setPermissionsError(null);
         }
 
-        Promise.all([AuthServices.getPermissions(), AuthServices.isAdmin()])
-            .then(([data, adminValue]) => {
+        AuthServices.getPermissions()
+            .then((data) => {
                 if (cancelled) return;
                 const nextPermissions = data ?? [];
-                const nextIsAdmin = Boolean(adminValue);
                 setPermissions(nextPermissions);
-                setIsAdmin(nextIsAdmin);
                 writeCachedPermissions(nextPermissions);
-                writeCachedIsAdmin(nextIsAdmin);
             })
             .catch((err: unknown) => {
                 const message = err instanceof Error ? err.message : "Failed to load permissions";
@@ -191,27 +189,34 @@ export default function Payslips() {
         };
     }, [cachedPermissions]);
 
-    const canViewOwn = permissions.includes("CAN_VIEW_PAYSLIPS");
+    const canViewOwn =
+        permissions.includes("CAN_VIEW_PAYSLIPS") || permissions.includes("CAN_VIEW_ALL_PAYSLIPS");
     const canViewAll = permissions.includes("CAN_VIEW_ALL_PAYSLIPS");
 
     useEffect(() => {
         if (permissionsLoading) return;
         if (personalView) {
-            setActiveScope("mine");
+            if (activeScope !== "mine") {
+                setActiveScope("mine");
+            }
             return;
         }
-        if (isAdmin && canViewAll) {
+        if (activeScope === "mine" && !canViewOwn && canViewAll) {
             setActiveScope("all");
             return;
         }
-        if (canViewOwn && activeScope !== "mine" && !canViewAll) {
+        if (activeScope === "all" && !canViewAll && canViewOwn) {
             setActiveScope("mine");
             return;
         }
-        if (canViewAll && activeScope !== "all" && !canViewOwn) {
+        if (!canViewOwn && canViewAll && activeScope !== "all") {
             setActiveScope("all");
+            return;
         }
-    }, [permissionsLoading, personalView, isAdmin, canViewOwn, canViewAll, activeScope]);
+        if (!canViewAll && canViewOwn && activeScope !== "mine") {
+            setActiveScope("mine");
+        }
+    }, [permissionsLoading, personalView, canViewOwn, canViewAll, activeScope]);
 
     useEffect(() => {
         if (permissionsLoading) return;
@@ -340,8 +345,9 @@ export default function Payslips() {
     const canSeeAnyPayslips = canViewOwn || canViewAll;
     const scopeUnavailable =
         (activeScope === "mine" && !canViewOwn) || (activeScope === "all" && !canViewAll);
+    const canSwitchScope = !personalView && canViewOwn && canViewAll;
     const openPayslip = (payslipId: string) => {
-        navigate(`/payslips/${payslipId}`);
+        navigate(withPersonalView(`/payslips/${payslipId}`));
     };
 
     return (
@@ -364,6 +370,38 @@ export default function Payslips() {
 
                             {!scopeUnavailable && canSeeAnyPayslips ? (
                                 <>
+                                    {canSwitchScope ? (
+                                        <div className="payslipsTabs" role="tablist" aria-label="Payslip scope">
+                                            <button
+                                                type="button"
+                                                className={`payslipsTab${
+                                                    activeScope === "mine" ? " payslipsTab--active" : ""
+                                                }`}
+                                                onClick={() => setActiveScope("mine")}
+                                                role="tab"
+                                                aria-selected={activeScope === "mine"}
+                                            >
+                                                My payslips
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`payslipsTab${
+                                                    activeScope === "all" ? " payslipsTab--active" : ""
+                                                }`}
+                                                onClick={() => setActiveScope("all")}
+                                                role="tab"
+                                                aria-selected={activeScope === "all"}
+                                            >
+                                                All payslips
+                                            </button>
+                                            <div className="payslipsTabMeta">
+                                                {activeScope === "mine"
+                                                    ? "Showing payslips assigned to your account."
+                                                    : "Showing every company payslip you can access."}
+                                            </div>
+                                        </div>
+                                    ) : null}
+
                                     <div className="payslipsFilterPanel">
                                         <div className="payslipsFilterGrid">
                                             <label className="payslipsFilterField">
@@ -616,7 +654,13 @@ export default function Payslips() {
                                         </>
                                     )}
                                 </>
-                            ) : null}
+                            ) : (
+                                <div className="payslipsNotice">
+                                    {canSeeAnyPayslips
+                                        ? "This payslip view is not available for your account."
+                                        : "You do not have permission to view payslips."}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

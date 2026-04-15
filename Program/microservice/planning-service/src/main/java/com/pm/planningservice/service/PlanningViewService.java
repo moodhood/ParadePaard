@@ -108,6 +108,7 @@ public class PlanningViewService {
         response.setExternalDescription(event.getExternalDescription());
         response.setDefaultStartTime(event.getDefaultStartTime());
         response.setDefaultEndTime(event.getDefaultEndTime());
+        response.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(event.getEventTimezone()));
         response.setLocation(event.getLocation());
         response.setStatus(event.getStatus());
         response.setCreatedByUserId(event.getCreatedByUserId());
@@ -190,9 +191,12 @@ public class PlanningViewService {
         if (clientCompanyIds.isEmpty()) {
             return Map.of();
         }
-        return clientCompanyRepository.findByOwnerCompanyIdOrderByNameAsc(companyId).stream()
+        return clientCompanyRepository.findNameViewsByOwnerCompanyIdOrderByNameAsc(companyId).stream()
                 .filter(clientCompany -> clientCompanyIds.contains(clientCompany.getClientCompanyId()))
-                .collect(Collectors.toMap(ClientCompany::getClientCompanyId, ClientCompany::getName));
+                .collect(Collectors.toMap(
+                        ClientCompanyRepository.ClientCompanyNameView::getClientCompanyId,
+                        ClientCompanyRepository.ClientCompanyNameView::getName
+                ));
     }
 
     private String resolveClientCompanyName(UUID clientCompanyId, Map<UUID, String> clientCompanyNames) {

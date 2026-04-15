@@ -1,0 +1,4 @@
+/workspace/planning-service/src/test/java/com/pm/planningservice/PlanningServiceApplicationTests.java
+/workspace/planning-service/src/test/java/com/pm/planningservice/service/EmployeePlanningServiceTest.java
+/workspace/planning-service/src/test/java/com/pm/planningservice/service/PlanningAutoTimesheetSchedulerTest.java
+/workspace/planning-service/src/test/java/com/pm/planningservice/service/PlanningManagementServiceTest.java

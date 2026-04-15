@@ -26,5 +26,8 @@ public interface ScheduleEntryRepository extends JpaRepository<ScheduleEntry, UU
     @Query("select se from ScheduleEntry se where se.shiftId in :shiftIds and se.status in :statuses and (se.timesheetExported = false or se.timesheetExported is null)")
     List<ScheduleEntry> findByShiftIdInAndStatusInAndTimesheetExportedFalse(Collection<UUID> shiftIds, Collection<ScheduleEntryStatus> statuses);
 
+    @Query("select se from ScheduleEntry se where se.status in :statuses and (se.timesheetExported = false or se.timesheetExported is null)")
+    List<ScheduleEntry> findByStatusInAndTimesheetExportedFalse(Collection<ScheduleEntryStatus> statuses);
+
     Optional<ScheduleEntry> findFirstByShiftIdAndUserId(UUID shiftId, UUID userId);
 }

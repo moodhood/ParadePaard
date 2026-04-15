@@ -264,6 +264,22 @@
   gap: 6px;
 }
 
+.planningWizardSummaryRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.planningWizardSummaryItemLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: rgba(230, 231, 235, 0.64);
+}
+
 .planningWizardSummaryLabel {
   font-size: 12px;
   font-weight: 700;

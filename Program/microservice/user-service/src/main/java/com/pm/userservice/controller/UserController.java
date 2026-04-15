@@ -120,6 +120,12 @@ public class UserController {
         return ResponseEntity.ok(userService.getCompany(companyId));
     }
 
+    @PostMapping("/public/display-names")
+    @Operation(summary = "Get user display names for internal service integration")
+    public ResponseEntity<Map<String, String>> getDisplayNames(@RequestBody List<UUID> userIds) {
+        return ResponseEntity.ok(userService.getDisplayNamesByUserIds(userIds));
+    }
+
     @GetMapping("/me/company-logo")
     @Operation(summary = "Get current company logo")
     public ResponseEntity<byte[]> getMyCompanyLogo(Authentication authentication) {

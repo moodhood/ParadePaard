@@ -320,7 +320,7 @@ ${note}` : title;
     }, [myPlanningRows]);
 
     const pendingPlanningRequests = useMemo(
-        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED" && !row.isPast),
+        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED"),
         [allMyPlanningRows]
     );
     const planningEmptyMessage = planningViewFilter === "past"
@@ -458,7 +458,7 @@ ${note}` : title;
                     title="Payslips"
                     className="dashboardCardHeight"
                     right={
-                        <button className="button" onClick={() => navigate("/payslips")}>
+                        <button className="button" onClick={() => navigate(withPersonalView("/payslips"))}>
                             View all
                         </button>
                     }
@@ -594,10 +594,11 @@ ${note}` : title;
                                         </div>
                                         <span className="planningEntryBadge">{pendingPlanningRequests.length} pending</span>
                                     </div>
-                                    <div className="userPlanningRequestList">
+                                        <div className="userPlanningRequestList">
                                         {pendingPlanningRequests.map((row) => {
                                             const confirmActionId = `${row.scheduleEntryId}:CONFIRMED`;
                                             const declineActionId = `${row.scheduleEntryId}:CANCELLED`;
+                                            const isExpiredRequest = Boolean(row.isPast);
                                             return (
                                                 <article
                                                     key={`request-${row.scheduleEntryId}`}
@@ -611,13 +612,18 @@ ${note}` : title;
                                                         <div className="userPlanningRequestMeta">
                                                             {row.functionName} · {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
                                                         </div>
+                                                        {isExpiredRequest ? (
+                                                            <div className="userPlanningRequestMeta">
+                                                                This request is visible for history, but the shift has already ended.
+                                                            </div>
+                                                        ) : null}
                                                     </div>
                                                     <div className="userPlanningRequestActions">
                                                         <button
                                                             type="button"
                                                             className="button userPlanningDeclineButton"
                                                             onClick={() => void handlePlanningResponse(row, "CANCELLED")}
-                                                            disabled={Boolean(pendingPlanningActionId)}
+                                                            disabled={Boolean(pendingPlanningActionId) || isExpiredRequest}
                                                         >
                                                             {pendingPlanningActionId === declineActionId ? "Declining..." : "Decline"}
                                                         </button>
@@ -625,7 +631,7 @@ ${note}` : title;
                                                             type="button"
                                                             className="button userPlanningAcceptButton"
                                                             onClick={() => void handlePlanningResponse(row, "CONFIRMED")}
-                                                            disabled={Boolean(pendingPlanningActionId)}
+                                                            disabled={Boolean(pendingPlanningActionId) || isExpiredRequest}
                                                         >
                                                             {pendingPlanningActionId === confirmActionId ? "Accepting..." : "Accept"}
                                                         </button>
