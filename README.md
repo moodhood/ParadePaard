@@ -1,10 +1,46 @@
-﻿# ParadePaard
+# ParadePaard
 
-Short instructions for running the project locally.
+Local setup and run instructions for the ParadePaard project.
 
-## Start the backend
+## Requirements
 
-Open a terminal in the `Program/microservice` folder:
+Install these before starting:
+
+- Git
+- Docker Desktop
+- Node.js and npm
+
+Make sure Docker Desktop is running before starting the backend.
+
+## Project Structure
+
+```text
+Program/
+  frontend/       Frontend application
+  microservice/   Backend services and Docker Compose setup
+```
+
+## Install
+
+Clone the repository:
+
+```sh
+git clone https://github.com/moodhood/ParadePaard.git
+cd ParadePaard
+```
+
+Install the frontend dependencies:
+
+```sh
+cd Program/frontend
+npm install
+```
+
+The backend dependencies are built by Docker when starting the services.
+
+## Start the Backend
+
+Open a terminal from the repository root:
 
 ```sh
 cd Program/microservice
@@ -13,9 +49,9 @@ docker compose up --build -d
 
 This builds and starts the backend services in Docker.
 
-## Start the frontend
+## Start the Frontend
 
-Open another terminal in the `Program/frontend` folder:
+Open a second terminal from the repository root:
 
 ```sh
 cd Program/frontend
@@ -28,7 +64,7 @@ When Vite starts, open:
 http://localhost:5173
 ```
 
-## Admin login
+## Admin Login
 
 Use this admin account to log in:
 
@@ -37,10 +73,33 @@ Username: sanne.admin
 Password: ParadeAdmin123!
 ```
 
-## Stop the backend
+## Stop the Project
 
-From the `Program/microservice` folder:
+Stop the frontend by pressing `Ctrl + C` in the terminal running `npm run dev`.
+
+Stop the backend from the `Program/microservice` folder:
 
 ```sh
 docker compose down
+```
+
+## Common Commands
+
+Rebuild and restart the backend:
+
+```sh
+cd Program/microservice
+docker compose up --build -d
+```
+
+View running backend containers:
+
+```sh
+docker compose ps
+```
+
+View backend logs:
+
+```sh
+docker compose logs -f
 ```
