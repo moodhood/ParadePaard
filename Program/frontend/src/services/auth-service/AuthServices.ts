@@ -1,5 +1,4 @@
 import Login from "./Login";
-import IsAdmin from "./IsAdmin";
 import ForgotPassword from "./ForgotPassword";
 import ResetPassword from "./ResetPassword";
 import GetPermissions from "./GetPermissions";
@@ -22,9 +21,6 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004
 export const AuthServices = {
     login: async (username: string, password: string) => {
         return await Login(username, password, API_BASE_URL);
-    },
-    isAdmin: async () => {
-        return await IsAdmin(API_BASE_URL);
     },
     forgotPassword: async (email: string) => {
         return await ForgotPassword(email, API_BASE_URL);

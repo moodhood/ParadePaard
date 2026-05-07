@@ -1,18 +1,12 @@
-import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { AuthServices } from "../services/auth-service/AuthServices";
+import { useAuth } from "../context/AuthContext";
+import { canAccessManagement, canViewPayslips } from "../utils/permissionPolicy";
 import "../stylesheets/PrimaryNav.css";
 
 export default function PrimaryNav() {
-    const [isAdmin, setIsAdmin] = useState(false);
-    const [canViewPayslips, setCanViewPayslips] = useState(false);
-    const [canManagePlanning, setCanManagePlanning] = useState(false);
-    const [canManageTimesheets, setCanManageTimesheets] = useState(false);
     const location = useLocation();
     const path = location.pathname;
     const currentPath = `${location.pathname}${location.search}`;
-    const personalView = new URLSearchParams(location.search).get("view") === "personal";
-    const fallbackAccountReturnTo = personalView ? "/dashboard?view=personal" : "/dashboard";
     const accountReturnTo =
         path.startsWith("/account") &&
         location.state &&
@@ -20,75 +14,28 @@ export default function PrimaryNav() {
         typeof (location.state as { accountReturnTo?: unknown }).accountReturnTo === "string"
             ? ((location.state as { accountReturnTo: string }).accountReturnTo)
             : path.startsWith("/account")
-              ? fallbackAccountReturnTo
+              ? "/dashboard"
               : currentPath;
+    const { permissions } = useAuth();
+    const showManagement = canAccessManagement(permissions);
+    const showPayslips = canViewPayslips(permissions);
 
     const isDashboardActive = path === "/dashboard";
-    const isUsersActive = path.startsWith("/admin/user");
-    const isOnboardingActive = path.startsWith("/admin/onboarding");
-    const isPlanningActive = path.startsWith("/admin/planning");
-    const isClientsActive = path.startsWith("/admin/clients");
-    const isPayslipsActive =
-        path.startsWith("/payslips") || path.startsWith("/admin/payslip");
+    const isManagementActive = path.startsWith("/management");
+    const isPayslipsActive = path.startsWith("/payslips");
     const isMyPlanningActive = path.startsWith("/my-planning");
     const isWorkHistoryActive = path.startsWith("/work-history");
-    const isTravelClaimsActive = path.startsWith("/travel-claims");
     const isAccountActive = path.startsWith("/account");
-    const showMyPlanning = !isAdmin || personalView;
 
     const linkClass = (active: boolean) =>
         `nav_quick_link primaryNavLink${active ? " primaryNavLink--active" : ""}`;
-    const withPersonalView = (target: string) =>
-        personalView ? `${target}?view=personal` : target;
-
-    useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.isAdmin()
-            .then((value) => {
-                if (!cancelled) setIsAdmin(Boolean(value));
-            })
-            .catch(() => {
-                if (!cancelled) setIsAdmin(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((perms) => {
-                if (cancelled) return;
-                const list = perms ?? [];
-                setCanViewPayslips(
-                    list.includes("CAN_VIEW_PAYSLIPS") || list.includes("CAN_VIEW_ALL_PAYSLIPS")
-                );
-                setCanManagePlanning(list.includes("CAN_MANAGE_PLANNING"));
-                setCanManageTimesheets(list.includes("CAN_MANAGE_TIMESHEETS"));
-            })
-            .catch(() => {
-                if (!cancelled) {
-                    setCanViewPayslips(false);
-                    setCanManagePlanning(false);
-                    setCanManageTimesheets(false);
-                }
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     return (
         <nav className="primaryNav" aria-label="Primary navigation">
             <div className="primaryNavLinks">
                 <Link
                     className={linkClass(isDashboardActive)}
-                    to={withPersonalView("/dashboard")}
+                    to="/dashboard"
                     aria-current={isDashboardActive ? "page" : undefined}
                     aria-label="Dashboard"
                     title="Dashboard"
@@ -111,13 +58,13 @@ export default function PrimaryNav() {
                     <span className="nav_quick_text">Dashboard</span>
                 </Link>
 
-                {isAdmin && !personalView ? (
+                {showManagement ? (
                     <Link
-                        className={linkClass(isUsersActive)}
-                        to="/admin/users"
-                        aria-current={isUsersActive ? "page" : undefined}
-                        aria-label="Users"
-                        title="Users"
+                        className={linkClass(isManagementActive)}
+                        to="/management"
+                        aria-current={isManagementActive ? "page" : undefined}
+                        aria-label="Management"
+                        title="Management"
                     >
                         <svg
                             className="nav_quick_icon"
@@ -131,103 +78,18 @@ export default function PrimaryNav() {
                             strokeLinejoin="round"
                             aria-hidden="true"
                         >
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                            <path d="M4 6h16" />
+                            <path d="M4 12h16" />
+                            <path d="M4 18h16" />
                         </svg>
-                        <span className="nav_quick_text">Users</span>
+                        <span className="nav_quick_text">Management</span>
                     </Link>
                 ) : null}
 
-                {(isAdmin || canManagePlanning) && !personalView ? (
-                    <Link
-                        className={linkClass(isPlanningActive)}
-                        to="/admin/planning"
-                        aria-current={isPlanningActive ? "page" : undefined}
-                        aria-label="Planning"
-                        title="Planning"
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <rect x="3" y="4" width="18" height="18" rx="2" />
-                            <path d="M16 2v4" />
-                            <path d="M8 2v4" />
-                            <path d="M3 10h18" />
-                        </svg>
-                        <span className="nav_quick_text">Planning</span>
-                    </Link>
-                ) : null}
-
-                {(isAdmin || canManagePlanning) && !personalView ? (
-                    <Link
-                        className={linkClass(isClientsActive)}
-                        to="/admin/clients"
-                        aria-current={isClientsActive ? "page" : undefined}
-                        aria-label="Clients"
-                        title="Clients"
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <path d="M3 7h18" />
-                            <path d="M5 7V5a2 2 0 0 1 2-2h3l2 2h5a2 2 0 0 1 2 2v2" />
-                            <path d="M5 7v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7" />
-                        </svg>
-                        <span className="nav_quick_text">Clients</span>
-                    </Link>
-                ) : null}
-
-                {isAdmin && !personalView ? (
-                    <Link
-                        className={linkClass(isOnboardingActive)}
-                        to="/admin/onboarding"
-                        aria-current={isOnboardingActive ? "page" : undefined}
-                        aria-label="Onboarding"
-                        title="Onboarding"
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <path d="M12 5v14" />
-                            <path d="M5 12h14" />
-                        </svg>
-                        <span className="nav_quick_text">Onboarding</span>
-                    </Link>
-                ) : null}
-
-                {canViewPayslips ? (
+                {showPayslips ? (
                     <Link
                         className={linkClass(isPayslipsActive)}
-                        to={withPersonalView("/payslips")}
+                        to="/payslips"
                         aria-current={isPayslipsActive ? "page" : undefined}
                         aria-label="Payslips"
                         title="Payslips"
@@ -253,38 +115,36 @@ export default function PrimaryNav() {
                     </Link>
                 ) : null}
 
-                {showMyPlanning ? (
-                    <Link
-                        className={linkClass(isMyPlanningActive)}
-                        to={withPersonalView("/my-planning")}
-                        aria-current={isMyPlanningActive ? "page" : undefined}
-                        aria-label="My planning"
-                        title="My planning"
+                <Link
+                    className={linkClass(isMyPlanningActive)}
+                    to="/my-planning"
+                    aria-current={isMyPlanningActive ? "page" : undefined}
+                    aria-label="My planning"
+                    title="My planning"
+                >
+                    <svg
+                        className="nav_quick_icon"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
                     >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <rect x="3" y="4" width="18" height="18" rx="2" />
-                            <path d="M8 2v4" />
-                            <path d="M16 2v4" />
-                            <path d="M3 10h18" />
-                        </svg>
-                        <span className="nav_quick_text">My planning</span>
-                    </Link>
-                ) : null}
+                        <rect x="3" y="4" width="18" height="18" rx="2" />
+                        <path d="M8 2v4" />
+                        <path d="M16 2v4" />
+                        <path d="M3 10h18" />
+                    </svg>
+                    <span className="nav_quick_text">My planning</span>
+                </Link>
 
                 <Link
                     className={linkClass(isWorkHistoryActive)}
-                    to={withPersonalView("/work-history")}
+                    to="/work-history"
                     aria-current={isWorkHistoryActive ? "page" : undefined}
                     aria-label="Work history"
                     title="Work history"
@@ -307,39 +167,9 @@ export default function PrimaryNav() {
                     <span className="nav_quick_text">Work history</span>
                 </Link>
 
-                {canManageTimesheets && !personalView ? (
-                    <Link
-                        className={linkClass(isTravelClaimsActive)}
-                        to="/travel-claims"
-                        aria-current={isTravelClaimsActive ? "page" : undefined}
-                        aria-label="Travel claims"
-                        title="Travel claims"
-                    >
-                        <svg
-                            className="nav_quick_icon"
-                            viewBox="0 0 24 24"
-                            width="18"
-                            height="18"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            aria-hidden="true"
-                        >
-                            <path d="M3 7h13" />
-                            <path d="M14 17H3" />
-                            <path d="M17 7l4 4-4 4" />
-                            <circle cx="7" cy="17" r="2" />
-                            <circle cx="17" cy="17" r="2" />
-                        </svg>
-                        <span className="nav_quick_text">Travel claims</span>
-                    </Link>
-                ) : null}
-
                 <Link
                     className={linkClass(isAccountActive)}
-                    to={withPersonalView("/account")}
+                    to="/account"
                     state={{ accountReturnTo }}
                     aria-current={isAccountActive ? "page" : undefined}
                     aria-label="Account"

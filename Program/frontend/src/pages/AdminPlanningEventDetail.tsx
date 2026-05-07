@@ -742,7 +742,7 @@ export default function AdminPlanningEventDetail() {
             setEventSaveError(null);
             await UserServices.deletePlanningEvent(event.eventId);
             setIsEditEventOpen(false);
-            navigate("/admin/planning", { replace: true });
+            navigate("/management/planning", { replace: true });
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to delete event.";
             setEventSaveError(message);
@@ -945,7 +945,7 @@ export default function AdminPlanningEventDetail() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <div className="planningDetailBreadcrumbs">
-                            <PageBack label="Back to planning" to="/admin/planning" />
+                            <PageBack label="Back to planning" to="/management/planning" />
                         </div>
 
                         <header className="pageHeader">

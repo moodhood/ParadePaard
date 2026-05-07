@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
@@ -32,8 +32,6 @@ const statusTone = (value?: string | null) => (value ?? "UNKNOWN").toLowerCase()
 export default function PayslipDetails() {
     const { payslipId } = useParams<{ payslipId: string }>();
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
 
     const [payslip, setPayslip] = useState<PayslipResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -150,7 +148,7 @@ export default function PayslipDetails() {
                             <div className="pageActions">
                                 <button
                                     className="button buttonSecondary"
-                                    onClick={() => navigate(personalView ? "/payslips?view=personal" : "/payslips")}
+                                    onClick={() => navigate("/payslips")}
                                 >
                                     Back to payslips
                                 </button>

@@ -330,7 +330,7 @@ export default function AdminDashboard(): JSX.Element {
                 <PrimaryNav />
                 <div className="pageShellContent">
                     <header className="pageHeader">
-                        <h1 className="pageTitle">Admin Dashboard</h1>
+                        <h1 className="pageTitle">Management Dashboard</h1>
                     </header>
                     <div className="adminDashboardCard">
                         <main className="adminDashboardGrid">
@@ -340,7 +340,7 @@ export default function AdminDashboard(): JSX.Element {
                         title="General Info"
                         className="dashboardCardHeight"
                         right={
-                            <button className="button" onClick={() => navigate("/admin/planning")}>
+                            <button className="button" onClick={() => navigate("/management/planning")}>
                                 Open planning overview
                             </button>
                         }
@@ -548,7 +548,7 @@ export default function AdminDashboard(): JSX.Element {
                                                       <button
                                                           type="button"
                                                           className="listLink"
-                                                          onClick={() => navigate(`/admin/user/${u.userId}`)}
+                                                          onClick={() => navigate(`/management/users/${u.userId}`)}
                                                       >
                                                           {u.name}
                                                       </button>
@@ -580,7 +580,7 @@ export default function AdminDashboard(): JSX.Element {
                                                       <button
                                                           type="button"
                                                           className="listLink"
-                                                          onClick={() => navigate(`/admin/user/${t.userId}`)}
+                                                          onClick={() => navigate(`/management/users/${t.userId}`)}
                                                       >
                                                           {t.name}
                                                       </button>
@@ -631,7 +631,7 @@ export default function AdminDashboard(): JSX.Element {
                                                 className="listLink"
                                                 onClick={(event) => {
                                                     event.stopPropagation();
-                                                    navigate(`/admin/user/${req.userId}`);
+                                                    navigate(`/management/users/${req.userId}`);
                                                 }}
                                             >
                                                 {(req as LeaveRequest).by}
@@ -681,14 +681,14 @@ export default function AdminDashboard(): JSX.Element {
                                           <div
                                               key={p.payslipId}
                                               className="listRowGrid gridErrors clickableRow"
-                                              onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
+                                              onClick={() => navigate(`/management/payslips/${p.payslipId}`)}
                                           >
                                               <button
                                                   type="button"
                                                   className="listLink"
                                                   onClick={(event) => {
                                                       event.stopPropagation();
-                                                      navigate(`/admin/user/${p.userId}`);
+                                                      navigate(`/management/users/${p.userId}`);
                                                   }}
                                               >
                                                   {p.name}
@@ -723,7 +723,7 @@ export default function AdminDashboard(): JSX.Element {
                                               <button
                                                   type="button"
                                                   className="listLink"
-                                                  onClick={() => navigate(`/admin/user/${row.userId}`)}
+                                                  onClick={() => navigate(`/management/users/${row.userId}`)}
                                               >
                                                   {row.name}
                                               </button>
@@ -743,7 +743,7 @@ export default function AdminDashboard(): JSX.Element {
                         title="Payslip Review"
                         className="dashboardCardHeight"
                         right={
-                            <button className="button" onClick={() => navigate("/admin/payslip-review")}>
+                            <button className="button" onClick={() => navigate("/management/payslip-review")}>
                                 View all payslips
                             </button>
                         }
@@ -769,14 +769,14 @@ export default function AdminDashboard(): JSX.Element {
                                               <div
                                                   key={p.payslipId}
                                                   className="listRowGrid gridPayouts clickableRow"
-                                                  onClick={() => navigate("/admin/payslip-review")}
+                                                  onClick={() => navigate("/management/payslip-review")}
                                               >
                                                   <button
                                                       type="button"
                                                       className="listLink"
                                                       onClick={(event) => {
                                                           event.stopPropagation();
-                                                          navigate(`/admin/user/${p.userId}`);
+                                                          navigate(`/management/users/${p.userId}`);
                                                       }}
                                                   >
                                                       {p.name}

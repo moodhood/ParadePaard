@@ -340,7 +340,7 @@ export default function AdminUsers() {
                                               <div
                                                   key={user.userId}
                                                   className="listRowGrid gridUsers clickableRow"
-                                                  onClick={() => navigate(`/admin/user/${user.userId}`)}
+                                                  onClick={() => navigate(`/management/users/${user.userId}`)}
                                               >
                                                   <div className="adminUserCell">
                                                       <div

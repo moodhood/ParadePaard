@@ -1,5 +1,5 @@
-ï»¿import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom"; //
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom"; //
 
 import "../../stylesheets/UserDashboard.css"
 import "../../stylesheets/GeneralInfo.css";
@@ -36,11 +36,7 @@ type UserPlanningViewFilter = "upcoming" | "past";
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
-    const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
-    const withPersonalView = useCallback((target: string) => {
-        return personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
-    }, [personalView]);
+
     
     // me
     const [userId, setUserId] = useState<string | null>(null);
@@ -370,7 +366,7 @@ ${note}` : title;
                             key={row.scheduleEntryId}
                             className="listRowGrid userPlanningGrid"
                             style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
-                            onClick={() => navigate(withPersonalView(`/my-planning/${row.scheduleEntryId}${planningViewFilter === "past" ? "?tab=past" : ""}`))}
+                            onClick={() => navigate(`/my-planning/${row.scheduleEntryId}${planningViewFilter === "past" ? "?tab=past" : ""}`)}
                         >
                             <div>
                                 <div className="cellMain">{row.eventName}</div>
@@ -458,7 +454,7 @@ ${note}` : title;
                     title="Payslips"
                     className="dashboardCardHeight"
                     right={
-                        <button className="button" onClick={() => navigate(withPersonalView("/payslips"))}>
+                        <button className="button" onClick={() => navigate("/payslips")}>
                             View all
                         </button>
                     }
@@ -553,7 +549,7 @@ ${note}` : title;
                     className="dashboardCardHeight userPlanningCard"
                     right={
                         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                            <button className="button" onClick={() => navigate(withPersonalView("/my-planning"))}>
+                            <button className="button" onClick={() => navigate("/my-planning")}>
                                 View all
                             </button>
                             <div className="planningModeToggle userPlanningStatusToggle" role="tablist" aria-label="My planning filter">
@@ -607,10 +603,10 @@ ${note}` : title;
                                                     <div className="userPlanningRequestMain">
                                                         <div className="userPlanningRequestTitle">{row.eventName}</div>
                                                         <div className="userPlanningRequestMeta">
-                                                            {formatDate(row.shiftDate)} Â· {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
+                                                            {formatDate(row.shiftDate)} · {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
                                                         </div>
                                                         <div className="userPlanningRequestMeta">
-                                                            {row.functionName} Â· {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
+                                                            {row.functionName} · {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
                                                         </div>
                                                         {isExpiredRequest ? (
                                                             <div className="userPlanningRequestMeta">

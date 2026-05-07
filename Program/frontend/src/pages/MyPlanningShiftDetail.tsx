@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
@@ -6,16 +6,26 @@ import Card from "../components/common/Card";
 import Spinner from "../components/Spinner";
 import { UserServices, type EmployeePlanningAssignmentDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
+import "../stylesheets/MyPlanningShiftDetail.css";
 
 function money(value: number | null | undefined): string {
     return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number(value ?? 0));
+}
+
+function claimStatusLabel(value: string | null | undefined): string {
+    if (!value) return "Not submitted";
+    return value
+        .toLowerCase()
+        .split("_")
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join(" ");
 }
 
 export default function MyPlanningShiftDetail() {
     const { scheduleEntryId } = useParams<{ scheduleEntryId: string }>();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const personalView = searchParams.get("view") === "personal";
+    const proofInputId = useId();
     const [item, setItem] = useState<EmployeePlanningAssignmentDTO | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -53,9 +63,12 @@ export default function MyPlanningShiftDetail() {
         if (!item?.travelClaim?.hasProof) return "No proof uploaded";
         return "Proof uploaded";
     }, [item?.travelClaim?.hasProof]);
-
-    const withPersonalView = (target: string) =>
-        personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
+    const selectedProofLabel = file?.name ?? (item?.travelClaim?.hasProof ? "Current proof image saved" : "No file selected");
+    const claimStatusClassName = `travelClaimStatus travelClaimStatus--${(item?.travelClaim?.status ?? "not-submitted")
+        .toLowerCase()
+        .replaceAll("_", "-")}`;
+    const enteredKilometers = Number(kilometers || 0);
+    const calculatedClaimAmount = money(item?.travelClaim?.totalAmount ?? (Number.isFinite(enteredKilometers) ? enteredKilometers : 0) * 0.23);
 
     const openProof = async () => {
         if (!scheduleEntryId) return;
@@ -99,7 +112,7 @@ export default function MyPlanningShiftDetail() {
                         <button
                             type="button"
                             className="button"
-                            onClick={() => navigate(withPersonalView(`/my-planning${searchParams.get("tab") === "past" ? "?tab=past" : ""}`))}
+                            onClick={() => navigate(`/my-planning${searchParams.get("tab") === "past" ? "?tab=past" : ""}`)}
                         >
                             Back
                         </button>
@@ -110,9 +123,9 @@ export default function MyPlanningShiftDetail() {
                     ) : error && !item ? (
                         <p className="errorText">{error}</p>
                     ) : item ? (
-                        <div style={{ display: "grid", gap: 20 }}>
+                        <div className="shiftDetailStack">
                             {error ? <p className="errorText">{error}</p> : null}
-                            <Card title={item.eventName}>
+                            <Card title={item.eventName} className="shiftDetailCard">
                                 <div className="generalInfoRows">
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Date</div><div className="generalInfoValue">{formatDate(item.shiftDate)}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Time</div><div className="generalInfoValue">{item.startTime.slice(11, 16)} - {item.endTime.slice(11, 16)}</div></div>
@@ -126,18 +139,18 @@ export default function MyPlanningShiftDetail() {
                                 </div>
                             </Card>
 
-                            <Card title="Travel claim">
+                            <Card title="Travel claim" className="shiftDetailCard travelClaimCard">
                                 {!canSubmitClaim ? (
                                     <p className="helperText">Travel claims become available after the shift has ended.</p>
                                 ) : (
-                                    <div style={{ display: "grid", gap: 12 }}>
-                                        <label className="settingsField">
-                                            <div className="settingsLabelRow">
-                                                <span className="settingsLabel">Kilometers traveled</span>
-                                                <span className="settingsMeta">Rate: €0.23/km</span>
+                                    <div className="travelClaimForm">
+                                        <label className="travelClaimField">
+                                            <div className="travelClaimLabelRow">
+                                                <span className="travelClaimLabel">Kilometers traveled</span>
+                                                <span className="travelClaimMeta">Rate: {money(0.23)}/km</span>
                                             </div>
                                             <input
-                                                className="settingsInput"
+                                                className="travelClaimInput"
                                                 type="number"
                                                 min="0"
                                                 step="0.1"
@@ -145,29 +158,43 @@ export default function MyPlanningShiftDetail() {
                                                 onChange={(event) => setKilometers(event.target.value)}
                                             />
                                         </label>
-                                        <label className="settingsField">
-                                            <div className="settingsLabelRow">
-                                                <span className="settingsLabel">Proof image</span>
-                                                <span className="settingsMeta">{proofLabel}</span>
+                                        <div className="travelClaimField">
+                                            <div className="travelClaimLabelRow">
+                                                <span className="travelClaimLabel">Proof image</span>
+                                                <span className="travelClaimMeta">{proofLabel}</span>
                                             </div>
-                                            <input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} />
-                                        </label>
-                                        <div className="generalInfoRow">
-                                            <div className="generalInfoLabel">Claim status</div>
-                                            <div className="generalInfoValue">{item.travelClaim?.status ?? "Not submitted"}</div>
+                                            <div className="travelClaimFilePicker">
+                                                <input
+                                                    id={proofInputId}
+                                                    className="travelClaimFileInput"
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                                                />
+                                                <label className="travelClaimFileControl" htmlFor={proofInputId}>
+                                                    <span className="travelClaimFileButton">Choose image</span>
+                                                    <span className="travelClaimFileName">{selectedProofLabel}</span>
+                                                </label>
+                                            </div>
                                         </div>
-                                        <div className="generalInfoRow">
-                                            <div className="generalInfoLabel">Calculated amount</div>
-                                            <div className="generalInfoValue">{money(item.travelClaim?.totalAmount ?? (Number(kilometers || 0) * 0.23))}</div>
+                                        <div className="travelClaimSummaryGrid">
+                                            <div className="travelClaimSummaryItem">
+                                                <span className="travelClaimSummaryLabel">Claim status</span>
+                                                <span className={claimStatusClassName}>{claimStatusLabel(item.travelClaim?.status)}</span>
+                                            </div>
+                                            <div className="travelClaimSummaryItem">
+                                                <span className="travelClaimSummaryLabel">Calculated amount</span>
+                                                <span className="travelClaimAmount">{calculatedClaimAmount}</span>
+                                            </div>
                                         </div>
                                         {item.travelClaim?.rejectionNote ? (
-                                            <div className="generalInfoRow">
-                                                <div className="generalInfoLabel">Review note</div>
-                                                <div className="generalInfoValue">{item.travelClaim.rejectionNote}</div>
+                                            <div className="travelClaimReviewNote">
+                                                <span className="travelClaimSummaryLabel">Review note</span>
+                                                <span>{item.travelClaim.rejectionNote}</span>
                                             </div>
                                         ) : null}
-                                        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                                            <button type="button" className="button settingsAction" disabled={submitting} onClick={() => void submitClaim()}>
+                                        <div className="travelClaimActions">
+                                            <button type="button" className="button travelClaimSubmitButton" disabled={submitting} onClick={() => void submitClaim()}>
                                                 {submitting ? "Submitting..." : "Submit travel claim"}
                                             </button>
                                             {item.travelClaim?.hasProof ? (

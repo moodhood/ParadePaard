@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
@@ -13,8 +13,6 @@ function formatMoney(value: number | null | undefined): string {
 }
 
 export default function TravelClaims() {
-    const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
     const [pendingClaims, setPendingClaims] = useState<EmployeePlanningAssignmentDTO[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -89,7 +87,7 @@ export default function TravelClaims() {
                             style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
                         >
                             <h1 className="workHistoryTitle">Travel Claims</h1>
-                            <Link className="button" to={personalView ? "/work-history?view=personal" : "/work-history"}>
+                            <Link className="button" to="/work-history">
                                 Back to work history
                             </Link>
                         </header>

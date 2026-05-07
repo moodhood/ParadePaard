@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import PaginationControls from "../components/common/PaginationControls";
-import { AuthServices } from "../services/auth-service/AuthServices";
+import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
 import "../stylesheets/WorkHistory.css";
 import { getIsoWeek, sumHours } from "../utils/hoursSummary";
@@ -69,9 +69,7 @@ export interface Timesheet {
 
 export default function WorkHistory() {
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
-    const [permissions, setPermissions] = useState<string[]>([]);
+    const { permissions } = useAuth();
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
@@ -83,7 +81,7 @@ export default function WorkHistory() {
     const [totalPages, setTotalPages] = useState(0);
     const canViewAllTimesheets = permissions.includes("CAN_VIEW_ALL_TIMESHEETS");
     const canManageTimesheets = permissions.includes("CAN_MANAGE_TIMESHEETS");
-    const showAllTimesheets = canViewAllTimesheets && !personalView;
+    const showAllTimesheets = canViewAllTimesheets;
     const getEmployeeName = (timesheet: Timesheet) => {
         if (!timesheet.userId) {
             return timesheet.name ?? "-";
@@ -199,24 +197,6 @@ export default function WorkHistory() {
     }, [page, pageSize, showAllTimesheets]);
 
     useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((permissionValues) => {
-                if (cancelled) return;
-                setPermissions(permissionValues ?? []);
-            })
-            .catch(() => {
-                if (cancelled) return;
-                setPermissions([]);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
         if (!showAllTimesheets) {
             setFilters((prev) => (prev.userId === "all" ? prev : { ...prev, userId: "all" }));
         }
@@ -262,10 +242,7 @@ export default function WorkHistory() {
     };
 
     const openShiftDetail = (timesheetId: string) => {
-        const target = personalView
-            ? `/work-history/${timesheetId}?view=personal`
-            : `/work-history/${timesheetId}`;
-        navigate(target);
+        navigate(`/work-history/${timesheetId}`);
     };
 
     const columnCount = showAllTimesheets ? 5 : 4;
@@ -282,8 +259,8 @@ export default function WorkHistory() {
                             style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
                         >
                             <h1 className="workHistoryTitle">Work History</h1>
-                            {canManageTimesheets && !personalView ? (
-                                <Link className="button" to="/travel-claims">
+                            {canManageTimesheets ? (
+                                <Link className="button" to="/management/travel-claims">
                                     Open travel claims
                                 </Link>
                             ) : null}

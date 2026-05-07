@@ -1,15 +1,15 @@
 import { type JSX, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices, type CompanyResponseDTO, type UserResponseDTO } from "../services/user-service/UserServices";
-import { clearAuthCache, readCachedIsAdmin, writeCachedIsAdmin } from "../utils/authCache";
+import { clearAuthCache } from "../utils/authCache";
+import { canAccessCompanySettings } from "../utils/permissionPolicy";
 import "../stylesheets/Navbar.css";
 
 export default function Navbar(): JSX.Element {
     const location = useLocation();
     const navigate = useNavigate();
-    const { setStatus } = useAuth();
+    const { setStatus, permissions, hasPermission } = useAuth();
     const [menuOpen, setMenuOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -19,21 +19,15 @@ export default function Navbar(): JSX.Element {
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [avatarInitial, setAvatarInitial] = useState("P");
     const [avatarName, setAvatarName] = useState("Profile");
-    const cachedIsAdmin = useMemo(() => readCachedIsAdmin(), []);
-    const [isAdmin, setIsAdmin] = useState(cachedIsAdmin ?? false);
     const [searchTerm, setSearchTerm] = useState("");
     const [searchOpen, setSearchOpen] = useState(false);
     const [searchLoading, setSearchLoading] = useState(false);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
-    const [canManageCompany, setCanManageCompany] = useState(false);
     const [companyInfo, setCompanyInfo] = useState<CompanyResponseDTO | null>(null);
     const [companyOpen, setCompanyOpen] = useState(false);
-    const personalView = useMemo(() => {
-        return new URLSearchParams(location.search).get("view") === "personal";
-    }, [location.search]);
     const currentPath = `${location.pathname}${location.search}`;
-    const fallbackAccountReturnTo = personalView ? "/dashboard?view=personal" : "/dashboard";
+    const fallbackAccountReturnTo = "/dashboard";
     const accountReturnTo =
         location.pathname.startsWith("/account") &&
         location.state &&
@@ -43,6 +37,8 @@ export default function Navbar(): JSX.Element {
             : location.pathname.startsWith("/account")
               ? fallbackAccountReturnTo
               : currentPath;
+    const canViewUsers = hasPermission("CAN_VIEW_USERS");
+    const canManageCompany = canAccessCompanySettings(permissions);
 
     useEffect(() => {
         return () => {
@@ -51,49 +47,7 @@ export default function Navbar(): JSX.Element {
     }, [avatarUrl]);
 
     useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.isAdmin()
-            .then((value) => {
-                if (!cancelled) {
-                    const nextValue = Boolean(value);
-                    setIsAdmin(nextValue);
-                    writeCachedIsAdmin(nextValue);
-                }
-            })
-            .catch(() => {
-                if (!cancelled && cachedIsAdmin === null) setIsAdmin(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (cancelled) return;
-                const list = data ?? [];
-                const canManage =
-                    list.includes("CAN_MANAGE_COMPANY") ||
-                    list.includes("CAN_CREATE_ROLE") ||
-                    list.includes("CAN_ASSIGN_ROLES");
-                setCanManageCompany(canManage);
-            })
-            .catch(() => {
-                if (!cancelled) setCanManageCompany(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
-
-    useEffect(() => {
-        if (!isAdmin || personalView) {
+        if (!canViewUsers) {
             setUsers([]);
             setSearchOpen(false);
             setSearchTerm("");
@@ -122,10 +76,10 @@ export default function Navbar(): JSX.Element {
         return () => {
             cancelled = true;
         };
-    }, [isAdmin, personalView]);
+    }, [canViewUsers]);
 
     useEffect(() => {
-        if (!canManageCompany || personalView) {
+        if (!canManageCompany) {
             setCompanyInfo(null);
             setCompanyOpen(false);
             return;
@@ -152,7 +106,7 @@ export default function Navbar(): JSX.Element {
             cancelled = true;
             window.removeEventListener("companyUpdated", handleCompanyUpdated);
         };
-    }, [canManageCompany, personalView]);
+    }, [canManageCompany]);
 
     useEffect(() => {
         let cancelled = false;
@@ -341,7 +295,7 @@ export default function Navbar(): JSX.Element {
     const handleSelectUser = (userId: string) => {
         setSearchTerm("");
         setSearchOpen(false);
-        navigate(`/admin/user/${userId}`);
+        navigate(`/management/users/${userId}`);
     };
 
     async function handleLogout(): Promise<void> {
@@ -396,7 +350,7 @@ export default function Navbar(): JSX.Element {
                         <div className="brand">
                             <span className="brand_main">ParadePaard</span>
                         </div>
-                        {isAdmin && !personalView ? (
+                        {canViewUsers ? (
                             <div className="nav_search" ref={searchRef}>
                                 <input
                                     className="nav_search_input"
@@ -444,7 +398,7 @@ export default function Navbar(): JSX.Element {
                 </div>
 
                 <div className="nav_right">
-                    {canManageCompany && !personalView ? (
+                    {canManageCompany ? (
                         <div className="nav_company_menu" ref={companyRef}>
                             <button
                                 type="button"
@@ -519,30 +473,10 @@ export default function Navbar(): JSX.Element {
                                         {avatarName}
                                     </div>
                                 </div>
-                                {isAdmin && !personalView ? (
-                                    <Link
-                                        className="nav_dropdown_item"
-                                        role="menuitem"
-                                        to="/dashboard?view=personal"
-                                        onClick={() => setMenuOpen(false)}
-                                    >
-                                        Personal Account
-                                    </Link>
-                                ) : null}
-                                {isAdmin && personalView ? (
-                                    <Link
-                                        className="nav_dropdown_item"
-                                        role="menuitem"
-                                        to="/dashboard"
-                                        onClick={() => setMenuOpen(false)}
-                                    >
-                                        Admin Dashboard
-                                    </Link>
-                                ) : null}
                                 <Link
                                     className="nav_dropdown_item"
                                     role="menuitem"
-                                    to={personalView ? "/account?view=personal" : "/account"}
+                                    to="/account"
                                     state={{ accountReturnTo }}
                                     onClick={() => setMenuOpen(false)}
                                 >

@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import { useAuth } from "../context/AuthContext";
 import {
     type PayrollDeductionLineDTO,
     UserServices,
@@ -81,6 +82,9 @@ const statusTone = (value?: string | null) => (value ?? "UNKNOWN").toLowerCase()
 export default function AdminPayslipDetails() {
     const { payslipId } = useParams<{ payslipId: string }>();
     const navigate = useNavigate();
+    const { hasPermission } = useAuth();
+    const canViewUsers = hasPermission("CAN_VIEW_USERS");
+    const canManagePayslips = hasPermission("CAN_MANAGE_PAYSLIPS");
 
     const [payslip, setPayslip] = useState<PayslipResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -105,6 +109,7 @@ export default function AdminPayslipDetails() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+    const editorDisabled = saving || !canManagePayslips;
 
     const applyPayslipToForm = useCallback((data: PayslipResponseDTO) => {
         const parsed = parseErrorDescription(data.errorDescription);
@@ -220,6 +225,10 @@ export default function AdminPayslipDetails() {
 
     const handleSave = async () => {
         if (!payslip || !payslipId) return;
+        if (!canManagePayslips) {
+            setSaveError("You can view this payslip, but you do not have permission to manage payslips.");
+            return;
+        }
         const parsedDateOfIssue = parseDisplayDate(form.dateOfIssue);
 
         if (!parsedDateOfIssue) {
@@ -365,23 +374,33 @@ ${note}` : title) : "";
                                 >
                                     Download PDF
                                 </button>
-                                <button
-                                    className="button buttonSecondary"
-                                    onClick={() => {
-                                        if (payslip) navigate(`/admin/user/${payslip.userId}`);
-                                    }}
-                                    disabled={saving}
-                                >
-                                    View user
-                                </button>
-                                <button
-                                    className="button"
-                                    onClick={() => void handleSave()}
-                                    disabled={saving}
-                                >
-                                    {saving ? "Saving..." : "Save changes"}
-                                </button>
+                                {canViewUsers ? (
+                                    <button
+                                        className="button buttonSecondary"
+                                        onClick={() => {
+                                            if (payslip) navigate(`/management/users/${payslip.userId}`);
+                                        }}
+                                        disabled={saving}
+                                    >
+                                        View user
+                                    </button>
+                                ) : null}
+                                {canManagePayslips ? (
+                                    <button
+                                        className="button"
+                                        onClick={() => void handleSave()}
+                                        disabled={saving}
+                                    >
+                                        {saving ? "Saving..." : "Save changes"}
+                                    </button>
+                                ) : null}
                             </div>
+
+                            {!canManagePayslips ? (
+                                <div className="helperText">
+                                    You can view this payslip. Editing requires the manage payslips permission.
+                                </div>
+                            ) : null}
 
                     {loading ? (
                         <div className="workHistoryLoading">
@@ -393,10 +412,12 @@ ${note}` : title) : "";
                         <div className="payslipDetailLayout">
                             <section className="payslipHero">
                                 <div className="payslipHeroIntro">
-                                    <div className="payslipHeroEyebrow">Admin payroll editor</div>
+                                    <div className="payslipHeroEyebrow">
+                                        {canManagePayslips ? "Payroll editor" : "Payroll details"}
+                                    </div>
                                     <h2 className="payslipHeroTitle">{payslip.name ?? "Employee payslip"}</h2>
                                     <p className="payslipHeroSubtitle">
-                                        Review and update payroll information for {weekLabel}. Generated on{" "}
+                                        {canManagePayslips ? "Review and update" : "Review"} payroll information for {weekLabel}. Generated on{" "}
                                         {formatDateTime(payslip.generatedAt)} and scheduled for employee access on{" "}
                                         {formatDate(payslip.availableToUserAt)}.
                                     </p>
@@ -463,7 +484,7 @@ ${note}` : title) : "";
                                                 inputMode="numeric"
                                                 placeholder="dd/mm/yyyy"
                                                 maxLength={10}
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField">
@@ -498,7 +519,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, status: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             >
                                                 {STATUS_OPTIONS.map((option) => (
                                                     <option key={option} value={option}>
@@ -523,7 +544,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, errorTitle: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField">
@@ -538,7 +559,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, errorNote: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                     </div>
@@ -558,7 +579,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, functionName: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField">
@@ -575,7 +596,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, hourlyWage: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField">
@@ -595,7 +616,7 @@ ${note}` : title) : "";
                                                         totalHoursWorked: e.target.value,
                                                     }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField">
@@ -612,7 +633,7 @@ ${note}` : title) : "";
                                                 onChange={(e) =>
                                                     setForm((prev) => ({ ...prev, travelExpenses: e.target.value }))
                                                 }
-                                                disabled={saving}
+                                                disabled={editorDisabled}
                                             />
                                         </div>
                                         <div className="payslipDetailField payslipDetailField--accent">
@@ -662,7 +683,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <input
                                                         className="uiSelect"
@@ -679,7 +700,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <input
                                                         className="uiSelect"
@@ -696,7 +717,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <select
                                                         className="uiSelect"
@@ -711,7 +732,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     >
                                                         <option value="FIXED_AMOUNT">Fixed amount</option>
                                                         <option value="PERCENT_OF_GROSS">Percent of gross</option>
@@ -738,7 +759,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <input
                                                         className="uiSelect"
@@ -762,7 +783,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <input
                                                         className="uiSelect"
@@ -786,7 +807,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                     <input
                                                         className="uiSelect"
@@ -803,7 +824,7 @@ ${note}` : title) : "";
                                                                 ),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     />
                                                 </div>
                                                 <div className="payslipDeductionFooter">
@@ -819,7 +840,7 @@ ${note}` : title) : "";
                                                                 deductionLines: prev.deductionLines.filter((_, currentIndex) => currentIndex !== index),
                                                             }))
                                                         }
-                                                        disabled={saving}
+                                                        disabled={editorDisabled}
                                                     >
                                                         Remove line
                                                     </button>
@@ -837,7 +858,7 @@ ${note}` : title) : "";
                                                     deductionLines: [...prev.deductionLines, createEmptyDeductionLine()],
                                                 }))
                                             }
-                                            disabled={saving}
+                                            disabled={editorDisabled}
                                         >
                                             Add deduction line
                                         </button>

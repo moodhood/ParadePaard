@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
+import { useAuth } from "../context/AuthContext";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import {
     UserServices,
@@ -12,7 +13,7 @@ import {
 import "../stylesheets/Settings.css";
 
 const permissionLabelOverrides: Record<string, string> = {
-    CAN_ACCESS_ADMIN_DASHBOARD: "Access admin dashboard",
+    CAN_ACCESS_ADMIN_DASHBOARD: "Access management dashboard",
     CAN_ASSIGN_ROLES: "Assign roles to users",
     CAN_CREATE_ROLE: "Create roles",
     CAN_EDIT_ROLES: "Edit role definitions",
@@ -242,9 +243,7 @@ const normalizeCompanySettingsTab = (value: string | null): CompanySettingsTab =
 export default function SettingsCompany() {
     const [searchParams] = useSearchParams();
     const activeTab = normalizeCompanySettingsTab(searchParams.get("tab"));
-    const [permissions, setPermissions] = useState<string[]>([]);
-    const [permissionsLoading, setPermissionsLoading] = useState(true);
-    const [permissionsError, setPermissionsError] = useState<string | null>(null);
+    const { permissions, permissionsLoading, permissionsError } = useAuth();
 
     const [roles, setRoles] = useState<RoleResponseDTO[]>([]);
     const [rolesLoading, setRolesLoading] = useState(false);
@@ -304,28 +303,6 @@ export default function SettingsCompany() {
     const [allUserRolesMap, setAllUserRolesMap] = useState<Record<string, string[]>>({});
     const [editUserSearch, setEditUserSearch] = useState("");
     const [selectedEditUserIds, setSelectedEditUserIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        let cancelled = false;
-        setPermissionsLoading(true);
-        setPermissionsError(null);
-
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (!cancelled) setPermissions(data ?? []);
-            })
-            .catch((err: unknown) => {
-                const message = err instanceof Error ? err.message : "Failed to load permissions";
-                if (!cancelled) setPermissionsError(message);
-            })
-            .finally(() => {
-                if (!cancelled) setPermissionsLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -403,10 +380,7 @@ export default function SettingsCompany() {
     const canManageRoles =
         canCreateRole || canAssignRoles || canRemoveRoles || canEditRoles || canDeleteRoles;
     const canManageCompany = permissions.includes("CAN_MANAGE_COMPANY");
-
-    if (!permissionsLoading && !permissionsError && !canManageRoles && !canManageCompany) {
-        return null;
-    }
+    const canAccessSettings = canManageRoles || canManageCompany;
 
     useEffect(() => {
         if (!canManageRoles) return;
@@ -1130,6 +1104,10 @@ export default function SettingsCompany() {
             setDeletingRole(false);
         }
     };
+
+    if (!permissionsLoading && !permissionsError && !canAccessSettings) {
+        return null;
+    }
 
     return (
         <>

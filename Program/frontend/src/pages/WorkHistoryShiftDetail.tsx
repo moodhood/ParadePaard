@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Spinner from "../components/Spinner";
-import { AuthServices } from "../services/auth-service/AuthServices";
+import { useAuth } from "../context/AuthContext";
 import { UserServices, type EmployeePlanningAssignmentDTO, type TimesheetRow } from "../services/user-service/UserServices";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
 import "../stylesheets/WorkHistory.css";
@@ -31,9 +31,8 @@ function formatTimeRange(start?: string | null, end?: string | null): string {
 
 export default function WorkHistoryShiftDetail() {
     const { timesheetId } = useParams<{ timesheetId: string }>();
-    const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
     const navigate = useNavigate();
+    const { permissions, permissionsLoading } = useAuth();
     const [timesheet, setTimesheet] = useState<TimesheetRow | null>(null);
     const [assignment, setAssignment] = useState<EmployeePlanningAssignmentDTO | null>(null);
     const [employeeName, setEmployeeName] = useState<string>("-");
@@ -48,6 +47,7 @@ export default function WorkHistoryShiftDetail() {
             setError("Missing worked shift id.");
             return;
         }
+        if (permissionsLoading) return;
 
         let cancelled = false;
 
@@ -55,10 +55,7 @@ export default function WorkHistoryShiftDetail() {
             try {
                 setLoading(true);
                 setError(null);
-                const [timesheetData, permissions] = await Promise.all([
-                    UserServices.getTimesheetById(timesheetId),
-                    AuthServices.getPermissions(),
-                ]);
+                const timesheetData = await UserServices.getTimesheetById(timesheetId);
 
                 if (cancelled) return;
                 setTimesheet(timesheetData);
@@ -84,9 +81,8 @@ export default function WorkHistoryShiftDetail() {
                 }
 
                 const canViewAdminAssignment =
-                    !personalView &&
-                    ((permissions ?? []).includes("CAN_VIEW_ALL_TIMESHEETS") ||
-                        (permissions ?? []).includes("CAN_MANAGE_TIMESHEETS"));
+                    permissions.includes("CAN_VIEW_ALL_TIMESHEETS") ||
+                    permissions.includes("CAN_MANAGE_TIMESHEETS");
                 if (!cancelled) {
                     setUseAdminEndpoints(canViewAdminAssignment);
                 }
@@ -117,11 +113,11 @@ export default function WorkHistoryShiftDetail() {
         return () => {
             cancelled = true;
         };
-    }, [personalView, timesheetId]);
+    }, [permissions, permissionsLoading, timesheetId]);
 
     const backTarget = useMemo(() => {
-        return personalView ? "/work-history?view=personal" : "/work-history";
-    }, [personalView]);
+        return "/work-history";
+    }, []);
 
     const openProof = async () => {
         if (!timesheet?.sourceScheduleEntryId) return;

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NavLink, Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { NavLink, Outlet, useLocation, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
@@ -34,12 +34,10 @@ type AccountNavigationState = Record<string, unknown> & {
 };
 
 export default function Account() {
-    const navigate = useNavigate();
     const location = useLocation();
     const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
     const activeCompanyTab = normalizeCompanySettingsTab(searchParams.get("tab"));
-    const fallbackBackTo = personalView ? "/dashboard?view=personal" : "/dashboard";
+    const fallbackBackTo = "/dashboard";
     const locationState =
         location.state && typeof location.state === "object"
             ? (location.state as AccountNavigationState)
@@ -49,16 +47,13 @@ export default function Account() {
         locationState?.accountReturnTo === backTo
             ? locationState
             : { ...(locationState ?? {}), accountReturnTo: backTo };
-    const accountRoot = personalView ? "/account?view=personal" : "/account";
-    const accountBank = personalView ? "/account/bank?view=personal" : "/account/bank";
-    const accountEmployment = personalView
-        ? "/account/employment?view=personal"
-        : "/account/employment";
-    const accountCompany = personalView ? "/account/company?view=personal" : "/account/company";
-    const accountCompanyDetails = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=details`;
-    const accountCompanyRoles = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=roles`;
-    const accountCompanyWorkflow = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=workflow`;
-    const accountCompanyTax = `${accountCompany}${accountCompany.includes("?") ? "&" : "?"}tab=tax`;
+    const accountRoot = "/account";
+    const accountBank = "/account/bank";
+    const accountEmployment = "/account/employment";
+    const accountCompanyDetails = "/account/company?tab=details";
+    const accountCompanyRoles = "/account/company?tab=roles";
+    const accountCompanyWorkflow = "/account/company?tab=workflow";
+    const accountCompanyTax = "/account/company?tab=tax";
     const [user, setUser] = useState<UserResponseDTO | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [avatarErrorMsg, setAvatarErrorMsg] = useState<string | null>(null);
@@ -99,13 +94,6 @@ export default function Account() {
             if (profilePictureUrl) URL.revokeObjectURL(profilePictureUrl);
         };
     }, [profilePictureUrl]);
-
-    useEffect(() => {
-        if (!personalView) return;
-        if (location.pathname.startsWith("/account/company")) {
-            navigate("/account?view=personal", { replace: true, state: navState });
-        }
-    }, [location.pathname, navState, navigate, personalView]);
 
     const isCompanyPage = location.pathname.startsWith("/account/company");
 

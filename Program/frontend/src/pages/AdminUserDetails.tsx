@@ -1,13 +1,15 @@
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import { useAuth } from "../context/AuthContext";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import {
     UserServices,
+    type ContractResponseDTO,
     type EmployeeTaxProfileDTO,
     type PlanningEventDTO,
     type TimesheetRow,
@@ -144,6 +146,7 @@ function getStatusTone(status: string): "success" | "warning" | "danger" | "neut
 
 export default function AdminUserDetails() {
     const { userId } = useParams<{ userId: string }>();
+    const { permissions, permissionsLoading, permissionsError } = useAuth();
     const [activeTab, setActiveTab] = useState<UserDetailsTab>("profile");
 
     const [user, setUser] = useState<UserResponseDTO | null>(null);
@@ -159,14 +162,14 @@ export default function AdminUserDetails() {
     const [planningEvents, setPlanningEvents] = useState<PlanningEventDTO[]>([]);
     const [planningLoading, setPlanningLoading] = useState(false);
     const [planningError, setPlanningError] = useState<string | null>(null);
+    const [currentContract, setCurrentContract] = useState<ContractResponseDTO | null>(null);
+    const [contractLoading, setContractLoading] = useState(true);
+    const [contractError, setContractError] = useState<string | null>(null);
 
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
     const [profilePictureError, setProfilePictureError] = useState<string | null>(null);
 
-    const [permissions, setPermissions] = useState<string[]>([]);
-    const [permissionsLoading, setPermissionsLoading] = useState(true);
-    const [permissionsError, setPermissionsError] = useState<string | null>(null);
     const [userRoles, setUserRoles] = useState<string[]>([]);
     const [rolesLoading, setRolesLoading] = useState(false);
     const [rolesError, setRolesError] = useState<string | null>(null);
@@ -259,6 +262,21 @@ export default function AdminUserDetails() {
         }
     }, [userId]);
 
+    const loadCurrentContract = useCallback(async () => {
+        if (!userId) return;
+        try {
+            setContractLoading(true);
+            setContractError(null);
+            const contract = await UserServices.getCurrentContractForUser(userId);
+            setCurrentContract(contract);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to load current contract.";
+            setContractError(message);
+        } finally {
+            setContractLoading(false);
+        }
+    }, [userId]);
+
     const loadUserRoles = useCallback(async () => {
         if (!userId) return;
         try {
@@ -302,26 +320,8 @@ export default function AdminUserDetails() {
     }, [loadPlanning]);
 
     useEffect(() => {
-        let cancelled = false;
-        setPermissionsLoading(true);
-        setPermissionsError(null);
-
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (!cancelled) setPermissions(data ?? []);
-            })
-            .catch((err: unknown) => {
-                const message = err instanceof Error ? err.message : "Failed to load permissions.";
-                if (!cancelled) setPermissionsError(message);
-            })
-            .finally(() => {
-                if (!cancelled) setPermissionsLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+        void loadCurrentContract();
+    }, [loadCurrentContract]);
 
     useEffect(() => {
         void loadUserRoles();
@@ -651,6 +651,29 @@ export default function AdminUserDetails() {
         }
     };
 
+    const downloadContractPdf = async () => {
+        if (!currentContract) return;
+        try {
+            setContractError(null);
+            const blob = await UserServices.getContractPdf(currentContract.contractId);
+            const url = URL.createObjectURL(blob);
+            try {
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `contract_${currentContract.contractId}.pdf`;
+                a.rel = "noopener";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            } finally {
+                URL.revokeObjectURL(url);
+            }
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to download contract PDF.";
+            setContractError(message);
+        }
+    };
+
     useEffect(() => {
         if (!showRolePicker) return;
         const handleClick = (event: MouseEvent) => {
@@ -671,7 +694,11 @@ export default function AdminUserDetails() {
         };
     }, [showRolePicker]);
 
-    const renderPlanningList = (rows: PlanningExplorerRow[], emptyMessage: string) => {
+    const getAdminShiftPath = (row: PlanningExplorerRow) => {
+        return `/management/planning/events/${encodeURIComponent(row.eventId)}?shift=${encodeURIComponent(row.shiftId)}`;
+    };
+
+    const renderPlanningList = (rows: PlanningExplorerRow[], emptyMessage: string, linkToShift = false) => {
         if (rows.length === 0) {
             return <div className="adminUserPlanningEmpty">{emptyMessage}</div>;
         }
@@ -680,8 +707,8 @@ export default function AdminUserDetails() {
             <div className="adminUserPlanningList">
                 {rows.map((row) => {
                     const tone = getAllocationStatusTone(row.status);
-                    return (
-                        <article key={row.rowId} className="adminUserPlanningItem">
+                    const itemContent = (
+                        <>
                             <div className="adminUserPlanningItemMain">
                                 <div className="adminUserPlanningItemTitle">{row.eventName}</div>
                                 <div className="adminUserPlanningItemMeta">
@@ -697,6 +724,25 @@ export default function AdminUserDetails() {
                                 </span>
                                 <span className="adminUserPlanningItemDay">{formatDate(row.shiftDate)}</span>
                             </div>
+                        </>
+                    );
+
+                    if (linkToShift) {
+                        return (
+                            <Link
+                                key={row.rowId}
+                                className="adminUserPlanningItem adminUserPlanningItem--link"
+                                to={getAdminShiftPath(row)}
+                                aria-label={`Open ${row.eventName} shift on ${formatDate(row.shiftDate)}`}
+                            >
+                                {itemContent}
+                            </Link>
+                        );
+                    }
+
+                    return (
+                        <article key={row.rowId} className="adminUserPlanningItem">
+                            {itemContent}
                         </article>
                     );
                 })}
@@ -730,11 +776,32 @@ export default function AdminUserDetails() {
 
         const profileWorkRows = [
             ["Status", formatValue(user?.status)],
-            ["Position", formatPosition(user?.position)],
+            ["Position", currentContract?.functionName ?? formatPosition(user?.position)],
             ["Worked for us before", formatValue(user?.workedForUsBefore)],
             ["Registered", formatValue(user?.registeredDate)],
             ["Payslip frequency", formatPayslipFrequency(user?.payslipFrequencyMinutes)],
             ["Company ID", formatValue(user?.companyId)],
+        ] as const;
+
+        const profileContractRows = [
+            ["Contract position", currentContract?.functionName ?? "-"],
+            [
+                "Gross hourly wage",
+                currentContract?.grossHourlyWage != null
+                    ? moneyFormatter.format(Number(currentContract.grossHourlyWage))
+                    : "-",
+            ],
+            ["Contract type", formatValue(currentContract?.contractType)],
+            ["Contract status", formatValue(currentContract?.status)],
+            ["Start date", formatValue(currentContract?.startDate)],
+            ["End date", currentContract ? (currentContract.endDate ? formatValue(currentContract.endDate) : "Open-ended") : "-"],
+            [
+                "Holiday allowance",
+                currentContract?.holidayAllowancePercentage != null
+                    ? `${currentContract.holidayAllowancePercentage}%`
+                    : "-",
+            ],
+            ["Weekly hours", formatValue(currentContract?.weeklyHours)],
         ] as const;
 
         const addressRows = [
@@ -750,7 +817,7 @@ export default function AdminUserDetails() {
             <>
                 <section className="adminUserDetailsHero">
                     <div className="adminUserDetailsHeaderTop">
-                        <PageBack label="Back to users" to="/admin/users" />
+                        <PageBack label="Back to users" to="/management/users" />
                         <div className="pageHeader adminUserDetailsHeader">
                             <h1 className="pageTitle">User Details</h1>
                             <p className="pageSubtitle">
@@ -810,7 +877,7 @@ export default function AdminUserDetails() {
                                 </div>
                                 <p className="adminUserIdentityEmail">{user.email}</p>
                                 <div className="adminUserIdentityMeta">
-                                    <span>{formatPosition(user.position)}</span>
+                                    <span>{currentContract?.functionName ?? formatPosition(user.position)}</span>
                                     <span>{formatLocation(user)}</span>
                                     <span>{sortedUserRoles.length} role{sortedUserRoles.length === 1 ? "" : "s"}</span>
                                 </div>
@@ -860,6 +927,35 @@ export default function AdminUserDetails() {
                                         </div>
                                     ))}
                                 </div>
+                            </Card>
+
+                            <Card title="Active contract" className="adminUserDetailsPanel">
+                                {contractLoading ? (
+                                    <div className="profile_role_hint">Loading contract...</div>
+                                ) : currentContract ? (
+                                    <>
+                                        <div className="generalInfoRows">
+                                            {profileContractRows.map(([label, value]) => (
+                                                <div key={label} className="profile_info_row">
+                                                    <span className="profile_info_label">{label}</span>
+                                                    <span className="profile_info_value">{value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="cardFooter">
+                                            <button
+                                                className="button buttonSecondary"
+                                                type="button"
+                                                onClick={() => void downloadContractPdf()}
+                                            >
+                                                Download contract PDF
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <div className="profile_role_hint">No active contract found for this employee.</div>
+                                )}
+                                {contractError ? <p className="errorText">{contractError}</p> : null}
                             </Card>
 
                             <Card title="Employee tax profile" className="adminUserDetailsPanel">
@@ -1447,7 +1543,7 @@ export default function AdminUserDetails() {
                                         </span>
                                     }
                                 >
-                                    {renderPlanningList(pastPlanningRows, "No past shifts available yet.")}
+                                    {renderPlanningList(pastPlanningRows, "No past shifts available yet.", true)}
                                 </Card>
                             </div>
                         )}

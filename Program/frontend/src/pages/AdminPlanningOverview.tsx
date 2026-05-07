@@ -297,7 +297,7 @@ function getEventEntriesByDay(events: PlanningEventDTO[], rangeStartDate: string
                 completionLabel: getCompletionLabel(requiredCount, scheduledCount),
                 staffingTone: getEventStaffingTone(event),
                 tone: "events",
-                href: `/admin/planning/events/${event.eventId}`,
+                href: `/management/planning/events/${event.eventId}`,
             });
 
             entriesByDay.set(day, entries);
@@ -335,7 +335,7 @@ function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
                     completionLabel: getCompletionLabel(requiredCount, scheduledCount),
                     staffingTone: getShiftStaffingTone(shift),
                     tone: "shifts",
-                    href: `/admin/planning/events/${event.eventId}?shift=${shift.shiftId}`,
+                    href: `/management/planning/events/${event.eventId}?shift=${shift.shiftId}`,
                 });
             }
 
@@ -725,13 +725,7 @@ export default function AdminPlanningOverview() {
                                 {loading ? <div className="listEmpty">Loading planning...</div> : null}
                                 {!loading && error ? <div className="listEmpty errorText">{error}</div> : null}
 
-                                {!loading && !error && events.length === 0 ? (
-                                    <div className="planningEmptyState">
-                                        <div className="listEmpty">No events found for this company.</div>
-                                    </div>
-                                ) : null}
-
-                                {!loading && !error && events.length > 0 ? (
+                                {!loading && !error ? (
                                     planningView === "week" ? (
                                         <div className="planningWeekLayout">
                                             <div className="planningWeekGrid">
@@ -758,18 +752,14 @@ export default function AdminPlanningOverview() {
                                                                     <span className="planningDayNumber">{formatDayNumber(day)}</span>
                                                                 </div>
                                                                 <span className="planningDayCount">
-                                                                    {dayEntries.length} {plannerMode === "events" ? "events" : "shifts"}
+                                                                    {dayEntries.length > 0
+                                                                        ? `${dayEntries.length} ${plannerMode === "events" ? "events" : "shifts"}`
+                                                                        : ""}
                                                                 </span>
                                                             </button>
 
                                                             <div className="planningDayItems">
-                                                                {visibleEntries.length === 0 ? (
-                                                                    <div className="planningDayEmpty">
-                                                                        {plannerMode === "events" ? "No events" : "No shifts"}
-                                                                    </div>
-                                                                ) : (
-                                                                    visibleEntries.map((entry) => renderPlannerEntry(day, entry))
-                                                                )}
+                                                                {visibleEntries.map((entry) => renderPlannerEntry(day, entry))}
 
                                                                 {dayEntries.length > visibleEntries.length ? (
                                                                     <button
@@ -830,18 +820,14 @@ export default function AdminPlanningOverview() {
                                                                     <span className="planningDayNumber">{formatDayNumber(day)}</span>
                                                                 </div>
                                                                 <span className="planningDayCount">
-                                                                    {dayEntries.length} {plannerMode === "events" ? "events" : "shifts"}
+                                                                    {dayEntries.length > 0
+                                                                        ? `${dayEntries.length} ${plannerMode === "events" ? "events" : "shifts"}`
+                                                                        : ""}
                                                                 </span>
                                                             </button>
 
                                                             <div className="planningMonthDayItems">
-                                                                {dayEntries.length === 0 ? (
-                                                                    <div className="planningDayEmpty">
-                                                                        {plannerMode === "events" ? "No events" : "No shifts"}
-                                                                    </div>
-                                                                ) : (
-                                                                    dayEntries.map((entry) => renderPlannerEntry(day, entry))
-                                                                )}
+                                                                {dayEntries.map((entry) => renderPlannerEntry(day, entry))}
                                                             </div>
                                                         </section>
                                                     );

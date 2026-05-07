@@ -113,7 +113,7 @@ export default function PayslipReview() {
                                                   <div
                                                       key={p.payslipId}
                                                       className="listRowGrid gridPayslipReview clickableRow"
-                                                      onClick={() => navigate(`/admin/payslip/${p.payslipId}`)}
+                                                      onClick={() => navigate(`/management/payslips/${p.payslipId}`)}
                                                   >
                                                       <div className="cellMain">{p.name}</div>
                                                       <div className="cellSub">{formatDate(p.dateOfIssue)}</div>

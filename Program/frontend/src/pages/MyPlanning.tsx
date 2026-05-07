@@ -26,7 +26,6 @@ function sortAssignments(items: EmployeePlanningAssignmentDTO[]): EmployeePlanni
 export default function MyPlanning() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const personalView = searchParams.get("view") === "personal";
     const initialTab = searchParams.get("tab") === "past" ? "past" : "upcoming";
     const [activeTab, setActiveTab] = useState<PlanningTab>(initialTab);
     const [items, setItems] = useState<EmployeePlanningAssignmentDTO[]>([]);
@@ -54,15 +53,8 @@ export default function MyPlanning() {
     useEffect(() => {
         const nextParams = new URLSearchParams();
         nextParams.set("tab", activeTab);
-        if (personalView) {
-            nextParams.set("view", "personal");
-        }
         setSearchParams(nextParams, { replace: true });
-    }, [activeTab, personalView, setSearchParams]);
-
-    const withPersonalView = useCallback((target: string) => {
-        return personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
-    }, [personalView]);
+    }, [activeTab, setSearchParams]);
 
     const scheduledItems = useMemo(
         () => sortAssignments(
@@ -211,7 +203,7 @@ export default function MyPlanning() {
                                                     key={item.scheduleEntryId}
                                                     type="button"
                                                     className="userPlanningAcceptedItem"
-                                                    onClick={() => navigate(withPersonalView(`/my-planning/${item.scheduleEntryId}${activeTab === "past" ? "?tab=past" : ""}`))}
+                                                    onClick={() => navigate(`/my-planning/${item.scheduleEntryId}${activeTab === "past" ? "?tab=past" : ""}`)}
                                                 >
                                                     <div className="userPlanningAcceptedItemMain">
                                                         <div className="userPlanningAcceptedItemTitle">{item.eventName}</div>

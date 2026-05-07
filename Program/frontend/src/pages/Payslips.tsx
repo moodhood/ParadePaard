@@ -3,9 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import PaginationControls from "../components/common/PaginationControls";
-import { AuthServices } from "../services/auth-service/AuthServices";
+import { useAuth } from "../context/AuthContext";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
-import { readCachedPermissions, writeCachedPermissions } from "../utils/authCache";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import "../stylesheets/PayslipsPage.css";
@@ -132,14 +131,7 @@ const filterPayslips = (payslips: PayslipResponseDTO[], filters: FilterState) =>
 export default function Payslips() {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
-    const personalView = searchParams.get("view") === "personal";
-    const withPersonalView = useCallback((target: string) => {
-        return personalView ? `${target}${target.includes("?") ? "&" : "?"}view=personal` : target;
-    }, [personalView]);
-    const cachedPermissions = useMemo(() => readCachedPermissions(), []);
-    const [permissions, setPermissions] = useState<string[]>(cachedPermissions ?? []);
-    const [permissionsLoading, setPermissionsLoading] = useState(cachedPermissions === null);
-    const [permissionsError, setPermissionsError] = useState<string | null>(null);
+    const { permissions, permissionsLoading, permissionsError } = useAuth();
 
     const [activeScope, setActiveScope] = useState<PayslipScope>("mine");
     const [filters, setFilters] = useState<Record<PayslipScope, FilterState>>(() => ({
@@ -162,45 +154,12 @@ export default function Payslips() {
     const [downloadError, setDownloadError] = useState<string | null>(null);
     const [downloadId, setDownloadId] = useState<string | null>(null);
 
-    useEffect(() => {
-        let cancelled = false;
-        if (cachedPermissions === null) {
-            setPermissionsLoading(true);
-            setPermissionsError(null);
-        }
-
-        AuthServices.getPermissions()
-            .then((data) => {
-                if (cancelled) return;
-                const nextPermissions = data ?? [];
-                setPermissions(nextPermissions);
-                writeCachedPermissions(nextPermissions);
-            })
-            .catch((err: unknown) => {
-                const message = err instanceof Error ? err.message : "Failed to load permissions";
-                if (!cancelled && cachedPermissions === null) setPermissionsError(message);
-            })
-            .finally(() => {
-                if (!cancelled) setPermissionsLoading(false);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [cachedPermissions]);
-
     const canViewOwn =
         permissions.includes("CAN_VIEW_PAYSLIPS") || permissions.includes("CAN_VIEW_ALL_PAYSLIPS");
     const canViewAll = permissions.includes("CAN_VIEW_ALL_PAYSLIPS");
 
     useEffect(() => {
         if (permissionsLoading) return;
-        if (personalView) {
-            if (activeScope !== "mine") {
-                setActiveScope("mine");
-            }
-            return;
-        }
         if (activeScope === "mine" && !canViewOwn && canViewAll) {
             setActiveScope("all");
             return;
@@ -216,7 +175,7 @@ export default function Payslips() {
         if (!canViewAll && canViewOwn && activeScope !== "mine") {
             setActiveScope("mine");
         }
-    }, [permissionsLoading, personalView, canViewOwn, canViewAll, activeScope]);
+    }, [permissionsLoading, canViewOwn, canViewAll, activeScope]);
 
     useEffect(() => {
         if (permissionsLoading) return;
@@ -225,7 +184,7 @@ export default function Payslips() {
         const normalizedStatus = statusParam ? statusParam.toUpperCase() : null;
 
         let targetScope: PayslipScope | null = null;
-        if (scopeParam === "all" && canViewAll && !personalView) {
+        if (scopeParam === "all" && canViewAll) {
             targetScope = "all";
             setActiveScope("all");
         } else if (scopeParam === "mine" && canViewOwn) {
@@ -345,9 +304,9 @@ export default function Payslips() {
     const canSeeAnyPayslips = canViewOwn || canViewAll;
     const scopeUnavailable =
         (activeScope === "mine" && !canViewOwn) || (activeScope === "all" && !canViewAll);
-    const canSwitchScope = !personalView && canViewOwn && canViewAll;
+    const canSwitchScope = canViewOwn && canViewAll;
     const openPayslip = (payslipId: string) => {
-        navigate(withPersonalView(`/payslips/${payslipId}`));
+        navigate(`/payslips/${payslipId}`);
     };
 
     return (
