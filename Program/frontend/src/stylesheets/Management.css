@@ -1,0 +1,25 @@
+.managementPage {
+    min-height: 100vh;
+    background: #f6f7fb;
+}
+
+.managementGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+}
+
+.managementCard {
+    min-height: 160px;
+}
+
+.managementCardText {
+    color: #4b5563;
+    line-height: 1.5;
+    margin: 0 0 18px;
+}
+
+.managementNotice p {
+    margin: 0;
+    color: #4b5563;
+}

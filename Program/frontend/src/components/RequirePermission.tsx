@@ -1,44 +1,34 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { AuthServices } from "../services/auth-service/AuthServices";
 import Spinner from "./Spinner";
 import { spinnerTextForPath } from "./spinnerText";
-import { readCachedPermissions, writeCachedPermissions } from "../utils/authCache";
+import { useAuth } from "../context/AuthContext";
 
 type RequirePermissionProps = {
-    permission: string;
+    permission?: string;
+    anyOf?: string[];
+    allOf?: string[];
     children: React.ReactNode;
 };
 
-export default function RequirePermission({ permission, children }: RequirePermissionProps) {
+export default function RequirePermission({
+    permission,
+    anyOf,
+    allOf,
+    children,
+}: RequirePermissionProps) {
     const location = useLocation();
-    const cachedPermissions = useMemo(() => readCachedPermissions(), []);
-    const [permissions, setPermissions] = useState<string[] | null>(cachedPermissions);
+    const { permissionsLoading, hasPermission, hasAnyPermission, hasAllPermissions } = useAuth();
 
-    useEffect(() => {
-        let cancelled = false;
-
-        AuthServices.getPermissions()
-            .then((value) => {
-                if (cancelled) return;
-                const next = value ?? [];
-                setPermissions(next);
-                writeCachedPermissions(next);
-            })
-            .catch(() => {
-                if (!cancelled && cachedPermissions === null) setPermissions([]);
-            });
-
-        return () => {
-            cancelled = true;
-        };
-    }, [cachedPermissions]);
-
-    if (permissions === null) {
+    if (permissionsLoading) {
         return <Spinner text={spinnerTextForPath(location.pathname)} />;
     }
 
-    if (!permissions.includes(permission)) {
+    const singleAllowed = permission ? hasPermission(permission) : true;
+    const anyAllowed = anyOf && anyOf.length > 0 ? hasAnyPermission(anyOf) : true;
+    const allAllowed = allOf && allOf.length > 0 ? hasAllPermissions(allOf) : true;
+
+    if (!singleAllowed || !anyAllowed || !allAllowed) {
         return <Navigate to="/dashboard" replace />;
     }
 

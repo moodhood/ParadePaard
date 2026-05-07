@@ -1,7 +1,7 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes, useParams } from "react-router-dom";
 import Login from "./pages/Login";
-import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
+import Management from "./pages/Management";
 import WorkHistory from "./pages/WorkHistory";
 import WorkHistoryShiftDetail from "./pages/WorkHistoryShiftDetail";
 import TravelClaims from "./pages/TravelClaims";
@@ -28,8 +28,28 @@ import AdminPlanningEventDetail from "./pages/AdminPlanningEventDetail";
 import AdminPlanningShiftDetail from "./pages/AdminPlanningShiftDetail";
 import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
-import RequireAdmin from "./components/RequireAdmin";
 import RequirePermission from "./components/RequirePermission";
+import { COMPANY_SETTINGS_PERMISSIONS, MANAGEMENT_PERMISSIONS } from "./utils/permissionPolicy";
+
+function RedirectAdminUser() {
+    const { userId } = useParams();
+    return <Navigate to={`/management/users/${userId ?? ""}`} replace />;
+}
+
+function RedirectAdminPayslip() {
+    const { payslipId } = useParams();
+    return <Navigate to={`/management/payslips/${payslipId ?? ""}`} replace />;
+}
+
+function RedirectAdminPlanningEvent() {
+    const { eventId } = useParams();
+    return <Navigate to={`/management/planning/events/${eventId ?? ""}`} replace />;
+}
+
+function RedirectAdminPlanningShift() {
+    const { eventId, shiftId } = useParams();
+    return <Navigate to={`/management/planning/events/${eventId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
+}
 
 export default function App() {
     return (
@@ -78,11 +98,11 @@ export default function App() {
                 }
             />
             <Route
-                path="/travel-claims"
+                path="/management"
                 element={
                     <RequireActiveUser>
-                        <RequirePermission permission="CAN_MANAGE_TIMESHEETS">
-                            <TravelClaims />
+                        <RequirePermission anyOf={MANAGEMENT_PERMISSIONS}>
+                            <Management />
                         </RequirePermission>
                     </RequireActiveUser>
                 }
@@ -96,22 +116,22 @@ export default function App() {
                 }
             />
             <Route
-                path="/admin/onboarding"
+                path="/management/onboarding"
                 element={
                     <RequireActiveUser>
-                        <RequireAdmin>
+                        <RequirePermission permission="CAN_ONBOARD_USERS">
                             <AdminOnboarding />
-                        </RequireAdmin>
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
             <Route
-                path="/admin/payslip-review"
+                path="/management/payslip-review"
                 element={
                     <RequireActiveUser>
-                        <RequireAdmin>
+                        <RequirePermission permission="CAN_REVIEW_PAYSLIPS">
                             <PayslipReview />
-                        </RequireAdmin>
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
@@ -142,43 +162,50 @@ export default function App() {
                 <Route index element={<AccountPersonalInfo />} />
                 <Route path="bank" element={<AccountBankDetails />} />
                 <Route path="employment" element={<AccountEmploymentDetails />} />
-                <Route path="company" element={<SettingsCompany />} />
+                <Route
+                    path="company"
+                    element={
+                        <RequirePermission anyOf={COMPANY_SETTINGS_PERMISSIONS}>
+                            <SettingsCompany />
+                        </RequirePermission>
+                    }
+                />
             </Route>
             <Route path="/profile" element={<Navigate to="/account" replace />} />
             <Route path="/settings/company" element={<Navigate to="/account/company" replace />} />
             <Route path="/settings" element={<Navigate to="/account" replace />} />
             <Route
-                path="/admin/user/:userId"
+                path="/management/users/:userId"
                 element={
                     <RequireActiveUser>
-                        <RequireAdmin>
+                        <RequirePermission permission="CAN_VIEW_USERS">
                             <AdminUserDetails />
-                        </RequireAdmin>
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
             <Route
-                path="/admin/payslip/:payslipId"
+                path="/management/payslips/:payslipId"
                 element={
                     <RequireActiveUser>
-                        <RequireAdmin>
+                        <RequirePermission permission="CAN_VIEW_ALL_PAYSLIPS">
                             <AdminPayslipDetails />
-                        </RequireAdmin>
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
             <Route
-                path="/admin/users"
+                path="/management/users"
                 element={
                     <RequireActiveUser>
-                        <RequireAdmin>
+                        <RequirePermission permission="CAN_VIEW_USERS">
                             <AdminUsers />
-                        </RequireAdmin>
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
             <Route
-                path="/admin/planning"
+                path="/management/planning"
                 element={
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
@@ -188,7 +215,7 @@ export default function App() {
                 }
             />
             <Route
-                path="/admin/planning/events/:eventId"
+                path="/management/planning/events/:eventId"
                 element={
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
@@ -198,7 +225,7 @@ export default function App() {
                 }
             />
             <Route
-                path="/admin/planning/events/:eventId/shifts/:shiftId"
+                path="/management/planning/events/:eventId/shifts/:shiftId"
                 element={
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
@@ -208,7 +235,7 @@ export default function App() {
                 }
             />
             <Route
-                path="/admin/clients"
+                path="/management/clients"
                 element={
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
@@ -217,7 +244,34 @@ export default function App() {
                     </RequireActiveUser>
                 }
             />
-            <Route path="/" element={<Home />} />
+            <Route
+                path="/management/travel-claims"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_TIMESHEETS">
+                            <TravelClaims />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route path="/travel-claims" element={<Navigate to="/management/travel-claims" replace />} />
+            <Route path="/admin/users" element={<Navigate to="/management/users" replace />} />
+            <Route path="/admin/user/:userId" element={<RedirectAdminUser />} />
+            <Route path="/admin/onboarding" element={<Navigate to="/management/onboarding" replace />} />
+            <Route path="/admin/payslip-review" element={<Navigate to="/management/payslip-review" replace />} />
+            <Route path="/admin/payslip/:payslipId" element={<RedirectAdminPayslip />} />
+            <Route path="/admin/planning" element={<Navigate to="/management/planning" replace />} />
+            <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningEvent />} />
+            <Route path="/admin/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
+            <Route path="/admin/clients" element={<Navigate to="/management/clients" replace />} />
+            <Route
+                path="/"
+                element={
+                    <RequireActiveUser>
+                        <Navigate to="/dashboard" replace />
+                    </RequireActiveUser>
+                }
+            />
         </Routes>
     );
 }
