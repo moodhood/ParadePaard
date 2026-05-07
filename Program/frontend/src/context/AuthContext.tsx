@@ -1,13 +1,27 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { AuthServices } from "../services/auth-service/AuthServices";
 import { UserServices } from "../services/user-service/UserServices";
+import { readCachedPermissions, writeCachedPermissions } from "../utils/authCache";
+import {
+    hasAllPermissions as policyHasAllPermissions,
+    hasAnyPermission as policyHasAnyPermission,
+    hasPermission as policyHasPermission,
+} from "../utils/permissionPolicy";
 
 export type UserStatus = "PENDING_SETUP" | "ACTIVE";
 
 type AuthContextValue = {
     status: UserStatus | null;
     loading: boolean;
+    permissions: string[];
+    permissionsLoading: boolean;
+    permissionsError: string | null;
     setStatus: (status: UserStatus | null) => void;
     refreshStatus: () => Promise<void>;
+    refreshPermissions: () => Promise<string[]>;
+    hasPermission: (permission: string) => boolean;
+    hasAnyPermission: (permissions: string[]) => boolean;
+    hasAllPermissions: (permissions: string[]) => boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -32,23 +46,57 @@ const getCachedStatus = (): UserStatus | null => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+    const cachedPermissions = useMemo(() => readCachedPermissions(), []);
     const [status, setStatus] = useState<UserStatus | null>(getCachedStatus());
     const [loading, setLoading] = useState(status === null);
+    const [permissions, setPermissions] = useState<string[]>(cachedPermissions ?? []);
+    const [permissionsLoading, setPermissionsLoading] = useState(status !== null && cachedPermissions === null);
+    const [permissionsError, setPermissionsError] = useState<string | null>(null);
 
-    const refreshStatus = async () => {
+    const refreshStatus = useCallback(async () => {
         try {
             const me = await UserServices.getMe();
             setStatus((me.status as UserStatus) || null);
         } catch {
             setStatus(null);
+            setPermissions([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
+
+    const refreshPermissions = useCallback(async () => {
+        try {
+            setPermissionsLoading(true);
+            setPermissionsError(null);
+            const next = await AuthServices.getPermissions();
+            const normalized = next ?? [];
+            setPermissions(normalized);
+            writeCachedPermissions(normalized);
+            return normalized;
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to load permissions";
+            setPermissionsError(message);
+            setPermissions([]);
+            return [];
+        } finally {
+            setPermissionsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
-        refreshStatus();
-    }, []);
+        void refreshStatus();
+    }, [refreshStatus]);
+
+    useEffect(() => {
+        if (status === "ACTIVE") {
+            void refreshPermissions();
+        } else {
+            setPermissions([]);
+            setPermissionsLoading(false);
+            setPermissionsError(null);
+        }
+    }, [refreshPermissions, status]);
 
     useEffect(() => {
         try {
@@ -62,9 +110,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [status]);
 
+    const hasPermission = useCallback(
+        (permission: string) => policyHasPermission(permissions, permission),
+        [permissions]
+    );
+
+    const hasAnyPermission = useCallback(
+        (required: string[]) => policyHasAnyPermission(permissions, required),
+        [permissions]
+    );
+
+    const hasAllPermissions = useCallback(
+        (required: string[]) => policyHasAllPermissions(permissions, required),
+        [permissions]
+    );
+
     const value = useMemo(
-        () => ({ status, loading, setStatus, refreshStatus }),
-        [status, loading]
+        () => ({
+            status,
+            loading,
+            permissions,
+            permissionsLoading,
+            permissionsError,
+            setStatus,
+            refreshStatus,
+            refreshPermissions,
+            hasPermission,
+            hasAnyPermission,
+            hasAllPermissions,
+        }),
+        [
+            status,
+            loading,
+            permissions,
+            permissionsLoading,
+            permissionsError,
+            refreshStatus,
+            refreshPermissions,
+            hasPermission,
+            hasAnyPermission,
+            hasAllPermissions,
+        ]
     );
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

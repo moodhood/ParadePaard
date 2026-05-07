@@ -10,7 +10,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
     const navigate = useNavigate();
-    const { setStatus } = useAuth();
+    const { setStatus, refreshPermissions } = useAuth();
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
@@ -28,6 +28,9 @@ export default function Login() {
 
             const status = me.status === "PENDING_SETUP" ? "PENDING_SETUP" : "ACTIVE";
             setStatus(status);
+            if (status === "ACTIVE") {
+                await refreshPermissions();
+            }
 
             if (response.mustChangePassword) {
                 const token = response.passwordResetToken;
