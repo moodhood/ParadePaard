@@ -1,0 +1,399 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+\setlist{nosep}
+\newcommand{\code}[1]{\nolinkurl{#1}}
+
+\title{ParadePaard Frontend UI Rundown}
+\author{A user-interface story}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Short Overview}
+
+ParadePaard is a workforce application for employee planning, worked hours, travel claims, leave requests, payslips, account details, and company administration. From the frontend point of view, the application connects two groups of users. Employees use it to manage their own work life: they log in, finish onboarding, view their upcoming shifts, accept or decline planning requests, check worked hours, submit travel claims, request leave, download payslips, report payslip problems, and view their own account information. Admins and authorized managers use the same app to run the operation: they onboard employees, manage planning events and shifts, assign people to work, review leave and travel claims, inspect timesheets, manage roles and company settings, and review or correct payslips.
+
+The app is held together by a top navbar, a primary navigation rail, and access rules that decide which pages a person can use. The result is a role-aware experience: a regular employee is guided toward personal pages, while an admin sees management pages unless they explicitly switch into personal view.
+
+\section{Every Frontend Page and Screen}
+
+\subsection{Root Entry Route}
+
+The root route \code{/} is no longer a standalone home page. It now acts as the application's entry redirect. When someone opens the base localhost URL, the route first uses the same active-user guard as the dashboard. If the user is active, the frontend immediately redirects to \code{/dashboard}. If the user is not signed in, the guard sends them to \code{/login}. If the user is still in \code{PENDING_SETUP}, the guard sends them to onboarding instead.
+
+This keeps the first browser entry point aligned with the rest of the protected app. A person who already has an active session lands on the operational dashboard, while a signed-out visitor is sent into the login flow rather than seeing a separate home screen.
+
+\subsection{Login Page}
+
+The login page is the normal entry point for signed-in users. It presents a compact form with a username field, a password field, a login button, and a link to the forgot-password page. If authentication fails, an error message appears inside the form area.
+
+After the user submits the form, the frontend does more than simply accept a token. It loads the current user and decides where the user should go next. If the response says the password must be changed, the user is sent to the reset-password screen. If the user is still in \code{PENDING_SETUP}, the next destination is employee onboarding. If the user is already active, the next destination is the dashboard. This makes login the first decision point in the whole user journey.
+
+\subsection{Forgot Password Page}
+
+The forgot-password page gives the user a single email field and a button to send a reset link. There is also a link back to the login page. After submission, the screen changes to a confirmation message that tells the user a reset link will be sent if an account exists for that email address.
+
+The UI keeps the flow intentionally simple. The user does not search for their account or answer extra questions. They only provide an email address and return to the login flow when finished.
+
+\subsection{Reset Password Page}
+
+The reset-password page is used both for ordinary password recovery and for forced password changes after login. It shows two password fields: one for the new password and one to confirm it. The reset button is disabled if there is no token, and the page displays an invalid-link message when a reset token cannot be found.
+
+The page validates that both password fields match before submitting. When the reset succeeds, the page shows a success message. If the user arrived here as part of another flow, the frontend refreshes their status and sends them back to the right next screen. This is why a newly invited employee can be forced through password reset first and then continue directly into onboarding.
+
+\subsection{Employee Onboarding Page}
+
+The employee onboarding page is the first self-service page for a newly invited employee. It is built as a two-step card called Finish Your Setup. Step 1 collects address information. The employee fills in street, house number, optional suffix, postal code, city, and country. Step 2 collects the IBAN. The step indicator makes it clear that onboarding is short: Address first, IBAN second.
+
+The employee can move forward only after completing the required fields for the current step. Address fields must be present before the Next button is useful, and the IBAN must be at least 10 characters before setup can be finished. The Back button lets the employee return from the IBAN step to the address step.
+
+When the employee finishes setup, the frontend marks the user as \code{ACTIVE} and sends the employee to the dashboard. From the user's point of view, the onboarding page turns an invited account into a usable account.
+
+\subsection{Dashboard Entry}
+
+The dashboard entry point decides whether to show the admin dashboard or the employee dashboard. A non-admin user sees the User Dashboard. An admin normally sees the Admin Dashboard. If an admin switches into personal view, the app deliberately shows the User Dashboard instead, so the admin can inspect and use their own employee-facing account experience.
+
+This is one of the clearest examples of the app's role-based frontend behavior. The same dashboard entry can produce a different page depending on the user's role and whether the admin has switched into personal view.
+
+\subsection{User Dashboard}
+
+The User Dashboard is the employee's main overview page. It brings together the information an employee most likely needs when opening the app: their hours, leave balance, recent payslips, pending shift requests, accepted planning, and leave requests.
+
+The General Information card summarizes the employee's worked hours for the current week, month, year, and all time. It also shows leave hours left, leave hours pending, and leave hours approved. The app uses a base leave allowance of 120 hours and subtracts approved leave from that allowance for the available leave display. If timesheet data cannot be loaded, the same card shows the timesheet error.
+
+The Payslips card shows a compact table of payslips with date, week, function, hours, net amount, and actions. The employee can download a PDF directly from the table. If the employee thinks a payslip is wrong, they can open a report modal, enter a short title and optional note, and submit the error for payroll review. A payslip that is already disputed shows as Reported rather than showing the report button again. The View all button opens the full payslips page.
+
+The My planning card is both an overview and an action area. Pending shift requests are shown first. Each request gives the employee the event name, date, time, function, and location. The employee can accept or decline the request, unless it is already in the past. Accepted shifts are grouped by day and can be viewed as Upcoming or Past. Each accepted shift row shows event, day, time, function, and whether its timesheet is Scheduled, Pending log, or Logged. Clicking a row opens the shift detail page.
+
+The My leave requests card lists the employee's leave requests with date range, requested hours, status, and optional note. The New Request button opens the leave request modal, where the employee can create another leave request. The dashboard therefore acts as a daily command center for employees: it shows what is planned, what has been worked, what has been paid, and what still needs action.
+
+\subsection{Admin Dashboard}
+
+The Admin Dashboard is the operational overview for the company. Instead of focusing on one employee, it summarizes team-wide work and management tasks. It is laid out as a grid of cards, each one pointing to a different admin responsibility.
+
+The General Info card shows the current week, team hours this week, team hours this month, team hours this year, total users, active versus pending setup users, pending leave requests, and payslips pending review. A button in the card opens the planning overview, which is the next likely admin action when looking at staffing.
+
+The Hours Worked card lets the admin inspect timesheets either as a per-user summary or as a timesheet history list. The admin can choose a timeframe type: week, month, year, or all time. For weekly and monthly views, extra selectors let the admin choose the year, week number, or month. In the per-user view, employee names are links to their admin user detail pages. In the timesheet view, the card shows date, employee name, function, and hours. A footer shows the total hours for the current filter.
+
+The Pending Requests card is primarily used for pending leave requests. It shows who submitted the request, the request type, and the request date. Clicking a leave request opens the admin leave decision modal. In that modal, the admin can review the requested dates, requested hours, available hours, remaining hours if approved, the employee's note, and an optional decision note. The admin can approve or reject the request from the modal.
+
+The Payslip Errors card focuses on payslips that are disputed, need attention, or include an error description. It shows the employee name, a short issue label, and a date. The Review payslip issues button opens the all-payslips list filtered to not-accepted payslips. Clicking an issue row opens the admin payslip editor.
+
+The Contract End card shows contracts ending in the next month. It gives the employee name, end date, and days left. Employee names link to their admin detail pages. The Payslip Review card shows payslips pending review, with employee name, payout date, and status. A button opens the dedicated payslip review page. Together, these cards make the dashboard a triage page: the admin can see where action is needed and jump directly into the relevant workflow.
+
+\subsection{Admin Users Page}
+
+The Admin Users page is the employee directory. It shows all users in a paginated table, with each row presenting the user's avatar or initials, name, user ID, email, position, roles, date added, and status.
+
+The toolbar above the table gives admins the controls they need to find a person quickly. They can search by name or email, sort by name, status, position, or date added, change the sort direction, filter by tenure, refresh the data, and move through pages. Clicking a row opens the detail page for that employee. The page is primarily for admins because it exposes company-wide employee information.
+
+\subsection{Admin User Detail Page}
+
+The Admin User Detail page is the complete admin view of one employee. The top of the page works like a profile header. It includes a back button, the employee's name, a status badge, email, position, location, role count, and summary metrics such as recorded hours, upcoming shifts, and last timesheet.
+
+The page is organized into Profile, Timesheets, and Planning tabs. The Profile tab reads like an employee dossier. It shows personal information, work details, active contract details, employee tax profile, roles and access, address, and bank details. The active contract section includes a contract PDF download. The employee tax profile section includes fields for BSN, loonheffingskorting, pension participant, special Zvw contribution, and payroll notes. If the admin has the right permissions, they can save the tax profile, add roles, or remove roles. Role chips use colors, and the role add menu is permission-aware.
+
+The Timesheets tab starts with summary cards for total hours, entry count, average entry, and travel expenses. It then includes a form for logging worked hours, with date, function, hours worked, and travel expenses. Below that, the timesheet history can be filtered by week, month, year, or all time. The history rows show date, function, week, hours, travel, recorded status, and approval state.
+
+The Planning tab shows the employee's relationship to scheduled work. It summarizes active, upcoming, accepted, and past shifts. The lists use planning status labels such as Scheduled, Accepted, and Declined, and related planning rows can link back into the event and shift management screens. This page is therefore where an admin connects a person's account, contract, payroll setup, worked hours, and planning record.
+
+\subsection{Admin Employee Onboarding Page}
+
+The Admin Employee Onboarding page starts the new-employee flow. It presents one main employee details form. The admin enters identity and contact data such as preferred name, first names, prefix, surname, gender, date of birth, email, and mobile number. The form also asks whether the person has worked for the company before.
+
+The same screen captures initial employment and contract information. The admin selects a position or function, enters contract start and end dates, chooses contract type, supplies or accepts a gross hourly wage, and chooses whether the employee has travel allowance. If the selected function already provides a wage, the wage field is disabled and follows that function wage. Date inputs are formatted as the admin types.
+
+When the admin submits the form, the result area shows the created username, temporary password, contract information if returned, and the onboarding email status. From a user-interface point of view, this page turns a candidate into an invited employee who can then log in, reset their password if required, and complete onboarding.
+
+\subsection{Account Layout}
+
+The Account page is a layout wrapper for personal account pages and company settings. It shows the shared navbar, a back button, a page title, side navigation, and the active account content. The personal account side navigation contains Personal info, Bank details, and Employment details. When the user is on company settings, the side navigation changes to Company details, Roles and permissions, Workflow settings, and Tax settings.
+
+The account layout loads the current user and passes common account data to the nested account pages. It also owns the profile-picture upload and removal behavior used by the Personal info page. If an admin is in personal view, company settings are blocked and the user is redirected back to the personal account area. This prevents the personal employee experience from mixing with admin company configuration.
+
+\subsection{Account Personal Info Page}
+
+The Personal Info page displays the user's identity, contact information, and address. The first part of the page is the profile picture area. If the user has uploaded a picture, it appears in the avatar circle. Otherwise the page shows the user's initial. The user can upload, change, or remove their profile picture from this screen.
+
+Below the avatar area, the Personal information card shows full name, preferred name, first names, middle name prefix, last name, gender, date of birth, email, and mobile number. The Address card shows street, house number, house number suffix, postal code, city, and country. These data fields are read-only in this account view. The main interactive part of the page is profile-picture management, and the navbar avatar updates when the picture changes.
+
+\subsection{Account Bank Details Page}
+
+The Bank Details page is intentionally minimal. It shows the user's IBAN inside a Bank details card. There is no edit form or save action on this page. For the user, this screen answers a simple question: which bank account is recorded for payroll and contract purposes?
+
+\subsection{Account Employment Details Page}
+
+The Employment Details page shows the user's current employment setup and current contract. It displays position or function, gross hourly wage, contract start date, contract end date, holiday allowance, whether the user worked for the company before, and account status. If the contract has no end date, the page shows it as open-ended.
+
+The main action on this page is Contract PDF download. If a current contract exists, the user can download it from the Contract PDF row. If the contract cannot be loaded or downloaded, the page shows an error message.
+
+\subsection{Company Settings Page}
+
+Company Settings is a multi-tab admin area inside the account layout. It is the place where authorized users manage company identity, access roles, workflow settings, and payroll deduction templates.
+
+The Company details tab shows the company logo, company name, and company ID. The logo can be uploaded, changed, or removed. The company name can be edited by users with company-management permission, while the company ID is shown as read-only information. Saving company details updates the company information and refreshes navbar company display through a frontend event.
+
+The Roles and permissions tab is a full role-management interface. The page shows existing roles with color dots and member counts. Creating a role happens in a modal with a Details step, a Permissions step, and a Members step. Editing a role uses a similar modal, but adds a Delete tab. A role has a name, color, permission set, and assigned members. The member tools include user search, selected member display, add actions, and remove actions. Deleting a role requires typing the role name for confirmation. Each operation is permission-gated, so a user may be able to assign members without being able to delete a role, depending on their permissions.
+
+The Workflow settings tab controls company-wide operational behavior. It shows the payslip timing field, timesheet logging mode, and travel claim mode. Timesheet logging can be set to admin finalization or automatic logging after shift end. Travel claims can require approval or be auto-approved. The page explains that these settings affect future company-wide payroll scheduling and approval behavior.
+
+The Tax settings tab is where payroll deduction templates are configured. The page presents deduction rows with active checkbox, code, label, category, calculation type, configured value, sort order, employee profile trigger, and notes. Users can add a deduction line, remove a line, and save the tax settings. Suggested payroll lines include LOONHEFFING, employee pension, HOP, PAWW, employee Zvw, and other deductions. The calculation type can be fixed amount or percentage of gross, and the employee profile trigger can make a line apply only to specific tax-profile situations.
+
+\subsection{Admin Planning Overview Page}
+
+The Planning Overview page is the calendar view for operational planning. It lets the planner look at events and shifts across a week or a month. The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, an Events or Shifts mode toggle, and a Create event button.
+
+In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. Depending on the selected mode, the cards represent either events or shifts. A card shows the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when the event or shift is empty, partially staffed, or staffed.
+
+Creating an event happens through a multi-step modal. In the Details step, the planner enters event name, start date, end date, default start time, default end time, and time zone. In the Client step, the planner selects the client/company and location. In the Notes step, the planner enters internal notes and reviews the event summary. The frontend validates the event name, dates, times, and time zone before creating the event. After creation, the overview reloads and focuses the relevant period.
+
+\subsection{Admin Planning Clients Page}
+
+The Clients page is the planning address book. It stores the client companies and contacts that can be attached to events. The table shows client image or initials, client name, contact count, address, and company line. A search field lets the planner search clients and contacts, and pagination controls handle larger client lists.
+
+Adding or editing a client happens in a modal. The modal contains client profile details, an optional profile picture, address, company line, contacts, notes, and a summary. Contacts can be added or removed, and each contact has first name, last name, position, email, and phone fields. Contact rows can be expanded and collapsed. The client picture upload accepts image files, with the UI expecting PNG, JPG, or WEBP and enforcing a 500 KB size limit.
+
+The page's main user flow is simple: the planner searches for a client, opens the client detail modal, updates company or contact details, and saves. Those client records can then be used when creating or editing planning events.
+
+\subsection{Admin Planning Event Detail Page}
+
+The Event Detail page is where planning becomes concrete. The page opens one event and shows its shifts, staffing level, client information, timing, location, and notes. The main card title combines the event name and context, while the right side shows an event-level staffing requirement ratio.
+
+The page is split into a main shift area and a side event-details panel. The event-details panel shows client, client line, location, dates, default time, time zone, staffing summary, status, and notes. The edit button opens the event edit modal, where the planner can change event name, client, dates, times, time zone, location, internal notes, external notes, and summary. The modal also includes event deletion, with a browser confirmation before deleting.
+
+The shift list is the main working area. A shift card shows the shift date, weekday, time, display name, function, staffing, duration, location, and the required/scheduled/checked-in ratio. The planner can create a shift, edit a shift, or delete a shift. The create and edit shift modals use the same core fields: start date and time, end date and time, job function, shift name, people needed, break minutes, and location.
+
+When a shift is expanded, the planner sees two columns. The Scheduled people column shows current assignments and can be filtered by All, Scheduled, Accepted, or Declined. Assignment cards show the employee, status badge, and action buttons. A declined employee can be invited again. An active assignment can be removed. The Available people column lets the planner search active employees and schedule them into the shift. If there are many available people, the page shows only the first 50 and asks the planner to search.
+
+The event can also be finalized. When the event is finalized, the frontend labels it as Finalized and disables create, edit, schedule, invite, and remove controls.
+
+\subsection{My Planning Page}
+
+The My Planning page is the employee's full planning page. It expands the planning card from the dashboard into a larger two-section view. The page has an Upcoming/Past toggle, a Scheduled shifts section, and an Accepted shifts section.
+
+Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. Each request card shows event name, shift date, time, function, and location. The employee can accept or decline each request. If the request is already in the past, the page still displays it for history, but the buttons are disabled.
+
+Accepted shifts are assignments with status \code{CONFIRMED}. Each accepted row shows event, shift or function, date, time, location, and a timesheet state. Future shifts show Scheduled. Past accepted shifts that have not become timesheets show Pending log. Shifts already exported or recorded as timesheets show Logged. Clicking an accepted shift opens the shift detail page.
+
+\subsection{My Planning Shift Detail Page}
+
+The My Planning Shift Detail page shows one shift assignment from the employee's point of view. The first card is the shift overview. It shows event name, date, time, shift name, function, location, break minutes, timesheet state, internal notes, and external notes. The back button returns the user to My Planning, preserving the personal view and past/upcoming context where relevant.
+
+The second card is the travel claim area. It is only usable after the shift has ended. Before that, the page tells the employee that travel claims become available after the shift. Once available, the employee can enter kilometers traveled, upload a proof image, see the rate of EUR 0.23 per kilometer, view the calculated amount, and submit the claim. If a proof image already exists, the employee can open it. If a claim was rejected, the review note appears on the page.
+
+This page connects planning to expense reimbursement. The shift is first planned and accepted, then after completion it can produce a travel claim that later appears in review and work history.
+
+\subsection{Work History Page}
+
+The Work History page shows logged timesheets. Employees normally see their own timesheets. Users with \code{CAN_VIEW_ALL_TIMESHEETS} can see all employees' timesheets when they are not in personal view. If the user can manage timesheets and is not in personal view, the page header includes a button to open Travel Claims.
+
+The main content is a Timesheets card with a filter panel, table, total bar, and pagination. The filter panel is rich enough to support both personal and admin views. The user can search by function, event, shift, date, name, or employee ID depending on scope. They can filter by employee in all-timesheets view, by function, by date range, by week year and week number, by minimum and maximum hours, and by minimum and maximum travel amount. The Reset filters button clears the filter state.
+
+The table shows date, shift, hours worked, and travel. In all-timesheets view it also shows the employee column. Each row is clickable and keyboard-accessible. Opening a row sends the user to the worked shift detail page. At the bottom, the page shows total hours for the currently visible filtered data and pagination controls for page number and page size.
+
+\subsection{Worked Shift Detail Page}
+
+The Worked Shift page explains one logged timesheet in detail. The Shift overview card shows employee, date, time, shift, event, function, hours worked, break, timesheet state, and logged-at time. If the timesheet is linked to a planning assignment, the page loads that assignment too, so the displayed event and shift context can be richer than the timesheet alone.
+
+The Travel expenses card shows the travel amount stored on the timesheet, submission status, kilometers, rate, submitted-at time, reviewed-at time, claim amount, and review note. If the claim includes proof, the page shows a View proof button. Admin-capable users outside personal view use admin proof access, while employees use their own assignment proof access.
+
+This page is mostly read-only. Its job is to let the user understand how a shift was recorded and how its travel expense was handled.
+
+\subsection{Travel Claims Page}
+
+The Travel Claims page is a review queue for pending travel claims. It shows a list of claims with employee, event, kilometers, amount, date, shift name or function, and location. If a proof image is attached, the reviewer can open it.
+
+The reviewer can approve the claim directly, or reject it. Rejecting uses a prompt where the reviewer enters the rejection reason. After approval or rejection, the claim is removed from the pending list. This page is therefore the manager side of the employee travel claim flow that starts on the shift detail page.
+
+\subsection{Payslips Page}
+
+The Payslips page is the main list for payroll documents. Employees see their own payslips. Users who can view all payslips can switch between My payslips and All payslips unless they are in personal view. The list shows date, user when in all scope, week, function, hours, net pay, status, and an action column.
+
+The page includes a detailed filter panel. Users can search, filter by status, choose date range, choose week year and week number, and filter by minimum or maximum hours and net pay. The special status filter \code{NOT_ACCEPTED} is a frontend convenience for focusing on payslips that are not released or approved. It is used from admin review flows to quickly find problematic payslips.
+
+The user can download a payslip PDF from the list, open a detail page by selecting a row, reset filters, and use pagination. For employees, this is a payroll archive. For admins, it is also a review and troubleshooting entry point.
+
+\subsection{Payslip Detail Page}
+
+The Payslip Detail page is the readable payslip view. It starts with page actions for returning to the payslip list and downloading the PDF. The hero summary shows employee name, function, week, issue date, available date, status badge, payslip ID, and key metrics for hours, gross amount, and net amount.
+
+The rest of the page is organized into cards. The Overview card shows issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card shows function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total. The Deductions card lists deduction lines with label, code, category, and calculated amount. The Employee details card shows name, user ID, date of birth, start date, address, and country.
+
+The page is read-only except for downloading the PDF and navigating back. Its role is to explain the payslip calculation to the user in a structured way.
+
+\subsection{Admin Payslip Detail Page}
+
+The Admin Payslip Detail page is the payroll editor. It uses the same core payslip information as the employee detail page, but turns much of it into editable fields and adds review tools. The top actions let the admin download the PDF, open the employee's user detail page, and save changes.
+
+The Overview card shows payslip ID, editable issue date, week, available-to-user time, and generated-at time. The Error handling card lets the admin set the payslip status and edit the error title and note. Available status options include pending review, needs attention, disputed, and released.
+
+The Pay details card lets the admin edit function, hourly wage, hours worked, and travel expenses. The gross, loonheffing, deductions, and net amounts are shown as calculated summary values. The Deductions card is a line editor. Each line can have code, label, category, calculation type, configured value, manual override, sort order, notes, and calculated amount. Admins can remove lines or add a new deduction line.
+
+The Employee details card keeps identity and address context visible. The Timesheets card shows timesheets for the same user, week, and year, with recorded hours and travel totals. This gives the admin a way to compare the payslip against the work-history data before saving changes.
+
+\subsection{Payslip Review Page}
+
+The Payslip Review page is a simpler review queue than the full payslips list. It focuses on payslips pending review. The table shows employee name, period end, payout date, hours, net amount, status, and a download action. A Refresh button reloads the queue.
+
+The reviewer can download a PDF directly or click a row to open the admin payslip detail page. This screen is useful when the admin wants a narrow queue of review items instead of the broader all-payslips filtering interface.
+
+\section{Major User Roles}
+
+\subsection{Employee}
+
+An employee is an active user who mainly sees personal data and personal workflows. The employee can log in, reset their password, complete onboarding, use the User Dashboard, respond to shift requests, view accepted shifts, submit travel claims after completed shifts, view their own work history, request leave, download payslips, report payslip errors, and view personal account pages.
+
+The employee experience is deliberately self-service. It does not expose company-wide user lists, planning management, role configuration, or payroll editing. The app shows the employee what they need to know about their own schedule, hours, leave, expenses, and pay.
+
+\subsection{Admin}
+
+An admin has access to management pages. Admins see the Admin Dashboard by default, can search users in the navbar, browse the user directory, open employee detail pages, onboard employees, manage planning, review leave requests, inspect timesheets, review travel claims, and work with payslips.
+
+Admins can also switch into personal view from the user menu. In personal view, the admin sees employee-facing pages for their own account. This is useful because admins may also be workers in the system, and it keeps their personal schedule and payslip experience separate from their admin work.
+
+\subsection{Planning Manager}
+
+Planning access is represented by \code{CAN_MANAGE_PLANNING}. A user with this permission can open Planning and Clients from the primary navigation. They can view the planning calendar, create events, manage clients, create shifts, edit shifts, assign employees, remove employees from shifts, and re-invite declined employees.
+
+From the frontend perspective, this role is centered on event staffing. The planner creates the structure of the work and then fills it with employees.
+
+\subsection{Timesheet and Travel Claim Manager}
+
+Timesheet management is represented by permissions such as \code{CAN_VIEW_ALL_TIMESHEETS} and \code{CAN_MANAGE_TIMESHEETS}. A user with all-timesheets access can view more than their own work history. A user with travel/timesheet management access can open Travel Claims and approve or reject pending claims.
+
+This role sits between planning and payroll. The user can see whether shifts became timesheets, whether travel expenses were submitted, and whether those travel expenses have been reviewed.
+
+\subsection{Payroll or Payslip User}
+
+Payslip visibility is represented by \code{CAN_VIEW_PAYSLIPS} and \code{CAN_VIEW_ALL_PAYSLIPS}. Employees with payslip access can view and download their own payslips. Users with all-payslips access can inspect broader payroll lists. Admins can open the admin payslip editor, adjust payslip values, update statuses, and edit deduction lines.
+
+This role is about turning worked hours and payroll data into a document the employee can view, download, and question if something looks wrong.
+
+\subsection{Company and Role Manager}
+
+Company and access management is represented by permissions such as \code{CAN_MANAGE_COMPANY}, \code{CAN_CREATE_ROLE}, \code{CAN_ASSIGN_ROLES}, \code{CAN_REMOVE_ROLES}, \code{CAN_EDIT_ROLE}, and \code{CAN_DELETE_ROLE}. Users with these permissions can open Company settings, update company details, manage company logo, configure workflow behavior, manage payroll deduction templates, and maintain roles and members.
+
+The frontend treats this as a configuration role. It does not sit in the daily shift flow; instead, it defines how the rest of the app behaves and who can access which management screens.
+
+\section{App Pipelines and Workflows}
+
+\subsection{Login, Password Reset, and Access}
+
+The user journey usually starts at the root URL or on the login page. The root URL is guarded and redirects active users to the dashboard, pending setup users to onboarding, and signed-out users to login. On the login page, the user enters credentials and submits the login form. The frontend then loads the current user and decides whether the user needs password reset, onboarding, or dashboard access. A forced password reset takes the user to the reset-password page, and that page can redirect back to the intended next step after the password is changed.
+
+Once the user is signed in, access rules keep the flow clean. A pending setup user is redirected to onboarding. A signed-out user is redirected to login. A non-admin user cannot stay on admin pages. A user missing a required permission is sent back to dashboard. This creates a guided path through the app instead of exposing pages the user cannot use.
+
+\subsection{Employee Invitation and Onboarding}
+
+The admin creates an employee from the admin onboarding page. They enter the employee's personal, contact, function, wage, contract, and travel allowance information. When the form is submitted, the frontend displays the generated username, temporary password, and email result.
+
+The employee then logs in. If a password reset is required, that happens first. If the employee is still \code{PENDING_SETUP}, they are sent to the onboarding page. There they complete address and IBAN information. When setup is finished, the frontend marks the employee active and sends them to the dashboard.
+
+The workflow starts with an admin creating the account and ends with the employee becoming an active user who can manage their own planning, work history, leave, travel claims, and payslips.
+
+\subsection{Planning and Shift Assignment}
+
+Planning starts on the Planning Overview page. The planner chooses a week or month, creates an event, attaches client and location information, and adds notes. The event appears in the calendar and can be opened in the event detail page.
+
+Inside the event detail page, the planner creates shifts. A shift describes when work happens, what function is needed, where it happens, how many people are required, and how much break time applies. After shifts exist, the planner expands a shift and schedules employees from the available people list. A scheduled employee receives an assignment with status \code{ASSIGNED}.
+
+The assignment then moves to the employee side. On the dashboard or My Planning page, the employee sees the request and accepts or declines it. Acceptance changes the status to \code{CONFIRMED}. Decline changes it to \code{CANCELLED}. The planner can see these states in the event detail page and can invite declined employees again.
+
+\subsection{Working a Shift, Logging Hours, and Work History}
+
+After a shift is accepted and worked, the frontend represents the outcome through timesheet and planning states. Company workflow settings determine whether timesheets are expected to be finalized by an admin or logged automatically after the shift ends. The employee sees the result as Scheduled, Pending log, or Logged.
+
+Logged timesheets appear on the Work History page. Employees see their own history, while authorized users can see all employees. A timesheet can be opened into a worked-shift detail page, where the user sees the event, shift, function, hours, break, logged time, and travel expense context.
+
+The result of this workflow is a worked-hours record that can inform dashboards, admin user details, travel claim review, and payroll.
+
+\subsection{Travel Claims}
+
+Travel claims start from the employee's shift detail page. The employee opens a completed shift, enters kilometers traveled, optionally uploads proof, and submits the claim. The UI calculates the claim amount using EUR 0.23 per kilometer unless an existing reviewed amount is already present.
+
+If the company workflow requires approval, the claim enters the Travel Claims page. A manager opens that review queue, reviews the pending claim, views proof if available, and approves or rejects it. A rejection includes a reason. After review, the claim leaves the pending queue, and the employee can see the claim status and review note from shift and work-history detail pages.
+
+\subsection{Leave Requests}
+
+Leave starts on the User Dashboard. The employee clicks New Request, chooses the leave type, enters start and end dates, enters hours per day, chooses whether weekends should be skipped, and adds an optional note. The modal calculates total requested hours, current available hours, and remaining hours if the request is approved.
+
+After submission, the leave request appears in the employee's leave list as \code{PENDING}. Admins see pending leave requests on the Admin Dashboard. The admin opens the request, reviews dates, hours, available balance, remaining balance, and notes, then approves or rejects it. Approved leave reduces the employee's available leave hours shown on the dashboard.
+
+\subsection{Payslip Review and Payslip Errors}
+
+Payslips appear to employees in the dashboard and in the Payslips page. Employees can download PDFs and inspect details. If something looks wrong, the employee reports an error with a title and optional note. The payslip then becomes visible to admins as disputed or needing attention.
+
+Admins can open a payslip from the dashboard, the payslip review page, or the all-payslips list. In the admin editor, they can review same-week timesheets, change status, edit error text, adjust pay details, edit deductions, and save. The employee-facing detail page then reflects the resulting payslip information.
+
+This workflow connects worked hours, payroll review, employee dispute handling, and final PDF download into one frontend loop.
+
+\subsection{Company Configuration}
+
+Company configuration starts from the navbar company menu. An authorized user opens Company settings and moves between details, roles, workflow, and tax tabs. Company details affect how the company is displayed. Roles and permissions affect who sees management pages. Workflow settings affect future timesheet and travel-claim behavior. Tax settings affect the deduction templates used by payroll.
+
+This workflow is less frequent than scheduling or payslips, but it defines the rules that make those daily workflows behave correctly.
+
+\section{Navigation}
+
+Navigation is split between the top navbar and the primary navigation. The top navbar gives global account actions. It shows the ParadePaard brand, admin user search when allowed, a company menu when the user has company or role permissions, and the user avatar menu. The avatar menu shows the signed-in name, links to Account, supports logout, and lets admins switch between Admin Dashboard and Personal Account mode.
+
+The admin user search in the navbar is a fast path to employee detail pages. An admin types part of a name, preferred name, or email, and the dropdown shows up to eight matches. Selecting a result opens that employee's detail page. The company menu opens Company Settings and is hidden in personal view, so company administration does not appear inside the admin's personal employee experience.
+
+The primary navigation is the main page-to-page navigation inside the app shell. Everyone gets Dashboard, Work history, and Account. Employees and admins in personal view get My planning. Admins get Users and Onboarding. Planning managers get Planning and Clients. Payslip navigation appears only for users with payslip permissions. Travel Claims appears only for users with timesheet-management permission and is hidden in personal view.
+
+Access checks make the navigation rules enforceable. The root route is guarded and forwards users to the right first page: dashboard for active sessions, onboarding for pending setup, or login for signed-out visitors. Active pages require an active signed-in user. Onboarding is reserved for pending setup users. Admin pages require admin status. Permission-based pages require the matching permission. When a user does not meet a page requirement, the frontend redirects them to the correct safe page, usually login, onboarding, or dashboard.
+
+\section{Important Shared Components}
+
+Cards are the main visual containers used throughout the app. A card usually has a title on the left, an optional action area on the right, and content below. Dashboards, account pages, planning pages, work history, payslips, and settings all use this structure.
+
+Modals support focused tasks without leaving the current page. They are used for leave requests, admin leave decisions, payslip error reporting, event and shift editing, client editing, role editing, and similar tasks. When a modal is open, the page behind it is prevented from scrolling, which keeps the user's attention on the current task.
+
+Pagination controls appear on pages with larger result sets, such as users, clients, payslips, and work history. They show previous and next buttons, numbered pages with ellipses when needed, and a results-per-page selector.
+
+Back buttons give detail pages and account pages a consistent way to return. They can use an explicit target, browser history, or a dashboard fallback. The app uses this to keep users oriented when moving from list pages into detail pages.
+
+Loading indicators appear while access is checked, while dashboards fetch data, and while detail pages load records.
+
+The leave request modal is one of the most important shared workflow components. It turns dates, hours per day, weekend skipping, and available balance into a clear leave summary before submission. The admin request modal mirrors that logic for decision-making by showing requested hours, available hours, and remaining balance if approved.
+
+Planning labels are kept consistent across the app. A scheduled request is shown as Scheduled, an accepted assignment is shown as Accepted, and a declined assignment is shown as Declined. The same shared behavior also produces required, scheduled, and checked-in staffing labels and visual staffing tones.
+
+\section{Important States and Statuses}
+
+The user status controls the first major branch in the app. A user with \code{PENDING_SETUP} is not allowed into the active application and is sent to onboarding. A user with \code{ACTIVE} status can use protected app pages.
+
+Leave requests use the familiar review states. \code{PENDING} means the employee submitted the request and is waiting for an admin decision. \code{APPROVED} means the request was accepted and the hours count against the leave allowance. \code{REJECTED} means the request was denied. The shared types also include \code{CANCELED}, although the visible flow mainly centers on pending, approved, and rejected.
+
+Planning assignments describe the employee's answer to a planned shift. \code{ASSIGNED} is a scheduled request waiting for response. \code{CONFIRMED} is an accepted shift. \code{CANCELLED} is a declined or canceled assignment. The UI labels these as Scheduled, Accepted, and Declined.
+
+Planning staffing states describe whether an event or shift has enough people. Empty means nobody is scheduled. Partial means some people are scheduled but the requirement is not met. Staffed means the scheduled count meets or exceeds the required count. Finalized means the event is locked and planning actions are disabled.
+
+Timesheet states are shown in employee planning and work history. Scheduled means a future accepted shift has not become a timesheet. Pending log means a past accepted shift has not been logged yet. Logged means the assignment has been exported or recorded as a timesheet. Admin timesheet history also displays created timesheets as Recorded.
+
+Travel claim states explain expense review. Not submitted means no claim exists. Pending means the employee submitted a claim and it awaits review. Approved means the claim was accepted. Rejected means the claim was denied and may include a review note.
+
+Payslip statuses drive the payroll review experience. \code{PENDING_REVIEW} is waiting for admin review. \code{NEEDS_ATTENTION} marks a payslip that requires payroll work. \code{DISPUTED} means the employee reported an issue or the payslip is being challenged. \code{RELEASED} means the payslip is available to the employee. \code{APPROVED} means it has been accepted. \code{NOT_ACCEPTED} is a frontend filter used to find payslips that are not released or approved.
+
+Workflow settings define how future operational states are created. \code{ADMIN_FINALIZE} means timesheet logging depends on an admin finalization step. \code{AUTO_ON_SHIFT_END} means timesheets can be created automatically after a shift ends. \code{REQUIRES_APPROVAL} means travel claims wait for review. \code{AUTO_APPROVE} means travel claims can be accepted automatically.
+
+\section*{Change Log}
+
+\begin{itemize}
+    \item 2026 05 07: Added a permission-based role-flow design spec; no frontend behavior has changed yet.
+\end{itemize}
+
+\section{Final Summary}
+
+The ParadePaard frontend tells one connected workforce story. An admin invites an employee and sets up the first contract details. The employee logs in, resets their password if needed, completes onboarding, and starts using the employee dashboard. A planner creates events and shifts, then assigns employees. Employees accept or decline those shifts. Completed shifts become worked-hour records, and those records appear in work history. Travel claims can be submitted after completed shifts and reviewed by managers. Worked hours, travel amounts, tax settings, and payroll review come together in payslips. Employees can download payslips or report errors, and admins can investigate and correct them.
+
+The app is held together by role-aware navigation and page protection. Employees see the pages that help them manage their own work. Admins and authorized managers see the pages that help them manage people, planning, claims, settings, and payroll. The frontend therefore works as both an employee self-service portal and an admin operations console, with planning and payroll acting as the bridge between the two.
+
+\end{document}
