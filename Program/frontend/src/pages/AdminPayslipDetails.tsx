@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -334,6 +335,7 @@ ${note}` : title) : "";
 
     const pageHeader = (
         <header className="pageHeader">
+            <PageBack label="Back to management" to="/management" />
             <h1 className="pageTitle">Payslip Details</h1>
         </header>
     );

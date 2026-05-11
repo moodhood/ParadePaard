@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import PaginationControls from "../components/common/PaginationControls";
 import { useAuth } from "../context/AuthContext";
@@ -317,6 +318,9 @@ export default function Payslips() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <div className="pageHeader">
+                            {activeScope === "all" ? (
+                                <PageBack label="Back to management" to="/management" />
+                            ) : null}
                             <h1 className="pageTitle">Payslips</h1>
                         </div>
                         <div className="payslipsCard">

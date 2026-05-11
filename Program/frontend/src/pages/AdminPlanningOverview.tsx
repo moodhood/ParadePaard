@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
@@ -638,6 +639,7 @@ export default function AdminPlanningOverview() {
                     <PrimaryNav />
                     <div className="pageShellContent planningOverviewPageContent">
                         <header className="pageHeader">
+                            <PageBack label="Back to management" to="/management" />
                             <h1 className="pageTitle">Planning Overview</h1>
                             <p className="pageSubtitle">Weekly or monthly view for events and shifts.</p>
                         </header>

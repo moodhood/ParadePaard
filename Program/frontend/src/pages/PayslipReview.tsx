@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
@@ -78,6 +79,7 @@ export default function PayslipReview() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
+                            <PageBack label="Back to management" to="/management" />
                             <h1 className="pageTitle">Payslip Review</h1>
                         </header>
                         <div className="adminDashboardCard">

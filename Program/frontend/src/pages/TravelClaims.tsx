@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
@@ -86,7 +87,10 @@ export default function TravelClaims() {
                             className="workHistoryHeader"
                             style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
                         >
-                            <h1 className="workHistoryTitle">Travel Claims</h1>
+                            <div>
+                                <PageBack label="Back to management" to="/management" />
+                                <h1 className="workHistoryTitle">Travel Claims</h1>
+                            </div>
                             <Link className="button" to="/work-history">
                                 Back to work history
                             </Link>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
@@ -429,6 +430,7 @@ export default function AdminPlanningClients() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
+                            <PageBack label="Back to management" to="/management" />
                             <h1 className="pageTitle">Clients</h1>
                             <p className="pageSubtitle">
                                 Manage the client companies and contacts used for planning.

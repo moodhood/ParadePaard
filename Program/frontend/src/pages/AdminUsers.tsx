@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import PaginationControls from "../components/common/PaginationControls";
@@ -245,6 +246,7 @@ export default function AdminUsers() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
+                            <PageBack label="Back to management" to="/management" />
                             <h1 className="pageTitle">Users</h1>
                         </header>
                         <div className="adminDashboardCard">

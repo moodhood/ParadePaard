@@ -80,6 +80,10 @@ export default function Management() {
                                                     description: "Open this management workspace.",
                                                     meta: "Management tool",
                                                 };
+                                                const linkState =
+                                                    item.to === "/account/company"
+                                                        ? { accountReturnTo: "/management" }
+                                                        : undefined;
 
                                                 return (
                                                     <Card
@@ -93,6 +97,7 @@ export default function Management() {
                                                             <Link
                                                                 className="managementCardAction"
                                                                 to={item.to}
+                                                                state={linkState}
                                                                 aria-label={`Open ${item.label}`}
                                                             >
                                                                 Open

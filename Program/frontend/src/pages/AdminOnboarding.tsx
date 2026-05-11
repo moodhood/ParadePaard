@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
+import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { UserServices, type AdminOnboardingRequestDTO, type AdminOnboardingResponseDTO } from "../services/user-service/UserServices";
@@ -112,6 +113,7 @@ export default function AdminOnboarding() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
+                            <PageBack label="Back to management" to="/management" />
                             <h1 className="pageTitle">Onboard employee</h1>
                         </header>
                         <div className="adminDashboardCard">
