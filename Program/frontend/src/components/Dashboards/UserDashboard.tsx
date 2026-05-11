@@ -22,6 +22,10 @@ import Modal from "../common/Modal";
 import PrimaryNav from "../PrimaryNav";
 import { summarizeHours } from "../../utils/hoursSummary";
 import { formatDate } from "../../utils/dateFormat";
+import {
+    getDashboardAcceptedPlanningRows,
+    getDashboardPendingPlanningRequests,
+} from "../../utils/myPlanningFilters";
 
 type Timesheet = {
     timesheetId: string;
@@ -32,7 +36,6 @@ type Timesheet = {
 
 const BASE_LEAVE_ALLOWANCE_HOURS = 120;
 const MAX_ERROR_TITLE_LENGTH = 80;
-type UserPlanningViewFilter = "upcoming" | "past";
 
 export default function UserDashboard() {
     const navigate = useNavigate(); //
@@ -76,7 +79,6 @@ export default function UserDashboard() {
     const [planningError, setPlanningError] = useState<string | null>(null);
     const [planningActionError, setPlanningActionError] = useState<string | null>(null);
     const [pendingPlanningActionId, setPendingPlanningActionId] = useState<string | null>(null);
-    const [planningViewFilter, setPlanningViewFilter] = useState<UserPlanningViewFilter>("upcoming");
 
     // fetch me
     useEffect(() => {
@@ -289,14 +291,11 @@ ${note}` : title;
         [planningAssignments]
     );
     const planningRowsForCard = useMemo(() => {
-        return allMyPlanningRows.filter((row) => row.status === "CONFIRMED");
+        return getDashboardAcceptedPlanningRows(allMyPlanningRows);
     }, [allMyPlanningRows]);
     const myPlanningRows = useMemo(() => {
-        return planningRowsForCard.filter((row) => {
-            const isPast = Boolean(row.isPast);
-            return planningViewFilter === "past" ? isPast : !isPast;
-        });
-    }, [planningRowsForCard, planningViewFilter]);
+        return planningRowsForCard;
+    }, [planningRowsForCard]);
 
     const myPlanningGroups = useMemo(() => {
         const groups = new Map<string, EmployeePlanningAssignmentDTO[]>();
@@ -316,12 +315,10 @@ ${note}` : title;
     }, [myPlanningRows]);
 
     const pendingPlanningRequests = useMemo(
-        () => allMyPlanningRows.filter((row) => row.status === "ASSIGNED"),
+        () => getDashboardPendingPlanningRequests(allMyPlanningRows),
         [allMyPlanningRows]
     );
-    const planningEmptyMessage = planningViewFilter === "past"
-        ? "No past accepted shifts yet."
-        : "No upcoming accepted shifts.";
+    const planningEmptyMessage = "No upcoming accepted shifts.";
 
     const handlePlanningResponse = useCallback(async (
         row: EmployeePlanningAssignmentDTO,
@@ -366,7 +363,7 @@ ${note}` : title;
                             key={row.scheduleEntryId}
                             className="listRowGrid userPlanningGrid"
                             style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
-                            onClick={() => navigate(`/my-planning/${row.scheduleEntryId}${planningViewFilter === "past" ? "?tab=past" : ""}`)}
+                            onClick={() => navigate(`/my-planning/${row.scheduleEntryId}`)}
                         >
                             <div>
                                 <div className="cellMain">{row.eventName}</div>
@@ -376,7 +373,7 @@ ${note}` : title;
                             <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
                             <div className="cellSub">{row.functionName}</div>
                             <div className="cellSub">
-                                {row.timesheetExported ? "Logged" : planningViewFilter === "past" ? "Pending log" : "Scheduled"}
+                                {row.timesheetExported ? "Logged" : "Scheduled"}
                             </div>
                         </button>
                     ))}
@@ -548,30 +545,9 @@ ${note}` : title;
                     title="My planning"
                     className="dashboardCardHeight userPlanningCard"
                     right={
-                        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                            <button className="button" onClick={() => navigate("/my-planning")}>
-                                View all
-                            </button>
-                            <div className="planningModeToggle userPlanningStatusToggle" role="tablist" aria-label="My planning filter">
-                            {([
-                                { value: "upcoming", label: "Upcoming" },
-                                { value: "past", label: "Past" },
-                            ] as const).map((option) => (
-                                <button
-                                    key={option.value}
-                                    type="button"
-                                    className={[
-                                        "planningModeButton",
-                                        planningViewFilter === option.value ? "planningModeButton--active" : "",
-                                    ].filter(Boolean).join(" ")}
-                                    onClick={() => setPlanningViewFilter(option.value)}
-                                    aria-pressed={planningViewFilter === option.value}
-                                >
-                                    {option.label}
-                                </button>
-                            ))}
-                        </div>
-                        </div>
+                        <button className="button" onClick={() => navigate("/my-planning")}>
+                            View all
+                        </button>
                     }
                 >
                     {planningLoading ? <p className="helperText">Loading planning...</p> : null}
@@ -594,7 +570,6 @@ ${note}` : title;
                                         {pendingPlanningRequests.map((row) => {
                                             const confirmActionId = `${row.scheduleEntryId}:CONFIRMED`;
                                             const declineActionId = `${row.scheduleEntryId}:CANCELLED`;
-                                            const isExpiredRequest = Boolean(row.isPast);
                                             return (
                                                 <article
                                                     key={`request-${row.scheduleEntryId}`}
@@ -603,23 +578,18 @@ ${note}` : title;
                                                     <div className="userPlanningRequestMain">
                                                         <div className="userPlanningRequestTitle">{row.eventName}</div>
                                                         <div className="userPlanningRequestMeta">
-                                                            {formatDate(row.shiftDate)} · {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
+                                                            {formatDate(row.shiftDate)} at {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
                                                         </div>
                                                         <div className="userPlanningRequestMeta">
-                                                            {row.functionName} · {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
+                                                            {row.functionName} - {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
                                                         </div>
-                                                        {isExpiredRequest ? (
-                                                            <div className="userPlanningRequestMeta">
-                                                                This request is visible for history, but the shift has already ended.
-                                                            </div>
-                                                        ) : null}
                                                     </div>
                                                     <div className="userPlanningRequestActions">
                                                         <button
                                                             type="button"
                                                             className="button userPlanningDeclineButton"
                                                             onClick={() => void handlePlanningResponse(row, "CANCELLED")}
-                                                            disabled={Boolean(pendingPlanningActionId) || isExpiredRequest}
+                                                            disabled={Boolean(pendingPlanningActionId)}
                                                         >
                                                             {pendingPlanningActionId === declineActionId ? "Declining..." : "Decline"}
                                                         </button>
@@ -627,7 +597,7 @@ ${note}` : title;
                                                             type="button"
                                                             className="button userPlanningAcceptButton"
                                                             onClick={() => void handlePlanningResponse(row, "CONFIRMED")}
-                                                            disabled={Boolean(pendingPlanningActionId) || isExpiredRequest}
+                                                            disabled={Boolean(pendingPlanningActionId)}
                                                         >
                                                             {pendingPlanningActionId === confirmActionId ? "Accepting..." : "Accept"}
                                                         </button>
