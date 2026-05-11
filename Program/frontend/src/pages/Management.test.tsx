@@ -31,4 +31,15 @@ describe("Management", () => {
 
         expect(html).not.toContain("managementCardAccent");
     });
+
+    it("renders management card actions as plain Open text without arrows", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <Management />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain(">Open</a>");
+        expect(html).not.toContain("-&gt;");
+    });
 });

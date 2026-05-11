@@ -95,7 +95,7 @@ export default function Management() {
                                                                 to={item.to}
                                                                 aria-label={`Open ${item.label}`}
                                                             >
-                                                                Open <span aria-hidden="true">-&gt;</span>
+                                                                Open
                                                             </Link>
                                                         </div>
                                                     </Card>
