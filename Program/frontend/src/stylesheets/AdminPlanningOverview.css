@@ -22,6 +22,27 @@
   flex-direction: column;
 }
 
+.planningOverviewShell {
+  align-items: stretch;
+  min-height: calc(100vh - var(--navbar-height));
+  margin-bottom: 0;
+  padding-bottom: 24px;
+}
+
+.planningOverviewPageContent {
+  min-height: calc(100vh - var(--navbar-height) - var(--nav-gap) - 24px);
+}
+
+.planningOverviewDashboardCard {
+  flex: 1 1 auto;
+  min-height: 720px;
+}
+
+.planningOverviewDashboardCard .planningOverviewCard {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
 .planningOverviewCard .uiCardBody {
   padding: 0;
   box-sizing: border-box;

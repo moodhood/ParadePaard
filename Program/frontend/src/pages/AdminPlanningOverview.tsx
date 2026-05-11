@@ -634,15 +634,15 @@ export default function AdminPlanningOverview() {
         <>
             <Navbar />
             <div className="adminDashboardPage">
-                <div className="pageShell">
+                <div className="pageShell planningOverviewShell">
                     <PrimaryNav />
-                    <div className="pageShellContent">
+                    <div className="pageShellContent planningOverviewPageContent">
                         <header className="pageHeader">
                             <h1 className="pageTitle">Planning Overview</h1>
                             <p className="pageSubtitle">Weekly or monthly view for events and shifts.</p>
                         </header>
 
-                        <div className="adminDashboardCard">
+                        <div className="adminDashboardCard planningOverviewDashboardCard">
                             <Card
                                 title={(
                                     <div className="planningTitleNavigation" aria-label={`${planningView === "week" ? "Week" : "Month"} navigation`}>

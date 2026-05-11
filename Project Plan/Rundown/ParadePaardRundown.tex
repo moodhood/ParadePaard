@@ -139,6 +139,8 @@ The Planning Overview page is the calendar view for operational planning. It let
 
 In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. Depending on the selected mode, the cards represent either events or shifts. A card shows the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when the event or shift is empty, partially staffed, or staffed.
 
+The planning calendar now stretches to the available browser height. This lets the day cells fill the screen so the white day columns continue down to the bottom of the planning area instead of ending early with empty background below them.
+
 Creating an event happens through a multi-step modal. In the Details step, the planner enters event name, start date, end date, default start time, default end time, and time zone. In the Client step, the planner selects the client/company and location. In the Notes step, the planner enters internal notes and reviews the event summary. The frontend validates the event name, dates, times, and time zone before creating the event. After creation, the overview reloads and focuses the relevant period.
 
 \subsection{Management Planning Clients Page}
@@ -370,6 +372,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 11: Updated the Planning Overview page so the day cells stretch to the bottom of the visible planning area.
     \item 2026 05 07: Made shared popups scroll inside the visible browser area, including the create role popup.
     \item 2026 05 07: Grouped role permission checkboxes into clear sections in the create and edit role modals.
     \item 2026 05 07: Reworked the frontend from an admin flow to a permission-based personal dashboard and Management flow.
