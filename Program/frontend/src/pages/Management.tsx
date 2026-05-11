@@ -7,46 +7,38 @@ import { getManagementNavItems } from "../utils/permissionPolicy";
 import { buildManagementSections } from "../utils/managementSections";
 import "../stylesheets/Management.css";
 
-const cardDetails: Record<string, { description: string; meta: string; accent: string }> = {
+const cardDetails: Record<string, { description: string; meta: string }> = {
     Users: {
         description: "Open the employee directory, inspect profiles, and review access details.",
         meta: "Employee directory",
-        accent: "U",
     },
     Onboarding: {
         description: "Invite a new employee and start their account and contract setup.",
         meta: "New employee setup",
-        accent: "O",
     },
     Planning: {
         description: "Create events, build shifts, and schedule people into work.",
         meta: "Events and shifts",
-        accent: "P",
     },
     Clients: {
         description: "Manage client companies, contacts, addresses, and planning notes.",
         meta: "Planning contacts",
-        accent: "C",
     },
     "Travel claims": {
         description: "Review submitted travel claims and approve or reject expenses.",
         meta: "Expense review",
-        accent: "T",
     },
     "All payslips": {
         description: "Inspect company payslips by employee, date, week, and status.",
         meta: "Company payroll",
-        accent: "A",
     },
     "Payslip review": {
         description: "Open the payroll review queue for payslips that need attention.",
         meta: "Review queue",
-        accent: "R",
     },
     "Company settings": {
         description: "Manage company details, roles, workflow settings, and tax setup.",
         meta: "Configuration",
-        accent: "S",
     },
 };
 
@@ -87,7 +79,6 @@ export default function Management() {
                                                 const details = cardDetails[item.label] ?? {
                                                     description: "Open this management workspace.",
                                                     meta: "Management tool",
-                                                    accent: item.label.charAt(0).toUpperCase(),
                                                 };
 
                                                 return (
@@ -95,14 +86,6 @@ export default function Management() {
                                                         key={item.label}
                                                         title={item.label}
                                                         className="managementCard"
-                                                        right={
-                                                            <span
-                                                                className="managementCardAccent"
-                                                                aria-hidden="true"
-                                                            >
-                                                                {details.accent}
-                                                            </span>
-                                                        }
                                                     >
                                                         <div className="managementCardBody">
                                                             <span className="managementCardMeta">{details.meta}</span>

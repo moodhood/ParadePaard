@@ -92,19 +92,6 @@
     font-size: 17px;
 }
 
-.managementCardAccent {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 8px;
-    background: #edf3ff;
-    color: #1d4ed8;
-    font-size: 14px;
-    font-weight: 800;
-}
-
 .managementCardBody {
     display: flex;
     min-height: 132px;
