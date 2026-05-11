@@ -4,22 +4,56 @@ import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import { useAuth } from "../context/AuthContext";
 import { getManagementNavItems } from "../utils/permissionPolicy";
+import { buildManagementSections } from "../utils/managementSections";
 import "../stylesheets/Management.css";
 
-const cardDescriptions: Record<string, string> = {
-    Users: "Open the employee directory and inspect employee profiles.",
-    Onboarding: "Invite a new employee and start their setup flow.",
-    Planning: "Create events, shifts, and staffing assignments.",
-    Clients: "Manage client companies used in planning.",
-    "Travel claims": "Review submitted travel claims.",
-    "All payslips": "Inspect company payslips by employee, date, and status.",
-    "Payslip review": "Open the payroll review queue.",
-    "Company settings": "Manage company details, roles, workflow, and tax settings.",
+const cardDetails: Record<string, { description: string; meta: string; accent: string }> = {
+    Users: {
+        description: "Open the employee directory, inspect profiles, and review access details.",
+        meta: "Employee directory",
+        accent: "U",
+    },
+    Onboarding: {
+        description: "Invite a new employee and start their account and contract setup.",
+        meta: "New employee setup",
+        accent: "O",
+    },
+    Planning: {
+        description: "Create events, build shifts, and schedule people into work.",
+        meta: "Events and shifts",
+        accent: "P",
+    },
+    Clients: {
+        description: "Manage client companies, contacts, addresses, and planning notes.",
+        meta: "Planning contacts",
+        accent: "C",
+    },
+    "Travel claims": {
+        description: "Review submitted travel claims and approve or reject expenses.",
+        meta: "Expense review",
+        accent: "T",
+    },
+    "All payslips": {
+        description: "Inspect company payslips by employee, date, week, and status.",
+        meta: "Company payroll",
+        accent: "A",
+    },
+    "Payslip review": {
+        description: "Open the payroll review queue for payslips that need attention.",
+        meta: "Review queue",
+        accent: "R",
+    },
+    "Company settings": {
+        description: "Manage company details, roles, workflow settings, and tax setup.",
+        meta: "Configuration",
+        accent: "S",
+    },
 };
 
 export default function Management() {
     const { permissions } = useAuth();
     const items = getManagementNavItems(permissions);
+    const sections = buildManagementSections(items);
 
     return (
         <>
@@ -28,24 +62,64 @@ export default function Management() {
                 <div className="pageShell">
                     <PrimaryNav />
                     <main className="pageShellContent">
-                        <header className="pageHeader">
-                            <h1 className="pageTitle">Management</h1>
+                        <header className="managementHeader">
+                            <div>
+                                <h1 className="managementTitle">Management</h1>
+                                <p className="managementSubtitle">
+                                    Open the company tools available to your account.
+                                </p>
+                            </div>
                         </header>
                         {items.length === 0 ? (
                             <Card title="No management access" className="managementNotice">
                                 <p>Your account does not currently include management permissions.</p>
                             </Card>
                         ) : (
-                            <div className="managementGrid">
-                                {items.map((item) => (
-                                    <Card key={item.label} title={item.label} className="managementCard">
-                                        <p className="managementCardText">
-                                            {cardDescriptions[item.label] ?? "Open this management workspace."}
-                                        </p>
-                                        <Link className="button" to={item.to}>
-                                            Open
-                                        </Link>
-                                    </Card>
+                            <div className="managementSections">
+                                {sections.map((section) => (
+                                    <section className="managementSection" key={section.key}>
+                                        <div className="managementSectionHeader">
+                                            <h2>{section.title}</h2>
+                                            <p>{section.description}</p>
+                                        </div>
+                                        <div className="managementGrid">
+                                            {section.items.map((item) => {
+                                                const details = cardDetails[item.label] ?? {
+                                                    description: "Open this management workspace.",
+                                                    meta: "Management tool",
+                                                    accent: item.label.charAt(0).toUpperCase(),
+                                                };
+
+                                                return (
+                                                    <Card
+                                                        key={item.label}
+                                                        title={item.label}
+                                                        className="managementCard"
+                                                        right={
+                                                            <span
+                                                                className="managementCardAccent"
+                                                                aria-hidden="true"
+                                                            >
+                                                                {details.accent}
+                                                            </span>
+                                                        }
+                                                    >
+                                                        <div className="managementCardBody">
+                                                            <span className="managementCardMeta">{details.meta}</span>
+                                                            <p className="managementCardText">{details.description}</p>
+                                                            <Link
+                                                                className="managementCardAction"
+                                                                to={item.to}
+                                                                aria-label={`Open ${item.label}`}
+                                                            >
+                                                                Open <span aria-hidden="true">-&gt;</span>
+                                                            </Link>
+                                                        </div>
+                                                    </Card>
+                                                );
+                                            })}
+                                        </div>
+                                    </section>
                                 ))}
                             </div>
                         )}
