@@ -343,7 +343,7 @@ Access checks make the navigation rules enforceable. The root route is guarded a
 
 Cards are the main visual containers used throughout the app. A card usually has a title on the left, an optional action area on the right, and content below. Dashboards, account pages, planning pages, work history, payslips, and settings all use this structure.
 
-Modals support focused tasks without leaving the current page. They are used for leave requests, leave decisions, payslip error reporting, event and shift editing, client editing, role editing, and similar tasks. When a modal is open, the page behind it is prevented from scrolling, which keeps the user's attention on the current task. The popup itself now stays inside the visible browser area and scrolls its content when the form is taller than the available space. This applies to shared popups such as creating or editing a role, creating events, editing shifts, and managing clients.
+Modals support focused tasks without leaving the current page. They are used for leave requests, leave decisions, payslip error reporting, event and shift editing, client editing, role editing, and similar tasks. When a modal is open, the page behind it is prevented from scrolling, which keeps the user's attention on the current task. The popup itself now stays inside the visible browser area and scrolls its content when the form is taller than the available space. Shared popups also leave a visible space below the top navbar, so the popup title bar does not sit directly against the navigation bar. This applies to shared popups such as creating or editing a role, creating events, editing shifts, and managing clients.
 
 Pagination controls appear on pages with larger result sets, such as users, clients, payslips, and work history. They show previous and next buttons, numbered pages with ellipses when needed, and a results-per-page selector.
 
@@ -376,6 +376,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 11: Added shared spacing between popup title bars and the top navigation bar.
     \item 2026 05 11: Made the Management Dashboard cards clickable and removed the separate Open buttons.
     \item 2026 05 11: Updated My Planning so ended shifts stay off the dashboard and remain available from the full My Planning Past tab.
     \item 2026 05 11: Added Back to management arrow controls to the main management work pages.

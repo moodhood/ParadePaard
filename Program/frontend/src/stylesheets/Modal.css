@@ -1,6 +1,14 @@
 /* modal layout */
 .modal_overlay {
-    position: fixed; inset: 0;
+    --modal-navbar-gap: 24px;
+}
+
+.modal_overlay {
+    position: fixed;
+    top: calc(var(--navbar-height, 0px) + var(--modal-navbar-gap, 24px));
+    right: 0;
+    bottom: 0;
+    left: 0;
     background: rgba(15,18,24,0.6);
     display: grid; place-items: center;
     padding: 16px;
@@ -18,7 +26,8 @@
     overflow: hidden;
     display: flex; flex-direction: column;
     width: min(900px, 92vw);
-    max-width: 92vw; max-height: calc(100dvh - 32px);
+    max-width: 92vw;
+    max-height: calc(100dvh - var(--navbar-height, 0px) - var(--modal-navbar-gap, 24px) - 32px);
     box-sizing: border-box;
     min-height: 0;
     overflow-x: hidden;

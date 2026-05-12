@@ -5,13 +5,15 @@ let openModalCount = 0;
 let originalBodyOverflow = "";
 let originalHtmlOverflow = "";
 const MODAL_VIEWPORT_GAP_PX = 32;
+const MODAL_VIEWPORT_HEIGHT_LIMIT =
+    `calc(100dvh - var(--navbar-height, 0px) - var(--modal-navbar-gap, 24px) - ${MODAL_VIEWPORT_GAP_PX}px)`;
 
 type ModalDimension = number | string;
 
 const toViewportBoundedDimension = (value: ModalDimension | undefined) => {
     if (value === undefined) return undefined;
     if (typeof value === "number") {
-        return `min(${value}px, calc(100dvh - ${MODAL_VIEWPORT_GAP_PX}px))`;
+        return `min(${value}px, ${MODAL_VIEWPORT_HEIGHT_LIMIT})`;
     }
     return value;
 };
@@ -76,10 +78,14 @@ export default function Modal({
         maxHeight: toViewportBoundedDimension(maxHeight),
         height: toViewportBoundedDimension(height),
     };
+    const overlayStyle: React.CSSProperties = {
+        top: "calc(var(--navbar-height, 0px) + var(--modal-navbar-gap, 24px))",
+    };
 
     return (
         <div
             className="modal_overlay"
+            style={overlayStyle}
             role="dialog"
             aria-modal="true"
             aria-label={title || "Modal"}
