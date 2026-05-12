@@ -61,7 +61,7 @@ class PayslipSchedulerTest {
                 eq(ZonedDateTime.parse("2026-04-13T10:10:00+02:00[Europe/Amsterdam]")),
                 eq(java.time.LocalTime.parse("12:00"))
         );
-        verify(payrollService).syncScheduledPayslip(
+        verify(payrollService).syncContractOwnedScheduledPayslip(
                 eq(userId),
                 eq(LocalDate.parse("2026-04-13")),
                 eq(LocalDate.parse("2026-04-13"))
@@ -69,7 +69,7 @@ class PayslipSchedulerTest {
     }
 
     @Test
-    void skipsScheduledPayslipBeforeCadenceHasElapsed() {
+    void delegatesScheduledPayslipBeforeOldCadenceHasElapsed() {
         UserDirectoryClient userDirectoryClient = mock(UserDirectoryClient.class);
         TimesheetServiceGrpcClient timesheetServiceGrpcClient = mock(TimesheetServiceGrpcClient.class);
         PayrollService payrollService = mock(PayrollService.class);
@@ -101,6 +101,11 @@ class PayslipSchedulerTest {
 
         scheduler.tick();
 
+        verify(payrollService).syncContractOwnedScheduledPayslip(
+                eq(userId),
+                eq(LocalDate.parse("2026-04-13")),
+                eq(LocalDate.parse("2026-04-13"))
+        );
         verify(payrollService, never()).syncScheduledPayslip(any(), any(), any());
     }
 
@@ -144,15 +149,15 @@ class PayslipSchedulerTest {
 
         scheduler.tick();
 
-        verify(payrollService, times(1)).syncScheduledPayslip(
+        verify(payrollService, times(1)).syncContractOwnedScheduledPayslip(
                 eq(userId),
                 eq(LocalDate.parse("2026-04-20")),
                 eq(LocalDate.parse("2026-04-20"))
         );
-        verify(payrollService, times(1)).syncScheduledPayslip(
+        verify(payrollService, times(1)).syncContractOwnedScheduledPayslip(
                 eq(userId),
                 eq(LocalDate.parse("2026-04-15")),
-                eq(LocalDate.parse("2026-04-15"))
+                eq(LocalDate.parse("2026-04-20"))
         );
     }
 }

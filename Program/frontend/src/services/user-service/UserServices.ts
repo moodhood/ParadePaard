@@ -32,7 +32,19 @@ import GetTimesheetById from "./GetTimesheetById";
 import GetUserDisplayNames from "./GetUserDisplayNames";
 import GetPayslipPdf from "./GetPayslipPdf";
 import CreateTimesheet, { type CreateTimesheetRequestDTO, type CreateTimesheetResponseDTO } from "./CreateTimesheet";
-import GetContracts, { type ContractResponseDTO } from "./GetContracts";
+import GetContracts, {
+    FinalizeContract,
+    GetContractPdf,
+    GetCurrentContract,
+    GetCurrentContractForUser,
+    GetFunctions,
+    GetMyContracts,
+    RejectContract,
+    SendContract,
+    SignContract,
+    type ContractResponseDTO,
+    type FunctionResponseDTO,
+} from "./GetContracts";
 import ReportPayslipError, { type ReportPayslipErrorRequestDTO } from "./ReportPayslipError";
 import GetPayslipById from "./GetPayslipById";
 import UpdatePayslip, { type UpdatePayslipRequestDTO } from "./UpdatePayslip";
@@ -126,6 +138,7 @@ export type {
     CreateTimesheetRequestDTO,
     CreateTimesheetResponseDTO,
     ContractResponseDTO,
+    FunctionResponseDTO,
     ReportPayslipErrorRequestDTO,
     UpdatePayslipRequestDTO,
     PlanningEventDTO,
@@ -207,6 +220,33 @@ export const UserServices = {
     },
     getContracts: async (): Promise<ContractResponseDTO[]> => {
         return await GetContracts(API_BASE_URL);
+    },
+    getMyContracts: async (): Promise<ContractResponseDTO[]> => {
+        return await GetMyContracts(API_BASE_URL);
+    },
+    getCurrentContract: async (): Promise<ContractResponseDTO | null> => {
+        return await GetCurrentContract(API_BASE_URL);
+    },
+    getCurrentContractForUser: async (userId: string): Promise<ContractResponseDTO | null> => {
+        return await GetCurrentContractForUser(API_BASE_URL, userId);
+    },
+    getFunctions: async (): Promise<FunctionResponseDTO[]> => {
+        return await GetFunctions(API_BASE_URL);
+    },
+    getContractPdf: async (contractId: string): Promise<Blob> => {
+        return await GetContractPdf(API_BASE_URL, contractId);
+    },
+    signContract: async (contractId: string): Promise<ContractResponseDTO> => {
+        return await SignContract(API_BASE_URL, contractId);
+    },
+    sendContract: async (contractId: string): Promise<ContractResponseDTO> => {
+        return await SendContract(API_BASE_URL, contractId);
+    },
+    finalizeContract: async (contractId: string): Promise<ContractResponseDTO> => {
+        return await FinalizeContract(API_BASE_URL, contractId);
+    },
+    rejectContract: async (contractId: string, comment: string): Promise<ContractResponseDTO> => {
+        return await RejectContract(API_BASE_URL, contractId, comment);
     },
     getPlanningOverview: async (
         companyId?: string,

@@ -14,6 +14,7 @@ import jakarta.persistence.FetchType;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Entity
@@ -23,13 +24,17 @@ public class Contract {
     @GeneratedValue(strategy = GenerationType.AUTO)
     @Column(nullable = false)
     private UUID contractId;
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private UUID userId;
+
+    private UUID functionId;
+
+    private String functionName;
 
     // Date
     @Column(nullable = false)
     private LocalDate startDate;
-    @Column(nullable = false)
+    @Column
     private LocalDate endDate;
 
     @Enumerated(EnumType.STRING)
@@ -45,6 +50,47 @@ public class Contract {
 
     @Column(nullable = false)
     private Boolean travelAllowance;
+
+    @Enumerated(EnumType.STRING)
+    @Column(length = 40, nullable = false)
+    private PaymentFrequency paymentFrequency = PaymentFrequency.WEEKLY;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal weeklyHours;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal holidayAllowancePercentage = new BigDecimal("8.00");
+
+    private Integer leaveEntitlementDays;
+
+    @Column(length = 255)
+    private String workLocation;
+
+    @Column(length = 255)
+    private String probationPeriod;
+
+    @Column(length = 255)
+    private String noticePeriod;
+
+    @Column(length = 255)
+    private String collectiveAgreement;
+
+    @Column(length = 255)
+    private String pensionScheme;
+
+    @Column(length = 1000)
+    private String sicknessPolicy;
+
+    @Column(length = 1000)
+    private String confidentialityClause;
+
+    @Column(length = 2000)
+    private String reviewComment;
+
+    private OffsetDateTime sentToEmployeeAt;
+    private OffsetDateTime employeeSignedAt;
+    private OffsetDateTime finalizedAt;
+    private OffsetDateTime rejectedAt;
 
     @Lob
     @Basic(fetch = FetchType.LAZY)
@@ -64,6 +110,22 @@ public class Contract {
 
     public void setUserId(UUID userId) {
         this.userId = userId;
+    }
+
+    public UUID getFunctionId() {
+        return functionId;
+    }
+
+    public void setFunctionId(UUID functionId) {
+        this.functionId = functionId;
+    }
+
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
     }
 
     public LocalDate getStartDate() {
@@ -112,6 +174,134 @@ public class Contract {
 
     public void setTravelAllowance(Boolean travelAllowance) {
         this.travelAllowance = travelAllowance;
+    }
+
+    public PaymentFrequency getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(PaymentFrequency paymentFrequency) {
+        this.paymentFrequency = paymentFrequency == null ? PaymentFrequency.WEEKLY : paymentFrequency;
+    }
+
+    public BigDecimal getWeeklyHours() {
+        return weeklyHours;
+    }
+
+    public void setWeeklyHours(BigDecimal weeklyHours) {
+        this.weeklyHours = weeklyHours;
+    }
+
+    public BigDecimal getHolidayAllowancePercentage() {
+        return holidayAllowancePercentage;
+    }
+
+    public void setHolidayAllowancePercentage(BigDecimal holidayAllowancePercentage) {
+        this.holidayAllowancePercentage = holidayAllowancePercentage;
+    }
+
+    public Integer getLeaveEntitlementDays() {
+        return leaveEntitlementDays;
+    }
+
+    public void setLeaveEntitlementDays(Integer leaveEntitlementDays) {
+        this.leaveEntitlementDays = leaveEntitlementDays;
+    }
+
+    public String getWorkLocation() {
+        return workLocation;
+    }
+
+    public void setWorkLocation(String workLocation) {
+        this.workLocation = workLocation;
+    }
+
+    public String getProbationPeriod() {
+        return probationPeriod;
+    }
+
+    public void setProbationPeriod(String probationPeriod) {
+        this.probationPeriod = probationPeriod;
+    }
+
+    public String getNoticePeriod() {
+        return noticePeriod;
+    }
+
+    public void setNoticePeriod(String noticePeriod) {
+        this.noticePeriod = noticePeriod;
+    }
+
+    public String getCollectiveAgreement() {
+        return collectiveAgreement;
+    }
+
+    public void setCollectiveAgreement(String collectiveAgreement) {
+        this.collectiveAgreement = collectiveAgreement;
+    }
+
+    public String getPensionScheme() {
+        return pensionScheme;
+    }
+
+    public void setPensionScheme(String pensionScheme) {
+        this.pensionScheme = pensionScheme;
+    }
+
+    public String getSicknessPolicy() {
+        return sicknessPolicy;
+    }
+
+    public void setSicknessPolicy(String sicknessPolicy) {
+        this.sicknessPolicy = sicknessPolicy;
+    }
+
+    public String getConfidentialityClause() {
+        return confidentialityClause;
+    }
+
+    public void setConfidentialityClause(String confidentialityClause) {
+        this.confidentialityClause = confidentialityClause;
+    }
+
+    public String getReviewComment() {
+        return reviewComment;
+    }
+
+    public void setReviewComment(String reviewComment) {
+        this.reviewComment = reviewComment;
+    }
+
+    public OffsetDateTime getSentToEmployeeAt() {
+        return sentToEmployeeAt;
+    }
+
+    public void setSentToEmployeeAt(OffsetDateTime sentToEmployeeAt) {
+        this.sentToEmployeeAt = sentToEmployeeAt;
+    }
+
+    public OffsetDateTime getEmployeeSignedAt() {
+        return employeeSignedAt;
+    }
+
+    public void setEmployeeSignedAt(OffsetDateTime employeeSignedAt) {
+        this.employeeSignedAt = employeeSignedAt;
+    }
+
+    public OffsetDateTime getFinalizedAt() {
+        return finalizedAt;
+    }
+
+    public void setFinalizedAt(OffsetDateTime finalizedAt) {
+        this.finalizedAt = finalizedAt;
+    }
+
+    public OffsetDateTime getRejectedAt() {
+        return rejectedAt;
+    }
+
+    public void setRejectedAt(OffsetDateTime rejectedAt) {
+        this.rejectedAt = rejectedAt;
     }
 
     public byte[] getPdfData() {

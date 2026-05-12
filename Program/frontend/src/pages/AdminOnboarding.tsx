@@ -1,9 +1,14 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
-import { UserServices, type AdminOnboardingRequestDTO, type AdminOnboardingResponseDTO } from "../services/user-service/UserServices";
+import {
+    UserServices,
+    type AdminOnboardingRequestDTO,
+    type AdminOnboardingResponseDTO,
+    type FunctionResponseDTO,
+} from "../services/user-service/UserServices";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/Modal.css";
 import "../stylesheets/AdminOnboarding.css";
@@ -18,19 +23,52 @@ export default function AdminOnboarding() {
     const [email, setEmail] = useState("");
     const [mobileNumber, setMobileNumber] = useState("");
     const [workedForUsBefore, setWorkedForUsBefore] = useState(false);
-    const [position, setPosition] = useState<"BAR" | "RUNNER">("BAR");
+    const [position, setPosition] = useState("BAR");
+    const [functionId, setFunctionId] = useState("");
     const [contractStartDate, setContractStartDate] = useState("");
     const [contractEndDate, setContractEndDate] = useState("");
     const [contractType, setContractType] = useState<"FIXED" | "ON_CALL">("ON_CALL");
     const [grossHourlyWage, setGrossHourlyWage] = useState("");
+    const [paymentFrequency, setPaymentFrequency] = useState<"DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY");
     const [travelAllowance, setTravelAllowance] = useState(true);
 
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
     const [result, setResult] = useState<AdminOnboardingResponseDTO | null>(null);
+    const [jobPositions, setJobPositions] = useState<FunctionResponseDTO[]>([]);
+    const [jobPositionsError, setJobPositionsError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        UserServices.getFunctions()
+            .then((data) => {
+                if (cancelled) return;
+                const active = (data ?? []).filter((item) => item.active !== false);
+                setJobPositions(active);
+                if (active.length > 0) {
+                    setFunctionId((current) => current || active[0].functionId);
+                    setPosition((current) => current || active[0].functionName);
+                    setGrossHourlyWage((current) => current || String(active[0].hourlyWage));
+                }
+            })
+            .catch((err: unknown) => {
+                if (cancelled) return;
+                const message = err instanceof Error ? err.message : "Failed to load job positions.";
+                setJobPositionsError(message);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const selectedJobPosition = useMemo(() => {
+        return jobPositions.find((jobPosition) => jobPosition.functionId === functionId) ?? null;
+    }, [functionId, jobPositions]);
+
+    const contractWage = selectedJobPosition?.hourlyWage ?? Number(grossHourlyWage);
 
     const canSubmit = useMemo(() => {
-        const wage = Number(grossHourlyWage);
+        const wage = Number(contractWage);
         const dobIso = parseDateToIso(dateOfBirth);
         const startIso = parseDateToIso(contractStartDate);
         const endIso = parseDateToIso(contractEndDate);
@@ -53,7 +91,7 @@ export default function AdminOnboarding() {
         mobileNumber,
         contractStartDate,
         contractEndDate,
-        grossHourlyWage,
+        contractWage,
     ]);
 
     const submit = async (e: React.FormEvent) => {
@@ -61,7 +99,7 @@ export default function AdminOnboarding() {
         setErrorMsg(null);
         setResult(null);
 
-        const wage = Number(grossHourlyWage);
+        const wage = Number(contractWage);
         if (!Number.isFinite(wage) || wage <= 0) {
             setErrorMsg("Gross hourly wage must be a positive number.");
             return;
@@ -85,11 +123,14 @@ export default function AdminOnboarding() {
             dateOfBirth: dateOfBirthIso,
             mobileNumber: mobileNumber.trim(),
             workedForUsBefore,
-            position,
+            position: selectedJobPosition?.functionName ?? position,
+            functionId: selectedJobPosition?.functionId ?? null,
+            functionName: selectedJobPosition?.functionName ?? position,
             startDate: contractStartIso,
             endDate: contractEndIso,
             contractType,
             grossHourlyWage: wage,
+            paymentFrequency,
             travelAllowance,
         };
 
@@ -232,14 +273,37 @@ export default function AdminOnboarding() {
 
                                         <div className="form_row">
                                             <label className="adminOnboardingLabel">Position</label>
-                                            <select
-                                                className={`modal_input${position === "BAR" ? " selectPlaceholder" : ""}`}
-                                                value={position}
-                                                onChange={(e) => setPosition(e.target.value as any)}
-                                            >
-                                                <option value="BAR">Bar</option>
-                                                <option value="RUNNER">Runner</option>
-                                            </select>
+                                            {jobPositions.length > 0 ? (
+                                                <select
+                                                    className="modal_input"
+                                                    value={functionId}
+                                                    onChange={(e) => {
+                                                        const nextFunctionId = e.target.value;
+                                                        const next = jobPositions.find((item) => item.functionId === nextFunctionId);
+                                                        setFunctionId(nextFunctionId);
+                                                        setPosition(next?.functionName ?? "");
+                                                        setGrossHourlyWage(next ? String(next.hourlyWage) : "");
+                                                    }}
+                                                >
+                                                    {jobPositions.map((jobPosition) => (
+                                                        <option key={jobPosition.functionId} value={jobPosition.functionId}>
+                                                            {jobPosition.functionName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            ) : (
+                                                <select
+                                                    className={`modal_input${position === "BAR" ? " selectPlaceholder" : ""}`}
+                                                    value={position}
+                                                    onChange={(e) => setPosition(e.target.value)}
+                                                >
+                                                    <option value="BAR">Bar</option>
+                                                    <option value="RUNNER">Runner</option>
+                                                </select>
+                                            )}
+                                            {jobPositionsError ? (
+                                                <div className="adminOnboardingHint">{jobPositionsError}</div>
+                                            ) : null}
                                         </div>
 
                                         <div className="form_row">
@@ -277,10 +341,29 @@ export default function AdminOnboarding() {
                                             <select
                                                 className={`modal_input${contractType === "ON_CALL" ? " selectPlaceholder" : ""}`}
                                                 value={contractType}
-                                                onChange={(e) => setContractType(e.target.value as any)}
+                                                onChange={(e) => {
+                                                    const next = e.target.value;
+                                                    if (next === "FIXED" || next === "ON_CALL") {
+                                                        setContractType(next);
+                                                    }
+                                                }}
                                             >
                                                 <option value="FIXED">Fixed</option>
                                                 <option value="ON_CALL">On-call</option>
+                                            </select>
+                                        </div>
+
+                                        <div className="form_row">
+                                            <label className="adminOnboardingLabel">Payment frequency</label>
+                                            <select
+                                                className="modal_input"
+                                                value={paymentFrequency}
+                                                onChange={(e) => setPaymentFrequency(e.target.value as typeof paymentFrequency)}
+                                            >
+                                                <option value="DAILY">Daily</option>
+                                                <option value="WEEKLY">Weekly</option>
+                                                <option value="BIWEEKLY">Biweekly</option>
+                                                <option value="MONTHLY">Monthly</option>
                                             </select>
                                         </div>
 
@@ -289,9 +372,10 @@ export default function AdminOnboarding() {
                                             <input
                                                 className="modal_input"
                                                 inputMode="decimal"
-                                                value={grossHourlyWage}
+                                                value={selectedJobPosition ? String(selectedJobPosition.hourlyWage) : grossHourlyWage}
                                                 onChange={(e) => setGrossHourlyWage(e.target.value)}
                                                 placeholder="15.00"
+                                                disabled={Boolean(selectedJobPosition)}
                                                 required
                                             />
                                         </div>

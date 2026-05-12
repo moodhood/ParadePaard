@@ -1,14 +1,52 @@
 import axios from "axios";
 
+export type ContractStatus =
+    | "DRAFT"
+    | "SENT_TO_EMPLOYEE"
+    | "EMPLOYEE_SIGNED"
+    | "FINALIZED"
+    | "REJECTED"
+    | "EXPIRED"
+    | "SIGNED"
+    | string;
+
+export type PaymentFrequency = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "EVERY_5_MINUTES" | string;
+
 export type ContractResponseDTO = {
     contractId: string;
     userId: string;
+    functionId?: string | null;
+    functionName?: string | null;
     startDate?: string | null;
     endDate?: string | null;
     contractType?: string | null;
-    status?: string | null;
+    status?: ContractStatus | null;
     grossHourlyWage?: number | null;
     travelAllowance?: boolean | null;
+    paymentFrequency?: PaymentFrequency | null;
+    weeklyHours?: number | null;
+    holidayAllowancePercentage?: number | null;
+    leaveEntitlementDays?: number | null;
+    workLocation?: string | null;
+    probationPeriod?: string | null;
+    noticePeriod?: string | null;
+    collectiveAgreement?: string | null;
+    pensionScheme?: string | null;
+    sicknessPolicy?: string | null;
+    confidentialityClause?: string | null;
+    reviewComment?: string | null;
+    sentToEmployeeAt?: string | null;
+    employeeSignedAt?: string | null;
+    finalizedAt?: string | null;
+    rejectedAt?: string | null;
+};
+
+export type FunctionResponseDTO = {
+    functionId: string;
+    functionName: string;
+    department?: string | null;
+    hourlyWage: number;
+    active?: boolean | null;
 };
 
 export default async function GetContracts(API_BASE_URL: string): Promise<ContractResponseDTO[]> {
@@ -29,4 +67,136 @@ export default async function GetContracts(API_BASE_URL: string): Promise<Contra
         }
         throw err;
     }
+}
+
+export async function GetMyContracts(API_BASE_URL: string): Promise<ContractResponseDTO[]> {
+    try {
+        const res = await axios.get<ContractResponseDTO[]>(`${API_BASE_URL}/api/contract/me`, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+
+        if (res.status !== 200) {
+            throw new Error("Failed to fetch contracts with status: " + res.status);
+        }
+
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            throw new Error(err.response?.data?.message || "Failed to fetch contracts");
+        }
+        throw err;
+    }
+}
+
+export async function GetCurrentContract(API_BASE_URL: string): Promise<ContractResponseDTO | null> {
+    try {
+        const res = await axios.get<ContractResponseDTO>(`${API_BASE_URL}/api/contract/me/current`, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+
+        if (res.status !== 200) {
+            throw new Error("Failed to fetch current contract with status: " + res.status);
+        }
+
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            if (err.response?.status === 404 || err.response?.data?.message === "Contract Not Found") return null;
+            throw new Error(err.response?.data?.message || "Failed to fetch current contract");
+        }
+        throw err;
+    }
+}
+
+export async function GetCurrentContractForUser(API_BASE_URL: string, userId: string): Promise<ContractResponseDTO | null> {
+    try {
+        const res = await axios.get<ContractResponseDTO>(`${API_BASE_URL}/api/contract/user/${userId}/current`, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+
+        if (res.status !== 200) {
+            throw new Error("Failed to fetch current contract with status: " + res.status);
+        }
+
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            if (err.response?.status === 404 || err.response?.data?.message === "Contract Not Found") return null;
+            throw new Error(err.response?.data?.message || "Failed to fetch current contract");
+        }
+        throw err;
+    }
+}
+
+export async function GetFunctions(API_BASE_URL: string): Promise<FunctionResponseDTO[]> {
+    try {
+        const res = await axios.get<FunctionResponseDTO[]>(`${API_BASE_URL}/api/contract/function`, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+
+        if (res.status !== 200) {
+            throw new Error("Failed to fetch job positions with status: " + res.status);
+        }
+
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            throw new Error(err.response?.data?.message || "Failed to fetch job positions");
+        }
+        throw err;
+    }
+}
+
+export async function GetContractPdf(API_BASE_URL: string, contractId: string): Promise<Blob> {
+    try {
+        const res = await axios.get(`${API_BASE_URL}/api/contract/${contractId}/pdf`, {
+            responseType: "blob",
+            withCredentials: true,
+        });
+
+        if (res.status !== 200) {
+            throw new Error("Failed to fetch contract PDF with status: " + res.status);
+        }
+
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            throw new Error(err.response?.data?.message || "Failed to fetch contract PDF");
+        }
+        throw err;
+    }
+}
+
+export async function SignContract(API_BASE_URL: string, contractId: string): Promise<ContractResponseDTO> {
+    const res = await axios.post<ContractResponseDTO>(`${API_BASE_URL}/api/contract/${contractId}/sign`, null, {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function SendContract(API_BASE_URL: string, contractId: string): Promise<ContractResponseDTO> {
+    const res = await axios.post<ContractResponseDTO>(`${API_BASE_URL}/api/contract/${contractId}/send`, null, {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function FinalizeContract(API_BASE_URL: string, contractId: string): Promise<ContractResponseDTO> {
+    const res = await axios.post<ContractResponseDTO>(`${API_BASE_URL}/api/contract/${contractId}/finalize`, null, {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
+export async function RejectContract(API_BASE_URL: string, contractId: string, comment: string): Promise<ContractResponseDTO> {
+    const res = await axios.post<ContractResponseDTO>(
+        `${API_BASE_URL}/api/contract/${contractId}/reject`,
+        { comment },
+        { withCredentials: true }
+    );
+    return res.data;
 }

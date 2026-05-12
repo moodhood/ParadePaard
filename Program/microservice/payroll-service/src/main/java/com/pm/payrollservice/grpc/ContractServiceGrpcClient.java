@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Service
 public class ContractServiceGrpcClient {
 
@@ -32,11 +34,20 @@ public class ContractServiceGrpcClient {
     }
 
     public ContractDataResponse requestContractData(String userId) {
-        ContractDataRequest request = ContractDataRequest.newBuilder()
-                .setUserId(userId)
-                .build();
+        return requestContractData(userId, null, null);
+    }
 
-        ContractDataResponse response = blockingStub.requestContractData(request);
+    public ContractDataResponse requestContractData(String userId, LocalDate periodStart, LocalDate periodEnd) {
+        ContractDataRequest.Builder builder = ContractDataRequest.newBuilder()
+                .setUserId(userId);
+        if (periodStart != null) {
+            builder.setPeriodStart(periodStart.toString());
+        }
+        if (periodEnd != null) {
+            builder.setPeriodEnd(periodEnd.toString());
+        }
+
+        ContractDataResponse response = blockingStub.requestContractData(builder.build());
         log.info("Received response from contract service via GRPC: {}", response);
         return response; // let StatusRuntimeException bubble to the handler
     }

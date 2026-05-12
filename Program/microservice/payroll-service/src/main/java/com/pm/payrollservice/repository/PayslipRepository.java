@@ -24,6 +24,8 @@ public interface PayslipRepository extends JpaRepository<Payslip, UUID>{
 
     List<Payslip> findByUserIdAndStatusOrderByDateOfIssueDesc(UUID userId, PayslipStatus status);
 
+    Optional<Payslip> findByUserIdAndPayPeriodKey(UUID userId, String payPeriodKey);
+
     Optional<Payslip> findTopByUserIdOrderByDateOfIssueDesc(UUID userId);
 
     List<Payslip> findByStatusAndAvailableToUserAtLessThanEqual(PayslipStatus status, LocalDate availableToUserAt);

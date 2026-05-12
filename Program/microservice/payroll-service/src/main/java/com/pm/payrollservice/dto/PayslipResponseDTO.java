@@ -26,6 +26,16 @@ public class PayslipResponseDTO {
     private String availableToUserAt;
     private String generatedAt;
     private String errorDescription;
+    private String contractId;
+    private String contractType;
+    private String paymentFrequency;
+    private String contractStartDate;
+    private String contractEndDate;
+    private BigDecimal weeklyHours;
+    private BigDecimal holidayAllowancePercentage;
+    private String payPeriodKey;
+    private String payPeriodStart;
+    private String payPeriodEnd;
     private java.util.List<PayrollDeductionLineDTO> deductionLines;
 
 
@@ -259,6 +269,86 @@ public class PayslipResponseDTO {
 
     public void setErrorDescription(String errorDescription) {
         this.errorDescription = errorDescription;
+    }
+
+    public String getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(String contractId) {
+        this.contractId = contractId;
+    }
+
+    public String getContractType() {
+        return contractType;
+    }
+
+    public void setContractType(String contractType) {
+        this.contractType = contractType;
+    }
+
+    public String getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(String paymentFrequency) {
+        this.paymentFrequency = paymentFrequency;
+    }
+
+    public String getContractStartDate() {
+        return contractStartDate;
+    }
+
+    public void setContractStartDate(String contractStartDate) {
+        this.contractStartDate = contractStartDate;
+    }
+
+    public String getContractEndDate() {
+        return contractEndDate;
+    }
+
+    public void setContractEndDate(String contractEndDate) {
+        this.contractEndDate = contractEndDate;
+    }
+
+    public BigDecimal getWeeklyHours() {
+        return weeklyHours;
+    }
+
+    public void setWeeklyHours(BigDecimal weeklyHours) {
+        this.weeklyHours = weeklyHours;
+    }
+
+    public BigDecimal getHolidayAllowancePercentage() {
+        return holidayAllowancePercentage;
+    }
+
+    public void setHolidayAllowancePercentage(BigDecimal holidayAllowancePercentage) {
+        this.holidayAllowancePercentage = holidayAllowancePercentage;
+    }
+
+    public String getPayPeriodKey() {
+        return payPeriodKey;
+    }
+
+    public void setPayPeriodKey(String payPeriodKey) {
+        this.payPeriodKey = payPeriodKey;
+    }
+
+    public String getPayPeriodStart() {
+        return payPeriodStart;
+    }
+
+    public void setPayPeriodStart(String payPeriodStart) {
+        this.payPeriodStart = payPeriodStart;
+    }
+
+    public String getPayPeriodEnd() {
+        return payPeriodEnd;
+    }
+
+    public void setPayPeriodEnd(String payPeriodEnd) {
+        this.payPeriodEnd = payPeriodEnd;
     }
 
     public java.util.List<PayrollDeductionLineDTO> getDeductionLines() {

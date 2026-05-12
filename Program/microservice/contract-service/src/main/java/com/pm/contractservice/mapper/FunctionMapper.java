@@ -10,7 +10,9 @@ public class FunctionMapper {
         functionResponseDTO.setFunctionId(function.getFunctionId());
 
         functionResponseDTO.setFunctionName(function.getFunctionName());
+        functionResponseDTO.setDepartment(function.getDepartment());
         functionResponseDTO.setHourlyWage(function.getHourlyWage());
+        functionResponseDTO.setActive(function.getActive());
 
         return functionResponseDTO;
     }
@@ -19,7 +21,9 @@ public class FunctionMapper {
         Function function = new Function();
 
         function.setFunctionName(functionRequestDTODTODTO.getFunctionName());
+        function.setDepartment(functionRequestDTODTODTO.getDepartment());
         function.setHourlyWage(functionRequestDTODTODTO.getHourlyWage());
+        function.setActive(functionRequestDTODTODTO.getActive() == null || functionRequestDTODTODTO.getActive());
 
         return function;
     }

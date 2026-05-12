@@ -54,6 +54,16 @@ public class PayslipMapper {
         payslipResponseDTO.setAvailableToUserAt(payslip.getAvailableToUserAt() != null ? payslip.getAvailableToUserAt().toString() : null);
         payslipResponseDTO.setGeneratedAt(payslip.getGeneratedAt() != null ? payslip.getGeneratedAt().toString() : null);
         payslipResponseDTO.setErrorDescription(payslip.getErrorDescription());
+        payslipResponseDTO.setContractId(asString(payslip.getContractId()));
+        payslipResponseDTO.setContractType(payslip.getContractType());
+        payslipResponseDTO.setPaymentFrequency(payslip.getPaymentFrequency());
+        payslipResponseDTO.setContractStartDate(asString(payslip.getContractStartDate()));
+        payslipResponseDTO.setContractEndDate(asString(payslip.getContractEndDate()));
+        payslipResponseDTO.setWeeklyHours(payslip.getWeeklyHours());
+        payslipResponseDTO.setHolidayAllowancePercentage(payslip.getHolidayAllowancePercentage());
+        payslipResponseDTO.setPayPeriodKey(payslip.getPayPeriodKey());
+        payslipResponseDTO.setPayPeriodStart(asString(payslip.getPayPeriodStart()));
+        payslipResponseDTO.setPayPeriodEnd(asString(payslip.getPayPeriodEnd()));
 
         // Personal Details
         payslipResponseDTO.setUserId(asString(payslip.getUserId()));
@@ -109,9 +119,28 @@ public class PayslipMapper {
     }
 
     public static void updateFromContractData(Payslip payslip, ContractDataResponse contractData) {
+        if (!contractData.getContractId().isBlank()) {
+            payslip.setContractId(UUID.fromString(contractData.getContractId()));
+        }
         payslip.setStartDate(LocalDate.parse(contractData.getStartDate()));
+        payslip.setContractStartDate(LocalDate.parse(contractData.getStartDate()));
+        if (!contractData.getEndDate().isBlank()) {
+            payslip.setContractEndDate(LocalDate.parse(contractData.getEndDate()));
+        }
+        payslip.setContractType(contractData.getContractType());
+        payslip.setPaymentFrequency(contractData.getPaymentFrequency());
+        if (!contractData.getWeeklyHours().isBlank()) {
+            payslip.setWeeklyHours(new BigDecimal(contractData.getWeeklyHours()));
+        }
+        if (!contractData.getHolidayAllowancePercentage().isBlank()) {
+            payslip.setHolidayAllowancePercentage(new BigDecimal(contractData.getHolidayAllowancePercentage()));
+        }
         payslip.setWageTaxWithheldTest(BigDecimal.ZERO);
-        payslip.setFunctionName(contractTypeDisplayName(contractData.getContractType()));
+        payslip.setFunctionName(
+                contractData.getFunctionName() == null || contractData.getFunctionName().isBlank()
+                        ? contractTypeDisplayName(contractData.getContractType())
+                        : contractData.getFunctionName()
+        );
         payslip.setHourlyWage(new BigDecimal(contractData.getGrossHourlyWage()));
     }
 

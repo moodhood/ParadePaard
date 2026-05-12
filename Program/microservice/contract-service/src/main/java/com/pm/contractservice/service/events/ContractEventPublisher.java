@@ -33,7 +33,7 @@ public class ContractEventPublisher {
         event.setContractId(contract.getContractId().toString());
         event.setUserId(contract.getUserId().toString());
         event.setStartDate(contract.getStartDate().toString());
-        event.setEndDate(contract.getEndDate().toString());
+        event.setEndDate(contract.getEndDate() == null ? null : contract.getEndDate().toString());
         event.setContractType(contract.getContractType().name());
         event.setGrossHourlyWage(contract.getGrossHourlyWage().toString());
         event.setTravelAllowance(Boolean.TRUE.equals(contract.getTravelAllowance()));
@@ -52,7 +52,7 @@ public class ContractEventPublisher {
         event.setContractId(contract.getContractId().toString());
         event.setUserId(contract.getUserId().toString());
         event.setStartDate(contract.getStartDate().toString());
-        event.setEndDate(contract.getEndDate().toString());
+        event.setEndDate(contract.getEndDate() == null ? null : contract.getEndDate().toString());
         event.setContractType(contract.getContractType().name());
         event.setGrossHourlyWage(contract.getGrossHourlyWage().toString());
         event.setTravelAllowance(Boolean.TRUE.equals(contract.getTravelAllowance()));

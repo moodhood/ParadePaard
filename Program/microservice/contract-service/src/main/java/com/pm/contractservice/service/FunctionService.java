@@ -35,7 +35,9 @@ public class FunctionService {
                 .orElseThrow(() -> new FunctionNotFoundException("Function with id: " + id + " not found"));
 
         function.setFunctionName(functionRequestDTO.getFunctionName());
+        function.setDepartment(functionRequestDTO.getDepartment());
         function.setHourlyWage(functionRequestDTO.getHourlyWage());
+        function.setActive(functionRequestDTO.getActive() == null || functionRequestDTO.getActive());
 
         function = functionRepository.save(function);
         return FunctionMapper.toDTO(function);

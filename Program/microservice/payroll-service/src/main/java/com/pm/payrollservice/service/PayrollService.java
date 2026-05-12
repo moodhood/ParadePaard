@@ -54,6 +54,7 @@ public class PayrollService {
     private final CompanySettingsClient companySettingsClient;
     private final PayslipPdfService pdfService;
     private final ObjectMapper objectMapper;
+    private final PayPeriodCalculator payPeriodCalculator;
 
     public PayrollService(PayslipRepository payslipRepository,
                           com.pm.payrollservice.validation.PayslipValidator duplicateValidator,
@@ -62,7 +63,8 @@ public class PayrollService {
                           TimesheetServiceGrpcClient timesheetServiceGrpcClient,
                           CompanySettingsClient companySettingsClient,
                           PayslipPdfService pdfService,
-                          ObjectMapper objectMapper) {
+                          ObjectMapper objectMapper,
+                          PayPeriodCalculator payPeriodCalculator) {
         this.payslipRepository = payslipRepository;
         this.duplicateValidator = duplicateValidator;
         this.userServiceGrpcClient = userServiceGrpcClient;
@@ -71,6 +73,7 @@ public class PayrollService {
         this.companySettingsClient = companySettingsClient;
         this.pdfService = pdfService;
         this.objectMapper = objectMapper;
+        this.payPeriodCalculator = payPeriodCalculator;
     }
 
     public List<PayslipResponseDTO> getPayslips() {
@@ -207,6 +210,41 @@ public class PayrollService {
 
         existing = payslipRepository.save(existing);
         return PayslipMapper.toDTO(existing);
+    }
+
+    public PayslipResponseDTO syncContractOwnedScheduledPayslip(UUID userId, LocalDate anchorDate, LocalDate today) {
+        ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString(), anchorDate, anchorDate);
+        PayPeriod period = payPeriodCalculator.periodFor(contractData.getPaymentFrequency(), anchorDate);
+        if (today.isBefore(period.end())) {
+            return null;
+        }
+
+        Payslip payslip = findExistingByPeriodKey(userId, period.key());
+        if (payslip == null) {
+            payslip = new Payslip();
+            payslip.setUserId(userId);
+            payslip.setGeneratedAt(OffsetDateTime.now());
+        }
+
+        payslip.setDateOfIssue(period.end());
+        payslip.setPayPeriodKey(period.key());
+        payslip.setPayPeriodStart(period.start());
+        payslip.setPayPeriodEnd(period.end());
+        payslip.setWeekNumber(period.end().get(WeekFields.ISO.weekOfWeekBasedYear()));
+        payslip.setWeekBasedYear(period.end().get(WeekFields.ISO.weekBasedYear()));
+        payslip.setStatus(PayslipStatus.PENDING_REVIEW);
+        payslip.setAvailableToUserAt(today);
+
+        TimesheetFetchResult fetchResult = populatePayslipData(payslip, userId, payslip.getWeekNumber(), payslip.getWeekBasedYear());
+        PayslipCalculator.apply(payslip);
+
+        if (shouldSkipZeroPayPeriod(payslip, contractData)) {
+            log.info("Skipping zero-pay payslip for userId={} period={}", userId, period.key());
+            return null;
+        }
+
+        applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.PENDING_REVIEW);
+        return PayslipMapper.toDTO(payslipRepository.save(payslip));
     }
 
     public PayslipResponseDTO reportPayslipError(UUID payslipId, String errorDescription) {
@@ -357,6 +395,21 @@ public class PayrollService {
         return n == null ? BigDecimal.ZERO : n;
     }
 
+    private Payslip findExistingByPeriodKey(UUID userId, String payPeriodKey) {
+        return payslipRepository.findByUserIdAndPayPeriodKey(userId, payPeriodKey).orElse(null);
+    }
+
+    private boolean shouldSkipZeroPayPeriod(Payslip payslip, ContractDataResponse contractData) {
+        BigDecimal hours = safe(payslip.getTotalHoursWorked());
+        BigDecimal travel = safe(payslip.getTravelExpenses());
+        BigDecimal net = safe(payslip.getTotalNetAmount());
+        boolean onCall = contractData.getContractType() != null && contractData.getContractType().startsWith("ON_CALL");
+        return onCall
+                && hours.compareTo(BigDecimal.ZERO) == 0
+                && travel.compareTo(BigDecimal.ZERO) == 0
+                && net.compareTo(BigDecimal.ZERO) == 0;
+    }
+
     private static String orEmpty(Object v) {
         return v == null ? "" : v.toString();
     }
@@ -376,7 +429,7 @@ public class PayrollService {
     private TimesheetFetchResult populatePayslipData(Payslip payslip, UUID userId, int weekNumber, int weekBasedYear) {
         List<String> discrepancies = new ArrayList<>();
         UserDataResponse userData = populateUserData(payslip, userId, discrepancies);
-        populateContractData(payslip, userId, discrepancies);
+        populateContractData(payslip, userId, weekNumber, weekBasedYear, discrepancies);
 
         TimesheetFetchResult fetchResult = fetchTimesheetData(userId, weekNumber, weekBasedYear);
         discrepancies.addAll(fetchResult.discrepancies());
@@ -403,15 +456,28 @@ public class PayrollService {
         return null;
     }
 
-    private void populateContractData(Payslip payslip, UUID userId, List<String> discrepancies) {
+    private void populateContractData(Payslip payslip, UUID userId, int weekNumber, int weekBasedYear, List<String> discrepancies) {
         try {
-            ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(userId.toString());
+            LocalDate periodStart = isoWeekStart(weekNumber, weekBasedYear);
+            LocalDate periodEnd = periodStart.plusDays(6);
+            ContractDataResponse contractData = contractServiceGrpcClient.requestContractData(
+                    userId.toString(),
+                    periodStart,
+                    periodEnd
+            );
             PayslipMapper.updateFromContractData(payslip, contractData);
         } catch (StatusRuntimeException ex) {
             discrepancies.add(describeGrpcIssue("contract data", ex));
         } catch (Exception ex) {
             discrepancies.add("Could not load contract data");
         }
+    }
+
+    private LocalDate isoWeekStart(int weekNumber, int weekBasedYear) {
+        return LocalDate.now()
+                .with(WeekFields.ISO.weekBasedYear(), weekBasedYear)
+                .with(WeekFields.ISO.weekOfWeekBasedYear(), weekNumber)
+                .with(WeekFields.ISO.dayOfWeek(), 1);
     }
 
     private TimesheetFetchResult fetchTimesheetData(UUID userId, int weekNumber, int weekBasedYear) {

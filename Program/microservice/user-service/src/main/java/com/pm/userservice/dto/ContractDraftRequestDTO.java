@@ -4,10 +4,13 @@ import java.math.BigDecimal;
 
 public class ContractDraftRequestDTO {
     private String userId;
+    private String functionId;
+    private String functionName;
     private String startDate;
     private String endDate;
     private String contractType;
     private BigDecimal grossHourlyWage;
+    private String paymentFrequency;
     private Boolean travelAllowance;
 
     public String getUserId() {
@@ -16,6 +19,22 @@ public class ContractDraftRequestDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getFunctionId() {
+        return functionId;
+    }
+
+    public void setFunctionId(String functionId) {
+        this.functionId = functionId;
+    }
+
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
     }
 
     public String getStartDate() {
@@ -48,6 +67,14 @@ public class ContractDraftRequestDTO {
 
     public void setGrossHourlyWage(BigDecimal grossHourlyWage) {
         this.grossHourlyWage = grossHourlyWage;
+    }
+
+    public String getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(String paymentFrequency) {
+        this.paymentFrequency = paymentFrequency;
     }
 
     public Boolean getTravelAllowance() {

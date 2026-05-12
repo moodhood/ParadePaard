@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -41,7 +42,8 @@ class PayrollServiceCreationTest {
                 timesheetServiceGrpcClient,
                 companySettingsClient,
                 payslipPdfService,
-                new ObjectMapper()
+                new ObjectMapper(),
+                new PayPeriodCalculator()
         );
 
         UUID userId = UUID.randomUUID();
@@ -56,7 +58,7 @@ class PayrollServiceCreationTest {
                         .setCity("Amsterdam")
                         .setCountry("Netherlands")
                         .build());
-        when(contractServiceGrpcClient.requestContractData(userId.toString()))
+        when(contractServiceGrpcClient.requestContractData(eq(userId.toString()), any(LocalDate.class), any(LocalDate.class)))
                 .thenThrow(Status.NOT_FOUND.asRuntimeException());
         when(timesheetServiceGrpcClient.requestTimesheetData(userId.toString(), 16, 2026))
                 .thenReturn(timesheet.TimesheetDataResponse.newBuilder()
@@ -105,7 +107,8 @@ class PayrollServiceCreationTest {
                 timesheetServiceGrpcClient,
                 companySettingsClient,
                 payslipPdfService,
-                new ObjectMapper()
+                new ObjectMapper(),
+                new PayPeriodCalculator()
         );
 
         UUID userId = UUID.randomUUID();
@@ -120,7 +123,7 @@ class PayrollServiceCreationTest {
                         .setCity("Amsterdam")
                         .setCountry("Netherlands")
                         .build());
-        when(contractServiceGrpcClient.requestContractData(userId.toString()))
+        when(contractServiceGrpcClient.requestContractData(eq(userId.toString()), any(LocalDate.class), any(LocalDate.class)))
                 .thenReturn(contract.ContractDataResponse.newBuilder()
                         .setStartDate("2025-01-01")
                         .setEndDate("2026-12-31")

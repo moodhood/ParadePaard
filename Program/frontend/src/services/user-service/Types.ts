@@ -57,7 +57,14 @@ export type UserResponseDTO = {
     companyId?: string | null;
     payslipFrequencyMinutes?: number | null;
     registeredDate?: string | null;
-    status: "PENDING_SETUP" | "ACTIVE" | string;
+    status:
+        | "PENDING_SETUP"
+        | "PENDING_PROFILE_REVIEW"
+        | "CHANGES_REQUESTED"
+        | "PENDING_CONTRACT_SIGNATURE"
+        | "PENDING_CONTRACT_REVIEW"
+        | "ACTIVE"
+        | string;
     employeeTaxProfile?: EmployeeTaxProfileDTO | null;
 };
 
@@ -122,10 +129,13 @@ export type AdminOnboardingRequestDTO = {
     mobileNumber: string;
     workedForUsBefore: boolean;
     position: "BAR" | "RUNNER" | string;
+    functionId?: string | null;
+    functionName?: string | null;
     startDate: string;
     endDate: string;
     contractType: "FIXED" | "ON_CALL" | string;
-    grossHourlyWage: number;
+    grossHourlyWage?: number | null;
+    paymentFrequency?: "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | string;
     travelAllowance: boolean;
 };
 

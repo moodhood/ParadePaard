@@ -55,7 +55,7 @@ The employee onboarding page is the first self-service page for a newly invited 
 
 The employee can move forward only after completing the required fields for the current step. Address fields must be present before the Next button is useful, and the IBAN must be at least 10 characters before setup can be finished. The Back button lets the employee return from the IBAN step to the address step.
 
-When the employee finishes setup, the frontend marks the user as \code{ACTIVE} and sends the employee to the dashboard. From the user's point of view, the onboarding page turns an invited account into a usable account.
+When the employee finishes setup, the account moves to \code{PENDING_PROFILE_REVIEW}. The employee has completed their own part, but the account is not treated as active payroll-ready work until management reviews the profile and the contract flow is completed.
 
 \subsection{Dashboard Entry}
 
@@ -94,14 +94,14 @@ The toolbar above the table helps an authorized user find a person quickly. They
 
 The Management User Detail page is the complete company view of one employee for users with user-view permission. The top of the page works like a profile header. It includes a back button, the employee's name, a status badge, email, position, location, role count, and summary metrics such as recorded hours, upcoming shifts, and last timesheet.
 
-The page is organized into Profile, Timesheets, and Planning tabs. The Profile tab shows personal information, work details, active contract details, employee tax profile, roles and access, address, and bank details. If the viewer also has role permissions, they can add or remove roles. If they have user-management permissions, they can save management fields that are editable for them.
+The page is organized into Profile, Timesheets, and Planning tabs. The Profile tab shows personal information, work details, active contract details, employee tax profile, roles and access, address, and bank details. The active contract card now also shows contract status, contract payment frequency, signature timestamps, finalization timestamps, and review comments. If the viewer has the right contract permissions, they can send a draft contract to the employee, finalize an employee-signed contract, or reject it with a review comment. If the viewer also has role permissions, they can add or remove roles. If they have user-management permissions, they can save management fields that are editable for them.
 
 The Timesheets tab shows summary cards and timesheet history for that employee. The Planning tab shows the employee's relationship to scheduled work and can link back into planning screens. The page therefore connects a person's account, contract, payroll setup, worked hours, and planning record, while individual actions remain controlled by permissions.
 \subsection{Management Employee Onboarding Page}
 
 The Management Employee Onboarding page starts the new-employee flow for users with onboarding permission. It presents one main employee details form. The authorized user enters identity and contact data such as preferred name, first names, prefix, surname, gender, date of birth, email, and mobile number. The form also asks whether the person has worked for the company before.
 
-The same screen captures initial employment and contract information. The user selects a position or function, enters contract start and end dates, chooses contract type, supplies or accepts a gross hourly wage, and chooses whether the employee has travel allowance. If the selected function already provides a wage, the wage field is disabled and follows that function wage. Date inputs are formatted as the user types.
+The same screen captures initial employment and contract information. The user selects a position or function, enters contract start and end dates, chooses contract type, selects the contract payment frequency, supplies or accepts a gross hourly wage, and chooses whether the employee has travel allowance. If the selected function already provides a wage, the wage field is disabled and follows that function wage. Date inputs are formatted as the user types. The production form offers normal payroll frequencies such as daily, weekly, biweekly, and monthly.
 
 When the form is submitted, the result area shows the created username, temporary password, contract information if returned, and the onboarding email status. From a user-interface point of view, this page turns a candidate into an invited employee who can then log in, reset their password if required, and complete onboarding.
 \subsection{Account Layout}
@@ -121,9 +121,9 @@ The Bank Details page is intentionally minimal. It shows the user's IBAN inside 
 
 \subsection{Account Employment Details Page}
 
-The Employment Details page shows the user's current employment setup and current contract. It displays position or function, gross hourly wage, contract start date, contract end date, holiday allowance, whether the user worked for the company before, and account status. If the contract has no end date, the page shows it as open-ended.
+The Employment Details page shows the user's current employment setup and current contract. It displays position or function, gross hourly wage, contract start date, contract end date, holiday allowance, payment frequency, profile status, contract status, and whether the user worked for the company before. If the contract has no end date, the page shows it as open-ended.
 
-The main action on this page is Contract PDF download. If a current contract exists, the user can download it from the Contract PDF row. If the contract cannot be loaded or downloaded, the page shows an error message.
+The main actions on this page are Contract PDF download and contract signing. If a current contract exists, the user can download it from the Contract PDF row. If the contract is waiting for employee signature, the user also sees a Sign contract button. Below the current details, the page shows a compact contract history with date range, payment frequency, and status for each contract. If the contract cannot be loaded, signed, or downloaded, the page shows an error message.
 
 \subsection{Company Settings Page}
 
@@ -133,7 +133,7 @@ The Company details tab shows the company logo, company name, and company ID. Th
 
 The Roles and permissions tab is a full role-management interface. The page shows existing roles with color dots and member counts. Creating a role happens in a modal with a Details step, a Permissions step, and a Members step. Editing a role uses a similar modal, but adds a Delete tab. A role has a name, color, permission set, and assigned members. The Permissions step groups checkboxes into sections such as Role access, People, Planning, Timesheets and travel, Payslips, Company settings, and Other. Each section shows how many permissions are selected, so the user can scan the permission catalog without reading one long flat list. The member tools include user search, selected member display, add actions, and remove actions. Deleting a role requires typing the role name for confirmation. Each operation is permission-gated, so a user may be able to assign members without being able to delete a role, depending on their permissions.
 
-The Workflow settings tab controls company-wide operational behavior. It shows the payslip timing field, timesheet logging mode, and travel claim mode. Timesheet logging can be set to admin finalization or automatic logging after shift end. Travel claims can require approval or be auto-approved. The page explains that these settings affect future company-wide payroll scheduling and approval behavior.
+The Workflow settings tab controls company-wide operational behavior. It shows the payslip timing field, timesheet logging mode, and travel claim mode, but employee payment timing is now shown from the employee's contract in contract-aware screens. Timesheet logging can be set to admin finalization or automatic logging after shift end. Travel claims can require approval or be auto-approved. Contract payment frequency is selected during onboarding or contract management so payroll timing is controlled by the contract rather than by the user's account page.
 
 The Tax settings tab is where payroll deduction templates are configured. The page presents deduction rows with active checkbox, code, label, category, calculation type, configured value, sort order, employee profile trigger, and notes. Users can add a deduction line, remove a line, and save the tax settings. Suggested payroll lines include LOONHEFFING, employee pension, HOP, PAWW, employee Zvw, and other deductions. The calculation type can be fixed amount or percentage of gross, and the employee profile trigger can make a line apply only to specific tax-profile situations.
 
@@ -207,7 +207,7 @@ The reviewer can approve the claim directly, or reject it. Rejecting uses a prom
 
 \subsection{Payslips Page}
 
-The Payslips page is the main list for payroll documents. Employees see their own payslips. Users who can view all payslips can switch between My payslips and All payslips. The list shows date, user when in all scope, week, function, hours, net pay, status, and an action column.
+The Payslips page is the main list for payroll documents. Employees see their own payslips. Users who can view all payslips can switch between My payslips and All payslips. The list shows date, user when in all scope, week, function, hours, net pay, status, and an action column. Scheduled payslips are now based on the active finalized contract and its payment frequency.
 
 The page includes a detailed filter panel. Users can search, filter by status, choose date range, choose week year and week number, and filter by minimum or maximum hours and net pay. The special status filter \code{NOT_ACCEPTED} is a frontend convenience for focusing on payslips that are not released or approved. It is used from payroll review flows to quickly find problematic payslips.
 
@@ -217,7 +217,7 @@ The user can download a payslip PDF from the list, open a detail page by selecti
 
 The Payslip Detail page is the readable payslip view. It starts with page actions for returning to the payslip list and downloading the PDF. The hero summary shows employee name, function, week, issue date, available date, status badge, payslip ID, and key metrics for hours, gross amount, and net amount.
 
-The rest of the page is organized into cards. The Overview card shows issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card shows function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total. The Deductions card lists deduction lines with label, code, category, and calculated amount. The Employee details card shows name, user ID, date of birth, start date, address, and country.
+The rest of the page is organized into cards. The Overview card shows issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card shows function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total. The Deductions card lists deduction lines with label, code, category, and calculated amount. The Employee details card shows name, user ID, date of birth, start date, address, and country. Payslips can now carry contract snapshot fields such as contract id, contract type, payment frequency, contract dates, weekly hours, and holiday allowance, so payroll reviewers can see what contract rule produced the period.
 
 The page is read-only except for downloading the PDF and navigating back. Its role is to explain the payslip calculation to the user in a structured way.
 
@@ -232,7 +232,7 @@ When the user has manage permission, those fields can be edited. The Deductions 
 The Employee details card keeps identity and address context visible. The Timesheets card shows timesheets for the same user, week, and year, with recorded hours and travel totals. This gives payroll users a way to compare the payslip against work-history data before saving changes.
 \subsection{Payslip Review Page}
 
-The Payslip Review page is a simpler review queue than the full payslips list. It focuses on payslips pending review. The table shows employee name, period end, payout date, hours, net amount, status, and a download action. A Refresh button reloads the queue.
+The Payslip Review page is a simpler review queue than the full payslips list. It focuses on payslips pending review. The table shows employee name, period end, payout date, hours, net amount, status, and a download action. A Refresh button reloads the queue. Zero-hour on-call contract periods with no pay are skipped instead of creating empty payslips, while missing finalized contract data or missing timesheet data can still place a payslip into review.
 
 The reviewer can download a PDF directly or click a row to open the management payslip detail page. This screen is useful when the reviewer wants a narrow queue of review items instead of the broader all-payslips filtering interface.
 
@@ -282,11 +282,11 @@ The user journey usually starts at the root URL or on the login page. The root U
 Once the user is signed in, access rules keep the flow clean. A pending setup user is redirected to onboarding. A signed-out user is redirected to login. A user missing a required permission is sent back to dashboard. Management pages use permission guards such as \code{CAN_VIEW_USERS}, \code{CAN_MANAGE_PLANNING}, \code{CAN_MANAGE_TIMESHEETS}, \code{CAN_VIEW_ALL_PAYSLIPS}, and company or role permissions. This creates a guided path through the app instead of exposing pages the user cannot use.
 \subsection{Employee Invitation and Onboarding}
 
-An authorized user creates an employee from the Management Employee Onboarding page. They enter the employee's personal, contact, function, wage, contract, and travel allowance information. When the form is submitted, the frontend displays the generated username, temporary password, and email result.
+An authorized user creates an employee from the Management Employee Onboarding page. They enter the employee's personal, contact, function, wage, contract, payment frequency, and travel allowance information. When the form is submitted, the frontend displays the generated username, temporary password, and email result.
 
-The employee then logs in. If a password reset is required, that happens first. If the employee is still \code{PENDING_SETUP}, they are sent to the onboarding page. There they complete address and IBAN information. When setup is finished, the frontend marks the employee active and sends them to the dashboard.
+The employee then logs in. If a password reset is required, that happens first. If the employee is still \code{PENDING_SETUP}, they are sent to the onboarding page. There they complete address and IBAN information. When setup is finished, the employee moves to profile review. Management can then send the draft contract to the employee. The employee can view and sign their own contract from Account Employment details. Management can finalize the signed contract or reject it with a comment.
 
-The workflow starts with an authorized user creating the account and ends with the employee becoming an active user who can manage their own planning, work history, leave, travel claims, and payslips.
+The workflow starts with an authorized user creating the account and ends with a finalized contract. Finalization activates the employee for the normal application experience, where they can manage their own planning, work history, leave, travel claims, and payslips.
 
 \subsection{Planning and Shift Assignment}
 
@@ -318,9 +318,9 @@ After submission, the leave request appears in the employee's leave list as \cod
 
 \subsection{Payslip Review and Payslip Errors}
 
-Payslips appear to employees in the dashboard and in the Payslips page. Employees can download PDFs and inspect details. If something looks wrong, the employee reports an error with a title and optional note. The payslip then becomes visible to payroll reviewers as disputed or needing attention.
+Payslips appear to employees in the dashboard and in the Payslips page. Employees can download PDFs and inspect details. If something looks wrong, the employee reports an error with a title and optional note. The payslip then becomes visible to payroll reviewers as disputed or needing attention. Scheduled payslip generation uses the finalized contract as the source for payment frequency and contract snapshot data.
 
-Payroll users can open a payslip from the payslip review page or the all-payslips list. In the management payslip detail page, users with manage permission can review same-week timesheets, change status, edit error text, adjust pay details, edit deductions, and save. The employee-facing detail page then reflects the resulting payslip information.
+Payroll users can open a payslip from the payslip review page or the all-payslips list. In the management payslip detail page, users with manage permission can review same-week timesheets, change status, edit error text, adjust pay details, edit deductions, and save. Empty on-call periods with no hours, no travel, and no net pay are skipped instead of producing a zero payslip. The employee-facing detail page then reflects the resulting payslip information.
 
 This workflow connects worked hours, payroll review, employee dispute handling, and final PDF download into one frontend loop.
 
@@ -357,7 +357,7 @@ Planning labels are kept consistent across the app. A scheduled request is shown
 
 \section{Important States and Statuses}
 
-The user status controls the first major branch in the app. A user with \code{PENDING_SETUP} is not allowed into the active application and is sent to onboarding. A user with \code{ACTIVE} status can use protected app pages.
+The user status controls the first major branch in the app. A user with \code{PENDING_SETUP} is not allowed into the active application and is sent to onboarding. After setup, the user can move through review states such as \code{PENDING_PROFILE_REVIEW}, \code{CHANGES_REQUESTED}, \code{PENDING_CONTRACT_SIGNATURE}, and \code{PENDING_CONTRACT_REVIEW}. A user with \code{ACTIVE} status can use protected app pages.
 
 Leave requests use the familiar review states. \code{PENDING} means the employee submitted the request and is waiting for a manager decision. \code{APPROVED} means the request was accepted and the hours count against the leave allowance. \code{REJECTED} means the request was denied. The shared types also include \code{CANCELED}, although the visible flow mainly centers on pending, approved, and rejected.
 
@@ -371,11 +371,14 @@ Travel claim states explain expense review. Not submitted means no claim exists.
 
 Payslip statuses drive the payroll review experience. \code{PENDING_REVIEW} is waiting for payroll review. \code{NEEDS_ATTENTION} marks a payslip that requires payroll work. \code{DISPUTED} means the employee reported an issue or the payslip is being challenged. \code{RELEASED} means the payslip is available to the employee. \code{APPROVED} means it has been accepted. \code{NOT_ACCEPTED} is a frontend filter used to find payslips that are not released or approved.
 
+Contract statuses drive contract-owned payroll. \code{DRAFT} is a contract being prepared. \code{SENT_TO_EMPLOYEE} means the employee can view and sign it. \code{EMPLOYEE_SIGNED} means it is waiting for management review. \code{FINALIZED} means it can be used for payroll. \code{REJECTED} means management sent it back with a comment. \code{SIGNED} remains visible for older contract rows.
+
 Workflow settings define how future operational states are created. \code{ADMIN_FINALIZE} means timesheet logging depends on a manual management finalization step. \code{AUTO_ON_SHIFT_END} means timesheets can be created automatically after a shift ends. \code{REQUIRES_APPROVAL} means travel claims wait for review. \code{AUTO_APPROVE} means travel claims can be accepted automatically.
 
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 12: Added contract-owned payment frequency, employee contract visibility, contract signing status, management contract review actions, and payroll review behavior.
     \item 2026 05 12: Added an implementation plan for the contract-owned payroll and onboarding workflow; no frontend behavior has changed yet.
     \item 2026 05 12: Added a contract-owned payroll and onboarding workflow design spec; no frontend behavior has changed yet.
     \item 2026 05 11: Added shared spacing between popup title bars and the top navigation bar.

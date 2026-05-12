@@ -11,6 +11,8 @@ service ContractService {
 // Request contract data for a user
 message ContractDataRequest {
   string userId = 1;
+  string periodStart = 2;
+  string periodEnd = 3;
 }
 
 // Response with snapshot of contract
@@ -20,4 +22,12 @@ message ContractDataResponse {
   string contractType = 3;
   string grossHourlyWage = 4; // keep as string to avoid decimal loss
   bool travelAllowance = 5;
+  string functionId = 6;
+  string functionName = 7;
+  string paymentFrequency = 8;
+  string weeklyHours = 9;
+  string holidayAllowancePercentage = 10;
+  int32 leaveEntitlementDays = 11;
+  string contractId = 12;
+  string status = 13;
 }

@@ -9,18 +9,30 @@ public class ContractRequestDTO {
     @NotBlank(message = "userId is required")
     private String userId;
 
+    private String functionId;
+    private String functionName;
+
     // Date
     @NotBlank(message = "startDate is required")
     private String startDate;
-    @NotBlank(message = "endDate is required")
     private String endDate;
 
     @NotBlank(message = "contractType is required")
     private String contractType;
-    @NotNull(message = "grossHourlyWage is required")
     private BigDecimal grossHourlyWage;
     @NotNull(message = "travelAllowance is required")
     private Boolean travelAllowance;
+    private String paymentFrequency;
+    private BigDecimal weeklyHours;
+    private BigDecimal holidayAllowancePercentage;
+    private Integer leaveEntitlementDays;
+    private String workLocation;
+    private String probationPeriod;
+    private String noticePeriod;
+    private String collectiveAgreement;
+    private String pensionScheme;
+    private String sicknessPolicy;
+    private String confidentialityClause;
 
     public String getUserId() {
         return userId;
@@ -28,6 +40,22 @@ public class ContractRequestDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
+    }
+
+    public String getFunctionId() {
+        return functionId;
+    }
+
+    public void setFunctionId(String functionId) {
+        this.functionId = functionId;
+    }
+
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
     }
 
     public String getStartDate() {
@@ -68,5 +96,93 @@ public class ContractRequestDTO {
 
     public void setTravelAllowance(Boolean travelAllowance) {
         this.travelAllowance = travelAllowance;
+    }
+
+    public String getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(String paymentFrequency) {
+        this.paymentFrequency = paymentFrequency;
+    }
+
+    public BigDecimal getWeeklyHours() {
+        return weeklyHours;
+    }
+
+    public void setWeeklyHours(BigDecimal weeklyHours) {
+        this.weeklyHours = weeklyHours;
+    }
+
+    public BigDecimal getHolidayAllowancePercentage() {
+        return holidayAllowancePercentage;
+    }
+
+    public void setHolidayAllowancePercentage(BigDecimal holidayAllowancePercentage) {
+        this.holidayAllowancePercentage = holidayAllowancePercentage;
+    }
+
+    public Integer getLeaveEntitlementDays() {
+        return leaveEntitlementDays;
+    }
+
+    public void setLeaveEntitlementDays(Integer leaveEntitlementDays) {
+        this.leaveEntitlementDays = leaveEntitlementDays;
+    }
+
+    public String getWorkLocation() {
+        return workLocation;
+    }
+
+    public void setWorkLocation(String workLocation) {
+        this.workLocation = workLocation;
+    }
+
+    public String getProbationPeriod() {
+        return probationPeriod;
+    }
+
+    public void setProbationPeriod(String probationPeriod) {
+        this.probationPeriod = probationPeriod;
+    }
+
+    public String getNoticePeriod() {
+        return noticePeriod;
+    }
+
+    public void setNoticePeriod(String noticePeriod) {
+        this.noticePeriod = noticePeriod;
+    }
+
+    public String getCollectiveAgreement() {
+        return collectiveAgreement;
+    }
+
+    public void setCollectiveAgreement(String collectiveAgreement) {
+        this.collectiveAgreement = collectiveAgreement;
+    }
+
+    public String getPensionScheme() {
+        return pensionScheme;
+    }
+
+    public void setPensionScheme(String pensionScheme) {
+        this.pensionScheme = pensionScheme;
+    }
+
+    public String getSicknessPolicy() {
+        return sicknessPolicy;
+    }
+
+    public void setSicknessPolicy(String sicknessPolicy) {
+        this.sicknessPolicy = sicknessPolicy;
+    }
+
+    public String getConfidentialityClause() {
+        return confidentialityClause;
+    }
+
+    public void setConfidentialityClause(String confidentialityClause) {
+        this.confidentialityClause = confidentialityClause;
     }
 }

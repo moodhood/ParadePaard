@@ -62,24 +62,21 @@ function formatPosition(value: string | null | undefined): string {
     return value;
 }
 
-function formatPayslipFrequency(minutes: number | null | undefined): string {
-    if (!minutes || minutes <= 0) return "-";
-    const frequencyMap = new Map<number, string>([
-        [60 * 24 * 7, "Weekly"],
-        [60 * 24 * 14, "Bi-weekly"],
-        [60 * 24 * 30, "Monthly"],
-    ]);
-    const preset = frequencyMap.get(minutes);
-    if (preset) return preset;
-    if (minutes % (60 * 24) === 0) {
-        const days = minutes / (60 * 24);
-        return `Every ${days} day${days === 1 ? "" : "s"}`;
+function formatPaymentFrequency(value?: string | null): string {
+    switch (value) {
+        case "DAILY":
+            return "Daily";
+        case "WEEKLY":
+            return "Weekly";
+        case "BIWEEKLY":
+            return "Biweekly";
+        case "MONTHLY":
+            return "Monthly";
+        case "EVERY_5_MINUTES":
+            return "Test only";
+        default:
+            return value ?? "-";
     }
-    if (minutes % 60 === 0) {
-        const hours = minutes / 60;
-        return `Every ${hours} hour${hours === 1 ? "" : "s"}`;
-    }
-    return `Every ${minutes} minutes`;
 }
 
 function formatLocation(user: UserResponseDTO | null): string {
@@ -165,6 +162,9 @@ export default function AdminUserDetails() {
     const [currentContract, setCurrentContract] = useState<ContractResponseDTO | null>(null);
     const [contractLoading, setContractLoading] = useState(true);
     const [contractError, setContractError] = useState<string | null>(null);
+    const [contractActionLoading, setContractActionLoading] = useState(false);
+    const [contractActionSuccess, setContractActionSuccess] = useState<string | null>(null);
+    const [contractRejectComment, setContractRejectComment] = useState("");
 
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
@@ -394,6 +394,9 @@ export default function AdminUserDetails() {
     const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
     const canRemoveRoles = permissions.includes("CAN_REMOVE_ROLES");
     const canManageUsers = permissions.includes("CAN_MANAGE_USERS");
+    const canManageContracts = permissions.includes("CAN_MANAGE_CONTRACTS");
+    const canReviewContracts = permissions.includes("CAN_REVIEW_CONTRACTS");
+    const canFinalizeContracts = permissions.includes("CAN_FINALIZE_CONTRACT");
 
     useEffect(() => {
         setEmployeeTaxProfileDraft({
@@ -674,6 +677,64 @@ export default function AdminUserDetails() {
         }
     };
 
+    const handleSendContract = async () => {
+        if (!currentContract) return;
+        try {
+            setContractActionLoading(true);
+            setContractError(null);
+            setContractActionSuccess(null);
+            const updated = await UserServices.sendContract(currentContract.contractId);
+            setCurrentContract(updated);
+            setContractActionSuccess("Contract sent to employee.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to send contract.";
+            setContractError(message);
+        } finally {
+            setContractActionLoading(false);
+        }
+    };
+
+    const handleFinalizeContract = async () => {
+        if (!currentContract) return;
+        try {
+            setContractActionLoading(true);
+            setContractError(null);
+            setContractActionSuccess(null);
+            const updated = await UserServices.finalizeContract(currentContract.contractId);
+            setCurrentContract(updated);
+            setContractActionSuccess("Contract finalized.");
+            void loadUser();
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to finalize contract.";
+            setContractError(message);
+        } finally {
+            setContractActionLoading(false);
+        }
+    };
+
+    const handleRejectContract = async () => {
+        if (!currentContract) return;
+        const comment = contractRejectComment.trim();
+        if (!comment) {
+            setContractError("Add a review comment before rejecting the contract.");
+            return;
+        }
+        try {
+            setContractActionLoading(true);
+            setContractError(null);
+            setContractActionSuccess(null);
+            const updated = await UserServices.rejectContract(currentContract.contractId, comment);
+            setCurrentContract(updated);
+            setContractRejectComment("");
+            setContractActionSuccess("Contract sent back with comment.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to reject contract.";
+            setContractError(message);
+        } finally {
+            setContractActionLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!showRolePicker) return;
         const handleClick = (event: MouseEvent) => {
@@ -779,7 +840,7 @@ export default function AdminUserDetails() {
             ["Position", currentContract?.functionName ?? formatPosition(user?.position)],
             ["Worked for us before", formatValue(user?.workedForUsBefore)],
             ["Registered", formatValue(user?.registeredDate)],
-            ["Payslip frequency", formatPayslipFrequency(user?.payslipFrequencyMinutes)],
+            ["Contract payment frequency", formatPaymentFrequency(currentContract?.paymentFrequency)],
             ["Company ID", formatValue(user?.companyId)],
         ] as const;
 
@@ -793,6 +854,7 @@ export default function AdminUserDetails() {
             ],
             ["Contract type", formatValue(currentContract?.contractType)],
             ["Contract status", formatValue(currentContract?.status)],
+            ["Payment frequency", formatPaymentFrequency(currentContract?.paymentFrequency)],
             ["Start date", formatValue(currentContract?.startDate)],
             ["End date", currentContract ? (currentContract.endDate ? formatValue(currentContract.endDate) : "Open-ended") : "-"],
             [
@@ -802,7 +864,17 @@ export default function AdminUserDetails() {
                     : "-",
             ],
             ["Weekly hours", formatValue(currentContract?.weeklyHours)],
+            ["Sent to employee", formatValue(currentContract?.sentToEmployeeAt)],
+            ["Employee signed", formatValue(currentContract?.employeeSignedAt)],
+            ["Finalized", formatValue(currentContract?.finalizedAt)],
+            ["Review comment", formatValue(currentContract?.reviewComment)],
         ] as const;
+
+        const canSendCurrentContract = canManageContracts && currentContract?.status === "DRAFT";
+        const canFinalizeCurrentContract = canFinalizeContracts
+            && (currentContract?.status === "EMPLOYEE_SIGNED" || currentContract?.status === "SIGNED");
+        const canRejectCurrentContract = canReviewContracts
+            && (currentContract?.status === "EMPLOYEE_SIGNED" || currentContract?.status === "SIGNED");
 
         const addressRows = [
             ["Street", formatValue(user?.street)],
@@ -942,14 +1014,60 @@ export default function AdminUserDetails() {
                                                 </div>
                                             ))}
                                         </div>
-                                        <div className="cardFooter">
+                                        {canRejectCurrentContract ? (
+                                            <div className="contractReviewBox">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-review-comment">
+                                                    Review comment
+                                                </label>
+                                                <textarea
+                                                    id="contract-review-comment"
+                                                    className="uiSelect contractReviewTextarea"
+                                                    value={contractRejectComment}
+                                                    onChange={(event) => setContractRejectComment(event.target.value)}
+                                                    disabled={contractActionLoading}
+                                                />
+                                            </div>
+                                        ) : null}
+                                        {contractActionSuccess ? <p className="helperText">{contractActionSuccess}</p> : null}
+                                        <div className="cardFooter contractReviewActions">
                                             <button
                                                 className="button buttonSecondary"
                                                 type="button"
                                                 onClick={() => void downloadContractPdf()}
+                                                disabled={contractActionLoading}
                                             >
                                                 Download contract PDF
                                             </button>
+                                            {canSendCurrentContract ? (
+                                                <button
+                                                    className="button"
+                                                    type="button"
+                                                    onClick={() => void handleSendContract()}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    Send contract
+                                                </button>
+                                            ) : null}
+                                            {canFinalizeCurrentContract ? (
+                                                <button
+                                                    className="button"
+                                                    type="button"
+                                                    onClick={() => void handleFinalizeContract()}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    Finalize contract
+                                                </button>
+                                            ) : null}
+                                            {canRejectCurrentContract ? (
+                                                <button
+                                                    className="button buttonSecondary"
+                                                    type="button"
+                                                    onClick={() => void handleRejectContract()}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    Reject contract
+                                                </button>
+                                            ) : null}
                                         </div>
                                     </>
                                 ) : (

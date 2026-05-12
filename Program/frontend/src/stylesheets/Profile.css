@@ -135,6 +135,44 @@
     font-weight: 600;
 }
 
+.contractActions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.contractHistory {
+    margin-top: 20px;
+    display: grid;
+    gap: 8px;
+    padding: 0 20px 16px;
+}
+
+.contractHistory h3 {
+    margin: 0;
+    font-size: 16px;
+    color: var(--text-main, #333);
+}
+
+.contractHistoryRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(120px, 0.8fr) minmax(120px, 0.8fr);
+    gap: 12px;
+    align-items: center;
+    padding: 10px 0;
+    border-top: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: var(--text-main, #333);
+}
+
+@media (max-width: 640px) {
+    .contractHistoryRow {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+}
+
 .error-container {
     padding: 2rem;
     color: #d93025;

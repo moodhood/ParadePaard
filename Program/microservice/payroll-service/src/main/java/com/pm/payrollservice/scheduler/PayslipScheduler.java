@@ -28,7 +28,6 @@ import java.util.UUID;
 @Component
 public class PayslipScheduler {
     private static final Logger log = LoggerFactory.getLogger(PayslipScheduler.class);
-    private static final int DEFAULT_PAYOUT_FREQUENCY_MINUTES = 10080;
 
     private final UserDirectoryClient userDirectoryClient;
     private final TimesheetServiceGrpcClient timesheetServiceGrpcClient;
@@ -86,10 +85,6 @@ public class PayslipScheduler {
                 continue;
             }
 
-            int frequencyMinutes = userRow.payslipFrequencyMinutes() != null
-                    ? userRow.payslipFrequencyMinutes()
-                    : DEFAULT_PAYOUT_FREQUENCY_MINUTES;
-
             TimesheetSummariesForUserResponse summariesResponse;
             try {
                 summariesResponse = timesheetServiceGrpcClient.requestTimesheetSummariesForUser(userId.toString());
@@ -109,23 +104,17 @@ public class PayslipScheduler {
                 int periodWeek;
                 int periodYear;
                 LocalDate periodEnd;
-                ZonedDateTime dueAt;
                 try {
                     periodWeek = Integer.parseInt(summary.getWeekNumber());
                     periodYear = Integer.parseInt(summary.getWeekBasedYear());
                     periodEnd = LocalDate.parse(summary.getDateOfIssue());
-                    dueAt = resolveLoggedAt(summary).plusMinutes(frequencyMinutes);
                 } catch (Exception parseErr) {
                     log.warn("Skipping scheduled payslip for userId={} (invalid timesheet summary payload)", userId, parseErr);
                     continue;
                 }
 
-                if (now.isBefore(dueAt)) {
-                    continue;
-                }
-
                 try {
-                    payrollService.syncScheduledPayslip(userId, periodEnd, dueAt.toLocalDate());
+                    payrollService.syncContractOwnedScheduledPayslip(userId, periodEnd, now.toLocalDate());
                 } catch (StatusRuntimeException grpcErr) {
                     log.debug("Skipping scheduled payslip for userId={} week={} year={} (grpc error: {})",
                             userId, periodWeek, periodYear, grpcErr.getStatus());

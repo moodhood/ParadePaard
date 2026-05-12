@@ -2,5 +2,14 @@ package com.pm.contractservice.model;
 
 public enum ContractStatus {
     DRAFT,
-    SIGNED
+    SENT_TO_EMPLOYEE,
+    EMPLOYEE_SIGNED,
+    FINALIZED,
+    REJECTED,
+    EXPIRED,
+    SIGNED;
+
+    public boolean isPayrollActive() {
+        return this == FINALIZED || this == SIGNED;
+    }
 }

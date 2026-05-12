@@ -82,11 +82,17 @@ public class OnboardingService {
 
         ContractDraftRequestDTO contractRequest = new ContractDraftRequestDTO();
         contractRequest.setUserId(userId.toString());
+        contractRequest.setFunctionId(StringUtils.trimToNull(request.getFunctionId()));
+        contractRequest.setFunctionName(StringUtils.defaultIfBlank(
+                request.getFunctionName(),
+                mapPositionToFunctionName(request.getPosition())
+        ));
         contractRequest.setStartDate(request.getStartDate());
         contractRequest.setEndDate(request.getEndDate());
         contractRequest.setContractType(mapContractType(request.getContractType(), request.getPosition()));
         contractRequest.setGrossHourlyWage(request.getGrossHourlyWage());
         contractRequest.setTravelAllowance(request.getTravelAllowance());
+        contractRequest.setPaymentFrequency(StringUtils.defaultIfBlank(request.getPaymentFrequency(), "WEEKLY"));
 
         ContractDraftResponseDTO contractResponse = contractServiceClient.createDraftContract(contractRequest, accessToken);
 
@@ -111,9 +117,7 @@ public class OnboardingService {
         user.setCountry(request.getCountry());
         user.setIban(request.getIban());
 
-        contractServiceClient.finalizeContract(accessToken);
-
-        user.setStatus(UserStatus.ACTIVE);
+        user.setStatus(UserStatus.PENDING_PROFILE_REVIEW);
         userRepository.save(user);
     }
 
@@ -196,5 +200,19 @@ public class OnboardingService {
         }
 
         return contractType;
+    }
+
+    private static String mapPositionToFunctionName(String rawPosition) {
+        String position = rawPosition == null ? "" : rawPosition.trim().toUpperCase(Locale.ROOT);
+        if (position.contains("BAR")) {
+            return "Bar";
+        }
+        if (position.contains("RUNNER")) {
+            return "Runner";
+        }
+        if (position.contains("SUPERVISOR")) {
+            return "Supervisor";
+        }
+        return rawPosition;
     }
 }

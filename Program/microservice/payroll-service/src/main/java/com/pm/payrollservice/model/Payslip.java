@@ -53,6 +53,19 @@ public class Payslip {
 
     private OffsetDateTime generatedAt;
 
+    private UUID contractId;
+    private String contractType;
+    private String paymentFrequency;
+    private LocalDate contractStartDate;
+    private LocalDate contractEndDate;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal weeklyHours;
+    @Column(precision = 5, scale = 2)
+    private BigDecimal holidayAllowancePercentage;
+    @Column(length = 120)
+    private String payPeriodKey;
+    private LocalDate payPeriodStart;
+    private LocalDate payPeriodEnd;
 
     // Personal Details
     @Column(nullable = false)
@@ -281,5 +294,85 @@ public class Payslip {
 
     public void setGeneratedAt(OffsetDateTime generatedAt) {
         this.generatedAt = generatedAt;
+    }
+
+    public UUID getContractId() {
+        return contractId;
+    }
+
+    public void setContractId(UUID contractId) {
+        this.contractId = contractId;
+    }
+
+    public String getContractType() {
+        return contractType;
+    }
+
+    public void setContractType(String contractType) {
+        this.contractType = contractType;
+    }
+
+    public String getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(String paymentFrequency) {
+        this.paymentFrequency = paymentFrequency;
+    }
+
+    public LocalDate getContractStartDate() {
+        return contractStartDate;
+    }
+
+    public void setContractStartDate(LocalDate contractStartDate) {
+        this.contractStartDate = contractStartDate;
+    }
+
+    public LocalDate getContractEndDate() {
+        return contractEndDate;
+    }
+
+    public void setContractEndDate(LocalDate contractEndDate) {
+        this.contractEndDate = contractEndDate;
+    }
+
+    public BigDecimal getWeeklyHours() {
+        return weeklyHours;
+    }
+
+    public void setWeeklyHours(BigDecimal weeklyHours) {
+        this.weeklyHours = weeklyHours;
+    }
+
+    public BigDecimal getHolidayAllowancePercentage() {
+        return holidayAllowancePercentage;
+    }
+
+    public void setHolidayAllowancePercentage(BigDecimal holidayAllowancePercentage) {
+        this.holidayAllowancePercentage = holidayAllowancePercentage;
+    }
+
+    public String getPayPeriodKey() {
+        return payPeriodKey;
+    }
+
+    public void setPayPeriodKey(String payPeriodKey) {
+        this.payPeriodKey = payPeriodKey;
+    }
+
+    public LocalDate getPayPeriodStart() {
+        return payPeriodStart;
+    }
+
+    public void setPayPeriodStart(LocalDate payPeriodStart) {
+        this.payPeriodStart = payPeriodStart;
+    }
+
+    public LocalDate getPayPeriodEnd() {
+        return payPeriodEnd;
+    }
+
+    public void setPayPeriodEnd(LocalDate payPeriodEnd) {
+        this.payPeriodEnd = payPeriodEnd;
     }
 }

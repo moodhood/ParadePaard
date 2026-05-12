@@ -30,6 +30,9 @@ public class AdminOnboardingRequestDTO {
     @NotBlank
     private String position;
 
+    private String functionId;
+    private String functionName;
+
     @NotBlank
     private String startDate;
 
@@ -39,8 +42,8 @@ public class AdminOnboardingRequestDTO {
     @NotBlank
     private String contractType;
 
-    @NotNull
     private BigDecimal grossHourlyWage;
+    private String paymentFrequency;
 
     @NotNull
     private Boolean travelAllowance;
@@ -125,6 +128,22 @@ public class AdminOnboardingRequestDTO {
         this.position = position;
     }
 
+    public String getFunctionId() {
+        return functionId;
+    }
+
+    public void setFunctionId(String functionId) {
+        this.functionId = functionId;
+    }
+
+    public String getFunctionName() {
+        return functionName;
+    }
+
+    public void setFunctionName(String functionName) {
+        this.functionName = functionName;
+    }
+
     public String getStartDate() {
         return startDate;
     }
@@ -155,6 +174,14 @@ public class AdminOnboardingRequestDTO {
 
     public void setGrossHourlyWage(BigDecimal grossHourlyWage) {
         this.grossHourlyWage = grossHourlyWage;
+    }
+
+    public String getPaymentFrequency() {
+        return paymentFrequency;
+    }
+
+    public void setPaymentFrequency(String paymentFrequency) {
+        this.paymentFrequency = paymentFrequency;
     }
 
     public Boolean getTravelAllowance() {

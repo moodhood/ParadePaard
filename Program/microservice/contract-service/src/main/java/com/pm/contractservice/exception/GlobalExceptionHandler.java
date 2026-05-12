@@ -2,6 +2,7 @@ package com.pm.contractservice.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -27,14 +28,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errors);
     }
 
-    @ExceptionHandler({
-            ContractAlreadyExistsException.class,
-            ContractNotFoundException.class,
-            FunctionNotFoundException.class
-    })
-    public ResponseEntity<Map<String, String>> handleCustomDataExceptions(RuntimeException ex) {
+    @ExceptionHandler(ContractAlreadyExistsException.class)
+    public ResponseEntity<Map<String, String>> handleContractAlreadyExists(ContractAlreadyExistsException ex) {
         log.warn("Data integrity violation: {}", ex.getMessage());
         String message = EXCEPTION_MESSAGES.getOrDefault(ex.getClass(), ex.getMessage());
         return ResponseEntity.badRequest().body(Collections.singletonMap("message", message));
+    }
+
+    @ExceptionHandler({
+            ContractNotFoundException.class,
+            FunctionNotFoundException.class
+    })
+    public ResponseEntity<Map<String, String>> handleNotFound(RuntimeException ex) {
+        log.warn("Requested data not found: {}", ex.getMessage());
+        String message = EXCEPTION_MESSAGES.getOrDefault(ex.getClass(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.singletonMap("message", message));
     }
 }
