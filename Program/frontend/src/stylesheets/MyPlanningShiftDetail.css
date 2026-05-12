@@ -1,0 +1,241 @@
+.shiftDetailStack {
+  display: grid;
+  gap: 20px;
+}
+
+.shiftDetailCard .uiCardBody {
+  padding: 20px;
+}
+
+.shiftDetailCard .generalInfoRows {
+  gap: 10px;
+  padding: 0;
+}
+
+.shiftDetailCard .generalInfoRow {
+  border: 1px solid #e5eaf1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+}
+
+.shiftDetailCard .generalInfoRow:hover {
+  background: #f8fafc;
+}
+
+.shiftDetailCard .helperText {
+  margin: 0;
+  color: #64748b;
+}
+
+.shiftDetailStack > .errorText {
+  margin: 0;
+}
+
+.travelClaimForm {
+  display: grid;
+  gap: 16px;
+}
+
+.travelClaimField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.travelClaimLabelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.travelClaimLabel {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.travelClaimMeta,
+.travelClaimLabelRow .settingsMeta {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.travelClaimInput {
+  width: 100%;
+  min-height: 46px;
+  box-sizing: border-box;
+  border: 1px solid #d6dce6;
+  border-radius: 12px;
+  background: #ffffff;
+  color: #111827;
+  font: inherit;
+  font-size: 14px;
+  padding: 10px 14px;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.travelClaimInput:focus {
+  border-color: #2f6bff;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.16);
+}
+
+.travelClaimFilePicker {
+  position: relative;
+}
+
+.travelClaimFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.travelClaimFileControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  border: 1px dashed #b8c4d6;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 8px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+}
+
+.travelClaimFileControl:hover {
+  border-color: #2f6bff;
+  background: #f3f7ff;
+}
+
+.travelClaimFileInput:focus-visible + .travelClaimFileControl {
+  border-color: #2f6bff;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.16);
+}
+
+.travelClaimFileButton {
+  flex: 0 0 auto;
+  border-radius: 8px;
+  background: #2f6bff;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 11px 14px;
+}
+
+.travelClaimFileName {
+  min-width: 0;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.travelClaimSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.travelClaimSummaryItem,
+.travelClaimReviewNote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 54px;
+  box-sizing: border-box;
+  border: 1px solid #e5eaf1;
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px 16px;
+}
+
+.travelClaimReviewNote {
+  align-items: flex-start;
+  flex-direction: column;
+  color: #334155;
+  font-size: 14px;
+}
+
+.travelClaimSummaryLabel {
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.travelClaimStatus,
+.travelClaimAmount {
+  color: #111827;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.travelClaimStatus {
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: #f1f5f9;
+}
+
+.travelClaimStatus--approved {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.travelClaimStatus--rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.travelClaimStatus--pending,
+.travelClaimStatus--submitted {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.travelClaimActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.travelClaimSubmitButton {
+  min-height: 40px;
+}
+
+@media (max-width: 640px) {
+  .shiftDetailCard .uiCardBody {
+    padding: 16px;
+  }
+
+  .travelClaimLabelRow,
+  .travelClaimSummaryItem {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .travelClaimSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .travelClaimFileControl {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .travelClaimFileButton {
+    text-align: center;
+  }
+}

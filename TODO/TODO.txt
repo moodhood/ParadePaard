@@ -1,26 +1,18 @@
 TODO:
 Hard (Days):
-Refactor the frontend implement react native.
 Make the app more efficient.
-Make the logic flow more clear per role, meaning what does an admin see, and what does a normal user see, but also what does a non admin see but with a particular role.
 Messaging/Texting system
 CAO auto hook
 
 Medium (Hours):
-Rethink the permissions and roles.
 Notification system
 Refactor the dashboard, what cards are displayed.
 
 Easy (0-60 min):
-Test flow: Create event -> create shift -> schedule user -> user accepts -> user sees shift details clearly and neatly -> shift has completed -> shift hours gets transferred to users' work history -> payslip countdown = 0 -> generate payslip with worked hours from shift.
-
 Add CAO settings (for manual edit)
-Improve payslip layout, and add tax brackets
-
-Improve MyPlanning page
 
 Work on my history page
 
 Look at payslip for more inspiration UI wise
-							
-Fix wages for payslips, and shifts etc.  
+						
+work on contract logic

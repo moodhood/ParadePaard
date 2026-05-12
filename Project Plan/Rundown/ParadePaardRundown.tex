@@ -181,6 +181,8 @@ The My Planning Shift Detail page shows one shift assignment from the employee's
 
 The second card is the travel claim area. It is only usable after the shift has ended. Before that, the page tells the employee that travel claims become available after the shift. Once available, the employee can enter kilometers traveled, upload a proof image, see the rate of EUR 0.23 per kilometer, view the calculated amount, and submit the claim. If a proof image already exists, the employee can open it. If a claim was rejected, the review note appears on the page.
 
+The travel claim card uses a dedicated stacked form layout with a file-picker control, clear status and amount summary blocks, and a mobile-friendly layout so the proof upload and review state stay readable on smaller screens.
+
 This page connects planning to expense reimbursement. The shift is first planned and accepted, then after completion it can produce a travel claim that later appears in review and work history.
 
 \subsection{Work History Page}
@@ -378,6 +380,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 12: Documented the styled travel-claim layout on the My Planning Shift Detail page and added the latest project instruction and timeline files.
     \item 2026 05 12: Added contract-owned payment frequency, employee contract visibility, contract signing status, management contract review actions, and payroll review behavior.
     \item 2026 05 12: Added an implementation plan for the contract-owned payroll and onboarding workflow; no frontend behavior has changed yet.
     \item 2026 05 12: Added a contract-owned payroll and onboarding workflow design spec; no frontend behavior has changed yet.
