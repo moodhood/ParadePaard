@@ -117,7 +117,7 @@ The Management Contracts page is the contract workspace for users with contract 
 
 The page shows contract rows with employee name, function, contract status, start date, end date, and an action. A status filter lets the user switch between all contracts, contracts needing review, draft or sent contracts, finalized contracts, and rejected or expired contracts. Contract statuses are displayed in readable labels instead of raw database values.
 
-The user can refresh the contract list and open the related employee profile from any contract row. The employee profile contains the active contract card, PDF download, send, finalize, and reject actions when the user's permissions allow those actions.
+The user can refresh the contract list and open the related employee profile from any contract row. The employee profile contains the active contract card, PDF download, send, finalize, and reject actions when the user's permissions allow those actions. Contract PDF generation now has the correct service connection in Docker, so downloading a contract from the profile can fetch the employee profile data needed to build the PDF.
 \subsection{Account Layout}
 
 The Account page is a layout wrapper for personal account pages and company settings. It shows the shared navbar, a back button, a page title, side navigation, and the active account content. The personal account side navigation contains Personal info, Bank details, and Employment details. Users with company or role-management permissions can also open Company settings.
@@ -137,7 +137,7 @@ The Bank Details page is intentionally minimal. It shows the user's IBAN inside 
 
 The Employment Details page shows the user's current employment setup and current contract. It displays position or function, gross hourly wage, contract start date, contract end date, holiday allowance, payment frequency, profile status, contract status, and whether the user worked for the company before. If the contract has no end date, the page shows it as open-ended.
 
-The main actions on this page are Contract PDF download and contract signing. If a current contract exists, the user can download it from the Contract PDF row. If the contract is waiting for employee signature, the user also sees a Sign contract button. Below the current details, the page shows a compact contract history with date range, payment frequency, and status for each contract. If the contract cannot be loaded, signed, or downloaded, the page shows an error message.
+The main actions on this page are Contract PDF download and contract signing. If a current contract exists, the user can download it from the Contract PDF row. Contract PDF download uses the contract service together with employee profile data from the user service, so the downloaded document can include the employee name, address, contact details, and IBAN. If the contract is waiting for employee signature, the user also sees a Sign contract button. Below the current details, the page shows a compact contract history with date range, payment frequency, and status for each contract. If the contract cannot be loaded, signed, or downloaded, the page shows an error message.
 
 \subsection{Company Settings Page}
 
@@ -394,6 +394,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 13: Fixed the Docker service connection used for contract PDF downloads so the contract service can fetch employee profile data.
     \item 2026 05 13: Added dedicated onboarding review and contracts management pages so those Management cards no longer open generic pages.
     \item 2026 05 13: Fixed the employee onboarding finish flow so setup can move the user into profile review without a bad-request error.
     \item 2026 05 13: Separated the house number and suffix input cells on the employee onboarding address step.

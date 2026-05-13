@@ -138,7 +138,9 @@ services:
       SPRING_DATASOURCE_USERNAME: "admin_user"
       SPRING_JPA_HIBERNATE_DDL_AUTO: "update"
       SPRING_SQL_INIT_MODE: "always"
-    depends_on: [contract-service-db, kafka]
+      USER_SERVICE_ADDRESS: "user-service"
+      USER_SERVICE_GRPC_PORT: "9006"
+    depends_on: [contract-service-db, user-service, kafka]
 
   planning-service:
     build:
