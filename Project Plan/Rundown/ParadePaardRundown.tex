@@ -41,7 +41,7 @@ After the user submits the form, the frontend does more than simply accept a tok
 
 The forgot-password page gives the user a single email field and a button to send a reset link. There is also a link back to the login page. After submission, the screen changes to a confirmation message that tells the user a reset link will be sent if an account exists for that email address.
 
-The UI keeps the flow intentionally simple. The user does not search for their account or answer extra questions. They only provide an email address and return to the login flow when finished.
+The UI keeps the flow intentionally simple. The user does not search for their account or answer extra questions. They only provide an email address and return to the login flow when finished. Reset emails are sent through the MailerSend Email API configuration, so the frontend keeps the same simple confirmation behavior while the backend uses the configured MailerSend token to deliver the message.
 
 \subsection{Reset Password Page}
 
@@ -103,7 +103,7 @@ The Management Employee Onboarding page starts the new-employee flow for users w
 
 The same screen captures initial employment and contract information. The user selects a position or function, enters contract start and end dates, chooses contract type, selects the contract payment frequency, supplies or accepts a gross hourly wage, and chooses whether the employee has travel allowance. If the selected function already provides a wage, the wage field is disabled and follows that function wage. Date inputs are formatted as the user types. The production form offers normal payroll frequencies such as daily, weekly, biweekly, and monthly.
 
-When the form is submitted, the result area shows the created username, temporary password, contract information if returned, and the onboarding email status. From a user-interface point of view, this page turns a candidate into an invited employee who can then log in, reset their password if required, and complete onboarding.
+When the form is submitted, the result area shows the created username, temporary password, contract information if returned, and the onboarding email status. The onboarding invitation email is sent through the MailerSend Email API configuration. From a user-interface point of view, this page turns a candidate into an invited employee who can then log in, reset their password if required, and complete onboarding.
 \subsection{Account Layout}
 
 The Account page is a layout wrapper for personal account pages and company settings. It shows the shared navbar, a back button, a page title, side navigation, and the active account content. The personal account side navigation contains Personal info, Bank details, and Employment details. Users with company or role-management permissions can also open Company settings.
@@ -380,6 +380,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 13: Updated password reset and employee onboarding email delivery to use the MailerSend Email API configuration.
     \item 2026 05 12: Documented the styled travel-claim layout on the My Planning Shift Detail page and added the latest project instruction and timeline files.
     \item 2026 05 12: Added contract-owned payment frequency, employee contract visibility, contract signing status, management contract review actions, and payroll review behavior.
     \item 2026 05 12: Added an implementation plan for the contract-owned payroll and onboarding workflow; no frontend behavior has changed yet.
