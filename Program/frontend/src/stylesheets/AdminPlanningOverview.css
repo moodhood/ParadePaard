@@ -159,6 +159,31 @@
   outline-offset: 2px;
 }
 
+.planningSearchInput {
+  min-width: 240px;
+  max-width: 320px;
+  height: 38px;
+  border: 1px solid #d7dfeb;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #16345b;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 600;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.planningSearchInput::placeholder {
+  color: #7c8aa1;
+  font-weight: 600;
+}
+
+.planningSearchInput:focus {
+  outline: 2px solid rgba(47, 107, 255, 0.24);
+  outline-offset: 2px;
+}
+
 .planningModeToggle {
   padding: 4px;
   border-radius: 999px;
@@ -752,6 +777,10 @@
     justify-content: flex-start;
   }
 
+  .planningSearchInput {
+    flex: 1 1 240px;
+  }
+
   .planningHeaderRow {
     justify-content: flex-start;
   }
@@ -806,7 +835,9 @@
 
   .planningTodayButton,
   .planningViewSelect,
+  .planningSearchInput,
   .planningCardHeaderActions .button {
     width: 100%;
+    max-width: none;
   }
 }

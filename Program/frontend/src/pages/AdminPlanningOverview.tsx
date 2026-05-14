@@ -10,6 +10,7 @@ import {
     type PlanningClientCompanyDTO,
     type PlanningEventDTO,
     type PlanningEventSaveDTO,
+    type PlanningResourceAllocationDTO,
 } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
 import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
@@ -29,6 +30,10 @@ import {
     getShiftTimeLabel,
     type PlanningStaffingTone,
 } from "../utils/planningSummary";
+import {
+    buildPlanningSearchText,
+    filterPlanningSearchableEntries,
+} from "../utils/planningSearch";
 import {
     formatTimeZoneLabel,
     getBrowserTimeZone,
@@ -64,6 +69,7 @@ type PlannerEntry = {
     staffingTone: PlanningStaffingTone;
     tone: PlannerMode;
     href?: string;
+    searchText: string;
 };
 
 function getStaffingTooltipLabel(): string {
@@ -73,6 +79,41 @@ function getStaffingTooltipLabel(): string {
 function getCompletionLabel(required: number, scheduled: number): string {
     if (required <= 0) return "0%";
     return `${Math.min(100, Math.round((scheduled / required) * 100))}%`;
+}
+
+function getAllocationSearchValues(allocations: PlanningResourceAllocationDTO[]): Array<string | null | undefined> {
+    return allocations.flatMap((allocation) => [
+        allocation.userDisplayName,
+        allocation.userId,
+    ]);
+}
+
+function getEventSearchValues(event: PlanningEventDTO): Array<string | null | undefined> {
+    return [
+        event.eventName,
+        event.eventId,
+        event.clientCompanyName,
+        event.clientCompanyId,
+        ...event.days.flatMap((day) => [
+            ...getAllocationSearchValues(day.allocations),
+            ...day.shifts.flatMap((shift) => getAllocationSearchValues(shift.allocations)),
+        ]),
+    ];
+}
+
+function filterEntriesBySearchQuery(
+    entriesByDay: Map<string, PlannerEntry[]>,
+    searchQuery: string
+): Map<string, PlannerEntry[]> {
+    if (!searchQuery.trim()) {
+        return entriesByDay;
+    }
+
+    const filtered = new Map<string, PlannerEntry[]>();
+    for (const [day, entries] of entriesByDay.entries()) {
+        filtered.set(day, filterPlanningSearchableEntries(entries, searchQuery));
+    }
+    return filtered;
 }
 
 function toIsoDate(date: Date): string {
@@ -278,6 +319,7 @@ function getEventEntriesByDay(events: PlanningEventDTO[], rangeStartDate: string
         const requiredCount = getEventRequiredCount(event);
         const scheduledCount = getEventScheduledCount(event);
         const checkedInCount = getEventCheckedInCount(event);
+        const eventSearchText = buildPlanningSearchText(getEventSearchValues(event));
         const eventDays = buildDayRange(
             event.startDate > rangeStartDate ? event.startDate : rangeStartDate,
             event.endDate < rangeEndDate ? event.endDate : rangeEndDate
@@ -299,6 +341,7 @@ function getEventEntriesByDay(events: PlanningEventDTO[], rangeStartDate: string
                 staffingTone: getEventStaffingTone(event),
                 tone: "events",
                 href: `/management/planning/events/${event.eventId}`,
+                searchText: eventSearchText,
             });
 
             entriesByDay.set(day, entries);
@@ -337,6 +380,15 @@ function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
                     staffingTone: getShiftStaffingTone(shift),
                     tone: "shifts",
                     href: `/management/planning/events/${event.eventId}?shift=${shift.shiftId}`,
+                    searchText: buildPlanningSearchText([
+                        event.eventName,
+                        event.eventId,
+                        event.clientCompanyName,
+                        event.clientCompanyId,
+                        shiftName,
+                        shift.functionName,
+                        ...getAllocationSearchValues(shift.allocations),
+                    ]),
                 });
             }
 
@@ -395,6 +447,7 @@ export default function AdminPlanningOverview() {
     const [expandedDay, setExpandedDay] = useState<string>(today);
     const [planningView, setPlanningView] = useState<PlanningView>("week");
     const [plannerMode, setPlannerMode] = useState<PlannerMode>("events");
+    const [planningSearchQuery, setPlanningSearchQuery] = useState("");
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
     const [createEventStep, setCreateEventStep] = useState<EventCreateStep>("details");
     const [eventDraft, setEventDraft] = useState<PlanningEventSaveDTO>({
@@ -415,7 +468,7 @@ export default function AdminPlanningOverview() {
             const range = getVisibleDateRange(anchorDate, view);
             const data = await UserServices.getPlanningOverview(undefined, undefined, {
                 ...range,
-                includeAllocationDetails: false,
+                includeAllocationDetails: true,
             });
             setEvents(data);
         } catch (err: unknown) {
@@ -458,10 +511,16 @@ export default function AdminPlanningOverview() {
     }, [eventSaveSuccess]);
 
     const eventEntriesByDay = useMemo(
-        () => getEventEntriesByDay(events, visibleRange.startDate, visibleRange.endDate),
-        [events, visibleRange.endDate, visibleRange.startDate]
+        () => filterEntriesBySearchQuery(
+            getEventEntriesByDay(events, visibleRange.startDate, visibleRange.endDate),
+            planningSearchQuery
+        ),
+        [events, planningSearchQuery, visibleRange.endDate, visibleRange.startDate]
     );
-    const shiftEntriesByDay = useMemo(() => getShiftEntriesByDay(events), [events]);
+    const shiftEntriesByDay = useMemo(
+        () => filterEntriesBySearchQuery(getShiftEntriesByDay(events), planningSearchQuery),
+        [events, planningSearchQuery]
+    );
     const weekDays = useMemo(() => buildWeek(selectedDate), [selectedDate]);
     const monthDays = useMemo(() => buildMonth(selectedDate), [selectedDate]);
     const activeMonthKey = selectedDate.slice(0, 7);
@@ -711,6 +770,16 @@ export default function AdminPlanningOverview() {
                                                     </button>
                                                 ))}
                                             </div>
+
+                                            <input
+                                                className="planningSearchInput"
+                                                type="search"
+                                                value={planningSearchQuery}
+                                                onChange={(event) => setPlanningSearchQuery(event.target.value)}
+                                                placeholder="Search user, client, event"
+                                                aria-label="Search planning by user, client, or event"
+                                                disabled={loading}
+                                            />
 
                                             <button
                                                 type="button"
