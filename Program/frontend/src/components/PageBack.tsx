@@ -1,4 +1,5 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { goBackOrFallback } from "../utils/backNavigation";
 import "../stylesheets/PageBack.css";
 
 type Props = {
@@ -8,23 +9,9 @@ type Props = {
 
 export default function PageBack({ label = "Back", to }: Props) {
     const navigate = useNavigate();
-    const location = useLocation();
 
     const handleBack = () => {
-        if (to) {
-            navigate(to);
-            return;
-        }
-        const path = location.pathname.toLowerCase();
-        if (path.startsWith("/account/")) {
-            navigate("/dashboard");
-            return;
-        }
-        if (window.history.length > 1) {
-            navigate(-1);
-            return;
-        }
-        navigate("/dashboard");
+        goBackOrFallback(navigate, to ?? "/dashboard");
     };
 
     return (

@@ -335,7 +335,7 @@ ${note}` : title) : "";
 
     const pageHeader = (
         <header className="pageHeader">
-            <PageBack label="Back to management" to="/management" />
+            <PageBack to="/management" />
             <h1 className="pageTitle">Payslip Details</h1>
         </header>
     );

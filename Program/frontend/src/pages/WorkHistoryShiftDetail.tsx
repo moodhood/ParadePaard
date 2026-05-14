@@ -6,6 +6,7 @@ import Card from "../components/common/Card";
 import Spinner from "../components/Spinner";
 import { useAuth } from "../context/AuthContext";
 import { UserServices, type EmployeePlanningAssignmentDTO, type TimesheetRow } from "../services/user-service/UserServices";
+import { goBackOrFallback } from "../utils/backNavigation";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
 import "../stylesheets/WorkHistory.css";
 
@@ -140,8 +141,8 @@ export default function WorkHistoryShiftDetail() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="workHistoryHeader workHistoryHeader--detail">
-                            <button type="button" className="button" onClick={() => navigate(backTarget)}>
-                                Back to work history
+                            <button type="button" className="button" onClick={() => goBackOrFallback(navigate, backTarget)}>
+                                Back
                             </button>
                             <h1 className="workHistoryTitle">Worked Shift</h1>
                         </header>

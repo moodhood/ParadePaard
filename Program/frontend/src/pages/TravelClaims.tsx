@@ -88,7 +88,7 @@ export default function TravelClaims() {
                             style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
                         >
                             <div>
-                                <PageBack label="Back to management" to="/management" />
+                                <PageBack to="/management" />
                                 <h1 className="workHistoryTitle">Travel Claims</h1>
                             </div>
                             <Link className="button" to="/work-history">

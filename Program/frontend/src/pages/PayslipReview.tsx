@@ -79,7 +79,7 @@ export default function PayslipReview() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Payslip Review</h1>
                         </header>
                         <div className="adminDashboardCard">

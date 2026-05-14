@@ -94,7 +94,7 @@ export default function AdminOnboardingReview() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Onboarding review</h1>
                         </header>
                         <div className="adminDashboardCard">

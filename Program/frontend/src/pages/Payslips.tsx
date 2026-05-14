@@ -319,7 +319,7 @@ export default function Payslips() {
                     <div className="pageShellContent">
                         <div className="pageHeader">
                             {activeScope === "all" ? (
-                                <PageBack label="Back to management" to="/management" />
+                                <PageBack to="/management" />
                             ) : null}
                             <h1 className="pageTitle">Payslips</h1>
                         </div>

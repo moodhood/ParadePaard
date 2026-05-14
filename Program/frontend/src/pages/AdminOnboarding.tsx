@@ -154,7 +154,7 @@ export default function AdminOnboarding() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Onboard employee</h1>
                         </header>
                         <div className="adminDashboardCard">

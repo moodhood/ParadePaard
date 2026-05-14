@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UserServices, type CompanyResponseDTO, type UserResponseDTO } from "../services/user-service/UserServices";
 import { clearAuthCache } from "../utils/authCache";
+import { goBackOrFallback } from "../utils/backNavigation";
 import { canAccessCompanySettings } from "../utils/permissionPolicy";
 import "../stylesheets/Navbar.css";
 
@@ -298,6 +299,10 @@ export default function Navbar(): JSX.Element {
         navigate(`/management/users/${userId}`);
     };
 
+    const handleGoBack = () => {
+        goBackOrFallback(navigate);
+    };
+
     async function handleLogout(): Promise<void> {
         setLoggingOut(true);
         try {
@@ -347,6 +352,18 @@ export default function Navbar(): JSX.Element {
             <header className="nav_wrap" ref={headerRef}>
                 <div className="nav_left">
                     <div className="nav_top">
+                        <button
+                            type="button"
+                            className="nav_back_button"
+                            aria-label="Go to previous page"
+                            title="Back"
+                            onClick={handleGoBack}
+                            disabled={loggingOut}
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M15 18l-6-6 6-6" />
+                            </svg>
+                        </button>
                         <div className="brand">
                             <span className="brand_main">ParadePaard</span>
                         </div>

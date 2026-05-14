@@ -109,7 +109,7 @@ export default function AdminContracts() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Contracts</h1>
                         </header>
                         <div className="adminDashboardCard">

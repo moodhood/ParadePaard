@@ -5,6 +5,7 @@ import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Spinner from "../components/Spinner";
 import { UserServices, type EmployeePlanningAssignmentDTO } from "../services/user-service/UserServices";
+import { goBackOrFallback } from "../utils/backNavigation";
 import { formatDate } from "../utils/dateFormat";
 import "../stylesheets/MyPlanningShiftDetail.css";
 
@@ -112,7 +113,12 @@ export default function MyPlanningShiftDetail() {
                         <button
                             type="button"
                             className="button"
-                            onClick={() => navigate(`/my-planning${searchParams.get("tab") === "past" ? "?tab=past" : ""}`)}
+                            onClick={() =>
+                                goBackOrFallback(
+                                    navigate,
+                                    `/my-planning${searchParams.get("tab") === "past" ? "?tab=past" : ""}`
+                                )
+                            }
                         >
                             Back
                         </button>

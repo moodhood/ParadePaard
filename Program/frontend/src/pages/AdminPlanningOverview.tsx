@@ -639,7 +639,7 @@ export default function AdminPlanningOverview() {
                     <PrimaryNav />
                     <div className="pageShellContent planningOverviewPageContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Planning Overview</h1>
                             <p className="pageSubtitle">Weekly or monthly view for events and shifts.</p>
                         </header>

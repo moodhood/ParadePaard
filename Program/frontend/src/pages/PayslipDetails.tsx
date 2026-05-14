@@ -5,6 +5,7 @@ import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
+import { goBackOrFallback } from "../utils/backNavigation";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
 
 import "../stylesheets/AdminDashboard.css";
@@ -148,9 +149,9 @@ export default function PayslipDetails() {
                             <div className="pageActions">
                                 <button
                                     className="button buttonSecondary"
-                                    onClick={() => navigate("/payslips")}
+                                    onClick={() => goBackOrFallback(navigate, "/payslips")}
                                 >
-                                    Back to payslips
+                                    Back
                                 </button>
                                 <button
                                     className="button"

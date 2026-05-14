@@ -430,7 +430,7 @@ export default function AdminPlanningClients() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Clients</h1>
                             <p className="pageSubtitle">
                                 Manage the client companies and contacts used for planning.

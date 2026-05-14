@@ -889,7 +889,7 @@ export default function AdminUserDetails() {
             <>
                 <section className="adminUserDetailsHero">
                     <div className="adminUserDetailsHeaderTop">
-                        <PageBack label="Back to users" to="/management/users" />
+                        <PageBack to="/management/users" />
                         <div className="pageHeader adminUserDetailsHeader">
                             <h1 className="pageTitle">User Details</h1>
                             <p className="pageSubtitle">

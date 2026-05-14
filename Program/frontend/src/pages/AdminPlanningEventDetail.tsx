@@ -945,7 +945,7 @@ export default function AdminPlanningEventDetail() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <div className="planningDetailBreadcrumbs">
-                            <PageBack label="Back to planning" to="/management/planning" />
+                            <PageBack to="/management/planning" />
                         </div>
 
                         <header className="pageHeader">

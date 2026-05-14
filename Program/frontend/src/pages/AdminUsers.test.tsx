@@ -16,13 +16,13 @@ vi.mock("../components/PrimaryNav", () => ({
 }));
 
 describe("AdminUsers", () => {
-    it("shows an arrow back control to the Management page", () => {
+    it("shows a generic arrow back control", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <AdminUsers />
             </MemoryRouter>
         );
 
-        expect(html).toContain("Back to management");
+        expect(html).toContain("Back");
     });
 });

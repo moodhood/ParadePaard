@@ -246,7 +246,7 @@ export default function AdminUsers() {
                     <PrimaryNav />
                     <div className="pageShellContent">
                         <header className="pageHeader">
-                            <PageBack label="Back to management" to="/management" />
+                            <PageBack to="/management" />
                             <h1 className="pageTitle">Users</h1>
                         </header>
                         <div className="adminDashboardCard">
