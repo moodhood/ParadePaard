@@ -37,7 +37,7 @@ export default function ForgotPassword() {
                     </p>
                     {errorMsg ? <div className="error-message">{errorMsg}</div> : null}
                     <p className="existing-account">
-                        <Link to="/login">Back to login</Link>
+                        <Link to="/login">Back</Link>
                     </p>
                 </div>
             ) : (
@@ -49,7 +49,7 @@ export default function ForgotPassword() {
                         Send reset link
                     </Button>
                     <p className="existing-account">
-                        <Link to="/login">Back to login</Link>
+                        <Link to="/login">Back</Link>
                     </p>
                 </form>
             )}
