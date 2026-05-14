@@ -7,6 +7,7 @@ import com.pm.contractservice.dto.ContractReviewRequestDTO;
 import com.pm.contractservice.dto.ContractViewDTO;
 import com.pm.contractservice.dto.FunctionRequestDTO;
 import com.pm.contractservice.dto.FunctionResponseDTO;
+import com.pm.contractservice.dto.SignContractRequestDTO;
 import com.pm.contractservice.dto.validators.CreateContractValidationGroup;
 import com.pm.contractservice.dto.validators.CreateFunctionValidationGroup;
 import com.pm.contractservice.service.ContractService;
@@ -14,6 +15,7 @@ import com.pm.contractservice.service.FunctionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.groups.Default;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -161,9 +163,29 @@ public class ContractController {
     @PostMapping("/{id}/sign")
     @Operation(summary = "Sign own contract")
     @PreAuthorize("hasAuthority('CAN_SIGN_OWN_CONTRACTS') and @contractPermission.isOwner(#id, authentication)")
-    public ResponseEntity<ContractResponseDTO> signContract(@PathVariable UUID id, Authentication authentication) {
+    public ResponseEntity<ContractResponseDTO> signContract(
+            @PathVariable UUID id,
+            @RequestBody(required = false) SignContractRequestDTO request,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ) {
         UUID userId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(contractService.signContract(id, userId));
+        SignContractRequestDTO signature = request == null ? new SignContractRequestDTO() : request;
+        if (signature.getIpAddress() == null || signature.getIpAddress().isBlank()) {
+            signature.setIpAddress(clientIp(httpRequest));
+        }
+        if (signature.getBrowserUserAgent() == null || signature.getBrowserUserAgent().isBlank()) {
+            signature.setBrowserUserAgent(httpRequest.getHeader("User-Agent"));
+        }
+        return ResponseEntity.ok(contractService.signContract(id, userId, signature));
+    }
+
+    private static String clientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 
     @PostMapping("/{id}/finalize")

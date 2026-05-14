@@ -14,6 +14,7 @@ import Account from "./pages/Account";
 import AccountPersonalInfo from "./pages/AccountPersonalInfo";
 import AccountBankDetails from "./pages/AccountBankDetails";
 import AccountEmploymentDetails from "./pages/AccountEmploymentDetails";
+import AccountContractSign from "./pages/AccountContractSign";
 import SettingsCompany from "./pages/SettingsCompany";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import AdminOnboardingReview from "./pages/AdminOnboardingReview";
@@ -175,6 +176,14 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <PayslipDetails />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/contracts/:contractId/sign"
+                element={
+                    <RequireActiveUser>
+                        <AccountContractSign />
                     </RequireActiveUser>
                 }
             />

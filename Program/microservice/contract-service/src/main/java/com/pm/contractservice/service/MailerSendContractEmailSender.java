@@ -46,16 +46,19 @@ public class MailerSendContractEmailSender implements ContractEmailSender {
         String text = """
                 Hi %s,
 
-                Your ParadePaard contract is ready to review and sign.
+                Your ParadePaard employment contract is ready to review and sign.
 
-                Open your employment details page to view, download, and sign the contract:
+                Please open the contract, review the details carefully, and sign it at the bottom of the page.
+
+                Review and sign contract:
                 %s
                 """.formatted(greetingName, contractUrl);
 
         String html = """
                 <p>Hi %s,</p>
-                <p>Your ParadePaard contract is ready to review and sign.</p>
-                <p><a href="%s">Open your employment details</a></p>
+                <p>Your ParadePaard employment contract is ready to review and sign.</p>
+                <p>Please open the contract, review the details carefully, and sign it at the bottom of the page.</p>
+                <p><a href="%s">Review and sign contract</a></p>
                 """.formatted(escapeHtml(greetingName), escapeHtml(contractUrl));
 
         sendEmail(toEmail, "Your ParadePaard contract is ready", text, html);

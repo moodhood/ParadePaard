@@ -27,6 +27,7 @@ class ContractNotificationServiceTest {
     void sendsContractReadyEmailToEmployeeProfileEmail() {
         UUID userId = UUID.randomUUID();
         Contract contract = new Contract();
+        contract.setContractId(UUID.fromString("11111111-1111-1111-1111-111111111111"));
         contract.setUserId(userId);
         when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
                 .setEmail("employee@example.com")
@@ -36,7 +37,7 @@ class ContractNotificationServiceTest {
         ContractNotificationService service = new ContractNotificationService(
                 userServiceGrpcClient,
                 contractEmailSender,
-                "http://localhost:5173/account/employment"
+                "http://localhost:5173"
         );
 
         service.sendContractReady(contract);
@@ -44,7 +45,7 @@ class ContractNotificationServiceTest {
         verify(contractEmailSender).sendContractReadyEmail(
                 "employee@example.com",
                 "Alex",
-                "http://localhost:5173/account/employment"
+                "http://localhost:5173/contracts/11111111-1111-1111-1111-111111111111/sign"
         );
     }
 

@@ -3,6 +3,7 @@ package com.pm.contractservice.service;
 import com.pm.contractservice.dto.ContractRequestDTO;
 import com.pm.contractservice.dto.ContractResponseDTO;
 import com.pm.contractservice.dto.ContractViewDTO;
+import com.pm.contractservice.dto.SignContractRequestDTO;
 import com.pm.contractservice.dto.UserProfileDTO;
 import com.pm.contractservice.grpc.UserServiceGrpcClient;
 import com.pm.contractservice.mapper.ContractMapper;
@@ -222,6 +223,10 @@ public class ContractService {
     }
 
     public ContractResponseDTO signContract(UUID contractId, UUID userId) {
+        return signContract(contractId, userId, new SignContractRequestDTO());
+    }
+
+    public ContractResponseDTO signContract(UUID contractId, UUID userId, SignContractRequestDTO request) {
         Contract contract = contractValidator.getExistingContract(contractId);
         if (!contract.getUserId().equals(userId)) {
             throw new AccessDeniedException("Cannot sign another user's contract");
@@ -229,8 +234,22 @@ public class ContractService {
         if (contract.getStatus() != ContractStatus.SENT_TO_EMPLOYEE && contract.getStatus() != ContractStatus.REJECTED) {
             throw new IllegalStateException("Contract is not waiting for employee signature");
         }
-        contract.setStatus(ContractStatus.EMPLOYEE_SIGNED);
+        if (request == null || isBlank(request.getTypedSignatureName())) {
+            throw new IllegalArgumentException("Typed signature name is required");
+        }
+        if (request.getAgreementCheckboxText() == null || request.getAgreementCheckboxText().isBlank()) {
+            throw new IllegalArgumentException("Agreement confirmation is required");
+        }
+        contract.setStatus(ContractStatus.SIGNED);
         contract.setEmployeeSignedAt(OffsetDateTime.now());
+        contract.setSignedUserId(userId);
+        contract.setTypedSignatureName(request.getTypedSignatureName().trim());
+        contract.setDrawnSignatureImage(blankToNull(request.getDrawnSignatureImage()));
+        contract.setAgreementCheckboxText(request.getAgreementCheckboxText().trim());
+        contract.setContractVersion(blankToNull(request.getContractVersion()));
+        contract.setDocumentHash(blankToNull(request.getDocumentHash()));
+        contract.setIpAddress(blankToNull(request.getIpAddress()));
+        contract.setBrowserUserAgent(blankToNull(request.getBrowserUserAgent()));
         contract.setReviewComment(null);
         return ContractMapper.toDTO(contractRepository.save(contract));
     }
@@ -360,5 +379,9 @@ public class ContractService {
 
     private static boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private static String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 }

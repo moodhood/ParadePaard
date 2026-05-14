@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useOutletContext } from "react-router-dom";
+import { Link, useOutletContext } from "react-router-dom";
 import Card from "../components/common/Card";
 import { UserServices, type ContractResponseDTO } from "../services/user-service/UserServices";
 import type { AccountOutletContext } from "./Account";
@@ -58,19 +58,6 @@ export default function AccountEmploymentDetails() {
             }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to download contract.";
-            setContractError(message);
-        }
-    };
-
-    const signCurrentContract = async () => {
-        if (!currentContract) return;
-        try {
-            setContractError(null);
-            const updated = await UserServices.signContract(currentContract.contractId);
-            setCurrentContract(updated);
-            setContracts((rows) => rows.map((row) => row.contractId === updated.contractId ? updated : row));
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to sign contract.";
             setContractError(message);
         }
     };
@@ -147,14 +134,13 @@ export default function AccountEmploymentDetails() {
                         >
                             Download
                         </button>
-                        {canSign ? (
-                            <button
+                        {canSign && currentContract ? (
+                            <Link
                                 className="button"
-                                type="button"
-                                onClick={() => void signCurrentContract()}
+                                to={`/contracts/${currentContract.contractId}/sign`}
                             >
-                                Sign contract
-                            </button>
+                                Review and sign contract
+                            </Link>
                         ) : null}
                     </span>
                 </div>

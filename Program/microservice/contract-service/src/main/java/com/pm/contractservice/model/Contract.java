@@ -91,6 +91,29 @@ public class Contract {
     private OffsetDateTime finalizedAt;
     private OffsetDateTime rejectedAt;
 
+    private UUID signedUserId;
+
+    @Column(length = 255)
+    private String typedSignatureName;
+
+    @Column(columnDefinition = "text")
+    private String drawnSignatureImage;
+
+    @Column(length = 255)
+    private String agreementCheckboxText;
+
+    @Column(length = 100)
+    private String contractVersion;
+
+    @Column(length = 128)
+    private String documentHash;
+
+    @Column(length = 100)
+    private String ipAddress;
+
+    @Column(length = 1000)
+    private String browserUserAgent;
+
     @JdbcTypeCode(SqlTypes.VARBINARY)
     @Column(columnDefinition = "bytea")
     private byte[] pdfData;
@@ -301,6 +324,70 @@ public class Contract {
 
     public void setRejectedAt(OffsetDateTime rejectedAt) {
         this.rejectedAt = rejectedAt;
+    }
+
+    public UUID getSignedUserId() {
+        return signedUserId;
+    }
+
+    public void setSignedUserId(UUID signedUserId) {
+        this.signedUserId = signedUserId;
+    }
+
+    public String getTypedSignatureName() {
+        return typedSignatureName;
+    }
+
+    public void setTypedSignatureName(String typedSignatureName) {
+        this.typedSignatureName = typedSignatureName;
+    }
+
+    public String getDrawnSignatureImage() {
+        return drawnSignatureImage;
+    }
+
+    public void setDrawnSignatureImage(String drawnSignatureImage) {
+        this.drawnSignatureImage = drawnSignatureImage;
+    }
+
+    public String getAgreementCheckboxText() {
+        return agreementCheckboxText;
+    }
+
+    public void setAgreementCheckboxText(String agreementCheckboxText) {
+        this.agreementCheckboxText = agreementCheckboxText;
+    }
+
+    public String getContractVersion() {
+        return contractVersion;
+    }
+
+    public void setContractVersion(String contractVersion) {
+        this.contractVersion = contractVersion;
+    }
+
+    public String getDocumentHash() {
+        return documentHash;
+    }
+
+    public void setDocumentHash(String documentHash) {
+        this.documentHash = documentHash;
+    }
+
+    public String getIpAddress() {
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    public String getBrowserUserAgent() {
+        return browserUserAgent;
+    }
+
+    public void setBrowserUserAgent(String browserUserAgent) {
+        this.browserUserAgent = browserUserAgent;
     }
 
     public byte[] getPdfData() {

@@ -15,4 +15,7 @@ Work on my history page
 
 Look at payslip for more inspiration UI wise
 						
-work on contract logic
+test contract logic
+
+improve UI contract 
+fix email contract

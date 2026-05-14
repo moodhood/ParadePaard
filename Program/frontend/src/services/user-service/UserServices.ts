@@ -44,6 +44,7 @@ import GetContracts, {
     SignContract,
     type ContractResponseDTO,
     type FunctionResponseDTO,
+    type SignContractRequestDTO,
 } from "./GetContracts";
 import ReportPayslipError, { type ReportPayslipErrorRequestDTO } from "./ReportPayslipError";
 import GetPayslipById from "./GetPayslipById";
@@ -139,6 +140,7 @@ export type {
     CreateTimesheetResponseDTO,
     ContractResponseDTO,
     FunctionResponseDTO,
+    SignContractRequestDTO,
     ReportPayslipErrorRequestDTO,
     UpdatePayslipRequestDTO,
     PlanningEventDTO,
@@ -236,8 +238,8 @@ export const UserServices = {
     getContractPdf: async (contractId: string): Promise<Blob> => {
         return await GetContractPdf(API_BASE_URL, contractId);
     },
-    signContract: async (contractId: string): Promise<ContractResponseDTO> => {
-        return await SignContract(API_BASE_URL, contractId);
+    signContract: async (contractId: string, payload: SignContractRequestDTO): Promise<ContractResponseDTO> => {
+        return await SignContract(API_BASE_URL, contractId, payload);
     },
     sendContract: async (contractId: string): Promise<ContractResponseDTO> => {
         return await SendContract(API_BASE_URL, contractId);

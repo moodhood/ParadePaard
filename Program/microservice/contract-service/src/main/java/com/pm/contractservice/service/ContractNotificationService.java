@@ -11,16 +11,16 @@ import user.UserDataResponse;
 public class ContractNotificationService {
     private final UserServiceGrpcClient userServiceGrpcClient;
     private final ContractEmailSender contractEmailSender;
-    private final String contractUrl;
+    private final String contractBaseUrl;
 
     public ContractNotificationService(
             UserServiceGrpcClient userServiceGrpcClient,
             ContractEmailSender contractEmailSender,
-            @Value("${contract.email.contract-url:http://localhost:5173/account/employment}") String contractUrl
+            @Value("${contract.email.contract-url:http://localhost:5173}") String contractBaseUrl
     ) {
         this.userServiceGrpcClient = userServiceGrpcClient;
         this.contractEmailSender = contractEmailSender;
-        this.contractUrl = contractUrl;
+        this.contractBaseUrl = contractBaseUrl;
     }
 
     public void sendContractReady(Contract contract) {
@@ -30,7 +30,21 @@ public class ContractNotificationService {
             throw new ContractEmailDeliveryException("Employee email address is missing");
         }
 
-        contractEmailSender.sendContractReadyEmail(email, displayName(userData), contractUrl);
+        contractEmailSender.sendContractReadyEmail(email, displayName(userData), contractSignUrl(contract));
+    }
+
+    private String contractSignUrl(Contract contract) {
+        String base = contractBaseUrl == null || contractBaseUrl.isBlank()
+                ? "http://localhost:5173"
+                : contractBaseUrl.trim();
+        String contractId = contract.getContractId() == null ? "" : contract.getContractId().toString();
+        if (base.contains("{contractId}")) {
+            return base.replace("{contractId}", contractId);
+        }
+        while (base.endsWith("/")) {
+            base = base.substring(0, base.length() - 1);
+        }
+        return base + "/contracts/" + contractId + "/sign";
     }
 
     private static String displayName(UserDataResponse userData) {

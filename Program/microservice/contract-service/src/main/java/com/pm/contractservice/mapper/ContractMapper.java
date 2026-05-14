@@ -39,6 +39,14 @@ public class ContractMapper {
         contractResponseDTO.setEmployeeSignedAt(asString(contract.getEmployeeSignedAt()));
         contractResponseDTO.setFinalizedAt(asString(contract.getFinalizedAt()));
         contractResponseDTO.setRejectedAt(asString(contract.getRejectedAt()));
+        contractResponseDTO.setSignedUserId(contract.getSignedUserId());
+        contractResponseDTO.setTypedSignatureName(contract.getTypedSignatureName());
+        contractResponseDTO.setDrawnSignatureImage(contract.getDrawnSignatureImage());
+        contractResponseDTO.setAgreementCheckboxText(contract.getAgreementCheckboxText());
+        contractResponseDTO.setContractVersion(contract.getContractVersion());
+        contractResponseDTO.setDocumentHash(contract.getDocumentHash());
+        contractResponseDTO.setIpAddress(contract.getIpAddress());
+        contractResponseDTO.setBrowserUserAgent(contract.getBrowserUserAgent());
 
         return contractResponseDTO;
     }
