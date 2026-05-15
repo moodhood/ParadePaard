@@ -50,6 +50,32 @@ class ContractNotificationServiceTest {
     }
 
     @Test
+    void sendsContractReadyEmailToSigningRouteWhenOldEmploymentUrlIsConfigured() {
+        UUID userId = UUID.randomUUID();
+        Contract contract = new Contract();
+        contract.setContractId(UUID.fromString("9faea22b-e7c6-4965-99cf-8172ab9e89fe"));
+        contract.setUserId(userId);
+        when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
+                .setEmail("bevanrhee@gmail.com")
+                .setPreferredName("Imre")
+                .build());
+
+        ContractNotificationService service = new ContractNotificationService(
+                userServiceGrpcClient,
+                contractEmailSender,
+                "http://localhost:5173/account/employment"
+        );
+
+        service.sendContractReady(contract);
+
+        verify(contractEmailSender).sendContractReadyEmail(
+                "bevanrhee@gmail.com",
+                "Imre",
+                "http://localhost:5173/contracts/9faea22b-e7c6-4965-99cf-8172ab9e89fe/sign"
+        );
+    }
+
+    @Test
     void rejectsContractReadyEmailWhenEmployeeEmailIsMissing() {
         UUID userId = UUID.randomUUID();
         Contract contract = new Contract();

@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import user.UserDataResponse;
 
+import java.net.URI;
+
 @Service
 public class ContractNotificationService {
     private final UserServiceGrpcClient userServiceGrpcClient;
@@ -41,10 +43,23 @@ public class ContractNotificationService {
         if (base.contains("{contractId}")) {
             return base.replace("{contractId}", contractId);
         }
+        base = originOnly(base);
         while (base.endsWith("/")) {
             base = base.substring(0, base.length() - 1);
         }
         return base + "/contracts/" + contractId + "/sign";
+    }
+
+    private static String originOnly(String base) {
+        try {
+            URI uri = URI.create(base);
+            if (uri.getScheme() != null && uri.getRawAuthority() != null) {
+                return uri.getScheme() + "://" + uri.getRawAuthority();
+            }
+        } catch (IllegalArgumentException ignored) {
+            return base;
+        }
+        return base;
     }
 
     private static String displayName(UserDataResponse userData) {

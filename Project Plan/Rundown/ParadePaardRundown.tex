@@ -143,6 +143,8 @@ The main actions on this page are Contract PDF download and opening the contract
 
 The Contract Signing page is a dedicated employee page at \code{/contracts/:contractId/sign}. It is used when an employee receives a contract email or opens the signing action from Employment Details. The page is separate from the normal employment details page so the employee reviews the contract as a document before signing.
 
+The contract email button points directly to this route. If the backend is still configured with the older Employment Details URL, the email link is still converted to the correct contract signing route so employees do not land on a broken nested account URL.
+
 The main area shows a clean employment agreement preview. The contract is written with headings, numbered sections, and paragraphs instead of raw field names. Employee details such as name, address, email, phone number, position, wage, start date, end date, working hours, holiday allowance, leave entitlement, and travel allowance are inserted naturally into the contract text. Company details are shown as ParadePaard employer details in the agreement.
 
 The signing panel at the bottom or side of the page shows contract status, contract version, signed date if available, and typed signature name if already signed. Before signing, the employee must check the agreement checkbox that says I have read the employment contract and agree to it. The employee must also type their full legal name. The page checks the typed name against the employee name when that name is available. The employee can optionally draw a signature with a mouse or touch in the signature box.
@@ -406,6 +408,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 15: Fixed resent contract emails so old Employment Details URL configuration still opens the dedicated contract signing page.
     \item 2026 05 14: Added a dedicated contract signing page, updated the contract email button, and changed Employment Details to open the review-and-sign flow.
     \item 2026 05 14: Updated contract sending so the active contract card sends or resends a contract email and shows an error if delivery fails.
     \item 2026 05 14: Changed the forgot-password return link from Back to login to the generic Back wording.
