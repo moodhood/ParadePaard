@@ -141,15 +141,11 @@ public class ContractService {
 
     public byte[] getContractPdf(UUID contractId) {
         Contract contract = contractValidator.getExistingContract(contractId);
-        if (contract.getPdfData() != null && contract.getPdfData().length > 0) {
+        if (!requiresSignedPdfRefresh(contract) && contract.getPdfData() != null && contract.getPdfData().length > 0) {
             return contract.getPdfData();
         }
 
-        UserProfileDTO profile = buildUserProfile(userServiceGrpcClient.requestUserData(contract.getUserId().toString()));
-        byte[] pdfData = contractPdfGenerator.generate(contract, profile);
-        contract.setPdfData(pdfData);
-        contractRepository.save(contract);
-        return pdfData;
+        return regenerateAndStorePdf(contract);
     }
 
     public ContractViewDTO getContractView(UUID contractId) {
@@ -251,6 +247,7 @@ public class ContractService {
         contract.setIpAddress(blankToNull(request.getIpAddress()));
         contract.setBrowserUserAgent(blankToNull(request.getBrowserUserAgent()));
         contract.setReviewComment(null);
+        contract.setPdfData(generatePdf(contract));
         return ContractMapper.toDTO(contractRepository.save(contract));
     }
 
@@ -333,6 +330,24 @@ public class ContractService {
             return functionRepository.findFirstByFunctionNameIgnoreCase(request.getFunctionName().trim());
         }
         return Optional.empty();
+    }
+
+    private byte[] regenerateAndStorePdf(Contract contract) {
+        byte[] pdfData = generatePdf(contract);
+        contract.setPdfData(pdfData);
+        contractRepository.save(contract);
+        return pdfData;
+    }
+
+    private byte[] generatePdf(Contract contract) {
+        UserProfileDTO profile = buildUserProfile(userServiceGrpcClient.requestUserData(contract.getUserId().toString()));
+        return contractPdfGenerator.generate(contract, profile);
+    }
+
+    private static boolean requiresSignedPdfRefresh(Contract contract) {
+        return contract.getEmployeeSignedAt() != null
+                || !isBlank(contract.getTypedSignatureName())
+                || !isBlank(contract.getDrawnSignatureImage());
     }
 
     private UserProfileDTO buildUserProfile(UserDataResponse userData) {

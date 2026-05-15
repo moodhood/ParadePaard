@@ -21,7 +21,11 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import user.UserDataResponse;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceSignContractTest {
@@ -47,6 +51,11 @@ class ContractServiceSignContractTest {
         UUID userId = UUID.randomUUID();
         Contract contract = contract(contractId, userId);
         when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
+                .setFirstNames("Imre")
+                .setLastName("Janssen")
+                .build());
+        when(contractPdfGenerator.generate(eq(contract), any())).thenReturn("signed pdf".getBytes());
         when(contractRepository.save(contract)).thenReturn(contract);
 
         SignContractRequestDTO request = new SignContractRequestDTO();
@@ -71,6 +80,32 @@ class ContractServiceSignContractTest {
         assertThat(contract.getDocumentHash()).isEqualTo("sha256:contract-hash");
         assertThat(contract.getIpAddress()).isEqualTo("203.0.113.10");
         assertThat(contract.getBrowserUserAgent()).isEqualTo("Mozilla/5.0 Test Browser");
+        assertThat(new String(contract.getPdfData())).isEqualTo("signed pdf");
+    }
+
+    @Test
+    void getContractPdfRegeneratesSignedContractInsteadOfReturningCachedDraftPdf() {
+        UUID contractId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Contract contract = contract(contractId, userId);
+        contract.setStatus(ContractStatus.SIGNED);
+        contract.setTypedSignatureName("Imre Clemens van Rhee");
+        contract.setPdfData("old unsigned pdf".getBytes());
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
+                .setFirstNames("Imre Clemens")
+                .setMiddleNamePrefix("van")
+                .setLastName("Rhee")
+                .build());
+        when(contractPdfGenerator.generate(eq(contract), any())).thenReturn("new signed pdf".getBytes());
+        when(contractRepository.save(contract)).thenReturn(contract);
+
+        ContractService service = contractService();
+        byte[] pdf = service.getContractPdf(contractId);
+
+        assertThat(new String(pdf)).isEqualTo("new signed pdf");
+        assertThat(new String(contract.getPdfData())).isEqualTo("new signed pdf");
+        verify(contractPdfGenerator).generate(eq(contract), any());
     }
 
     private ContractService contractService() {

@@ -2,6 +2,7 @@ package com.pm.contractservice.service.pdf;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import com.pm.contractservice.dto.UserProfileDTO;
@@ -10,9 +11,16 @@ import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 
 @Component
 public class ContractPdfGenerator {
+
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy - HH:mm");
 
     public byte[] generate(Contract contract, UserProfileDTO userProfile) {
         Document document = new Document();
@@ -21,49 +29,130 @@ public class ContractPdfGenerator {
             PdfWriter.getInstance(document, outputStream);
             document.open();
 
-            document.add(new Paragraph("Arbeidsovereenkomst"));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Werkgever"));
-            document.add(new Paragraph("Parade Paard"));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Werknemer"));
-            document.add(new Paragraph("Naam: " + fullName(userProfile)));
-            document.add(new Paragraph("Geboortedatum: " + nullSafe(userProfile.getDateOfBirth())));
-            document.add(new Paragraph("Email: " + nullSafe(userProfile.getEmail())));
-            document.add(new Paragraph("Mobiel: " + nullSafe(userProfile.getMobileNumber())));
-            document.add(new Paragraph("Adres: " + formatAddress(userProfile)));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Functie: " + nullSafe(contract.getFunctionName())));
-            document.add(new Paragraph("Contracttype: " + contract.getContractType()));
-            document.add(new Paragraph("Contractstart: " + contract.getStartDate()));
-            document.add(new Paragraph("Contracteinde: " + (contract.getEndDate() == null ? "Onbepaalde tijd" : contract.getEndDate())));
-            document.add(new Paragraph("Werkplek: " + nullSafe(contract.getWorkLocation())));
-            document.add(new Paragraph("Arbeidsduur: " + formatDecimal(contract.getWeeklyHours()) + " uur per week"));
-            document.add(new Paragraph("Bruto uurloon: EUR " + formatDecimal(contract.getGrossHourlyWage())));
-            document.add(new Paragraph("Betaalfrequentie: " + nullSafe(contract.getPaymentFrequency())));
-            document.add(new Paragraph("Vakantiegeld: " + formatDecimal(contract.getHolidayAllowancePercentage()) + "%"));
-            document.add(new Paragraph("Vakantiedagen: " + nullSafe(contract.getLeaveEntitlementDays()) + " dagen per jaar"));
-            document.add(new Paragraph("Reiskostenvergoeding: " + (Boolean.TRUE.equals(contract.getTravelAllowance()) ? "Ja" : "Nee")));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Nederlandse arbeidsvoorwaarden"));
-            document.add(new Paragraph("Proeftijd: " + nullSafe(contract.getProbationPeriod())));
-            document.add(new Paragraph("Opzegtermijn: " + nullSafe(contract.getNoticePeriod())));
-            document.add(new Paragraph("CAO: " + nullSafe(contract.getCollectiveAgreement())));
-            document.add(new Paragraph("Pensioen: " + nullSafe(contract.getPensionScheme())));
-            document.add(new Paragraph("Ziekte en verzuim: " + nullSafe(contract.getSicknessPolicy())));
-            document.add(new Paragraph("Geheimhouding: " + nullSafe(contract.getConfidentialityClause())));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Dit document bevat de belangrijkste arbeidsvoorwaarden zoals functie, loon, werktijden, verlof, vakantiegeld, duur van de overeenkomst en opzegging. De toepasselijke Nederlandse wetgeving en eventuele CAO blijven gelden."));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Wij doen dit voor jou op rekeningnummer: " + nullSafe(userProfile.getIban())));
-            document.add(new Paragraph(" "));
-            document.add(new Paragraph("Ondertekening werkgever: __________________________ Datum: __________"));
-            document.add(new Paragraph("Ondertekening werknemer: __________________________ Datum: __________"));
+            String employeeName = fullName(userProfile);
+            String endDateText = contract.getEndDate() == null
+                    ? "and continues until ended according to this agreement"
+                    : "and ends on " + formatDate(contract.getEndDate());
+
+            document.add(new Paragraph("Employment contract"));
+            document.add(new Paragraph("Employment Agreement"));
+            document.add(new Paragraph("This employment agreement is entered into between ParadePaard and " + employeeName + ". "
+                    + "The agreement starts on " + formatDate(contract.getStartDate()) + " " + endDateText + "."));
+            addSpacer(document);
+
+            addSection(document, "1. Parties");
+            document.add(new Paragraph("The employer is ParadePaard. The employee is " + employeeName
+                    + addressText(userProfile) + ". The employee can be contacted at " + displayValue(userProfile.getEmail())
+                    + phoneText(userProfile) + "."));
+
+            addSection(document, "2. Position and Work");
+            document.add(new Paragraph("The employee will work in the position of " + displayValue(contract.getFunctionName())
+                    + ". The work location is " + displayValue(contract.getWorkLocation())
+                    + ". The contract type is " + formatContractType(contract.getContractType())
+                    + ". The employee is expected to follow reasonable planning instructions, event procedures, and workplace rules that apply to ParadePaard assignments."));
+
+            addSection(document, "3. Pay and Payroll");
+            document.add(new Paragraph("The gross hourly wage is EUR " + formatDecimal(contract.getGrossHourlyWage())
+                    + ". The expected working time is " + formatWorkingTime(contract)
+                    + ". Payment is processed " + formatPaymentFrequency(contract.getPaymentFrequency())
+                    + " unless a later written agreement changes the payroll timing."));
+            document.add(new Paragraph("Holiday allowance is " + formatPercentage(contract.getHolidayAllowancePercentage())
+                    + ". Leave entitlement is " + formatLeaveEntitlement(contract)
+                    + ". Travel allowance is " + formatTravelAllowance(contract) + "."));
+
+            addSection(document, "4. Employment Terms");
+            document.add(new Paragraph("The probation period is " + displayValue(contract.getProbationPeriod())
+                    + ". The notice period is " + displayValue(contract.getNoticePeriod())
+                    + ". Any applicable collective agreement is " + displayValue(contract.getCollectiveAgreement())
+                    + ". Pension participation is " + displayValue(contract.getPensionScheme()) + "."));
+            document.add(new Paragraph("If the employee is sick, the employee must follow this sickness policy: "
+                    + displayValue(contract.getSicknessPolicy()) + "."));
+
+            addSection(document, "5. Confidentiality");
+            document.add(new Paragraph(confidentialityText(contract)));
+
+            addSection(document, "6. Signing");
+            document.add(new Paragraph("By signing this agreement, the employee confirms that the contract has been read, the personal and employment details have been checked, and the employee agrees to the terms above."));
+            addSpacer(document);
+            document.add(new Paragraph("Employer signature: __________________________ Date: __________"));
+            document.add(new Paragraph("Employee signature: " + employeeSignatureText(contract)));
+            if (contract.getEmployeeSignedAt() != null) {
+                document.add(new Paragraph("Signed on: " + formatDateTime(contract.getEmployeeSignedAt())));
+            }
+            addDrawnSignature(document, contract.getDrawnSignatureImage());
 
             document.close();
             return outputStream.toByteArray();
         } catch (DocumentException e) {
             throw new IllegalStateException("Failed to generate PDF", e);
+        }
+    }
+
+    private static void addSection(Document document, String title) throws DocumentException {
+        addSpacer(document);
+        document.add(new Paragraph(title));
+    }
+
+    private static void addSpacer(Document document) throws DocumentException {
+        document.add(new Paragraph(" "));
+    }
+
+    private static String addressText(UserProfileDTO profile) {
+        String address = formatAddress(profile);
+        return address.isBlank() ? "" : ", living at " + address;
+    }
+
+    private static String phoneText(UserProfileDTO profile) {
+        return isBlank(profile.getMobileNumber()) ? "" : " and by phone at " + profile.getMobileNumber().trim();
+    }
+
+    private static String formatWorkingTime(Contract contract) {
+        return contract.getWeeklyHours() == null
+                ? "as scheduled and agreed"
+                : formatDecimal(contract.getWeeklyHours()) + " hours per week";
+    }
+
+    private static String formatLeaveEntitlement(Contract contract) {
+        return contract.getLeaveEntitlementDays() == null
+                ? "handled according to Dutch employment rules"
+                : contract.getLeaveEntitlementDays() + " days per year";
+    }
+
+    private static String formatTravelAllowance(Contract contract) {
+        return Boolean.TRUE.equals(contract.getTravelAllowance())
+                ? "included when applicable under company policy"
+                : "not included unless agreed separately";
+    }
+
+    private static String confidentialityText(Contract contract) {
+        if (!isBlank(contract.getConfidentialityClause())) {
+            return contract.getConfidentialityClause().trim();
+        }
+        return "The employee must handle company, client, planning, payroll, and event information confidentially and may not share it outside the work context.";
+    }
+
+    private static String employeeSignatureText(Contract contract) {
+        return isBlank(contract.getTypedSignatureName())
+                ? "__________________________ Date: __________"
+                : contract.getTypedSignatureName().trim();
+    }
+
+    private static void addDrawnSignature(Document document, String drawnSignatureImage) throws DocumentException {
+        if (isBlank(drawnSignatureImage)) {
+            return;
+        }
+        try {
+            String data = drawnSignatureImage.trim();
+            int commaIndex = data.indexOf(',');
+            if (data.startsWith("data:image") && commaIndex >= 0) {
+                data = data.substring(commaIndex + 1);
+            }
+            Image image = Image.getInstance(Base64.getDecoder().decode(data));
+            image.scaleToFit(220, 80);
+            document.add(new Paragraph("Drawn signature:"));
+            document.add(image);
+        } catch (Exception ignored) {
+            document.add(new Paragraph("Drawn signature: stored with this contract but could not be rendered in the PDF."));
         }
     }
 
@@ -118,11 +207,44 @@ public class ContractPdfGenerator {
         return value == null ? "" : value;
     }
 
-    private static String nullSafe(Object value) {
-        return value == null ? "" : value.toString();
+    private static String displayValue(String value) {
+        return isBlank(value) ? "-" : value.trim();
+    }
+
+    private static String formatDate(LocalDate value) {
+        return value == null ? "-" : value.format(DATE_FORMATTER);
+    }
+
+    private static String formatDateTime(OffsetDateTime value) {
+        return value == null ? "-" : value.format(DATE_TIME_FORMATTER);
+    }
+
+    private static String formatContractType(Object value) {
+        return value == null ? "-" : value.toString().toLowerCase().replace("_", " ");
+    }
+
+    private static String formatPaymentFrequency(Object value) {
+        if (value == null) {
+            return "-";
+        }
+        return switch (value.toString()) {
+            case "DAILY" -> "daily";
+            case "WEEKLY" -> "weekly";
+            case "BIWEEKLY" -> "biweekly";
+            case "MONTHLY" -> "monthly";
+            default -> value.toString().toLowerCase().replace("_", " ");
+        };
+    }
+
+    private static String formatPercentage(BigDecimal value) {
+        return value == null ? "according to the applicable rules" : formatDecimal(value) + "%";
     }
 
     private static String formatDecimal(BigDecimal value) {
-        return value == null ? "" : value.stripTrailingZeros().toPlainString();
+        return value == null ? "-" : value.stripTrailingZeros().toPlainString().replace(".", ",");
+    }
+
+    private static boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }
