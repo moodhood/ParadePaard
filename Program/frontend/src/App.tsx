@@ -59,6 +59,15 @@ function RedirectAdminPlanningShift() {
     return <Navigate to={`/management/planning/events/${eventId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
 }
 
+export function contractSignPath(contractId?: string) {
+    return `/contracts/${contractId ?? ""}/sign`;
+}
+
+function RedirectNestedContractSign() {
+    const { contractId } = useParams();
+    return <Navigate to={contractSignPath(contractId)} replace />;
+}
+
 export default function App() {
     return (
         <Routes>
@@ -178,6 +187,10 @@ export default function App() {
                         <PayslipDetails />
                     </RequireActiveUser>
                 }
+            />
+            <Route
+                path="/account/employment/contracts/:contractId/sign"
+                element={<RedirectNestedContractSign />}
             />
             <Route
                 path="/contracts/:contractId/sign"
