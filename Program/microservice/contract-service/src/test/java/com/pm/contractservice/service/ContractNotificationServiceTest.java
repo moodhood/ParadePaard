@@ -56,7 +56,7 @@ class ContractNotificationServiceTest {
         contract.setContractId(UUID.fromString("9faea22b-e7c6-4965-99cf-8172ab9e89fe"));
         contract.setUserId(userId);
         when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
-                .setEmail("bevanrhee@gmail.com")
+                .setEmail("employee@example.com")
                 .setPreferredName("Imre")
                 .build());
 
@@ -69,7 +69,7 @@ class ContractNotificationServiceTest {
         service.sendContractReady(contract);
 
         verify(contractEmailSender).sendContractReadyEmail(
-                "bevanrhee@gmail.com",
+                "employee@example.com",
                 "Imre",
                 "http://localhost:5173/contracts/9faea22b-e7c6-4965-99cf-8172ab9e89fe/sign"
         );

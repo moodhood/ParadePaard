@@ -47,7 +47,7 @@ class ContractPdfGeneratorTest {
         profile.setFirstNames("Imre Clemens");
         profile.setMiddleNamePrefix("van");
         profile.setLastName("Rhee");
-        profile.setEmail("bevanrhee@gmail.com");
+        profile.setEmail("employee@example.com");
         profile.setMobileNumber("0615351030");
         profile.setStreetName("Eerste Tuindwarsstraat");
         profile.setHouseNumber("15");
