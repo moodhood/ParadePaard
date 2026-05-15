@@ -162,7 +162,7 @@ public class ContractController {
 
     @PostMapping("/{id}/sign")
     @Operation(summary = "Sign own contract")
-    @PreAuthorize("hasAuthority('CAN_SIGN_OWN_CONTRACTS') and @contractPermission.isOwner(#id, authentication)")
+    @PreAuthorize("@contractPermission.isOwner(#id, authentication)")
     public ResponseEntity<ContractResponseDTO> signContract(
             @PathVariable UUID id,
             @RequestBody(required = false) SignContractRequestDTO request,
