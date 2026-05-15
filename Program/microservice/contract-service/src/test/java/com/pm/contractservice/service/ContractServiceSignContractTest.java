@@ -23,6 +23,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import user.UserDataResponse;
@@ -130,6 +131,25 @@ class ContractServiceSignContractTest {
         assertThat(new String(pdf)).isEqualTo("current English pdf");
         assertThat(new String(contract.getPdfData())).isEqualTo("current English pdf");
         verify(contractPdfGenerator).generate(eq(contract), any());
+    }
+
+    @Test
+    void getContractPdfReturnsStoredFinalPdfWithoutRegeneratingIt() {
+        UUID contractId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Contract contract = contract(contractId, userId);
+        contract.setStatus(ContractStatus.FINALIZED);
+        contract.setTypedSignatureName("Imre Clemens van Rhee");
+        contract.setEmployerTypedSignatureName("Mara Manager");
+        contract.setPdfData("locked final pdf with employer signature".getBytes());
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+
+        ContractService service = contractService();
+        byte[] pdf = service.getContractPdf(contractId);
+
+        assertThat(new String(pdf)).isEqualTo("locked final pdf with employer signature");
+        verify(contractPdfGenerator, never()).generate(eq(contract), any());
+        verify(contractRepository, never()).save(contract);
     }
 
     @Test

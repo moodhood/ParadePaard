@@ -1,6 +1,7 @@
 package com.pm.contractservice.service.pdf;
 
 import com.lowagie.text.pdf.PdfReader;
+import com.lowagie.text.pdf.PdfWriter;
 import com.lowagie.text.pdf.parser.PdfTextExtractor;
 import com.pm.contractservice.dto.UserProfileDTO;
 import com.pm.contractservice.model.Contract;
@@ -62,10 +63,40 @@ class ContractPdfGeneratorTest {
         assertThat(pdfText).contains("Employment Agreement");
         assertThat(pdfText).contains("This employment agreement is entered into between ParadePaard and Imre Clemens van Rhee.");
         assertThat(pdfText).contains("Payment is processed biweekly unless a later written agreement changes the payroll timing.");
+        assertThat(pdfText).doesNotContain("employee@example.com");
         assertThat(pdfText).contains("Employer signature");
         assertThat(pdfText).contains("Mara Manager");
         assertThat(pdfText).contains("Employee signature");
         assertThat(pdfText).contains("Imre Clemens van Rhee");
+    }
+
+    @Test
+    void locksFinalizedPdfAgainstContentModification() throws Exception {
+        Contract contract = new Contract();
+        contract.setContractId(UUID.randomUUID());
+        contract.setUserId(UUID.randomUUID());
+        contract.setFunctionName("Runner");
+        contract.setStartDate(LocalDate.of(2026, 5, 14));
+        contract.setContractType(ContractType.FIXED_HOURS);
+        contract.setGrossHourlyWage(new BigDecimal("18.75"));
+        contract.setPaymentFrequency(PaymentFrequency.BIWEEKLY);
+        contract.setStatus(ContractStatus.FINALIZED);
+        contract.setTypedSignatureName("Imre Clemens van Rhee");
+        contract.setEmployeeSignedAt(OffsetDateTime.parse("2026-05-14T12:30:00+02:00"));
+        contract.setEmployerTypedSignatureName("Mara Manager");
+        contract.setFinalizedAt(OffsetDateTime.parse("2026-05-15T05:51:00+02:00"));
+
+        UserProfileDTO profile = new UserProfileDTO();
+        profile.setFirstNames("Imre Clemens");
+        profile.setMiddleNamePrefix("van");
+        profile.setLastName("Rhee");
+
+        PdfReader reader = new PdfReader(new ContractPdfGenerator().generate(contract, profile));
+
+        assertThat(reader.isEncrypted()).isTrue();
+        assertThat(reader.getPermissions() & PdfWriter.ALLOW_MODIFY_CONTENTS).isZero();
+        assertThat(reader.getPermissions() & PdfWriter.ALLOW_MODIFY_ANNOTATIONS).isZero();
+        reader.close();
     }
 
     private static String extractText(byte[] pdfData) throws Exception {

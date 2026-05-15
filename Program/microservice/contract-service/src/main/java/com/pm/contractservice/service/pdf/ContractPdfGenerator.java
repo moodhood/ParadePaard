@@ -7,10 +7,12 @@ import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfWriter;
 import com.pm.contractservice.dto.UserProfileDTO;
 import com.pm.contractservice.model.Contract;
+import com.pm.contractservice.model.ContractStatus;
 import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -26,7 +28,8 @@ public class ContractPdfGenerator {
         Document document = new Document();
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         try {
-            PdfWriter.getInstance(document, outputStream);
+            PdfWriter writer = PdfWriter.getInstance(document, outputStream);
+            lockFinalPdf(contract, writer);
             document.open();
 
             String employeeName = fullName(userProfile);
@@ -42,8 +45,7 @@ public class ContractPdfGenerator {
 
             addSection(document, "1. Parties");
             document.add(new Paragraph("The employer is ParadePaard. The employee is " + employeeName
-                    + addressText(userProfile) + ". The employee can be contacted at " + displayValue(userProfile.getEmail())
-                    + phoneText(userProfile) + "."));
+                    + addressText(userProfile) + "." + contactText(userProfile)));
 
             addSection(document, "2. Position and Work");
             document.add(new Paragraph("The employee will work in the position of " + displayValue(contract.getFunctionName())
@@ -110,8 +112,21 @@ public class ContractPdfGenerator {
         return address.isBlank() ? "" : ", living at " + address;
     }
 
-    private static String phoneText(UserProfileDTO profile) {
-        return isBlank(profile.getMobileNumber()) ? "" : " and by phone at " + profile.getMobileNumber().trim();
+    private static String contactText(UserProfileDTO profile) {
+        return isBlank(profile.getMobileNumber()) ? "" : " The employee can be contacted by phone at " + profile.getMobileNumber().trim() + ".";
+    }
+
+    private static void lockFinalPdf(Contract contract, PdfWriter writer) throws DocumentException {
+        if (contract.getStatus() != ContractStatus.FINALIZED) {
+            return;
+        }
+        byte[] ownerPassword = ("contract-owner-" + contract.getContractId()).getBytes(StandardCharsets.UTF_8);
+        writer.setEncryption(
+                null,
+                ownerPassword,
+                PdfWriter.ALLOW_PRINTING | PdfWriter.ALLOW_SCREENREADERS,
+                PdfWriter.STANDARD_ENCRYPTION_128
+        );
     }
 
     private static String formatWorkingTime(Contract contract) {

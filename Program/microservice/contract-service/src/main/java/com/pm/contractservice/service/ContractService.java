@@ -141,6 +141,9 @@ public class ContractService {
 
     public byte[] getContractPdf(UUID contractId) {
         Contract contract = contractValidator.getExistingContract(contractId);
+        if (contract.getStatus() == ContractStatus.FINALIZED && contract.getPdfData() != null && contract.getPdfData().length > 0) {
+            return contract.getPdfData();
+        }
         return regenerateAndStorePdf(contract);
     }
 
