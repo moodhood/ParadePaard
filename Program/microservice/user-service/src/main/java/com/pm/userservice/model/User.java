@@ -51,12 +51,15 @@ public class User {
     private String bsn;
 
     @Column(name = "apply_loonheffingskorting", nullable = false)
+    @ColumnDefault("false")
     private boolean applyLoonheffingskorting = false;
 
     @Column(name = "pension_participant", nullable = false)
+    @ColumnDefault("false")
     private boolean pensionParticipant = false;
 
     @Column(name = "special_zvw_contribution", nullable = false)
+    @ColumnDefault("false")
     private boolean specialZvwContribution = false;
 
     @Column(name = "payroll_notes", length = 2000)
@@ -80,9 +83,11 @@ public class User {
     private Integer payslipFrequencyMinutes = 10080;
 
     @Column(name = "company_id", nullable = false)
+    @ColumnDefault("'00000000-0000-0000-0000-000000000001'")
     private UUID companyId;
 
     @Column(name = "registered_date", nullable = false)
+    @ColumnDefault("CURRENT_DATE")
     private LocalDate registeredDate = LocalDate.now();
 
     public UUID getUserId() {

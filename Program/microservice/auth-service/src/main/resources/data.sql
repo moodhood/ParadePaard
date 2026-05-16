@@ -95,10 +95,12 @@ ALTER TABLE IF EXISTS roles ADD COLUMN IF NOT EXISTS color VARCHAR(24);
 ALTER TABLE IF EXISTS roles ADD COLUMN IF NOT EXISTS company_id UUID;
 ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS roles_name_key;
 ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS roles_company_name_key;
-ALTER TABLE IF EXISTS roles ADD CONSTRAINT roles_company_name_key UNIQUE (company_id, name);
+ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS ukofx66keruapi6vyqpv6f2or37;
+ALTER TABLE IF EXISTS roles DROP CONSTRAINT IF EXISTS ukanola7uuuwuuc18cy62q3sj43;
 UPDATE roles SET company_id = COALESCE(company_id, '00000000-0000-0000-0000-000000000001'::uuid)
     WHERE company_id IS NULL;
 ALTER TABLE IF EXISTS roles ALTER COLUMN company_id SET NOT NULL;
+ALTER TABLE IF EXISTS roles ADD CONSTRAINT roles_company_name_key UNIQUE (company_id, name);
 
 -- permissions table uses uuid
 CREATE TABLE IF NOT EXISTS permissions (

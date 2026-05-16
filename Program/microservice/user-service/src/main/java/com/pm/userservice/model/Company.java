@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.ColumnDefault;
 
 import java.util.UUID;
 
@@ -27,9 +28,11 @@ public class Company {
     private String logoContentType;
 
     @Column(name = "timesheet_logging_mode", nullable = false, length = 32)
+    @ColumnDefault("'ADMIN_FINALIZE'")
     private String timesheetLoggingMode = "ADMIN_FINALIZE";
 
     @Column(name = "travel_claim_mode", nullable = false, length = 32)
+    @ColumnDefault("'REQUIRES_APPROVAL'")
     private String travelClaimMode = "REQUIRES_APPROVAL";
 
     @Lob

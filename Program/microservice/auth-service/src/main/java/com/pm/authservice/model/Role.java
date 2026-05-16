@@ -2,6 +2,7 @@
 package com.pm.authservice.model;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnDefault;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -23,6 +24,7 @@ public class Role {
     private String color;
 
     @Column(name = "company_id", nullable = false)
+    @ColumnDefault("'00000000-0000-0000-0000-000000000001'")
     private UUID companyId;
 
     @ManyToMany(fetch = FetchType.EAGER)

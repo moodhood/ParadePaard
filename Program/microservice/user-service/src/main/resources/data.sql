@@ -20,16 +20,16 @@ UPDATE companies
 SET timesheet_logging_mode = COALESCE(timesheet_logging_mode, 'ADMIN_FINALIZE'),
     travel_claim_mode = COALESCE(travel_claim_mode, 'REQUIRES_APPROVAL');
 
-INSERT INTO companies (id, name, payout_frequency_minutes)
-SELECT CAST('00000000-0000-0000-0000-000000000001' AS UUID), 'Default Company', 10080
+INSERT INTO companies (id, name, payout_frequency_minutes, timesheet_logging_mode, travel_claim_mode)
+SELECT CAST('00000000-0000-0000-0000-000000000001' AS UUID), 'Default Company', 10080, 'ADMIN_FINALIZE', 'REQUIRES_APPROVAL'
     WHERE NOT EXISTS (
         SELECT 1 FROM companies
         WHERE id = CAST('00000000-0000-0000-0000-000000000001' AS UUID)
            OR name = 'Default Company'
     );
 
-INSERT INTO companies (id, name, payout_frequency_minutes)
-SELECT CAST('00000000-0000-0000-0000-000000000002' AS UUID), 'testcompany2', 10080
+INSERT INTO companies (id, name, payout_frequency_minutes, timesheet_logging_mode, travel_claim_mode)
+SELECT CAST('00000000-0000-0000-0000-000000000002' AS UUID), 'testcompany2', 10080, 'ADMIN_FINALIZE', 'REQUIRES_APPROVAL'
     WHERE NOT EXISTS (
         SELECT 1 FROM companies
         WHERE id = CAST('00000000-0000-0000-0000-000000000002' AS UUID)
