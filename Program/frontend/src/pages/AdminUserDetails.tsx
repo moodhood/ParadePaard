@@ -10,7 +10,9 @@ import { AuthServices, type RoleResponseDTO } from "../services/auth-service/Aut
 import {
     UserServices,
     type ContractResponseDTO,
+    type CreateContractRequestDTO,
     type EmployeeTaxProfileDTO,
+    type FunctionResponseDTO,
     type PlanningEventDTO,
     type TimesheetRow,
     type UserResponseDTO,
@@ -54,9 +56,68 @@ type EmployerSignatureValidationState = {
     typedName: string;
 };
 
+type ContractDraftFormState = {
+    functionName: string;
+    contractType: string;
+    startDate: string;
+    endDate: string;
+    grossHourlyWage: string;
+    paymentFrequency: string;
+    travelAllowance: boolean;
+};
+
+type ContractDraftPayloadInput = {
+    userId: string;
+    functionId: string;
+    fallbackFunctionName?: string | null;
+    functions: FunctionResponseDTO[];
+    draft: ContractDraftFormState;
+};
+
+type ContractDraftVisibilityState = {
+    canManageContracts: boolean;
+    contractLoading: boolean;
+    currentContract: Pick<ContractResponseDTO, "contractId" | "userId"> | null;
+    userStatus?: string | null;
+};
+
 export function canSubmitEmployerContractSignature(state: EmployerSignatureValidationState): boolean {
     if (!state.contractLoaded || state.alreadyFinalized || !state.agreementChecked) return false;
     return state.typedName.trim().replace(/\s+/g, " ").length > 0;
+}
+
+export function canShowCreateContractDraft(state: ContractDraftVisibilityState): boolean {
+    if (!state.canManageContracts || state.contractLoading || state.currentContract) return false;
+    return Boolean(state.userStatus);
+}
+
+export function buildContractDraftPayload(input: ContractDraftPayloadInput): CreateContractRequestDTO {
+    const selectedFunction = input.functions.find((item) => item.functionId === input.functionId);
+    const functionName = selectedFunction?.functionName
+        || input.draft.functionName.trim()
+        || input.fallbackFunctionName
+        || "";
+    const wageSource = selectedFunction?.hourlyWage ?? Number(input.draft.grossHourlyWage);
+    if (!functionName.trim()) {
+        throw new Error("Role/function is required.");
+    }
+    if (!input.draft.startDate) {
+        throw new Error("Start date is required.");
+    }
+    if (!Number.isFinite(wageSource) || wageSource <= 0) {
+        throw new Error("Gross hourly wage is required.");
+    }
+    return {
+        userId: input.userId,
+        functionId: selectedFunction?.functionId ?? null,
+        functionName: functionName.trim(),
+        contractType: input.draft.contractType,
+        startDate: input.draft.startDate,
+        endDate: input.draft.endDate.trim() ? input.draft.endDate : null,
+        grossHourlyWage: Number(wageSource),
+        paymentFrequency: input.draft.paymentFrequency,
+        travelAllowance: input.draft.travelAllowance,
+    };
 }
 
 function formatValue(value: string | number | boolean | null | undefined): string | number {
@@ -185,10 +246,25 @@ export default function AdminUserDetails() {
     const [employerAgreementChecked, setEmployerAgreementChecked] = useState(false);
     const [employerTypedName, setEmployerTypedName] = useState("");
     const [employerSignatureImage, setEmployerSignatureImage] = useState<string | null>(null);
+    const [functions, setFunctions] = useState<FunctionResponseDTO[]>([]);
+    const [functionsError, setFunctionsError] = useState<string | null>(null);
+    const [selectedFunctionId, setSelectedFunctionId] = useState("");
+    const [contractDraft, setContractDraft] = useState<ContractDraftFormState>({
+        functionName: "",
+        contractType: "ON_CALL",
+        startDate: "",
+        endDate: "",
+        grossHourlyWage: "",
+        paymentFrequency: "WEEKLY",
+        travelAllowance: false,
+    });
 
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
     const [profilePictureError, setProfilePictureError] = useState<string | null>(null);
+    const [idDocumentLoading, setIdDocumentLoading] = useState(false);
+    const [idDocumentError, setIdDocumentError] = useState<string | null>(null);
+    const [idDocumentNoFile, setIdDocumentNoFile] = useState(false);
 
     const [userRoles, setUserRoles] = useState<string[]>([]);
     const [rolesLoading, setRolesLoading] = useState(false);
@@ -431,6 +507,35 @@ export default function AdminUserDetails() {
     const canManageContracts = permissions.includes("CAN_MANAGE_CONTRACTS");
     const canReviewContracts = permissions.includes("CAN_REVIEW_CONTRACTS");
     const canFinalizeContracts = permissions.includes("CAN_FINALIZE_CONTRACT");
+
+    useEffect(() => {
+        if (!canManageContracts) return;
+        let cancelled = false;
+        UserServices.getFunctions()
+            .then((data) => {
+                if (cancelled) return;
+                setFunctions(data ?? []);
+                setFunctionsError(null);
+            })
+            .catch((err: unknown) => {
+                if (cancelled) return;
+                const message = err instanceof Error ? err.message : "Failed to load job functions.";
+                setFunctionsError(message);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [canManageContracts]);
+
+    useEffect(() => {
+        const selectedFunction = functions.find((item) => item.functionId === selectedFunctionId);
+        if (!selectedFunction) return;
+        setContractDraft((current) => ({
+            ...current,
+            functionName: selectedFunction.functionName,
+            grossHourlyWage: String(selectedFunction.hourlyWage),
+        }));
+    }, [functions, selectedFunctionId]);
 
     useEffect(() => {
         setEmployeeTaxProfileDraft({
@@ -728,6 +833,60 @@ export default function AdminUserDetails() {
         }
     };
 
+    const handleCreateContractDraft = async () => {
+        if (!userId || !user) return;
+        try {
+            setContractActionLoading(true);
+            setContractError(null);
+            setContractActionSuccess(null);
+            const created = await UserServices.createContract(buildContractDraftPayload({
+                userId,
+                functionId: selectedFunctionId,
+                fallbackFunctionName: user.position,
+                functions,
+                draft: contractDraft,
+            }));
+            setCurrentContract(created);
+            setContractActionSuccess("Contract draft created.");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to create contract draft.";
+            setContractError(message);
+        } finally {
+            setContractActionLoading(false);
+        }
+    };
+
+    const handleOpenIdDocumentImage = async () => {
+        if (!userId) return;
+        try {
+            setIdDocumentLoading(true);
+            setIdDocumentError(null);
+            setIdDocumentNoFile(false);
+            const blob = await UserServices.getUserIdDocumentImage(userId);
+            if (!blob) {
+                setIdDocumentNoFile(true);
+                return;
+            }
+            const url = URL.createObjectURL(blob);
+            const opened = window.open(url, "_blank", "noopener");
+            if (!opened) {
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `id-document-${userId}`;
+                a.rel = "noopener";
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+            }
+            window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to open ID document image.";
+            setIdDocumentError(message);
+        } finally {
+            setIdDocumentLoading(false);
+        }
+    };
+
     const handleFinalizeContract = async () => {
         if (!currentContract) return;
         try {
@@ -919,6 +1078,7 @@ export default function AdminUserDetails() {
             ["Last name", formatValue(user?.lastName)],
             ["Gender", formatValue(user?.gender)],
             ["Date of birth", formatValue(user?.dateOfBirth)],
+            ["Nationality", formatValue(user?.nationality)],
             ["Email", formatValue(user?.email)],
             ["Mobile", formatValue(user?.mobileNumber)],
         ] as const;
@@ -968,6 +1128,12 @@ export default function AdminUserDetails() {
             && (currentContract?.status === "EMPLOYEE_SIGNED" || currentContract?.status === "SIGNED");
         const canRejectCurrentContract = canReviewContracts
             && (currentContract?.status === "EMPLOYEE_SIGNED" || currentContract?.status === "SIGNED");
+        const canCreateContractDraft = canShowCreateContractDraft({
+            canManageContracts,
+            contractLoading,
+            currentContract,
+            userStatus: user?.status,
+        });
         const managerName = currentManager ? personFullName(currentManager) : "";
         const canSubmitEmployerSignature = canSubmitEmployerContractSignature({
             contractLoaded: Boolean(currentContract),
@@ -983,6 +1149,21 @@ export default function AdminUserDetails() {
             ["Postal code", formatValue(user?.postalCode)],
             ["City", formatValue(user?.city)],
             ["Country", formatValue(user?.country)],
+        ] as const;
+
+        const idDocumentRows = [
+            ["Document type", formatValue(user?.idDocumentType)],
+            ["Document number", formatValue(user?.idDocumentNumber)],
+            ["Issue date", formatValue(user?.idIssueDate)],
+            ["Expiration date", formatValue(user?.idExpirationDate)],
+            ["Issuing country", formatValue(user?.idIssuingCountry)],
+        ] as const;
+
+        const emergencyContactRows = [
+            ["Contact name", formatValue(user?.emergencyContactName)],
+            ["Relationship", formatValue(user?.emergencyContactRelationship)],
+            ["Phone", formatValue(user?.emergencyContactPhone)],
+            ["Email", formatValue(user?.emergencyContactEmail)],
         ] as const;
 
         return (
@@ -1216,6 +1397,161 @@ export default function AdminUserDetails() {
                                             ) : null}
                                         </div>
                                     </>
+                                ) : canCreateContractDraft ? (
+                                    <div className="contractDraftBox">
+                                        <div className="profile_role_hint">No active contract found. Create a draft before sending it to the employee.</div>
+                                        <div className="payslipDetailFields">
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function">
+                                                    Role/function
+                                                </label>
+                                                <select
+                                                    id="contract-draft-function"
+                                                    className="uiSelect"
+                                                    value={selectedFunctionId}
+                                                    onChange={(event) => setSelectedFunctionId(event.target.value)}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    <option value="">Manual role</option>
+                                                    {functions.map((item) => (
+                                                        <option key={item.functionId} value={item.functionId}>
+                                                            {item.functionName}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function-name">
+                                                    Function name
+                                                </label>
+                                                <input
+                                                    id="contract-draft-function-name"
+                                                    className="uiSelect"
+                                                    value={contractDraft.functionName}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        functionName: event.target.value,
+                                                    }))}
+                                                    placeholder={formatPosition(user?.position)}
+                                                    disabled={contractActionLoading || Boolean(selectedFunctionId)}
+                                                />
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-type">
+                                                    Contract type
+                                                </label>
+                                                <select
+                                                    id="contract-draft-type"
+                                                    className="uiSelect"
+                                                    value={contractDraft.contractType}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        contractType: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    <option value="ON_CALL">On-call</option>
+                                                    <option value="FIXED">Fixed</option>
+                                                </select>
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-start">
+                                                    Start date
+                                                </label>
+                                                <input
+                                                    id="contract-draft-start"
+                                                    className="uiSelect"
+                                                    type="date"
+                                                    value={contractDraft.startDate}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        startDate: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading}
+                                                />
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-end">
+                                                    End date
+                                                </label>
+                                                <input
+                                                    id="contract-draft-end"
+                                                    className="uiSelect"
+                                                    type="date"
+                                                    value={contractDraft.endDate}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        endDate: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading}
+                                                />
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-wage">
+                                                    Gross hourly wage
+                                                </label>
+                                                <input
+                                                    id="contract-draft-wage"
+                                                    className="uiSelect"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={contractDraft.grossHourlyWage}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        grossHourlyWage: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading || Boolean(selectedFunctionId)}
+                                                />
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-frequency">
+                                                    Payment frequency
+                                                </label>
+                                                <select
+                                                    id="contract-draft-frequency"
+                                                    className="uiSelect"
+                                                    value={contractDraft.paymentFrequency}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        paymentFrequency: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    <option value="DAILY">Daily</option>
+                                                    <option value="WEEKLY">Weekly</option>
+                                                    <option value="BIWEEKLY">Biweekly</option>
+                                                    <option value="MONTHLY">Monthly</option>
+                                                </select>
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel adminUserDetailsCheckbox">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={contractDraft.travelAllowance}
+                                                        onChange={(event) => setContractDraft((current) => ({
+                                                            ...current,
+                                                            travelAllowance: event.target.checked,
+                                                        }))}
+                                                        disabled={contractActionLoading}
+                                                    />
+                                                    <span>Travel allowance</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        {functionsError ? <p className="errorText">{functionsError}</p> : null}
+                                        {contractActionSuccess ? <p className="helperText">{contractActionSuccess}</p> : null}
+                                        <div className="cardFooter contractReviewActions">
+                                            <button
+                                                className="button"
+                                                type="button"
+                                                onClick={() => void handleCreateContractDraft()}
+                                                disabled={contractActionLoading}
+                                            >
+                                                {contractActionLoading ? "Creating..." : "Create contract draft"}
+                                            </button>
+                                        </div>
+                                    </div>
                                 ) : (
                                     <div className="profile_role_hint">No active contract found for this employee.</div>
                                 )}
@@ -1426,8 +1762,52 @@ export default function AdminUserDetails() {
                                 </div>
                             </Card>
 
+                            <Card title="Onboarding evidence" className="adminUserDetailsPanel">
+                                <div className="generalInfoRows">
+                                    {idDocumentRows.map(([label, value]) => (
+                                        <div key={label} className="profile_info_row">
+                                            <span className="profile_info_label">{label}</span>
+                                            <span className="profile_info_value">{value}</span>
+                                        </div>
+                                    ))}
+                                    <div className="profile_info_row">
+                                        <span className="profile_info_label">ID document image</span>
+                                        <span className="profile_info_value">
+                                            {idDocumentLoading ? "Loading..." : idDocumentNoFile ? "No file uploaded" : "Available when uploaded"}
+                                        </span>
+                                    </div>
+                                </div>
+                                {idDocumentError ? <p className="errorText">{idDocumentError}</p> : null}
+                                {idDocumentNoFile ? <p className="helperText">No ID document image has been uploaded for this user.</p> : null}
+                                <div className="cardFooter contractReviewActions">
+                                    <button
+                                        className="button buttonSecondary"
+                                        type="button"
+                                        onClick={() => void handleOpenIdDocumentImage()}
+                                        disabled={idDocumentLoading}
+                                    >
+                                        {idDocumentLoading ? "Opening..." : "Open ID document image"}
+                                    </button>
+                                </div>
+                            </Card>
+
+                            <Card title="Emergency contact" className="adminUserDetailsPanel">
+                                <div className="generalInfoRows">
+                                    {emergencyContactRows.map(([label, value]) => (
+                                        <div key={label} className="profile_info_row">
+                                            <span className="profile_info_label">{label}</span>
+                                            <span className="profile_info_value">{value}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+
                             <Card title="Bank details" className="adminUserDetailsPanel">
                                 <div className="generalInfoRows">
+                                    <div className="profile_info_row">
+                                        <span className="profile_info_label">Account holder</span>
+                                        <span className="profile_info_value">{formatValue(user?.bankAccountHolderName)}</span>
+                                    </div>
                                     <div className="profile_info_row">
                                         <span className="profile_info_label">IBAN</span>
                                         <span className="profile_info_value">{formatValue(user?.iban)}</span>

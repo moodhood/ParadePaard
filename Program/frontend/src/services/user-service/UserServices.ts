@@ -41,6 +41,7 @@ import GetUserDisplayNames from "./GetUserDisplayNames";
 import GetPayslipPdf from "./GetPayslipPdf";
 import CreateTimesheet, { type CreateTimesheetRequestDTO, type CreateTimesheetResponseDTO } from "./CreateTimesheet";
 import GetContracts, {
+    CreateContract,
     FinalizeContract,
     GetContractPdf,
     GetCurrentContract,
@@ -51,6 +52,7 @@ import GetContracts, {
     SendContract,
     SignContract,
     type ContractResponseDTO,
+    type CreateContractRequestDTO,
     type FunctionResponseDTO,
     type SignContractRequestDTO,
 } from "./GetContracts";
@@ -58,6 +60,7 @@ import ReportPayslipError, { type ReportPayslipErrorRequestDTO } from "./ReportP
 import GetPayslipById from "./GetPayslipById";
 import UpdatePayslip, { type UpdatePayslipRequestDTO } from "./UpdatePayslip";
 import GetUserProfilePicture from "./GetUserProfilePicture";
+import GetUserIdDocumentImage from "./GetUserIdDocumentImage";
 import UpdateUser from "./UpdateUser";
 import GetPlanningOverview, {
     type PlanningOverviewQuery,
@@ -155,6 +158,7 @@ export type {
     CreateTimesheetRequestDTO,
     CreateTimesheetResponseDTO,
     ContractResponseDTO,
+    CreateContractRequestDTO,
     FunctionResponseDTO,
     SignContractRequestDTO,
     ReportPayslipErrorRequestDTO,
@@ -277,6 +281,9 @@ export const UserServices = {
     },
     getFunctions: async (): Promise<FunctionResponseDTO[]> => {
         return await GetFunctions(API_BASE_URL);
+    },
+    createContract: async (payload: CreateContractRequestDTO): Promise<ContractResponseDTO> => {
+        return await CreateContract(API_BASE_URL, payload);
     },
     getContractPdf: async (contractId: string): Promise<Blob> => {
         return await GetContractPdf(API_BASE_URL, contractId);
@@ -425,6 +432,9 @@ export const UserServices = {
     },
     getUserProfilePicture: async (userId: string): Promise<Blob | null> => {
         return await GetUserProfilePicture(API_BASE_URL, userId);
+    },
+    getUserIdDocumentImage: async (userId: string): Promise<Blob | null> => {
+        return await GetUserIdDocumentImage(API_BASE_URL, userId);
     },
     updateMyProfilePicture: async (file: File): Promise<void> => {
         return await UpdateMyProfilePicture(API_BASE_URL, file);

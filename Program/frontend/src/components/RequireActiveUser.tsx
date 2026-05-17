@@ -21,9 +21,11 @@ export default function RequireActiveUser({ children }: { children: React.ReactN
     if (loading) {
         return <Spinner text={spinnerTextForPath(location.pathname)} />;
     }
+    const isContractSigningRoute =
+        location.pathname.startsWith("/contracts/") && location.pathname.endsWith("/sign");
     if (
         status === "PENDING_SETUP" ||
-        status === "PENDING_PROFILE_REVIEW" ||
+        (status === "PENDING_PROFILE_REVIEW" && !isContractSigningRoute) ||
         status === "CHANGES_REQUESTED" ||
         status === "PENDING_CONTRACT_REVIEW"
     ) {

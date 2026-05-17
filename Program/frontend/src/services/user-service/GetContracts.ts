@@ -67,6 +67,18 @@ export type SignContractRequestDTO = {
     browserUserAgent?: string | null;
 };
 
+export type CreateContractRequestDTO = {
+    userId: string;
+    functionId?: string | null;
+    functionName?: string | null;
+    startDate: string;
+    endDate?: string | null;
+    contractType: string;
+    grossHourlyWage?: number | null;
+    travelAllowance: boolean;
+    paymentFrequency?: PaymentFrequency | null;
+};
+
 export type FunctionResponseDTO = {
     functionId: string;
     functionName: string;
@@ -192,6 +204,24 @@ export async function GetContractPdf(API_BASE_URL: string, contractId: string): 
     } catch (err) {
         if (axios.isAxiosError(err)) {
             throw new Error(err.response?.data?.message || "Failed to fetch contract PDF");
+        }
+        throw err;
+    }
+}
+
+export async function CreateContract(
+    API_BASE_URL: string,
+    payload: CreateContractRequestDTO
+): Promise<ContractResponseDTO> {
+    try {
+        const res = await axios.post<ContractResponseDTO>(`${API_BASE_URL}/api/contract`, payload, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            throw new Error(err.response?.data?.message || "Failed to create contract draft");
         }
         throw err;
     }

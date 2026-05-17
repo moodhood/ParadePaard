@@ -44,6 +44,7 @@ public class UserService {
 
     public record ProfilePicture(byte[] data, String contentType) {}
     public record CompanyLogo(byte[] data, String contentType) {}
+    public record IdDocumentImage(byte[] data, String contentType) {}
 
     public UserService(UserRepository userRepository,
                        CompanyRepository companyRepository,
@@ -312,6 +313,15 @@ public class UserService {
         byte[] data = user.getProfilePicture();
         if (data == null || data.length == 0) return Optional.empty();
         return Optional.of(new ProfilePicture(data, user.getProfilePictureContentType()));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<IdDocumentImage> getIdDocumentImage(UUID id) {
+        User user = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+        byte[] data = user.getIdDocumentImage();
+        if (data == null || data.length == 0) return Optional.empty();
+        return Optional.of(new IdDocumentImage(data, user.getIdDocumentImageContentType()));
     }
 
     @Transactional

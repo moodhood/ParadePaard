@@ -51,19 +51,19 @@ public class JobApplicationController {
     }
 
     @GetMapping("/admin/applications")
-    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS') or hasAuthority('CAN_REVIEW_APPLICATIONS')")
     public ResponseEntity<List<JobApplicationResponseDTO>> getApplications() {
         return ResponseEntity.ok(service.getApplications());
     }
 
     @GetMapping("/admin/applications/{applicationId}")
-    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS') or hasAuthority('CAN_REVIEW_APPLICATIONS')")
     public ResponseEntity<JobApplicationResponseDTO> getApplication(@PathVariable UUID applicationId) {
         return ResponseEntity.ok(service.getApplication(applicationId));
     }
 
     @GetMapping("/admin/applications/{applicationId}/cv")
-    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS') or hasAuthority('CAN_REVIEW_APPLICATIONS')")
     public ResponseEntity<byte[]> downloadCv(@PathVariable UUID applicationId) {
         JobApplication application = service.getApplicationCv(applicationId);
         byte[] cvBytes = application.getCvBytes();

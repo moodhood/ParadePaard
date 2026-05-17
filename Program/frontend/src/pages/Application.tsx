@@ -8,6 +8,8 @@ type ApplicationProps = {
 
 type ApplicationFormState = {
     firstNames: string;
+    preferredName: string;
+    middleNamePrefix: string;
     lastName: string;
     email: string;
     phoneNumber: string;
@@ -19,13 +21,20 @@ type ApplicationFormState = {
     roleInterest: string;
     contractPreference: string;
     availableFrom: string;
+    availabilityNotes: string;
     motivation: string;
+    experience: string;
+    languages: string;
+    certificates: string;
+    workedForUsBefore: boolean;
     contactConsent: boolean;
     informationAccurate: boolean;
 };
 
 const initialFormState: ApplicationFormState = {
     firstNames: "",
+    preferredName: "",
+    middleNamePrefix: "",
     lastName: "",
     email: "",
     phoneNumber: "",
@@ -37,7 +46,12 @@ const initialFormState: ApplicationFormState = {
     roleInterest: "",
     contractPreference: "",
     availableFrom: "",
+    availabilityNotes: "",
     motivation: "",
+    experience: "",
+    languages: "",
+    certificates: "",
+    workedForUsBefore: false,
     contactConsent: false,
     informationAccurate: false,
 };
@@ -47,9 +61,11 @@ function emptyToNull(value: string): string | null {
     return trimmed.length > 0 ? trimmed : null;
 }
 
-function toApplicationPayload(form: ApplicationFormState): JobApplicationRequestDTO {
+export function toApplicationPayload(form: ApplicationFormState): JobApplicationRequestDTO {
     return {
         firstNames: form.firstNames.trim(),
+        preferredName: emptyToNull(form.preferredName),
+        middleNamePrefix: emptyToNull(form.middleNamePrefix),
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim(),
@@ -61,8 +77,12 @@ function toApplicationPayload(form: ApplicationFormState): JobApplicationRequest
         roleInterest: form.roleInterest.trim(),
         contractPreference: form.contractPreference,
         availableFrom: emptyToNull(form.availableFrom),
+        availabilityNotes: emptyToNull(form.availabilityNotes),
         motivation: emptyToNull(form.motivation),
-        workedForUsBefore: false,
+        experience: emptyToNull(form.experience),
+        languages: emptyToNull(form.languages),
+        certificates: emptyToNull(form.certificates),
+        workedForUsBefore: form.workedForUsBefore,
         contactConsent: form.contactConsent,
         informationAccurate: form.informationAccurate,
     };
@@ -150,6 +170,22 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     autoComplete="given-name"
                                     value={form.firstNames}
                                     onChange={(event) => updateField("firstNames", event.target.value)}
+                                />
+                            </label>
+                            <label>
+                                <span>Preferred name</span>
+                                <input
+                                    autoComplete="nickname"
+                                    value={form.preferredName}
+                                    onChange={(event) => updateField("preferredName", event.target.value)}
+                                />
+                            </label>
+                            <label>
+                                <span>Middle name prefix</span>
+                                <input
+                                    autoComplete="additional-name"
+                                    value={form.middleNamePrefix}
+                                    onChange={(event) => updateField("middleNamePrefix", event.target.value)}
                                 />
                             </label>
                             <label>
@@ -263,6 +299,35 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     onChange={(event) => updateField("availableFrom", event.target.value)}
                                 />
                             </label>
+                            <label>
+                                <span>Availability notes</span>
+                                <input
+                                    value={form.availabilityNotes}
+                                    onChange={(event) => updateField("availabilityNotes", event.target.value)}
+                                />
+                            </label>
+                            <label className="applicationFullWidth">
+                                <span>Relevant experience</span>
+                                <textarea
+                                    rows={4}
+                                    value={form.experience}
+                                    onChange={(event) => updateField("experience", event.target.value)}
+                                />
+                            </label>
+                            <label>
+                                <span>Languages</span>
+                                <input
+                                    value={form.languages}
+                                    onChange={(event) => updateField("languages", event.target.value)}
+                                />
+                            </label>
+                            <label>
+                                <span>Certificates</span>
+                                <input
+                                    value={form.certificates}
+                                    onChange={(event) => updateField("certificates", event.target.value)}
+                                />
+                            </label>
                             <label className="applicationFullWidth">
                                 <span>Short motivation</span>
                                 <textarea
@@ -270,6 +335,14 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     value={form.motivation}
                                     onChange={(event) => updateField("motivation", event.target.value)}
                                 />
+                            </label>
+                            <label className="applicationCheck applicationFullWidth">
+                                <input
+                                    type="checkbox"
+                                    checked={form.workedForUsBefore}
+                                    onChange={(event) => updateField("workedForUsBefore", event.target.checked)}
+                                />
+                                <span>Worked for ParadePaard before</span>
                             </label>
                             <label className="applicationFullWidth">
                                 <span>CV upload</span>

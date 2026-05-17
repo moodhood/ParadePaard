@@ -6,7 +6,9 @@ import com.pm.userservice.service.JobApplicationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 
+import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
@@ -32,5 +34,20 @@ class JobApplicationControllerTest {
 
         assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
         assertThat(response.getBody()).isEqualTo("cv bytes".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void readEndpointsAllowViewOrReviewApplicationPermission() throws Exception {
+        assertApplicationReadPermission(JobApplicationController.class.getMethod("getApplications"));
+        assertApplicationReadPermission(JobApplicationController.class.getMethod("getApplication", UUID.class));
+        assertApplicationReadPermission(JobApplicationController.class.getMethod("downloadCv", UUID.class));
+    }
+
+    private static void assertApplicationReadPermission(Method method) {
+        PreAuthorize annotation = method.getAnnotation(PreAuthorize.class);
+        assertThat(annotation).isNotNull();
+        assertThat(annotation.value()).contains("CAN_VIEW_APPLICATIONS");
+        assertThat(annotation.value()).contains("CAN_REVIEW_APPLICATIONS");
+        assertThat(annotation.value()).contains(" or ");
     }
 }

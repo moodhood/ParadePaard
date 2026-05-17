@@ -383,6 +383,16 @@
     padding: 16px 20px 0;
 }
 
+.contractDraftBox {
+    display: grid;
+    gap: 14px;
+    padding: 16px 20px 0;
+}
+
+.contractDraftBox .payslipDetailFields {
+    padding: 0;
+}
+
 .contractReviewTextarea {
     min-height: 88px;
     resize: vertical;

@@ -56,4 +56,12 @@ describe("Onboarding address layout", () => {
         expect(activeGuard).toContain('status === "PENDING_PROFILE_REVIEW"');
         expect(activeGuard).toContain('to="/onboarding"');
     });
+
+    it("lets pending profile review users open a sent contract signing link", () => {
+        const activeGuard = readFileSync(new URL("../components/RequireActiveUser.tsx", import.meta.url), "utf8");
+
+        expect(activeGuard).toContain("isContractSigningRoute");
+        expect(activeGuard).toContain('location.pathname.startsWith("/contracts/")');
+        expect(activeGuard).toContain('location.pathname.endsWith("/sign")');
+    });
 });
