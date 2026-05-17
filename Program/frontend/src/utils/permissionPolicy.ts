@@ -24,6 +24,11 @@ export const ONBOARDING_REVIEW_PERMISSIONS = [
     "CAN_REVIEW_ONBOARDING",
 ];
 
+export const APPLICATION_REVIEW_PERMISSIONS = [
+    "CAN_VIEW_APPLICATIONS",
+    "CAN_REVIEW_APPLICATIONS",
+];
+
 export const CONTRACT_WORKSPACE_PERMISSIONS = [
     "CAN_VIEW_ALL_CONTRACTS",
     "CAN_MANAGE_CONTRACTS",
@@ -53,12 +58,18 @@ export const MANAGEMENT_PERMISSIONS = [
     "CAN_REVIEW_PAYSLIPS",
     "CAN_MANAGE_PAYSLIPS",
     "CAN_MANAGE_COMPANY",
+    ...APPLICATION_REVIEW_PERMISSIONS,
     ...CONTRACT_MANAGEMENT_PERMISSIONS,
     ...ROLE_MANAGEMENT_PERMISSIONS,
 ];
 
 export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
     { label: "Users", to: "/management/users", permissions: ["CAN_VIEW_USERS"] },
+    {
+        label: "Applications",
+        to: "/management/applications",
+        permissions: APPLICATION_REVIEW_PERMISSIONS,
+    },
     { label: "Onboarding", to: "/management/onboarding", permissions: ["CAN_ONBOARD_USERS"] },
     {
         label: "Onboarding review",

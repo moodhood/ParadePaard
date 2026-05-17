@@ -71,6 +71,20 @@ describe("permissionPolicy", () => {
         expect(canAccessManagement(["CAN_FINALIZE_CONTRACT"])).toBe(true);
     });
 
+    it("treats application permissions as management access", () => {
+        expect(canAccessManagement(["CAN_VIEW_APPLICATIONS"])).toBe(true);
+        expect(canAccessManagement(["CAN_REVIEW_APPLICATIONS"])).toBe(true);
+    });
+
+    it("adds Applications to management nav for application viewers", () => {
+        const items = getManagementNavItems(["CAN_VIEW_APPLICATIONS"]);
+        expect(items).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "Applications", to: "/management/applications" }),
+            ])
+        );
+    });
+
     it("keeps own-contract permissions out of management access", () => {
         expect(canAccessManagement(["CAN_VIEW_OWN_CONTRACTS"])).toBe(false);
         expect(canAccessManagement(["CAN_SIGN_OWN_CONTRACTS"])).toBe(false);

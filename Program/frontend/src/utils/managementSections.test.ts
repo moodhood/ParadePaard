@@ -36,4 +36,15 @@ describe("managementSections", () => {
         expect(sections[0]?.title).toBe("Other tools");
         expect(sections[0]?.items[0]?.label).toBe("Special report");
     });
+
+    it("groups Applications under People", () => {
+        const sections = buildManagementSections([
+            { label: "Applications", to: "/management/applications", permissions: ["CAN_VIEW_APPLICATIONS"] },
+        ]);
+
+        expect(sections[0]).toMatchObject({
+            key: "people",
+            title: "People",
+        });
+    });
 });

@@ -41,6 +41,7 @@ const SECTION_ORDER: ManagementSectionKey[] = ["people", "planning", "payroll", 
 
 const SECTION_BY_LABEL: Record<string, ManagementSectionKey> = {
     Users: "people",
+    Applications: "people",
     Onboarding: "people",
     "Onboarding review": "people",
     Planning: "planning",
