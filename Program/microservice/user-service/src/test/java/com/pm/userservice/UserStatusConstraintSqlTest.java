@@ -108,6 +108,24 @@ class UserStatusConstraintSqlTest {
             try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "status")) {
                 assertThat(columns.next()).isTrue();
             }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "note")) {
+                assertThat(columns.next()).isTrue();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "availability_notes")) {
+                assertThat(columns.next()).isFalse();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "experience")) {
+                assertThat(columns.next()).isFalse();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "languages")) {
+                assertThat(columns.next()).isFalse();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "certificates")) {
+                assertThat(columns.next()).isFalse();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "motivation")) {
+                assertThat(columns.next()).isFalse();
+            }
         }
     }
 }

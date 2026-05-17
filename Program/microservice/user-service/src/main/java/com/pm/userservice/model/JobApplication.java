@@ -47,22 +47,10 @@ public class JobApplication {
     private LocalDate availableFrom;
 
     @Column(length = 2000)
-    private String availabilityNotes;
+    private String note;
 
     @Column(nullable = false)
     private boolean workedForUsBefore;
-
-    @Column(length = 4000)
-    private String experience;
-
-    @Column(length = 1000)
-    private String languages;
-
-    @Column(length = 2000)
-    private String certificates;
-
-    @Column(length = 4000)
-    private String motivation;
 
     @Column(nullable = false)
     private boolean contactConsent;
@@ -214,12 +202,12 @@ public class JobApplication {
         this.availableFrom = availableFrom;
     }
 
-    public String getAvailabilityNotes() {
-        return availabilityNotes;
+    public String getNote() {
+        return note;
     }
 
-    public void setAvailabilityNotes(String availabilityNotes) {
-        this.availabilityNotes = availabilityNotes;
+    public void setNote(String note) {
+        this.note = note;
     }
 
     public boolean isWorkedForUsBefore() {
@@ -228,38 +216,6 @@ public class JobApplication {
 
     public void setWorkedForUsBefore(boolean workedForUsBefore) {
         this.workedForUsBefore = workedForUsBefore;
-    }
-
-    public String getExperience() {
-        return experience;
-    }
-
-    public void setExperience(String experience) {
-        this.experience = experience;
-    }
-
-    public String getLanguages() {
-        return languages;
-    }
-
-    public void setLanguages(String languages) {
-        this.languages = languages;
-    }
-
-    public String getCertificates() {
-        return certificates;
-    }
-
-    public void setCertificates(String certificates) {
-        this.certificates = certificates;
-    }
-
-    public String getMotivation() {
-        return motivation;
-    }
-
-    public void setMotivation(String motivation) {
-        this.motivation = motivation;
     }
 
     public boolean isContactConsent() {

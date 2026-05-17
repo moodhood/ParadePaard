@@ -95,7 +95,7 @@ export function toApplicationPayload(form: ApplicationFormState): JobApplication
         roleInterest: form.roleInterest.trim(),
         contractPreference: form.contractPreference,
         availableFrom: emptyToNull(displayDateToIsoDate(form.availableFrom)),
-        availabilityNotes: emptyToNull(form.note),
+        note: emptyToNull(form.note),
         workedForUsBefore: form.workedForUsBefore,
         contactConsent: form.contactConsent,
         informationAccurate: form.informationAccurate,

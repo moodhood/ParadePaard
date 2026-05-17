@@ -55,7 +55,7 @@ The public application page at \code{/apply} lets a person apply to work for Par
 
 The page shows grouped sections for personal details, work interest, note, and confirmation. Personal details include full first names, preferred name, prefix, surname, email address, phone number, date of birth, gender, nationality, current city, and current country. Work interest includes role interest, contract preference, availability or start date, whether the applicant has worked for ParadePaard before, and an optional CV upload. The date of birth and availability or start date fields ask the applicant to enter dates as \code{dd/mm/yyyy}. When the applicant types digits into these fields, the slashes are added automatically so a date such as 03022000 becomes 03/02/2000.
 
-The Note section gives the applicant one open text area for extra information. The CV upload uses a styled file picker that shows a clearer Choose CV file action and the selected file name. The worked-for-us-before, contact-consent, and information-accurate checkboxes show the checkbox before the sentence so the choice reads clearly from left to right.
+The Note section gives the applicant one open text area for extra information. The application API stores this text as the applicant note, and reviewers see it as Note in the application detail page. The CV upload uses a styled file picker that shows a clearer Choose CV file action and the selected file name. The worked-for-us-before, contact-consent, and information-accurate checkboxes show the checkbox before the sentence so the choice reads clearly from left to right.
 
 The user can fill in the required fields, choose a contract preference such as on-call, fixed hours, temporary event work, or no preference, add one optional note for the reviewer, attach a CV if they want, and submit the application. Before submitting, the user must confirm that ParadePaard may contact them about the application and that the information is accurate.
 
@@ -441,6 +441,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 17: Aligned the backend application API with the simplified public application form by replacing the old background fields with one applicant note field.
     \item 2026 05 17: Simplified the public application form by removing extra background fields, adding one Note section, improving the CV upload control, and aligning checkboxes before their labels.
     \item 2026 05 17: Made the public application date fields add dd/mm/yyyy slashes automatically while the applicant types.
     \item 2026 05 17: Changed the public application date of birth and availability start date fields to use the dd/mm/yyyy format.

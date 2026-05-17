@@ -31,12 +31,8 @@ public final class JobApplicationMapper {
         application.setRoleInterest(dto.getRoleInterest());
         application.setContractPreference(dto.getContractPreference());
         application.setAvailableFrom(parseDate(dto.getAvailableFrom()));
-        application.setAvailabilityNotes(dto.getAvailabilityNotes());
+        application.setNote(dto.getNote());
         application.setWorkedForUsBefore(Boolean.TRUE.equals(dto.getWorkedForUsBefore()));
-        application.setExperience(dto.getExperience());
-        application.setLanguages(dto.getLanguages());
-        application.setCertificates(dto.getCertificates());
-        application.setMotivation(dto.getMotivation());
         application.setContactConsent(dto.isContactConsent());
         application.setInformationAccurate(dto.isInformationAccurate());
         application.setStatus(ApplicationStatus.APPLICATION_SUBMITTED);
@@ -60,12 +56,8 @@ public final class JobApplicationMapper {
         dto.setRoleInterest(application.getRoleInterest());
         dto.setContractPreference(application.getContractPreference());
         dto.setAvailableFrom(toString(application.getAvailableFrom()));
-        dto.setAvailabilityNotes(application.getAvailabilityNotes());
+        dto.setNote(application.getNote());
         dto.setWorkedForUsBefore(application.isWorkedForUsBefore());
-        dto.setExperience(application.getExperience());
-        dto.setLanguages(application.getLanguages());
-        dto.setCertificates(application.getCertificates());
-        dto.setMotivation(application.getMotivation());
         dto.setContactConsent(application.isContactConsent());
         dto.setInformationAccurate(application.isInformationAccurate());
         dto.setCvFileName(application.getCvFileName());

@@ -176,12 +176,8 @@ export type JobApplicationRequestDTO = {
     roleInterest: string;
     contractPreference: string;
     availableFrom?: string | null;
-    availabilityNotes?: string | null;
+    note?: string | null;
     workedForUsBefore: boolean;
-    experience?: string | null;
-    languages?: string | null;
-    certificates?: string | null;
-    motivation?: string | null;
     contactConsent: boolean;
     informationAccurate: boolean;
 };

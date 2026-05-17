@@ -30,10 +30,6 @@ function formatValue(value: string | boolean | null | undefined): string {
     return value;
 }
 
-function hasText(value: string | null | undefined): boolean {
-    return Boolean(value?.trim());
-}
-
 function DetailField({ label, value }: DetailFieldProps) {
     return (
         <div className="applicationDetailField">
@@ -88,13 +84,6 @@ export function AdminApplicationDetailsView({
 }: AdminApplicationDetailsViewProps) {
     const isSubmitted = (application?.status ?? "").toUpperCase() === "APPLICATION_SUBMITTED";
     const decisionEmailPending = application?.decisionEmailSent === false;
-    const hasLegacyExperienceDetails = Boolean(
-        application &&
-            (hasText(application.experience) ||
-                hasText(application.languages) ||
-                hasText(application.certificates) ||
-                hasText(application.motivation))
-    );
 
     return (
         <Card
@@ -163,17 +152,8 @@ export function AdminApplicationDetailsView({
                         <DetailField label="Role interest" value={application.roleInterest} />
                         <DetailField label="Contract preference" value={application.contractPreference} />
                         <DetailField label="Available from" value={formatDate(application.availableFrom)} />
-                        <DetailField label="Note" value={application.availabilityNotes} />
+                        <DetailField label="Note" value={application.note} />
                     </DetailSection>
-
-                    {hasLegacyExperienceDetails ? (
-                        <DetailSection title="Experience">
-                            <DetailField label="Experience" value={application.experience} />
-                            <DetailField label="Languages" value={application.languages} />
-                            <DetailField label="Certificates" value={application.certificates} />
-                            <DetailField label="Motivation" value={application.motivation} />
-                        </DetailSection>
-                    ) : null}
 
                     <section className="applicationDetailSection">
                         <h2>CV and documents</h2>

@@ -20,12 +20,8 @@ public class JobApplicationRequestDTO {
     @NotBlank private String roleInterest;
     @NotBlank private String contractPreference;
     private String availableFrom;
-    private String availabilityNotes;
+    private String note;
     @NotNull private Boolean workedForUsBefore;
-    private String experience;
-    private String languages;
-    private String certificates;
-    private String motivation;
     @AssertTrue private boolean contactConsent;
     @AssertTrue private boolean informationAccurate;
 
@@ -141,12 +137,12 @@ public class JobApplicationRequestDTO {
         this.availableFrom = availableFrom;
     }
 
-    public String getAvailabilityNotes() {
-        return availabilityNotes;
+    public String getNote() {
+        return note;
     }
 
-    public void setAvailabilityNotes(String availabilityNotes) {
-        this.availabilityNotes = availabilityNotes;
+    public void setNote(String note) {
+        this.note = note;
     }
 
     public Boolean getWorkedForUsBefore() {
@@ -155,38 +151,6 @@ public class JobApplicationRequestDTO {
 
     public void setWorkedForUsBefore(Boolean workedForUsBefore) {
         this.workedForUsBefore = workedForUsBefore;
-    }
-
-    public String getExperience() {
-        return experience;
-    }
-
-    public void setExperience(String experience) {
-        this.experience = experience;
-    }
-
-    public String getLanguages() {
-        return languages;
-    }
-
-    public void setLanguages(String languages) {
-        this.languages = languages;
-    }
-
-    public String getCertificates() {
-        return certificates;
-    }
-
-    public void setCertificates(String certificates) {
-        this.certificates = certificates;
-    }
-
-    public String getMotivation() {
-        return motivation;
-    }
-
-    public void setMotivation(String motivation) {
-        this.motivation = motivation;
     }
 
     public boolean isContactConsent() {

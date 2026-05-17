@@ -36,12 +36,8 @@ const submittedApplication: JobApplicationResponseDTO = {
     roleInterest: "Bar team",
     contractPreference: "On-call",
     availableFrom: "2026-06-01",
-    availabilityNotes: "Weekends and evenings",
+    note: "Weekends and evenings",
     workedForUsBefore: false,
-    experience: "Two years of bar experience",
-    languages: "Dutch, English",
-    certificates: "BHV",
-    motivation: "I like event work.",
     contactConsent: true,
     informationAccurate: true,
     cvFileName: "alex-cv.pdf",
@@ -144,11 +140,7 @@ describe("AdminApplications", () => {
     it("shows the simplified applicant note without an empty experience section", () => {
         const simplifiedApplication: JobApplicationResponseDTO = {
             ...submittedApplication,
-            availabilityNotes: "Can start after exams.",
-            experience: null,
-            languages: null,
-            certificates: null,
-            motivation: null,
+            note: "Can start after exams.",
         };
         const decisionState: ApplicationDecisionState = {
             note: "",

@@ -52,6 +52,7 @@ CREATE TABLE IF NOT EXISTS job_applications (
     role_interest VARCHAR(255),
     contract_preference VARCHAR(255),
     available_from DATE,
+    note VARCHAR(2000),
     availability_notes VARCHAR(2000),
     worked_for_us_before BOOLEAN NOT NULL DEFAULT FALSE,
     experience VARCHAR(4000),
@@ -72,6 +73,16 @@ CREATE TABLE IF NOT EXISTS job_applications (
     submitted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+ALTER TABLE IF EXISTS job_applications ADD COLUMN IF NOT EXISTS note VARCHAR(2000);
+UPDATE job_applications
+SET note = COALESCE(note, availability_notes)
+WHERE availability_notes IS NOT NULL;
+ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS availability_notes;
+ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS experience;
+ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS languages;
+ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS certificates;
+ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS motivation;
 
 ALTER TABLE IF EXISTS job_applications DROP CONSTRAINT IF EXISTS job_applications_status_check;
 ALTER TABLE IF EXISTS job_applications ADD CONSTRAINT job_applications_status_check CHECK (status IN (

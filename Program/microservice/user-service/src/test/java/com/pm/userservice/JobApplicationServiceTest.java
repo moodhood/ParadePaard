@@ -62,7 +62,9 @@ class JobApplicationServiceTest {
         assertThat(saved.getCvFileName()).isEqualTo("resume.pdf");
         assertThat(saved.getCvContentType()).isEqualTo("application/pdf");
         assertThat(saved.getCvBytes()).isEqualTo("pdf bytes".getBytes(StandardCharsets.UTF_8));
+        assertThat(saved.getNote()).isEqualTo("Weekends");
         assertThat(response.getStatus()).isEqualTo("APPLICATION_SUBMITTED");
+        assertThat(response.getNote()).isEqualTo("Weekends");
     }
 
     @Test
@@ -249,12 +251,8 @@ class JobApplicationServiceTest {
         request.setRoleInterest("Runner");
         request.setContractPreference("ON_CALL");
         request.setAvailableFrom("2026-06-01");
-        request.setAvailabilityNotes("Weekends");
+        request.setNote("Weekends");
         request.setWorkedForUsBefore(true);
-        request.setExperience("Hospitality");
-        request.setLanguages("Dutch, English");
-        request.setCertificates("BHV");
-        request.setMotivation("I like event work");
         request.setContactConsent(true);
         request.setInformationAccurate(true);
         return request;
