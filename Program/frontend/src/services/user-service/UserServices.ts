@@ -10,6 +10,14 @@ import GetUsersPage from "./GetUsersPage";
 import GetUserById from "./GetUserById";
 import RejectLeaveRequest from "./RejectLeaveRequest";
 import AdminOnboardEmployee from "./AdminOnboardEmployee";
+import {
+    AcceptApplication,
+    DenyApplication,
+    GetApplication,
+    GetApplicationCv,
+    GetApplications,
+    SubmitApplication,
+} from "./Applications";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
@@ -105,6 +113,10 @@ import {
 import type {
     AdminOnboardingRequestDTO,
     AdminOnboardingResponseDTO,
+    ApplicationDecisionRequestDTO,
+    ApplicationStatus,
+    JobApplicationRequestDTO,
+    JobApplicationResponseDTO,
     LeaveRequestCreateDTO,
     LeaveRequestDTO,
     LeaveStatus,
@@ -122,6 +134,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004
 export type {
     AdminOnboardingRequestDTO,
     AdminOnboardingResponseDTO,
+    ApplicationDecisionRequestDTO,
+    ApplicationStatus,
+    JobApplicationRequestDTO,
+    JobApplicationResponseDTO,
     LeaveRequestCreateDTO,
     LeaveRequestDTO,
     LeaveStatus,
@@ -165,6 +181,33 @@ export type {
 };
 
 export const UserServices = {
+    submitApplication: async (
+        payload: JobApplicationRequestDTO,
+        cv?: File | null
+    ): Promise<JobApplicationResponseDTO> => {
+        return await SubmitApplication(API_BASE_URL, payload, cv);
+    },
+    getApplications: async (): Promise<JobApplicationResponseDTO[]> => {
+        return await GetApplications(API_BASE_URL);
+    },
+    getApplication: async (applicationId: string): Promise<JobApplicationResponseDTO> => {
+        return await GetApplication(API_BASE_URL, applicationId);
+    },
+    acceptApplication: async (
+        applicationId: string,
+        payload: ApplicationDecisionRequestDTO
+    ): Promise<JobApplicationResponseDTO> => {
+        return await AcceptApplication(API_BASE_URL, applicationId, payload);
+    },
+    denyApplication: async (
+        applicationId: string,
+        payload: ApplicationDecisionRequestDTO
+    ): Promise<JobApplicationResponseDTO> => {
+        return await DenyApplication(API_BASE_URL, applicationId, payload);
+    },
+    getApplicationCv: async (applicationId: string): Promise<Blob> => {
+        return await GetApplicationCv(API_BASE_URL, applicationId);
+    },
     adminOnboardEmployee: async (
         payload: AdminOnboardingRequestDTO
     ): Promise<AdminOnboardingResponseDTO> => {

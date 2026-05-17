@@ -1,5 +1,9 @@
 export type LeaveType = "VACATION" | "SICK" | "UNPAID" | "PARENTAL" | "OTHER";
 export type LeaveStatus = "PENDING" | "APPROVED" | "REJECTED" | "CANCELED";
+export type ApplicationStatus =
+    | "APPLICATION_SUBMITTED"
+    | "APPLICATION_DENIED"
+    | "APPLICATION_ACCEPTED";
 
 export type EmployeeTaxProfileDTO = {
     bsn?: string | null;
@@ -144,4 +148,47 @@ export type AdminOnboardingResponseDTO = {
     contractId: string | null;
     username: string;
     temporaryPassword: string;
+};
+
+export type JobApplicationRequestDTO = {
+    firstNames: string;
+    preferredName?: string | null;
+    middleNamePrefix?: string | null;
+    lastName: string;
+    email: string;
+    phoneNumber: string;
+    dateOfBirth: string;
+    gender?: string | null;
+    nationality?: string | null;
+    city?: string | null;
+    country?: string | null;
+    roleInterest: string;
+    contractPreference: string;
+    availableFrom?: string | null;
+    availabilityNotes?: string | null;
+    workedForUsBefore: boolean;
+    experience?: string | null;
+    languages?: string | null;
+    certificates?: string | null;
+    motivation?: string | null;
+    contactConsent: boolean;
+    informationAccurate: boolean;
+};
+
+export type JobApplicationResponseDTO = JobApplicationRequestDTO & {
+    applicationId: string;
+    cvFileName?: string | null;
+    cvContentType?: string | null;
+    status: ApplicationStatus | string;
+    reviewNote?: string | null;
+    reviewedAt?: string | null;
+    reviewedByUserId?: string | null;
+    decisionEmailSent?: boolean | null;
+    acceptedUserId?: string | null;
+    submittedAt?: string | null;
+    updatedAt?: string | null;
+};
+
+export type ApplicationDecisionRequestDTO = {
+    reviewNote?: string | null;
 };
