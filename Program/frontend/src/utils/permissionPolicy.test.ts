@@ -83,6 +83,13 @@ describe("permissionPolicy", () => {
                 expect.objectContaining({ label: "Applications", to: "/management/applications" }),
             ])
         );
+
+        const reviewItems = getManagementNavItems(["CAN_REVIEW_APPLICATIONS"]);
+        expect(reviewItems).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ label: "Applications", to: "/management/applications" }),
+            ])
+        );
     });
 
     it("keeps own-contract permissions out of management access", () => {

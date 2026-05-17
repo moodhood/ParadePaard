@@ -18,6 +18,7 @@ import AccountContractSign from "./pages/AccountContractSign";
 import SettingsCompany from "./pages/SettingsCompany";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import AdminOnboardingReview from "./pages/AdminOnboardingReview";
+import AdminApplications from "./pages/AdminApplications";
 import AdminContracts from "./pages/AdminContracts";
 import PayslipReview from "./pages/PayslipReview";
 import Payslips from "./pages/Payslips";
@@ -33,6 +34,7 @@ import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
 import RequirePermission from "./components/RequirePermission";
 import {
+    APPLICATION_REVIEW_PERMISSIONS,
     COMPANY_SETTINGS_PERMISSIONS,
     CONTRACT_WORKSPACE_PERMISSIONS,
     MANAGEMENT_PERMISSIONS,
@@ -130,6 +132,16 @@ export default function App() {
                     <RequireOnboarding>
                         <Onboarding />
                     </RequireOnboarding>
+                }
+            />
+            <Route
+                path="/management/applications"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={APPLICATION_REVIEW_PERMISSIONS}>
+                            <AdminApplications />
+                        </RequirePermission>
+                    </RequireActiveUser>
                 }
             />
             <Route
