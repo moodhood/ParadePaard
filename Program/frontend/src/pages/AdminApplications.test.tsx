@@ -104,4 +104,40 @@ describe("AdminApplications", () => {
         expect(html).toContain("Download CV");
         expect(html).toContain("Decision email pending");
     });
+
+    it("keeps decision feedback visible after the application leaves submitted status", () => {
+        const acceptedApplication: JobApplicationResponseDTO = {
+            ...submittedApplication,
+            status: "APPLICATION_ACCEPTED",
+        };
+        const decisionState: ApplicationDecisionState = {
+            note: "Strong fit",
+            loading: false,
+            message: "Decision saved. Decision email is pending and may need manual follow-up.",
+            error: null,
+        };
+
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <AdminApplicationDetailsView
+                    application={acceptedApplication}
+                    loading={false}
+                    error={null}
+                    decision={decisionState}
+                    cvLoading={false}
+                    cvError={null}
+                    onDecisionNoteChange={() => undefined}
+                    onAccept={() => undefined}
+                    onDeny={() => undefined}
+                    onDownloadCv={() => undefined}
+                    onReload={() => undefined}
+                />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Decision saved. Decision email is pending and may need manual follow-up.");
+        expect(html).toContain("Decision actions are closed because this application is accepted.");
+        expect(html).not.toContain("Accept application");
+        expect(html).not.toContain("Deny application");
+    });
 });

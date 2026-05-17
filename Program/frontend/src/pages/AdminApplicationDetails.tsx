@@ -196,6 +196,13 @@ export function AdminApplicationDetailsView({
                             <DetailField label="Accepted user id" value={application.acceptedUserId} />
                         </div>
 
+                        {decision.message ? (
+                            <div className="applicationInlineSuccess">{decision.message}</div>
+                        ) : null}
+                        {decision.error ? (
+                            <div className="applicationInlineError">{decision.error}</div>
+                        ) : null}
+
                         {isSubmitted && canReview ? (
                             <div className="applicationDecisionPanel">
                                 <label className="applicationReviewNote">
@@ -224,12 +231,6 @@ export function AdminApplicationDetailsView({
                                         Deny application
                                     </button>
                                 </div>
-                                {decision.message ? (
-                                    <div className="applicationInlineSuccess">{decision.message}</div>
-                                ) : null}
-                                {decision.error ? (
-                                    <div className="applicationInlineError">{decision.error}</div>
-                                ) : null}
                             </div>
                         ) : (
                             <div className="applicationDecisionClosed">
