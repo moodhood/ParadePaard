@@ -18,6 +18,7 @@ describe("Application", () => {
         expect(html).toContain("Email address");
         expect(html).toContain("Phone number");
         expect(html).toContain("Date of birth");
+        expect(html.match(/placeholder="dd\/mm\/yyyy"/g)).toHaveLength(2);
         expect(html).toContain("Role interest");
         expect(html).toContain("Contract preference");
         expect(html).toContain("Availability notes");
@@ -36,14 +37,14 @@ describe("Application", () => {
             lastName: " Jansen ",
             email: " alex@example.com ",
             phoneNumber: " +31612345678 ",
-            dateOfBirth: "2000-02-03",
+            dateOfBirth: "03/02/2000",
             gender: "Female",
             nationality: "Dutch",
             city: "Amsterdam",
             country: "Netherlands",
             roleInterest: " Bar team ",
             contractPreference: "On-call",
-            availableFrom: "2026-06-01",
+            availableFrom: "01/06/2026",
             availabilityNotes: "Weekends and evenings",
             motivation: "I like events",
             experience: "Two festival seasons",

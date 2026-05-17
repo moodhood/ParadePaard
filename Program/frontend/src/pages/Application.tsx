@@ -61,6 +61,27 @@ function emptyToNull(value: string): string | null {
     return trimmed.length > 0 ? trimmed : null;
 }
 
+function displayDateToIsoDate(value: string): string {
+    const trimmed = value.trim();
+    const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
+
+    if (!match) {
+        return trimmed;
+    }
+
+    const [, dayText, monthText, yearText] = match;
+    const day = Number(dayText);
+    const month = Number(monthText);
+    const year = Number(yearText);
+    const daysInMonth = new Date(year, month, 0).getDate();
+
+    if (month < 1 || month > 12 || day < 1 || day > daysInMonth) {
+        return trimmed;
+    }
+
+    return `${yearText}-${monthText}-${dayText}`;
+}
+
 export function toApplicationPayload(form: ApplicationFormState): JobApplicationRequestDTO {
     return {
         firstNames: form.firstNames.trim(),
@@ -69,14 +90,14 @@ export function toApplicationPayload(form: ApplicationFormState): JobApplication
         lastName: form.lastName.trim(),
         email: form.email.trim(),
         phoneNumber: form.phoneNumber.trim(),
-        dateOfBirth: form.dateOfBirth,
+        dateOfBirth: displayDateToIsoDate(form.dateOfBirth),
         gender: emptyToNull(form.gender),
         nationality: emptyToNull(form.nationality),
         city: emptyToNull(form.city),
         country: emptyToNull(form.country),
         roleInterest: form.roleInterest.trim(),
         contractPreference: form.contractPreference,
-        availableFrom: emptyToNull(form.availableFrom),
+        availableFrom: emptyToNull(displayDateToIsoDate(form.availableFrom)),
         availabilityNotes: emptyToNull(form.availabilityNotes),
         motivation: emptyToNull(form.motivation),
         experience: emptyToNull(form.experience),
@@ -221,7 +242,11 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                 <span>Date of birth</span>
                                 <input
                                     required
-                                    type="date"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="\d{2}/\d{2}/\d{4}"
+                                    placeholder="dd/mm/yyyy"
+                                    title="Use dd/mm/yyyy"
                                     value={form.dateOfBirth}
                                     onChange={(event) => updateField("dateOfBirth", event.target.value)}
                                 />
@@ -294,7 +319,11 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                             <label>
                                 <span>Availability/start date</span>
                                 <input
-                                    type="date"
+                                    type="text"
+                                    inputMode="numeric"
+                                    pattern="\d{2}/\d{2}/\d{4}"
+                                    placeholder="dd/mm/yyyy"
+                                    title="Use dd/mm/yyyy"
                                     value={form.availableFrom}
                                     onChange={(event) => updateField("availableFrom", event.target.value)}
                                 />
