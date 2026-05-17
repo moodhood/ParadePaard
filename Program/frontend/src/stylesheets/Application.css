@@ -80,7 +80,8 @@
 
 .applicationGrid input,
 .applicationGrid select,
-.applicationGrid textarea {
+.applicationGrid textarea,
+.applicationSection > label textarea {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #d1d5db;
@@ -98,7 +99,8 @@
 
 .applicationGrid input:focus,
 .applicationGrid select:focus,
-.applicationGrid textarea:focus {
+.applicationGrid textarea:focus,
+.applicationSection > label textarea:focus {
   outline: 2px solid rgba(47, 107, 255, 0.18);
   border-color: #2f6bff;
 }
@@ -107,7 +109,8 @@
   grid-column: 1 / -1;
 }
 
-.applicationCheck {
+.applicationGrid .applicationCheck,
+.applicationSection .applicationCheck {
   flex-direction: row;
   align-items: flex-start;
   gap: 10px;
@@ -116,8 +119,59 @@
   line-height: 1.5;
 }
 
-.applicationCheck input {
+.applicationGrid .applicationCheck input,
+.applicationSection .applicationCheck input {
+  width: auto;
+  flex: 0 0 auto;
   margin-top: 4px;
+}
+
+.applicationFileField {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  color: #374151;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.applicationFilePicker {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 46px;
+  border: 1px dashed #a8b3c7;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.applicationFilePicker input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.applicationFileButton {
+  border-radius: 6px;
+  background: #1f2937;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  padding: 10px 14px;
+}
+
+.applicationFileName {
+  min-width: 0;
+  color: #4b5563;
+  font-weight: 500;
+  overflow-wrap: anywhere;
 }
 
 .applicationActions {

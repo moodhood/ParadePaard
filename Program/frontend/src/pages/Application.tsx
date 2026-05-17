@@ -22,11 +22,7 @@ type ApplicationFormState = {
     roleInterest: string;
     contractPreference: string;
     availableFrom: string;
-    availabilityNotes: string;
-    motivation: string;
-    experience: string;
-    languages: string;
-    certificates: string;
+    note: string;
     workedForUsBefore: boolean;
     contactConsent: boolean;
     informationAccurate: boolean;
@@ -47,11 +43,7 @@ const initialFormState: ApplicationFormState = {
     roleInterest: "",
     contractPreference: "",
     availableFrom: "",
-    availabilityNotes: "",
-    motivation: "",
-    experience: "",
-    languages: "",
-    certificates: "",
+    note: "",
     workedForUsBefore: false,
     contactConsent: false,
     informationAccurate: false,
@@ -103,11 +95,7 @@ export function toApplicationPayload(form: ApplicationFormState): JobApplication
         roleInterest: form.roleInterest.trim(),
         contractPreference: form.contractPreference,
         availableFrom: emptyToNull(displayDateToIsoDate(form.availableFrom)),
-        availabilityNotes: emptyToNull(form.availabilityNotes),
-        motivation: emptyToNull(form.motivation),
-        experience: emptyToNull(form.experience),
-        languages: emptyToNull(form.languages),
-        certificates: emptyToNull(form.certificates),
+        availabilityNotes: emptyToNull(form.note),
         workedForUsBefore: form.workedForUsBefore,
         contactConsent: form.contactConsent,
         informationAccurate: form.informationAccurate,
@@ -333,43 +321,6 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     onChange={(event) => updateField("availableFrom", formatApplicationDateEntry(event.target.value))}
                                 />
                             </label>
-                            <label>
-                                <span>Availability notes</span>
-                                <input
-                                    value={form.availabilityNotes}
-                                    onChange={(event) => updateField("availabilityNotes", event.target.value)}
-                                />
-                            </label>
-                            <label className="applicationFullWidth">
-                                <span>Relevant experience</span>
-                                <textarea
-                                    rows={4}
-                                    value={form.experience}
-                                    onChange={(event) => updateField("experience", event.target.value)}
-                                />
-                            </label>
-                            <label>
-                                <span>Languages</span>
-                                <input
-                                    value={form.languages}
-                                    onChange={(event) => updateField("languages", event.target.value)}
-                                />
-                            </label>
-                            <label>
-                                <span>Certificates</span>
-                                <input
-                                    value={form.certificates}
-                                    onChange={(event) => updateField("certificates", event.target.value)}
-                                />
-                            </label>
-                            <label className="applicationFullWidth">
-                                <span>Short motivation</span>
-                                <textarea
-                                    rows={5}
-                                    value={form.motivation}
-                                    onChange={(event) => updateField("motivation", event.target.value)}
-                                />
-                            </label>
                             <label className="applicationCheck applicationFullWidth">
                                 <input
                                     type="checkbox"
@@ -378,15 +329,31 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                 />
                                 <span>Worked for ParadePaard before</span>
                             </label>
-                            <label className="applicationFullWidth">
-                                <span>CV upload</span>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                                    onChange={handleCvChange}
-                                />
-                            </label>
+                            <div className="applicationFileField applicationFullWidth">
+                                <span className="applicationFileLabel">CV upload</span>
+                                <label className="applicationFilePicker">
+                                    <input
+                                        type="file"
+                                        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                                        onChange={handleCvChange}
+                                    />
+                                    <span className="applicationFileButton">Choose CV file</span>
+                                    <span className="applicationFileName">{cvFile?.name ?? "No file selected"}</span>
+                                </label>
+                            </div>
                         </div>
+                    </section>
+
+                    <section className="applicationSection">
+                        <h2>Note</h2>
+                        <label>
+                            <span>Note</span>
+                            <textarea
+                                rows={4}
+                                value={form.note}
+                                onChange={(event) => updateField("note", event.target.value)}
+                            />
+                        </label>
                     </section>
 
                     <section className="applicationSection">

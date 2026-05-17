@@ -21,12 +21,24 @@ describe("Application", () => {
         expect(html.match(/placeholder="dd\/mm\/yyyy"/g)).toHaveLength(2);
         expect(html).toContain("Role interest");
         expect(html).toContain("Contract preference");
-        expect(html).toContain("Availability notes");
-        expect(html).toContain("Relevant experience");
-        expect(html).toContain("Languages");
-        expect(html).toContain("Certificates");
+        expect(html).toContain("Note");
+        expect(html).not.toContain("Availability notes");
+        expect(html).not.toContain("Relevant experience");
+        expect(html).not.toContain("Languages");
+        expect(html).not.toContain("Certificates");
+        expect(html).not.toContain("Short motivation");
         expect(html).toContain("Worked for ParadePaard before");
+        expect(html).toContain("Choose CV file");
+        expect(html).toContain("No file selected");
         expect(html).toContain("Submit application");
+    });
+
+    it("renders checkbox inputs before their labels", () => {
+        const html = renderToStaticMarkup(<Application />);
+
+        expect(html).toMatch(/<label class="applicationCheck[^"]*"><input[^>]*type="checkbox"[^>]*\/><span>Worked for ParadePaard before<\/span><\/label>/);
+        expect(html).toMatch(/<label class="applicationCheck[^"]*"><input[^>]*required=""[^>]*type="checkbox"[^>]*\/><span>I agree that ParadePaard may contact me about this application\.<\/span><\/label>/);
+        expect(html).toMatch(/<label class="applicationCheck[^"]*"><input[^>]*required=""[^>]*type="checkbox"[^>]*\/><span>I confirm that the information I submitted is accurate\.<\/span><\/label>/);
     });
 
     it("builds the application payload with all supported non-sensitive fields", () => {
@@ -45,11 +57,7 @@ describe("Application", () => {
             roleInterest: " Bar team ",
             contractPreference: "On-call",
             availableFrom: "01/06/2026",
-            availabilityNotes: "Weekends and evenings",
-            motivation: "I like events",
-            experience: "Two festival seasons",
-            languages: "Dutch, English",
-            certificates: "BHV",
+            note: " Weekends and evenings ",
             workedForUsBefore: true,
             contactConsent: true,
             informationAccurate: true,
@@ -69,10 +77,6 @@ describe("Application", () => {
             contractPreference: "On-call",
             availableFrom: "2026-06-01",
             availabilityNotes: "Weekends and evenings",
-            motivation: "I like events",
-            experience: "Two festival seasons",
-            languages: "Dutch, English",
-            certificates: "BHV",
             workedForUsBefore: true,
             contactConsent: true,
             informationAccurate: true,

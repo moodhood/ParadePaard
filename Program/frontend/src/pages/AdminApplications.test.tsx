@@ -140,4 +140,43 @@ describe("AdminApplications", () => {
         expect(html).not.toContain("Accept application");
         expect(html).not.toContain("Deny application");
     });
+
+    it("shows the simplified applicant note without an empty experience section", () => {
+        const simplifiedApplication: JobApplicationResponseDTO = {
+            ...submittedApplication,
+            availabilityNotes: "Can start after exams.",
+            experience: null,
+            languages: null,
+            certificates: null,
+            motivation: null,
+        };
+        const decisionState: ApplicationDecisionState = {
+            note: "",
+            loading: false,
+            message: null,
+            error: null,
+        };
+
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <AdminApplicationDetailsView
+                    application={simplifiedApplication}
+                    loading={false}
+                    error={null}
+                    decision={decisionState}
+                    cvLoading={false}
+                    cvError={null}
+                    onDecisionNoteChange={() => undefined}
+                    onAccept={() => undefined}
+                    onDeny={() => undefined}
+                    onDownloadCv={() => undefined}
+                    onReload={() => undefined}
+                />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Note");
+        expect(html).toContain("Can start after exams.");
+        expect(html).not.toContain("<h2>Experience</h2>");
+    });
 });
