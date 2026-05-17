@@ -10,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.InvalidMediaTypeException;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -70,10 +71,7 @@ public class JobApplicationController {
             throw new ResponseStatusException(NOT_FOUND);
         }
 
-        MediaType mediaType = MediaType.APPLICATION_OCTET_STREAM;
-        if (application.getCvContentType() != null && !application.getCvContentType().isBlank()) {
-            mediaType = MediaType.parseMediaType(application.getCvContentType());
-        }
+        MediaType mediaType = safeMediaType(application.getCvContentType());
 
         return ResponseEntity.ok()
                 .contentType(mediaType)
@@ -123,5 +121,16 @@ public class JobApplicationController {
             }
         }
         return authentication.getName();
+    }
+
+    private static MediaType safeMediaType(String contentType) {
+        if (contentType == null || contentType.isBlank()) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
+        try {
+            return MediaType.parseMediaType(contentType);
+        } catch (InvalidMediaTypeException ex) {
+            return MediaType.APPLICATION_OCTET_STREAM;
+        }
     }
 }

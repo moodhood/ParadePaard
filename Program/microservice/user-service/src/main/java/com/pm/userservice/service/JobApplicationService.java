@@ -15,9 +15,11 @@ import com.pm.userservice.repository.JobApplicationRepository;
 import com.pm.userservice.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.OffsetDateTime;
@@ -75,6 +77,15 @@ public class JobApplicationService {
                                                      ApplicationDecisionRequestDTO request,
                                                      String reviewerUserId) {
         JobApplication application = findApplication(applicationId);
+        if (application.getStatus() == ApplicationStatus.APPLICATION_DENIED) {
+            return JobApplicationMapper.toDTO(application);
+        }
+        if (application.getStatus() == ApplicationStatus.APPLICATION_ACCEPTED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Application " + applicationId + " is already accepted"
+            );
+        }
         application.setStatus(ApplicationStatus.APPLICATION_DENIED);
         applyDecisionMetadata(application, request, reviewerUserId);
         return JobApplicationMapper.toDTO(repository.save(application));
@@ -86,6 +97,15 @@ public class JobApplicationService {
                                                        String reviewerUserId,
                                                        String accessToken) {
         JobApplication application = findApplication(applicationId);
+        if (application.getStatus() == ApplicationStatus.APPLICATION_ACCEPTED) {
+            return JobApplicationMapper.toDTO(application);
+        }
+        if (application.getStatus() == ApplicationStatus.APPLICATION_DENIED) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Application " + applicationId + " is already denied"
+            );
+        }
 
         AuthAdminOnboardUserResponseDTO authResponse = authServiceClient.adminOnboardUser(
                 buildAuthRequest(application),
@@ -106,7 +126,10 @@ public class JobApplicationService {
 
     private JobApplication findApplication(UUID applicationId) {
         return repository.findById(applicationId)
-                .orElseThrow(() -> new IllegalArgumentException("Application " + applicationId + " not found"));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Application " + applicationId + " not found"
+                ));
     }
 
     private static void applyDecisionMetadata(JobApplication application,

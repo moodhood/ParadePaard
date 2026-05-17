@@ -16,6 +16,7 @@ import com.pm.userservice.service.JobApplicationService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
@@ -23,11 +24,15 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 class JobApplicationServiceTest {
     private final JobApplicationRepository repository = mock(JobApplicationRepository.class);
@@ -152,6 +157,77 @@ class JobApplicationServiceTest {
         verify(userRepository).save(userCaptor.capture());
         assertThat(userCaptor.getValue().getCompanyId())
                 .isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    }
+
+    @Test
+    void getApplicationThrowsNotFoundResponseWhenMissing() {
+        UUID applicationId = UUID.randomUUID();
+        when(repository.findById(applicationId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.getApplication(applicationId))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(NOT_FOUND);
+                    assertThat(ex.getReason()).isEqualTo("Application " + applicationId + " not found");
+                });
+    }
+
+    @Test
+    void repeatAcceptReturnsCurrentApplicationWithoutCallingAuthAgain() {
+        UUID applicationId = UUID.randomUUID();
+        UUID acceptedUserId = UUID.randomUUID();
+        JobApplication application = existingApplication(applicationId);
+        application.setStatus(ApplicationStatus.APPLICATION_ACCEPTED);
+        application.setAcceptedUserId(acceptedUserId);
+        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+
+        JobApplicationResponseDTO response = service.acceptApplication(applicationId, null, "reviewer-2", "access-token");
+
+        assertThat(response.getStatus()).isEqualTo("APPLICATION_ACCEPTED");
+        assertThat(response.getAcceptedUserId()).isEqualTo(acceptedUserId.toString());
+        verifyNoInteractions(authServiceClient, userRepository);
+    }
+
+    @Test
+    void acceptingDeniedApplicationFailsWithConflict() {
+        UUID applicationId = UUID.randomUUID();
+        JobApplication application = existingApplication(applicationId);
+        application.setStatus(ApplicationStatus.APPLICATION_DENIED);
+        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> service.acceptApplication(applicationId, null, "reviewer-2", "access-token"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(CONFLICT);
+                    assertThat(ex.getReason()).isEqualTo("Application " + applicationId + " is already denied");
+                });
+        verifyNoInteractions(authServiceClient, userRepository);
+    }
+
+    @Test
+    void repeatDenyReturnsCurrentApplication() {
+        UUID applicationId = UUID.randomUUID();
+        JobApplication application = existingApplication(applicationId);
+        application.setStatus(ApplicationStatus.APPLICATION_DENIED);
+        application.setReviewNote("Already denied");
+        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+
+        JobApplicationResponseDTO response = service.denyApplication(applicationId, null, "reviewer-1");
+
+        assertThat(response.getStatus()).isEqualTo("APPLICATION_DENIED");
+        assertThat(response.getReviewNote()).isEqualTo("Already denied");
+    }
+
+    @Test
+    void denyingAcceptedApplicationFailsWithConflict() {
+        UUID applicationId = UUID.randomUUID();
+        JobApplication application = existingApplication(applicationId);
+        application.setStatus(ApplicationStatus.APPLICATION_ACCEPTED);
+        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> service.denyApplication(applicationId, null, "reviewer-1"))
+                .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
+                    assertThat(ex.getStatusCode()).isEqualTo(CONFLICT);
+                    assertThat(ex.getReason()).isEqualTo("Application " + applicationId + " is already accepted");
+                });
     }
 
     private static JobApplicationRequestDTO applicationRequest() {

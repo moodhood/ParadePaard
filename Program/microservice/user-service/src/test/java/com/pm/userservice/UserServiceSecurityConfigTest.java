@@ -1,29 +1,73 @@
 package com.pm.userservice;
 
+import com.pm.userservice.config.SecurityConfig;
+import com.pm.userservice.controller.JobApplicationController;
+import com.pm.userservice.dto.JobApplicationResponseDTO;
+import com.pm.userservice.service.JobApplicationService;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.regex.Pattern;
+import java.nio.charset.StandardCharsets;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WebMvcTest(JobApplicationController.class)
+@Import(SecurityConfig.class)
 class UserServiceSecurityConfigTest {
 
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private JobApplicationService service;
+
+    @MockitoBean
+    private JwtDecoder jwtDecoder;
+
     @Test
-    void applicationsEndpointIsPermittedForPublicSubmission() throws Exception {
-        String securityConfig = Files.readString(Path.of("src/main/java/com/pm/userservice/config/SecurityConfig.java"));
+    void anonymousApplicationSubmissionReachesController() throws Exception {
+        JobApplicationResponseDTO response = new JobApplicationResponseDTO();
+        response.setStatus("APPLICATION_SUBMITTED");
+        when(service.submitApplication(any(), any())).thenReturn(response);
 
-        var matcher = Pattern.compile(
-                        "\\.requestMatchers\\((?<matchers>.*?)\\)\\.permitAll\\(\\)",
-                        Pattern.DOTALL
-                )
-                .matcher(securityConfig);
+        MockMultipartFile application = new MockMultipartFile(
+                "application",
+                "",
+                MediaType.APPLICATION_JSON_VALUE,
+                """
+                        {
+                          "firstNames": "Alex Maria",
+                          "lastName": "Jansen",
+                          "email": "alex@example.com",
+                          "phoneNumber": "+31612345678",
+                          "dateOfBirth": "1995-02-12",
+                          "roleInterest": "Runner",
+                          "contractPreference": "ON_CALL",
+                          "workedForUsBefore": true,
+                          "contactConsent": true,
+                          "informationAccurate": true
+                        }
+                        """.getBytes(StandardCharsets.UTF_8)
+        );
 
-        assertThat(matcher.find()).isTrue();
-        String permitMatchers = matcher.group("matchers");
-        assertThat(permitMatchers)
-                .contains("\"/applications\"")
-                .contains("\"/applications/**\"");
+        mockMvc.perform(multipart("/applications").file(application))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void anonymousAdminApplicationsRequestIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/admin/applications"))
+                .andExpect(status().isUnauthorized());
     }
 }
