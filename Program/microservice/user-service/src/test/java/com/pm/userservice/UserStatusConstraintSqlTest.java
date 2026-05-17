@@ -1,8 +1,15 @@
 package com.pm.userservice;
 
+import com.pm.userservice.model.ApplicationStatus;
 import com.pm.userservice.model.UserStatus;
+import org.h2.tools.RunScript;
 import org.junit.jupiter.api.Test;
 
+import java.io.FileReader;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -34,5 +41,73 @@ class UserStatusConstraintSqlTest {
                 .toArray(String[]::new);
 
         assertThat(constraintValues).contains(expectedStatuses);
+    }
+
+    @Test
+    void dataSqlCreatesJobApplicationsTable() throws Exception {
+        String sql = Files.readString(Path.of("src/main/resources/data.sql"));
+
+        assertThat(sql)
+                .contains("ALTER TABLE IF EXISTS job_applications DROP CONSTRAINT IF EXISTS job_applications_status_check;");
+
+        var matcher = Pattern
+                .compile(
+                        "ALTER TABLE IF EXISTS job_applications ADD CONSTRAINT job_applications_status_check CHECK \\(status IN \\((?<values>[^;]+)\\)\\);",
+                        Pattern.CASE_INSENSITIVE | Pattern.DOTALL
+                )
+                .matcher(sql);
+
+        assertThat(matcher.find()).isTrue();
+
+        String constraintValues = matcher.group("values");
+        String[] expectedStatuses = Arrays.stream(ApplicationStatus.values())
+                .map(status -> "'" + status.name() + "'")
+                .toArray(String[]::new);
+
+        assertThat(constraintValues).contains(expectedStatuses);
+
+        try (Connection connection = DriverManager.getConnection("jdbc:h2:mem:application_schema;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE", "sa", "");
+             Statement statement = connection.createStatement()) {
+            statement.execute("""
+                    CREATE TABLE users (
+                        user_id UUID PRIMARY KEY,
+                        email VARCHAR(255),
+                        preferred_name VARCHAR(255),
+                        first_names VARCHAR(255),
+                        middle_name_prefix VARCHAR(255),
+                        last_name VARCHAR(255),
+                        gender VARCHAR(255),
+                        date_of_birth DATE,
+                        mobile_number VARCHAR(255),
+                        street VARCHAR(255),
+                        house_number VARCHAR(255),
+                        house_number_suffix VARCHAR(255),
+                        postal_code VARCHAR(255),
+                        city VARCHAR(255),
+                        country VARCHAR(255),
+                        iban VARCHAR(255)
+                    )
+                    """);
+            statement.execute("""
+                    CREATE TABLE leave_requests (
+                        request_id UUID PRIMARY KEY,
+                        user_id UUID,
+                        type VARCHAR(255),
+                        start_date DATE,
+                        end_date DATE,
+                        hours INTEGER,
+                        reason VARCHAR(255),
+                        status VARCHAR(255),
+                        created_at TIMESTAMP WITH TIME ZONE,
+                        updated_at TIMESTAMP WITH TIME ZONE
+                    )
+                    """);
+
+            RunScript.execute(connection, new FileReader("src/main/resources/data.sql"));
+
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "status")) {
+                assertThat(columns.next()).isTrue();
+            }
+        }
     }
 }

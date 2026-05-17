@@ -36,6 +36,50 @@ SELECT CAST('00000000-0000-0000-0000-000000000002' AS UUID), 'testcompany2', 100
            OR name = 'testcompany2'
     );
 
+CREATE TABLE IF NOT EXISTS job_applications (
+    application_id UUID PRIMARY KEY,
+    first_names VARCHAR(255) NOT NULL,
+    preferred_name VARCHAR(255),
+    middle_name_prefix VARCHAR(255),
+    last_name VARCHAR(255) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    phone_number VARCHAR(255) NOT NULL,
+    date_of_birth DATE NOT NULL,
+    gender VARCHAR(255),
+    nationality VARCHAR(255),
+    city VARCHAR(255),
+    country VARCHAR(255),
+    role_interest VARCHAR(255),
+    contract_preference VARCHAR(255),
+    available_from DATE,
+    availability_notes VARCHAR(2000),
+    worked_for_us_before BOOLEAN NOT NULL DEFAULT FALSE,
+    experience VARCHAR(4000),
+    languages VARCHAR(1000),
+    certificates VARCHAR(2000),
+    motivation VARCHAR(4000),
+    contact_consent BOOLEAN NOT NULL DEFAULT FALSE,
+    information_accurate BOOLEAN NOT NULL DEFAULT FALSE,
+    cv_file_name VARCHAR(255),
+    cv_content_type VARCHAR(255),
+    cv_bytes BYTEA,
+    status VARCHAR(64) NOT NULL DEFAULT 'APPLICATION_SUBMITTED',
+    review_note VARCHAR(4000),
+    reviewed_at TIMESTAMP WITH TIME ZONE,
+    reviewed_by_user_id VARCHAR(255),
+    decision_email_sent BOOLEAN,
+    accepted_user_id UUID,
+    submitted_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE IF EXISTS job_applications DROP CONSTRAINT IF EXISTS job_applications_status_check;
+ALTER TABLE IF EXISTS job_applications ADD CONSTRAINT job_applications_status_check CHECK (status IN (
+    'APPLICATION_SUBMITTED',
+    'APPLICATION_DENIED',
+    'APPLICATION_ACCEPTED'
+));
+
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS position VARCHAR(255);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS worked_for_us_before BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS payslip_frequency_minutes INTEGER NOT NULL DEFAULT 10080;
