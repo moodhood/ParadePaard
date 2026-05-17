@@ -47,7 +47,9 @@ public class User {
     private String postalCode;
     private String city;
     private String country;
+    private String nationality;
     private String iban;
+    private String bankAccountHolderName;
     private String bsn;
 
     @Column(name = "apply_loonheffingskorting", nullable = false)
@@ -64,6 +66,21 @@ public class User {
 
     @Column(name = "payroll_notes", length = 2000)
     private String payrollNotes;
+
+    private String idDocumentType;
+    private String idDocumentNumber;
+    private LocalDate idIssueDate;
+    private LocalDate idExpirationDate;
+    private String idIssuingCountry;
+
+    @Column(name = "id_document_image")
+    private byte[] idDocumentImage;
+
+    private String idDocumentImageContentType;
+    private String emergencyContactName;
+    private String emergencyContactRelationship;
+    private String emergencyContactPhone;
+    private String emergencyContactEmail;
 
     // Use a regular byte[] column to avoid PostgreSQL Large Object (OID) storage/streaming.
     // This column name intentionally differs from the previously introduced `profile_picture`
@@ -226,12 +243,28 @@ public class User {
         this.country = country;
     }
 
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
     public String getIban() {
         return iban;
     }
 
     public void setIban(String iban) {
         this.iban = iban;
+    }
+
+    public String getBankAccountHolderName() {
+        return bankAccountHolderName;
+    }
+
+    public void setBankAccountHolderName(String bankAccountHolderName) {
+        this.bankAccountHolderName = bankAccountHolderName;
     }
 
     public String getBsn() {
@@ -272,6 +305,94 @@ public class User {
 
     public void setPayrollNotes(String payrollNotes) {
         this.payrollNotes = payrollNotes;
+    }
+
+    public String getIdDocumentType() {
+        return idDocumentType;
+    }
+
+    public void setIdDocumentType(String idDocumentType) {
+        this.idDocumentType = idDocumentType;
+    }
+
+    public String getIdDocumentNumber() {
+        return idDocumentNumber;
+    }
+
+    public void setIdDocumentNumber(String idDocumentNumber) {
+        this.idDocumentNumber = idDocumentNumber;
+    }
+
+    public LocalDate getIdIssueDate() {
+        return idIssueDate;
+    }
+
+    public void setIdIssueDate(LocalDate idIssueDate) {
+        this.idIssueDate = idIssueDate;
+    }
+
+    public LocalDate getIdExpirationDate() {
+        return idExpirationDate;
+    }
+
+    public void setIdExpirationDate(LocalDate idExpirationDate) {
+        this.idExpirationDate = idExpirationDate;
+    }
+
+    public String getIdIssuingCountry() {
+        return idIssuingCountry;
+    }
+
+    public void setIdIssuingCountry(String idIssuingCountry) {
+        this.idIssuingCountry = idIssuingCountry;
+    }
+
+    public byte[] getIdDocumentImage() {
+        return idDocumentImage;
+    }
+
+    public void setIdDocumentImage(byte[] idDocumentImage) {
+        this.idDocumentImage = idDocumentImage;
+    }
+
+    public String getIdDocumentImageContentType() {
+        return idDocumentImageContentType;
+    }
+
+    public void setIdDocumentImageContentType(String idDocumentImageContentType) {
+        this.idDocumentImageContentType = idDocumentImageContentType;
+    }
+
+    public String getEmergencyContactName() {
+        return emergencyContactName;
+    }
+
+    public void setEmergencyContactName(String emergencyContactName) {
+        this.emergencyContactName = emergencyContactName;
+    }
+
+    public String getEmergencyContactRelationship() {
+        return emergencyContactRelationship;
+    }
+
+    public void setEmergencyContactRelationship(String emergencyContactRelationship) {
+        this.emergencyContactRelationship = emergencyContactRelationship;
+    }
+
+    public String getEmergencyContactPhone() {
+        return emergencyContactPhone;
+    }
+
+    public void setEmergencyContactPhone(String emergencyContactPhone) {
+        this.emergencyContactPhone = emergencyContactPhone;
+    }
+
+    public String getEmergencyContactEmail() {
+        return emergencyContactEmail;
+    }
+
+    public void setEmergencyContactEmail(String emergencyContactEmail) {
+        this.emergencyContactEmail = emergencyContactEmail;
     }
 
     public byte[] getProfilePicture() {

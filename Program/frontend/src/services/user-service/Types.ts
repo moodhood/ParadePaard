@@ -57,7 +57,18 @@ export type UserResponseDTO = {
     postalCode: string | null;
     city: string | null;
     country: string | null;
+    nationality?: string | null;
     iban: string | null;
+    bankAccountHolderName?: string | null;
+    idDocumentType?: string | null;
+    idDocumentNumber?: string | null;
+    idIssueDate?: string | null;
+    idExpirationDate?: string | null;
+    idIssuingCountry?: string | null;
+    emergencyContactName?: string | null;
+    emergencyContactRelationship?: string | null;
+    emergencyContactPhone?: string | null;
+    emergencyContactEmail?: string | null;
     companyId?: string | null;
     payslipFrequencyMinutes?: number | null;
     registeredDate?: string | null;

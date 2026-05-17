@@ -37,7 +37,18 @@ public class UserMapper {
         dto.setPostalCode(user.getPostalCode());
         dto.setCity(user.getCity());
         dto.setCountry(user.getCountry());
+        dto.setNationality(user.getNationality());
         dto.setIban(user.getIban());
+        dto.setBankAccountHolderName(user.getBankAccountHolderName());
+        dto.setIdDocumentType(user.getIdDocumentType());
+        dto.setIdDocumentNumber(user.getIdDocumentNumber());
+        dto.setIdIssueDate(user.getIdIssueDate() != null ? user.getIdIssueDate().toString() : null);
+        dto.setIdExpirationDate(user.getIdExpirationDate() != null ? user.getIdExpirationDate().toString() : null);
+        dto.setIdIssuingCountry(user.getIdIssuingCountry());
+        dto.setEmergencyContactName(user.getEmergencyContactName());
+        dto.setEmergencyContactRelationship(user.getEmergencyContactRelationship());
+        dto.setEmergencyContactPhone(user.getEmergencyContactPhone());
+        dto.setEmergencyContactEmail(user.getEmergencyContactEmail());
         dto.setCompanyId(user.getCompanyId() != null ? user.getCompanyId().toString() : null);
         dto.setPayslipFrequencyMinutes(
                 payoutFrequencyMinutes != null ? payoutFrequencyMinutes : user.getPayslipFrequencyMinutes()

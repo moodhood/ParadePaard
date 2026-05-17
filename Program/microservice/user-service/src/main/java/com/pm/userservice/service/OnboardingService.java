@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -115,9 +116,34 @@ public class OnboardingService {
         user.setPostalCode(request.getPostalCode());
         user.setCity(request.getCity());
         user.setCountry(request.getCountry());
+        user.setNationality(request.getNationality());
         user.setIban(request.getIban());
+        user.setBankAccountHolderName(request.getBankAccountHolderName());
+        user.setBsn(request.getBsn());
+        user.setApplyLoonheffingskorting(Boolean.TRUE.equals(request.getApplyLoonheffingskorting()));
+        user.setPensionParticipant(Boolean.TRUE.equals(request.getPensionParticipant()));
+        user.setSpecialZvwContribution(Boolean.TRUE.equals(request.getSpecialZvwContribution()));
+        user.setPayrollNotes(request.getPayrollNotes());
+        user.setIdDocumentType(request.getIdDocumentType());
+        user.setIdDocumentNumber(request.getIdDocumentNumber());
+        user.setIdIssueDate(LocalDate.parse(request.getIdIssueDate()));
+        user.setIdExpirationDate(LocalDate.parse(request.getIdExpirationDate()));
+        user.setIdIssuingCountry(request.getIdIssuingCountry());
+        user.setEmergencyContactName(request.getEmergencyContactName());
+        user.setEmergencyContactRelationship(request.getEmergencyContactRelationship());
+        user.setEmergencyContactPhone(request.getEmergencyContactPhone());
+        user.setEmergencyContactEmail(request.getEmergencyContactEmail());
 
         user.setStatus(UserStatus.PENDING_PROFILE_REVIEW);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public void updateIdDocumentImage(UUID userId, byte[] bytes, String contentType) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException("User " + userId + " not found"));
+        user.setIdDocumentImage(bytes);
+        user.setIdDocumentImageContentType(contentType);
         userRepository.save(user);
     }
 

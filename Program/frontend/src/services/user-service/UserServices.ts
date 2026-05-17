@@ -1,5 +1,5 @@
 import ApproveLeaveRequest from "./ApproveLeaveRequest";
-import CompleteSetup, { type UserSetupRequest } from "./CompleteSetup";
+import CompleteSetup, { UploadIdDocumentImage, type UserSetupRequest } from "./CompleteSetup";
 import CreateLeaveRequest from "./CreateLeaveRequest";
 import GetLeaveRequests from "./GetLeaveRequests";
 import GetLeaveRequestsByStatus from "./GetLeaveRequestsByStatus";
@@ -434,6 +434,9 @@ export const UserServices = {
     },
     completeSetup: async (payload: UserSetupRequest): Promise<void> => {
         return await CompleteSetup(API_BASE_URL, payload);
+    },
+    uploadIdDocumentImage: async (file: File): Promise<void> => {
+        return await UploadIdDocumentImage(API_BASE_URL, file);
     },
     leaveRequests: {
         list: async (status?: LeaveStatus): Promise<LeaveRequestDTO[]> => {

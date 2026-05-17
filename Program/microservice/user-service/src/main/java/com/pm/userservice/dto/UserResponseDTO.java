@@ -18,7 +18,18 @@ public class UserResponseDTO {
     private String postalCode;
     private String city;
     private String country;
+    private String nationality;
     private String iban;
+    private String bankAccountHolderName;
+    private String idDocumentType;
+    private String idDocumentNumber;
+    private String idIssueDate;
+    private String idExpirationDate;
+    private String idIssuingCountry;
+    private String emergencyContactName;
+    private String emergencyContactRelationship;
+    private String emergencyContactPhone;
+    private String emergencyContactEmail;
     private String companyId;
     private Integer payslipFrequencyMinutes;
     private String registeredDate;
@@ -161,12 +172,100 @@ public class UserResponseDTO {
         this.country = country;
     }
 
+    public String getNationality() {
+        return nationality;
+    }
+
+    public void setNationality(String nationality) {
+        this.nationality = nationality;
+    }
+
     public String getIban() {
         return iban;
     }
 
     public void setIban(String iban) {
         this.iban = iban;
+    }
+
+    public String getBankAccountHolderName() {
+        return bankAccountHolderName;
+    }
+
+    public void setBankAccountHolderName(String bankAccountHolderName) {
+        this.bankAccountHolderName = bankAccountHolderName;
+    }
+
+    public String getIdDocumentType() {
+        return idDocumentType;
+    }
+
+    public void setIdDocumentType(String idDocumentType) {
+        this.idDocumentType = idDocumentType;
+    }
+
+    public String getIdDocumentNumber() {
+        return idDocumentNumber;
+    }
+
+    public void setIdDocumentNumber(String idDocumentNumber) {
+        this.idDocumentNumber = idDocumentNumber;
+    }
+
+    public String getIdIssueDate() {
+        return idIssueDate;
+    }
+
+    public void setIdIssueDate(String idIssueDate) {
+        this.idIssueDate = idIssueDate;
+    }
+
+    public String getIdExpirationDate() {
+        return idExpirationDate;
+    }
+
+    public void setIdExpirationDate(String idExpirationDate) {
+        this.idExpirationDate = idExpirationDate;
+    }
+
+    public String getIdIssuingCountry() {
+        return idIssuingCountry;
+    }
+
+    public void setIdIssuingCountry(String idIssuingCountry) {
+        this.idIssuingCountry = idIssuingCountry;
+    }
+
+    public String getEmergencyContactName() {
+        return emergencyContactName;
+    }
+
+    public void setEmergencyContactName(String emergencyContactName) {
+        this.emergencyContactName = emergencyContactName;
+    }
+
+    public String getEmergencyContactRelationship() {
+        return emergencyContactRelationship;
+    }
+
+    public void setEmergencyContactRelationship(String emergencyContactRelationship) {
+        this.emergencyContactRelationship = emergencyContactRelationship;
+    }
+
+    public String getEmergencyContactPhone() {
+        return emergencyContactPhone;
+    }
+
+    public void setEmergencyContactPhone(String emergencyContactPhone) {
+        this.emergencyContactPhone = emergencyContactPhone;
+    }
+
+    public String getEmergencyContactEmail() {
+        return emergencyContactEmail;
+    }
+
+    public void setEmergencyContactEmail(String emergencyContactEmail) {
+        this.emergencyContactEmail = emergencyContactEmail;
     }
 
     public String getCompanyId() {
