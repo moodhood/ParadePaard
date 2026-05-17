@@ -36,6 +36,8 @@ public class SecurityConfig {
                                 "/actuator/**",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**",
+                                "/applications",
+                                "/applications/**",
                                 "/public/**",
                                 "/users/public/**"
                         ).permitAll()

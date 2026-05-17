@@ -27,6 +27,8 @@ import java.util.UUID;
 @Service
 public class JobApplicationService {
 
+    private static final UUID DEFAULT_COMPANY_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+
     private final JobApplicationRepository repository;
     private final UserRepository userRepository;
     private final AuthServiceClient authServiceClient;
@@ -140,10 +142,15 @@ public class JobApplicationService {
         user.setPosition(application.getRoleInterest());
         user.setWorkedForUsBefore(application.isWorkedForUsBefore());
         user.setStatus(UserStatus.PENDING_SETUP);
-        if (StringUtils.isNotBlank(authResponse.getCompanyId())) {
-            user.setCompanyId(UUID.fromString(authResponse.getCompanyId().trim()));
-        }
+        user.setCompanyId(parseCompanyIdOrDefault(authResponse));
         return user;
+    }
+
+    private static UUID parseCompanyIdOrDefault(AuthAdminOnboardUserResponseDTO authResponse) {
+        if (authResponse != null && StringUtils.isNotBlank(authResponse.getCompanyId())) {
+            return UUID.fromString(authResponse.getCompanyId().trim());
+        }
+        return DEFAULT_COMPANY_ID;
     }
 
     private static String buildAuthLastName(JobApplication application) {

@@ -133,6 +133,27 @@ class JobApplicationServiceTest {
         assertThat(response.getDecisionEmailSent()).isFalse();
     }
 
+    @Test
+    void acceptApplicationUsesDefaultCompanyWhenAuthOmitsCompanyId() {
+        UUID applicationId = UUID.randomUUID();
+        UUID acceptedUserId = UUID.randomUUID();
+        JobApplication application = existingApplication(applicationId);
+        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        AuthAdminOnboardUserResponseDTO authResponse = new AuthAdminOnboardUserResponseDTO();
+        authResponse.setUserId(acceptedUserId.toString());
+        when(authServiceClient.adminOnboardUser(any(AuthAdminOnboardUserRequestDTO.class), eq("access-token")))
+                .thenReturn(authResponse);
+
+        service.acceptApplication(applicationId, null, "reviewer-2", "access-token");
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        assertThat(userCaptor.getValue().getCompanyId())
+                .isEqualTo(UUID.fromString("00000000-0000-0000-0000-000000000001"));
+    }
+
     private static JobApplicationRequestDTO applicationRequest() {
         JobApplicationRequestDTO request = new JobApplicationRequestDTO();
         request.setFirstNames("Alex Maria");
