@@ -20,6 +20,7 @@ import SettingsCompany from "./pages/SettingsCompany";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import AdminOnboardingReview from "./pages/AdminOnboardingReview";
 import AdminApplications from "./pages/AdminApplications";
+import AdminApplicationDetails from "./pages/AdminApplicationDetails";
 import AdminContracts from "./pages/AdminContracts";
 import PayslipReview from "./pages/PayslipReview";
 import Payslips from "./pages/Payslips";
@@ -142,6 +143,16 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission anyOf={APPLICATION_REVIEW_PERMISSIONS}>
                             <AdminApplications />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/applications/:applicationId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={APPLICATION_REVIEW_PERMISSIONS}>
+                            <AdminApplicationDetails />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

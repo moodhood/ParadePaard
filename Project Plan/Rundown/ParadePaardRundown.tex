@@ -88,13 +88,24 @@ The My leave requests card lists the employee's leave requests with date range, 
 
 The Management Dashboard is the entry page for permission-based company work. It does not assume the user has broad access. Instead, it reads the user's permissions and shows only the management areas they can open.
 
-A user with user-view access sees user management. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace. A planning manager sees planning and clients. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
+A user with user-view access sees user management. A user with application-review access sees Applications. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace. A planning manager sees planning and clients. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
 
 The management tools are now organized into clear page sections, such as People, Planning, Payroll, Contracts, and Company. Each section contains polished action cards with a short label and a clearer description. The whole card is clickable, so the user can open a management area without aiming for a separate Open button. This keeps the page as a launcher, but makes it easier for the user to scan which kind of management work each card belongs to.
 
 The main management work pages now include a generic Back control near the page title. The control first uses the user's real browser history, so a person who opens an employee from dashboard search returns to the dashboard or whichever page they came from instead of being forced to the Users list. If a management page is opened directly with no previous page available, the Back control uses a sensible management fallback.
 
 This page replaces the old separate dashboard flow. The dashboard is now a permission-based launcher: it explains what management tools are available to the current user without exposing unrelated areas.
+\subsection{Management Applications Page}
+
+The Management Applications Page is a protected application-review area for users with application permissions. Users with \code{CAN_VIEW_APPLICATIONS} or \code{CAN_REVIEW_APPLICATIONS} can open the queue from the Management area. Users without those permissions cannot open the route or see the management card.
+
+The queue shows submitted public applications in a practical review list. Each row shows the applicant name, email address, phone number, role interest, contract preference, submitted date, and application status. The page has loading, error, refresh, and empty states so the reviewer can tell whether applications are still loading, failed to load, or simply not waiting for review.
+
+The user can open any application row to see the application detail page. The detail page groups the submitted information into personal details, contact details, work interest, experience, CV and documents, applicant confirmation, and internal review. It shows application JSON fields only and does not expose CV file bytes in the page data.
+
+If the applicant included a CV file name, the detail page shows a Download CV action. The action requests the CV through the protected application CV endpoint and uses a browser blob download, so the reviewer can open or save the submitted CV without the bytes appearing in the normal application detail response.
+
+For submitted applications, users with review permission can add an optional review note and choose Accept application or Deny application. After a decision, the page shows the returned status and makes clear when \code{decisionEmailSent=false} means the decision email is pending or may need manual follow-up. Applications that are already accepted or denied no longer show the accept and deny controls; the page instead shows the current status.
 \subsection{Management Users Page}
 
 The Management Users page is the employee directory for users with user-view permission. It shows all users in a paginated table, with each row presenting the user's avatar or initials, name, user ID, email, position, roles, date added, and status.
@@ -378,7 +389,7 @@ Navigation is split between the top navbar and the primary navigation. The top n
 
 The user search in the navbar is a fast path to employee detail pages for authorized users. A user types part of a name, preferred name, or email, and the dropdown shows up to eight matches. Selecting a result opens that employee's Management User Detail page. The company menu opens Company Settings and is hidden from users without company or role-management permissions.
 
-The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, onboarding, onboarding review, contracts, planning, clients, travel claims, payslip review, all payslips, and company settings.
+The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, applications, onboarding, onboarding review, contracts, planning, clients, travel claims, payslip review, all payslips, and company settings.
 
 Access checks make the navigation rules enforceable. The root route is guarded and forwards users to the right first page: dashboard for active sessions, onboarding for pending setup, or login for signed-out visitors. Active pages require an active signed-in user. Onboarding is reserved for pending setup users. Permission-based pages require the matching permission. Old \code{/admin/...} URLs remain only as compatibility redirects into the new \code{/management/...} routes.
 \section{Important Shared Components}
@@ -420,6 +431,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 17: Added protected application review screens where permitted users can view submitted applications, download a CV, and accept or deny applicants.
     \item 2026 05 17: Added the public application page where applicants can submit basic details, work interest, consent, and an optional CV before sensitive onboarding.
     \item 2026 05 17: Added frontend service types and API wrappers for public applications and application review; no visible application screens changed yet.
     \item 2026 05 17: Added a guarded placeholder route for the Applications management card so the new navigation target opens correctly.
