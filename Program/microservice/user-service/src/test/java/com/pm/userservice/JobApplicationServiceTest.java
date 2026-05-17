@@ -30,6 +30,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
@@ -68,7 +69,7 @@ class JobApplicationServiceTest {
     void denyApplicationStoresDecisionMetadata() {
         UUID applicationId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
         when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
         ApplicationDecisionRequestDTO decision = new ApplicationDecisionRequestDTO();
         decision.setReviewNote("Not a fit right now");
@@ -92,7 +93,7 @@ class JobApplicationServiceTest {
         UUID companyId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
         application.setMiddleNamePrefix("van");
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
         when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         AuthAdminOnboardUserResponseDTO authResponse = new AuthAdminOnboardUserResponseDTO();
@@ -134,6 +135,8 @@ class JobApplicationServiceTest {
         assertThat(application.getReviewedAt()).isNotNull();
         assertThat(application.getDecisionEmailSent()).isFalse();
         verify(repository).save(application);
+        verify(repository).findByApplicationIdForUpdate(applicationId);
+        verify(repository, never()).findById(applicationId);
         assertThat(response.getAcceptedUserId()).isEqualTo(acceptedUserId.toString());
         assertThat(response.getDecisionEmailSent()).isFalse();
     }
@@ -143,7 +146,7 @@ class JobApplicationServiceTest {
         UUID applicationId = UUID.randomUUID();
         UUID acceptedUserId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
         when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         AuthAdminOnboardUserResponseDTO authResponse = new AuthAdminOnboardUserResponseDTO();
@@ -178,7 +181,7 @@ class JobApplicationServiceTest {
         JobApplication application = existingApplication(applicationId);
         application.setStatus(ApplicationStatus.APPLICATION_ACCEPTED);
         application.setAcceptedUserId(acceptedUserId);
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
         JobApplicationResponseDTO response = service.acceptApplication(applicationId, null, "reviewer-2", "access-token");
 
@@ -192,7 +195,7 @@ class JobApplicationServiceTest {
         UUID applicationId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
         application.setStatus(ApplicationStatus.APPLICATION_DENIED);
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
         assertThatThrownBy(() -> service.acceptApplication(applicationId, null, "reviewer-2", "access-token"))
                 .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {
@@ -208,7 +211,7 @@ class JobApplicationServiceTest {
         JobApplication application = existingApplication(applicationId);
         application.setStatus(ApplicationStatus.APPLICATION_DENIED);
         application.setReviewNote("Already denied");
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
         JobApplicationResponseDTO response = service.denyApplication(applicationId, null, "reviewer-1");
 
@@ -221,7 +224,7 @@ class JobApplicationServiceTest {
         UUID applicationId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
         application.setStatus(ApplicationStatus.APPLICATION_ACCEPTED);
-        when(repository.findById(applicationId)).thenReturn(Optional.of(application));
+        when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
 
         assertThatThrownBy(() -> service.denyApplication(applicationId, null, "reviewer-1"))
                 .isInstanceOfSatisfying(ResponseStatusException.class, ex -> {

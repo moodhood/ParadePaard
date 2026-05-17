@@ -76,7 +76,7 @@ public class JobApplicationService {
     public JobApplicationResponseDTO denyApplication(UUID applicationId,
                                                      ApplicationDecisionRequestDTO request,
                                                      String reviewerUserId) {
-        JobApplication application = findApplication(applicationId);
+        JobApplication application = findApplicationForDecision(applicationId);
         if (application.getStatus() == ApplicationStatus.APPLICATION_DENIED) {
             return JobApplicationMapper.toDTO(application);
         }
@@ -96,7 +96,7 @@ public class JobApplicationService {
                                                        ApplicationDecisionRequestDTO request,
                                                        String reviewerUserId,
                                                        String accessToken) {
-        JobApplication application = findApplication(applicationId);
+        JobApplication application = findApplicationForDecision(applicationId);
         if (application.getStatus() == ApplicationStatus.APPLICATION_ACCEPTED) {
             return JobApplicationMapper.toDTO(application);
         }
@@ -126,6 +126,14 @@ public class JobApplicationService {
 
     private JobApplication findApplication(UUID applicationId) {
         return repository.findById(applicationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Application " + applicationId + " not found"
+                ));
+    }
+
+    private JobApplication findApplicationForDecision(UUID applicationId) {
+        return repository.findByApplicationIdForUpdate(applicationId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
                         "Application " + applicationId + " not found"
