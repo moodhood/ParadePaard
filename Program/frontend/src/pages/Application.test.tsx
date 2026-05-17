@@ -13,7 +13,7 @@ describe("Application", () => {
 
         expect(html).toContain("Full first names");
         expect(html).toContain("Preferred name");
-        expect(html).toContain("Middle name prefix");
+        expect(html).toContain("Prefix");
         expect(html).toContain("Surname");
         expect(html).toContain("Email address");
         expect(html).toContain("Phone number");

@@ -181,7 +181,7 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                 />
                             </label>
                             <label>
-                                <span>Middle name prefix</span>
+                                <span>Prefix</span>
                                 <input
                                     autoComplete="additional-name"
                                     value={form.middleNamePrefix}
