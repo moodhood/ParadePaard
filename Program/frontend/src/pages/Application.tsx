@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { UserServices, type JobApplicationRequestDTO } from "../services/user-service/UserServices";
+import { normalizeDateInput } from "../utils/dateInput";
 import "../stylesheets/Application.css";
 
 type ApplicationProps = {
@@ -80,6 +81,10 @@ function displayDateToIsoDate(value: string): string {
     }
 
     return `${yearText}-${monthText}-${dayText}`;
+}
+
+export function formatApplicationDateEntry(value: string): string {
+    return normalizeDateInput(value);
 }
 
 export function toApplicationPayload(form: ApplicationFormState): JobApplicationRequestDTO {
@@ -248,7 +253,7 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     placeholder="dd/mm/yyyy"
                                     title="Use dd/mm/yyyy"
                                     value={form.dateOfBirth}
-                                    onChange={(event) => updateField("dateOfBirth", event.target.value)}
+                                    onChange={(event) => updateField("dateOfBirth", formatApplicationDateEntry(event.target.value))}
                                 />
                             </label>
                             <label>
@@ -325,7 +330,7 @@ export default function Application({ initialSubmitted = false }: ApplicationPro
                                     placeholder="dd/mm/yyyy"
                                     title="Use dd/mm/yyyy"
                                     value={form.availableFrom}
-                                    onChange={(event) => updateField("availableFrom", event.target.value)}
+                                    onChange={(event) => updateField("availableFrom", formatApplicationDateEntry(event.target.value))}
                                 />
                             </label>
                             <label>

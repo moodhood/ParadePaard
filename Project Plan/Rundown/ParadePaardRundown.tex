@@ -53,7 +53,7 @@ The page validates that both password fields match before submitting. When the r
 
 The public application page at \code{/apply} lets a person apply to work for ParadePaard without signing in. It is a practical application form rather than a marketing page. The page is separate from the protected employee and management areas, so an applicant can submit their first details before becoming an invited employee.
 
-The page shows grouped sections for personal details, work interest, and confirmation. Personal details include full first names, preferred name, prefix, surname, email address, phone number, date of birth, gender, nationality, current city, and current country. Work interest includes role interest, contract preference, availability or start date, availability notes, relevant experience, languages, certificates, whether the applicant has worked for ParadePaard before, a short motivation, and an optional CV upload. The date of birth and availability or start date fields ask the applicant to enter dates as \code{dd/mm/yyyy}.
+The page shows grouped sections for personal details, work interest, and confirmation. Personal details include full first names, preferred name, prefix, surname, email address, phone number, date of birth, gender, nationality, current city, and current country. Work interest includes role interest, contract preference, availability or start date, availability notes, relevant experience, languages, certificates, whether the applicant has worked for ParadePaard before, a short motivation, and an optional CV upload. The date of birth and availability or start date fields ask the applicant to enter dates as \code{dd/mm/yyyy}. When the applicant types digits into these fields, the slashes are added automatically so a date such as 03022000 becomes 03/02/2000.
 
 The user can fill in the required fields, choose a contract preference such as on-call, fixed hours, temporary event work, or no preference, add practical background details for the reviewer, attach a CV if they want, and submit the application. Before submitting, the user must confirm that ParadePaard may contact them about the application and that the information is accurate.
 
@@ -439,6 +439,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 17: Made the public application date fields add dd/mm/yyyy slashes automatically while the applicant types.
     \item 2026 05 17: Changed the public application date of birth and availability start date fields to use the dd/mm/yyyy format.
     \item 2026 05 17: Renamed the public application form middle name prefix label to Prefix.
     \item 2026 05 17: Aligned onboarding review permissions so reviewers can open submitted profiles and made the user detail page load the most relevant draft or signed contract for follow-up actions.

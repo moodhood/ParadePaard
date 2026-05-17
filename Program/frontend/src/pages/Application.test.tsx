@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import Application, { submitApplicationForm, toApplicationPayload } from "./Application";
+import Application, { formatApplicationDateEntry, submitApplicationForm, toApplicationPayload } from "./Application";
 import { UserServices } from "../services/user-service/UserServices";
 
 describe("Application", () => {
@@ -77,6 +77,12 @@ describe("Application", () => {
             contactConsent: true,
             informationAccurate: true,
         });
+    });
+
+    it("auto-formats typed application dates as dd/mm/yyyy", () => {
+        expect(formatApplicationDateEntry("03022000")).toBe("03/02/2000");
+        expect(formatApplicationDateEntry("03-02-2000")).toBe("03/02/2000");
+        expect(formatApplicationDateEntry("0302")).toBe("03/02");
     });
 
     it("submits a minimal valid application and can show the success state", async () => {
