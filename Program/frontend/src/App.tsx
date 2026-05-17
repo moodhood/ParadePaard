@@ -252,7 +252,7 @@ export default function App() {
                 path="/management/users/:userId"
                 element={
                     <RequireActiveUser>
-                        <RequirePermission permission="CAN_VIEW_USERS">
+                        <RequirePermission anyOf={["CAN_VIEW_USERS", ...ONBOARDING_REVIEW_PERMISSIONS]}>
                             <AdminUserDetails />
                         </RequirePermission>
                     </RequireActiveUser>

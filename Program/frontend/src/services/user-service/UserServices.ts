@@ -44,6 +44,7 @@ import GetContracts, {
     CreateContract,
     FinalizeContract,
     GetContractPdf,
+    GetContractsForUser,
     GetCurrentContract,
     GetCurrentContractForUser,
     GetFunctions,
@@ -278,6 +279,9 @@ export const UserServices = {
     },
     getCurrentContractForUser: async (userId: string): Promise<ContractResponseDTO | null> => {
         return await GetCurrentContractForUser(API_BASE_URL, userId);
+    },
+    getContractsForUser: async (userId: string): Promise<ContractResponseDTO[]> => {
+        return await GetContractsForUser(API_BASE_URL, userId);
     },
     getFunctions: async (): Promise<FunctionResponseDTO[]> => {
         return await GetFunctions(API_BASE_URL);

@@ -248,7 +248,7 @@ public class UserController {
 
     @GetMapping("/{id}/id-document-image")
     @Operation(summary = "Get a user's submitted ID document image admin only")
-    @PreAuthorize("hasAuthority('CAN_VIEW_USERS')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or hasAuthority('CAN_VIEW_ONBOARDING_QUEUE') or hasAuthority('CAN_REVIEW_ONBOARDING')")
     public ResponseEntity<byte[]> getUserIdDocumentImage(@PathVariable UUID id, Authentication authentication) {
         UUID companyId = resolveCompanyId(authentication);
         userService.getUserById(id, companyId);
@@ -338,7 +338,7 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get all users admin only")
-    @PreAuthorize("hasAuthority('CAN_VIEW_USERS')")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or hasAuthority('CAN_VIEW_ONBOARDING_QUEUE') or hasAuthority('CAN_REVIEW_ONBOARDING')")
     public ResponseEntity<List<UserResponseDTO>> getUsers(Authentication authentication){
         UUID companyId = resolveCompanyId(authentication);
         List<UserResponseDTO> users = userService.getUsers(companyId);
@@ -368,7 +368,7 @@ public class UserController {
 
     @GetMapping("/{id}")
     @Operation(summary = "Get a user by id self or admin")
-    @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or @userPermission.isSelf(#id, authentication)")
+    @PreAuthorize("hasAuthority('CAN_VIEW_USERS') or hasAuthority('CAN_VIEW_ONBOARDING_QUEUE') or hasAuthority('CAN_REVIEW_ONBOARDING') or @userPermission.isSelf(#id, authentication)")
     public ResponseEntity<UserResponseDTO> getUserById(@PathVariable UUID id, Authentication authentication){
         UUID companyId = resolveCompanyId(authentication);
         UserResponseDTO userResponseDTO = userService.getUserById(id, companyId);

@@ -23,12 +23,14 @@ class UserControllerTest {
     private final UserController controller = new UserController(userService);
 
     @Test
-    void idDocumentImageEndpointRequiresUserViewPermission() throws Exception {
+    void idDocumentImageEndpointAllowsUserAndOnboardingReviewPermissions() throws Exception {
         Method method = UserController.class.getMethod("getUserIdDocumentImage", UUID.class, org.springframework.security.core.Authentication.class);
         PreAuthorize annotation = method.getAnnotation(PreAuthorize.class);
 
         assertThat(annotation).isNotNull();
-        assertThat(annotation.value()).isEqualTo("hasAuthority('CAN_VIEW_USERS')");
+        assertThat(annotation.value()).contains("CAN_VIEW_USERS");
+        assertThat(annotation.value()).contains("CAN_VIEW_ONBOARDING_QUEUE");
+        assertThat(annotation.value()).contains("CAN_REVIEW_ONBOARDING");
     }
 
     @Test

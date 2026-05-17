@@ -120,6 +120,27 @@ export function buildContractDraftPayload(input: ContractDraftPayloadInput): Cre
     };
 }
 
+const CONTRACT_REVIEW_STATUS_PRIORITY: Record<string, number> = {
+    EMPLOYEE_SIGNED: 0,
+    SIGNED: 1,
+    SENT_TO_EMPLOYEE: 2,
+    DRAFT: 3,
+    REJECTED: 4,
+    FINALIZED: 5,
+};
+
+export function selectContractForReview(contracts: ContractResponseDTO[]): ContractResponseDTO | null {
+    if (contracts.length === 0) return null;
+    return [...contracts].sort((left, right) => {
+        const leftStatus = (left.status ?? "").toUpperCase();
+        const rightStatus = (right.status ?? "").toUpperCase();
+        const statusSort = (CONTRACT_REVIEW_STATUS_PRIORITY[leftStatus] ?? 99)
+            - (CONTRACT_REVIEW_STATUS_PRIORITY[rightStatus] ?? 99);
+        if (statusSort !== 0) return statusSort;
+        return (right.startDate ?? "").localeCompare(left.startDate ?? "");
+    })[0] ?? null;
+}
+
 function formatValue(value: string | number | boolean | null | undefined): string | number {
     if (value === null || value === undefined || value === "") return "-";
     if (typeof value === "boolean") return value ? "Yes" : "No";
@@ -377,10 +398,10 @@ export default function AdminUserDetails() {
         try {
             setContractLoading(true);
             setContractError(null);
-            const contract = await UserServices.getCurrentContractForUser(userId);
-            setCurrentContract(contract);
+            const contracts = await UserServices.getContractsForUser(userId);
+            setCurrentContract(selectContractForReview(contracts));
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to load current contract.";
+            const message = err instanceof Error ? err.message : "Failed to load contracts.";
             setContractError(message);
         } finally {
             setContractLoading(false);

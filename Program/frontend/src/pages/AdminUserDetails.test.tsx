@@ -3,6 +3,7 @@ import {
     buildContractDraftPayload,
     canShowCreateContractDraft,
     canSubmitEmployerContractSignature,
+    selectContractForReview,
 } from "./AdminUserDetails";
 
 describe("AdminUserDetails contract finalization", () => {
@@ -98,5 +99,28 @@ describe("AdminUserDetails contract draft creation", () => {
             paymentFrequency: "WEEKLY",
             travelAllowance: true,
         });
+    });
+
+    it("prefers reviewable future contracts over only active-date contracts", () => {
+        expect(selectContractForReview([
+            {
+                contractId: "finalized-old",
+                userId: "user-1",
+                status: "FINALIZED",
+                startDate: "2026-01-01",
+            },
+            {
+                contractId: "draft-future",
+                userId: "user-1",
+                status: "DRAFT",
+                startDate: "2026-06-01",
+            },
+            {
+                contractId: "signed-future",
+                userId: "user-1",
+                status: "SIGNED",
+                startDate: "2026-07-01",
+            },
+        ])?.contractId).toBe("signed-future");
     });
 });
