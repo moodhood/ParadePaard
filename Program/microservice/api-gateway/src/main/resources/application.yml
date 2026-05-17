@@ -122,6 +122,13 @@ spring:
                 - RewritePath=/api-docs/auth,/v3/api-docs
 
             # User service protected endpoints
+            - id: user-service-public-applications
+              uri: http://user-service:4006
+              predicates:
+                - Path=/api/applications
+              filters:
+                - StripPrefix=1
+
             - id: user-service-route
               uri: http://user-service:4006
               predicates:
