@@ -138,6 +138,10 @@
   flex-wrap: wrap;
 }
 
+.applicationDecisionClosed + .applicationDecisionActions {
+  margin-top: 12px;
+}
+
 .applicationDenyButton {
   color: #9f1239;
 }
