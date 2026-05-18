@@ -163,6 +163,15 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # User service shared messages
+            - id: user-service-messages
+              uri: http://user-service:4006
+              predicates:
+                - Path=/api/messages/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+
             # User swagger
             - id: api-docs-user-route
               uri: http://user-service:4006

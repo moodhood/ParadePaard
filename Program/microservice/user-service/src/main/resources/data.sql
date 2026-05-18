@@ -91,6 +91,34 @@ ALTER TABLE IF EXISTS job_applications ADD CONSTRAINT job_applications_status_ch
     'APPLICATION_ACCEPTED'
 ));
 
+CREATE TABLE IF NOT EXISTS message_conversations (
+    conversation_id UUID PRIMARY KEY,
+    user_id UUID NOT NULL,
+    company_id UUID NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_message_at TIMESTAMP WITH TIME ZONE,
+    last_message_preview VARCHAR(500),
+    unread_by_admin_count INTEGER NOT NULL DEFAULT 0,
+    unread_by_user_count INTEGER NOT NULL DEFAULT 0,
+    CONSTRAINT message_conversations_company_user_key UNIQUE (company_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS message_entries (
+    message_id UUID PRIMARY KEY,
+    conversation_id UUID NOT NULL,
+    sender_type VARCHAR(32) NOT NULL,
+    sender_user_id UUID NOT NULL,
+    body VARCHAR(4000) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE IF EXISTS message_entries DROP CONSTRAINT IF EXISTS message_entries_sender_type_check;
+ALTER TABLE IF EXISTS message_entries ADD CONSTRAINT message_entries_sender_type_check CHECK (sender_type IN (
+    'USER',
+    'ADMIN'
+));
+
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS position VARCHAR(255);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS worked_for_us_before BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS payslip_frequency_minutes INTEGER NOT NULL DEFAULT 10080;

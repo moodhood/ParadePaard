@@ -6,6 +6,7 @@ import Management from "./pages/Management";
 import WorkHistory from "./pages/WorkHistory";
 import WorkHistoryShiftDetail from "./pages/WorkHistoryShiftDetail";
 import TravelClaims from "./pages/TravelClaims";
+import Messages from "./pages/Messages";
 import MyPlanning from "./pages/MyPlanning";
 import MyPlanningShiftDetail from "./pages/MyPlanningShiftDetail";
 import Onboarding from "./pages/Onboarding";
@@ -28,6 +29,7 @@ import PayslipDetails from "./pages/PayslipDetails";
 import AdminUserDetails from "./pages/AdminUserDetails";
 import AdminPayslipDetails from "./pages/AdminPayslipDetails";
 import AdminUsers from "./pages/AdminUsers";
+import AdminMessages from "./pages/AdminMessages";
 import AdminPlanningOverview from "./pages/AdminPlanningOverview";
 import AdminPlanningClients from "./pages/AdminPlanningClients";
 import AdminPlanningEventDetail from "./pages/AdminPlanningEventDetail";
@@ -116,6 +118,14 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <WorkHistoryShiftDetail />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/messages"
+                element={
+                    <RequireActiveUser>
+                        <Messages />
                     </RequireActiveUser>
                 }
             />
@@ -274,6 +284,16 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_VIEW_USERS">
                             <AdminUsers />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/messages"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_MESSAGES">
+                            <AdminMessages />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

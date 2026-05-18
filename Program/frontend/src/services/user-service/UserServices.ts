@@ -18,6 +18,16 @@ import {
     GetApplications,
     SubmitApplication,
 } from "./Applications";
+import {
+    GetAdminMessageConversation,
+    GetAdminMessageConversations,
+    GetMyMessageConversation,
+    SendAdminMessage,
+    SendMyMessage,
+    type MessageConversationDTO,
+    type MessageEntryDTO,
+    type MessageSendRequestDTO,
+} from "./Messages";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
@@ -164,6 +174,9 @@ export type {
     SignContractRequestDTO,
     ReportPayslipErrorRequestDTO,
     UpdatePayslipRequestDTO,
+    MessageConversationDTO,
+    MessageEntryDTO,
+    MessageSendRequestDTO,
     PlanningEventDTO,
     PlanningDayDTO,
     PlanningShiftDTO,
@@ -232,6 +245,24 @@ export const UserServices = {
     },
     getMe: async (): Promise<UserResponseDTO> => {
         return await GetMe(API_BASE_URL);
+    },
+    getMyMessageConversation: async (): Promise<MessageConversationDTO> => {
+        return await GetMyMessageConversation(API_BASE_URL);
+    },
+    sendMyMessage: async (payload: MessageSendRequestDTO): Promise<MessageConversationDTO> => {
+        return await SendMyMessage(API_BASE_URL, payload);
+    },
+    getAdminMessageConversations: async (): Promise<MessageConversationDTO[]> => {
+        return await GetAdminMessageConversations(API_BASE_URL);
+    },
+    getAdminMessageConversation: async (conversationId: string): Promise<MessageConversationDTO> => {
+        return await GetAdminMessageConversation(API_BASE_URL, conversationId);
+    },
+    sendAdminMessage: async (
+        conversationId: string,
+        payload: MessageSendRequestDTO
+    ): Promise<MessageConversationDTO> => {
+        return await SendAdminMessage(API_BASE_URL, conversationId, payload);
     },
     getMyCompany: async (): Promise<CompanyResponseDTO> => {
         return await GetMyCompany(API_BASE_URL);

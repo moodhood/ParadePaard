@@ -57,6 +57,7 @@ export const MANAGEMENT_PERMISSIONS = [
     "CAN_VIEW_ALL_PAYSLIPS",
     "CAN_REVIEW_PAYSLIPS",
     "CAN_MANAGE_PAYSLIPS",
+    "CAN_MANAGE_MESSAGES",
     "CAN_MANAGE_COMPANY",
     ...APPLICATION_REVIEW_PERMISSIONS,
     ...CONTRACT_MANAGEMENT_PERMISSIONS,
@@ -65,6 +66,7 @@ export const MANAGEMENT_PERMISSIONS = [
 
 export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
     { label: "Users", to: "/management/users", permissions: ["CAN_VIEW_USERS"] },
+    { label: "Messages", to: "/management/messages", permissions: ["CAN_MANAGE_MESSAGES"] },
     {
         label: "Applications",
         to: "/management/applications",

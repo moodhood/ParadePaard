@@ -446,6 +446,9 @@ INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_REPORT_PAYSLIP_ERRORS'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_REPORT_PAYSLIP_ERRORS');
 INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_MANAGE_MESSAGES'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_MESSAGES');
+INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_MANAGE_PLANNING'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_PLANNING');
 
@@ -486,6 +489,7 @@ FROM roles r
     'CAN_VIEW_ALL_PAYSLIPS',
     'CAN_REVIEW_PAYSLIPS',
     'CAN_MANAGE_PAYSLIPS',
+    'CAN_MANAGE_MESSAGES',
     'CAN_MANAGE_PLANNING'
 )
 WHERE r.name = 'ADMIN'

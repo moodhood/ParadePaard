@@ -25,6 +25,7 @@ export default function PrimaryNav() {
     const isPayslipsActive = path.startsWith("/payslips");
     const isMyPlanningActive = path.startsWith("/my-planning");
     const isWorkHistoryActive = path.startsWith("/work-history");
+    const isMessagesActive = path.startsWith("/messages");
     const isAccountActive = path.startsWith("/account");
 
     const linkClass = (active: boolean) =>
@@ -165,6 +166,30 @@ export default function PrimaryNav() {
                         <path d="M12 7v6l4 2" />
                     </svg>
                     <span className="nav_quick_text">Work history</span>
+                </Link>
+
+                <Link
+                    className={linkClass(isMessagesActive)}
+                    to="/messages"
+                    aria-current={isMessagesActive ? "page" : undefined}
+                    aria-label="Messages"
+                    title="Messages"
+                >
+                    <svg
+                        className="nav_quick_icon"
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
+                    </svg>
+                    <span className="nav_quick_text">Messages</span>
                 </Link>
 
                 <Link
