@@ -6,6 +6,7 @@ import { clearAuthCache } from "../utils/authCache";
 import { goBackOrFallback } from "../utils/backNavigation";
 import { canAccessCompanySettings } from "../utils/permissionPolicy";
 import AdminMessageDrawer from "./AdminMessageDrawer";
+import { openCompanyMenu, openUserMenu } from "./navbarOverlayState";
 import "../stylesheets/Navbar.css";
 
 export default function Navbar(): JSX.Element {
@@ -306,6 +307,32 @@ export default function Navbar(): JSX.Element {
         goBackOrFallback(navigate);
     };
 
+    const handleCompanyMenuClick = () => {
+        if (companyOpen) {
+            setCompanyOpen(false);
+            setAdminMessagesOpen(false);
+            return;
+        }
+
+        const next = openCompanyMenu({ adminMessagesOpen, companyOpen, menuOpen });
+        setAdminMessagesOpen(next.adminMessagesOpen);
+        setCompanyOpen(next.companyOpen);
+        setMenuOpen(next.menuOpen);
+    };
+
+    const handleUserMenuClick = () => {
+        if (menuOpen) {
+            setMenuOpen(false);
+            setAdminMessagesOpen(false);
+            return;
+        }
+
+        const next = openUserMenu({ adminMessagesOpen, companyOpen, menuOpen });
+        setAdminMessagesOpen(next.adminMessagesOpen);
+        setCompanyOpen(next.companyOpen);
+        setMenuOpen(next.menuOpen);
+    };
+
     async function handleLogout(): Promise<void> {
         setLoggingOut(true);
         try {
@@ -426,7 +453,7 @@ export default function Navbar(): JSX.Element {
                                 aria-haspopup="menu"
                                 aria-expanded={companyOpen}
                                 aria-label={companyName}
-                                onClick={() => setCompanyOpen((open) => !open)}
+                                onClick={handleCompanyMenuClick}
                                 title={companyName}
                             >
                                 <span className="nav_company_avatar" aria-hidden="true">
@@ -480,7 +507,7 @@ export default function Navbar(): JSX.Element {
                             aria-label="Open user menu"
                             aria-haspopup="menu"
                             aria-expanded={menuOpen}
-                            onClick={() => setMenuOpen((v) => !v)}
+                            onClick={handleUserMenuClick}
                             disabled={loggingOut}
                         >
                             <span

@@ -115,7 +115,7 @@ This page replaces the old separate dashboard flow. The dashboard is now a permi
 
 The Management Messages Page is a shared company inbox for users with \code{CAN_MANAGE_MESSAGES}. It shows user conversations that belong to the admin's company. Multiple admins with the permission can open the same inbox, see the same incoming user threads, and reply in the same conversation.
 
-The admin message UI now works like a right-side shared inbox. Admins with message access also see a message icon beside the account avatar in the top navbar. Opening that icon shows the shared inbox on the right side of the screen without making the admin leave the current page.
+The admin message UI now works like a right-side shared inbox. Admins with message access also see a message icon beside the account avatar in the top navbar. Opening that icon shows the shared inbox on the right side of the screen without making the admin leave the current page. If the inbox is open and the admin clicks the company menu or account menu, the inbox closes automatically so only one top-navbar panel is active at a time.
 
 The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review. The inbox can be collapsed into a narrow right-side rail that keeps the messenger initials available.
 
@@ -462,6 +462,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 18: Made the admin messages drawer close automatically when the company menu or account menu is opened.
     \item 2026 05 18: Moved the admin shared messages inbox into a right-side drawer with a navbar icon and made selected user chats fill the message box.
     \item 2026 05 18: Fixed the user-service startup seed script so existing application databases without the old availability notes column can start correctly.
     \item 2026 05 18: Added a user Messages page and a shared Management Messages inbox where admins can reply to one ongoing company conversation per user.
