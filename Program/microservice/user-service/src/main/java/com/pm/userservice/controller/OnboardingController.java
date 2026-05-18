@@ -30,7 +30,7 @@ public class OnboardingController {
     }
 
     @PostMapping("/setup")
-    @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING')")
+    @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING') or @onboardingPermission.canComplete(authentication)")
     public ResponseEntity<Void> setup(@Valid @RequestBody UserSetupRequestDTO request,
                                       Authentication authentication,
                                       HttpServletRequest httpServletRequest) {
@@ -44,7 +44,7 @@ public class OnboardingController {
     }
 
     @PostMapping(value = "/setup/id-document-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING')")
+    @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING') or @onboardingPermission.canComplete(authentication)")
     public ResponseEntity<Void> uploadIdDocumentImage(@RequestPart("file") MultipartFile file,
                                                       Authentication authentication) throws IOException {
         if (authentication == null || authentication.getName() == null) {
