@@ -115,7 +115,11 @@ This page replaces the old separate dashboard flow. The dashboard is now a permi
 
 The Management Messages Page is a shared company inbox for users with \code{CAN_MANAGE_MESSAGES}. It shows user conversations that belong to the admin's company. Multiple admins with the permission can open the same inbox, see the same incoming user threads, and reply in the same conversation.
 
-The page has a conversation list and a selected thread. Each inbox row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review. Opening a row shows the full conversation with that user.
+The admin message UI now works like a right-side shared inbox. Admins with message access also see a message icon beside the account avatar in the top navbar. Opening that icon shows the shared inbox on the right side of the screen without making the admin leave the current page.
+
+The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review. The inbox can be collapsed into a narrow right-side rail that keeps the messenger initials available.
+
+When an admin clicks a messenger name, the whole message box changes into that user's chat. The list is no longer shown beside the thread, so the selected conversation fills the message box. A Back to inbox button returns the admin to the name list.
 
 Admins can type a reply in the selected thread and send it as the company. The frontend does not ask the admin to choose which individual admin account should receive the message. The backend still records which admin sent the reply, but the normal user sees the reply as a Company message.
 
@@ -412,7 +416,7 @@ This workflow is less frequent than scheduling or payslips, but it defines the r
 
 \section{Navigation}
 
-Navigation is split between the top navbar and the primary navigation. The top navbar gives global account actions. It starts with a top-left arrow button that returns to the previous page in the user's actual browser history. If there is no previous page, it falls back to the dashboard. This makes page-to-page movement consistent across the app, including when a user opens an employee profile from search or from another page that is not the Users list. The top navbar also shows the ParadePaard brand, user search when the user has \code{CAN_VIEW_USERS}, a company menu when the user has company or role permissions, and the user avatar menu. The avatar menu shows the signed-in name, links to Account, and supports logout.
+Navigation is split between the top navbar and the primary navigation. The top navbar gives global account actions. It starts with a top-left arrow button that returns to the previous page in the user's actual browser history. If there is no previous page, it falls back to the dashboard. This makes page-to-page movement consistent across the app, including when a user opens an employee profile from search or from another page that is not the Users list. The top navbar also shows the ParadePaard brand, user search when the user has \code{CAN_VIEW_USERS}, a company menu when the user has company or role permissions, a shared inbox icon when the user has message-management permission, and the user avatar menu. The avatar menu shows the signed-in name, links to Account, and supports logout.
 
 The user search in the navbar is a fast path to employee detail pages for authorized users. A user types part of a name, preferred name, or email, and the dropdown shows up to eight matches. Selecting a result opens that employee's Management User Detail page. The company menu opens Company Settings and is hidden from users without company or role-management permissions.
 
@@ -458,6 +462,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 18: Moved the admin shared messages inbox into a right-side drawer with a navbar icon and made selected user chats fill the message box.
     \item 2026 05 18: Fixed the user-service startup seed script so existing application databases without the old availability notes column can start correctly.
     \item 2026 05 18: Added a user Messages page and a shared Management Messages inbox where admins can reply to one ongoing company conversation per user.
     \item 2026 05 17: Fixed the public application submission route so the apply form can submit through the API gateway without requiring login.

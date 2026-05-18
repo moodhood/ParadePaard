@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import PrimaryNav from "../components/PrimaryNav";
 import { UserServices, type MessageConversationDTO, type MessageEntryDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Messages.css";
@@ -17,6 +17,8 @@ type AdminMessagesViewProps = {
     onDraftChange: (value: string) => void;
     onSend: () => void;
     onRefresh: () => void;
+    onBackToInbox: () => void;
+    headerActions?: ReactNode;
 };
 
 function formatMessageTime(value?: string | null) {
@@ -59,6 +61,8 @@ export function AdminMessagesView({
     onDraftChange,
     onSend,
     onRefresh,
+    onBackToInbox,
+    headerActions,
 }: AdminMessagesViewProps) {
     return (
         <div className="messagesPage">
@@ -68,93 +72,137 @@ export function AdminMessagesView({
                     <header className="pageHeader">
                         <h1 className="pageTitle">Shared Inbox</h1>
                     </header>
-                    <div className="messagesLayout">
-                        <section className="messagePanel">
-                            <div className="messagePanelHeader">
-                                <div>
-                                    <h2 className="messagePanelTitle">Conversations</h2>
-                                    <p className="messagePanelMeta">Visible to all admins with message access.</p>
-                                </div>
-                                <button type="button" className="buttonSecondary" onClick={onRefresh} disabled={loading}>
-                                    Refresh
-                                </button>
-                            </div>
-                            {loading ? <p className="messageEmpty">Loading inbox...</p> : null}
-                            {error ? <p className="messageError">{error}</p> : null}
-                            {!loading && !error && conversations.length === 0 ? (
-                                <p className="messageEmpty">No conversations yet</p>
-                            ) : null}
-                            <div className="messageInboxList">
-                                {conversations.map((conversation) => {
-                                    const selected = selectedConversation?.conversationId === conversation.conversationId;
-                                    const unread = conversation.unreadByAdminCount ?? 0;
-                                    return (
-                                        <button
-                                            type="button"
-                                            key={conversation.conversationId}
-                                            className={`messageInboxRow${selected ? " messageInboxRow--selected" : ""}`}
-                                            onClick={() => conversation.conversationId && onSelectConversation(conversation.conversationId)}
-                                        >
-                                            <div className="messageInboxName">
-                                                <span>{conversation.userDisplayName ?? conversation.userEmail ?? "Unknown user"}</span>
-                                                {unread > 0 ? (
-                                                    <span className="messageBadge">{unread} unread</span>
-                                                ) : null}
-                                            </div>
-                                            <div className="messagePanelMeta">{conversation.userEmail}</div>
-                                            <div className="messageInboxPreview">
-                                                {conversation.lastMessagePreview ?? "No messages yet"}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        <section className="messagePanel">
-                            <div className="messagePanelHeader">
-                                <div>
-                                    <h2 className="messagePanelTitle">
-                                        {selectedConversation?.userDisplayName ?? "Select a conversation"}
-                                    </h2>
-                                    <p className="messagePanelMeta">{selectedConversation?.userEmail ?? "Open a user thread to reply."}</p>
-                                </div>
-                            </div>
-                            {detailLoading ? <p className="messageEmpty">Loading conversation...</p> : null}
-                            {detailError ? <p className="messageError">{detailError}</p> : null}
-                            {!selectedConversation && !detailLoading ? (
-                                <p className="messageEmpty">Select a conversation from the shared inbox.</p>
-                            ) : null}
-                            {selectedConversation ? (
-                                <>
-                                    <div className="messageList">
-                                        {(selectedConversation.messages ?? []).map((message) => (
-                                            <AdminThreadMessage key={message.messageId ?? `${message.createdAt}-${message.body}`} message={message} />
-                                        ))}
-                                    </div>
-                                    <div className="messageComposer">
-                                        <label className="messagePanelTitle" htmlFor="admin-message-body">Reply as company</label>
-                                        <textarea
-                                            id="admin-message-body"
-                                            value={draft}
-                                            onChange={(event) => onDraftChange(event.target.value)}
-                                            placeholder="Write a shared company reply."
-                                            disabled={sending}
-                                        />
-                                        {sendError ? <p className="messageError">{sendError}</p> : null}
-                                        <div className="messageComposerActions">
-                                            <button type="button" className="button" onClick={onSend} disabled={sending || !draft.trim()}>
-                                                {sending ? "Sending..." : "Send reply"}
-                                            </button>
-                                        </div>
-                                    </div>
-                                </>
-                            ) : null}
-                        </section>
+                    <div className="messagesDockLayout">
+                        <AdminSharedInboxPanel
+                            conversations={conversations}
+                            selectedConversation={selectedConversation}
+                            loading={loading}
+                            detailLoading={detailLoading}
+                            error={error}
+                            detailError={detailError}
+                            draft={draft}
+                            sending={sending}
+                            sendError={sendError}
+                            onSelectConversation={onSelectConversation}
+                            onDraftChange={onDraftChange}
+                            onSend={onSend}
+                            onRefresh={onRefresh}
+                            onBackToInbox={onBackToInbox}
+                            headerActions={headerActions}
+                        />
                     </div>
                 </main>
             </div>
         </div>
+    );
+}
+
+export function AdminSharedInboxPanel({
+    conversations,
+    selectedConversation,
+    loading,
+    detailLoading,
+    error,
+    detailError,
+    draft,
+    sending,
+    sendError,
+    onSelectConversation,
+    onDraftChange,
+    onSend,
+    onRefresh,
+    onBackToInbox,
+    headerActions,
+}: AdminMessagesViewProps) {
+    const chatOpen = Boolean(selectedConversation);
+
+    return (
+        <section className={`messagePanel messageAdminBox${chatOpen ? " messageAdminBox--chat" : ""}`}>
+            {!selectedConversation ? (
+                <>
+                    <div className="messagePanelHeader">
+                        <div>
+                            <h2 className="messagePanelTitle">Conversations</h2>
+                            <p className="messagePanelMeta">Visible to all admins with message access.</p>
+                        </div>
+                        <div className="messagePanelActions">
+                            <button type="button" className="buttonSecondary" onClick={onRefresh} disabled={loading}>
+                                Refresh
+                            </button>
+                            {headerActions}
+                        </div>
+                    </div>
+                    {loading ? <p className="messageEmpty">Loading inbox...</p> : null}
+                    {error ? <p className="messageError">{error}</p> : null}
+                    {!loading && !error && conversations.length === 0 ? (
+                        <p className="messageEmpty">No conversations yet</p>
+                    ) : null}
+                    <div className="messageInboxList">
+                        {conversations.map((conversation) => {
+                            const unread = conversation.unreadByAdminCount ?? 0;
+                            return (
+                                <button
+                                    type="button"
+                                    key={conversation.conversationId}
+                                    className="messageInboxRow"
+                                    onClick={() => conversation.conversationId && onSelectConversation(conversation.conversationId)}
+                                >
+                                    <div className="messageInboxName">
+                                        <span>{conversation.userDisplayName ?? conversation.userEmail ?? "Unknown user"}</span>
+                                        {unread > 0 ? (
+                                            <span className="messageBadge">{unread} unread</span>
+                                        ) : null}
+                                    </div>
+                                    <div className="messagePanelMeta">{conversation.userEmail}</div>
+                                    <div className="messageInboxPreview">
+                                        {conversation.lastMessagePreview ?? "No messages yet"}
+                                    </div>
+                                </button>
+                            );
+                        })}
+                    </div>
+                </>
+            ) : (
+                <>
+                    <div className="messagePanelHeader messagePanelHeader--chat">
+                        <button type="button" className="messageBackButton" onClick={onBackToInbox}>
+                            <span aria-hidden="true">‹</span>
+                            Back to inbox
+                        </button>
+                        <div className="messageThreadHeading">
+                            <h2 className="messagePanelTitle">
+                                {selectedConversation.userDisplayName ?? selectedConversation.userEmail ?? "Unknown user"}
+                            </h2>
+                            <p className="messagePanelMeta">{selectedConversation.userEmail}</p>
+                        </div>
+                        <div className="messagePanelActions">{headerActions}</div>
+                    </div>
+                    {detailLoading ? <p className="messageEmpty">Loading conversation...</p> : null}
+                    {detailError ? <p className="messageError">{detailError}</p> : null}
+                    <div className="messageList">
+                        {(selectedConversation.messages ?? []).map((message) => (
+                            <AdminThreadMessage key={message.messageId ?? `${message.createdAt}-${message.body}`} message={message} />
+                        ))}
+                    </div>
+                    <div className="messageComposer">
+                        <label className="messagePanelTitle" htmlFor="admin-message-body">Reply as company</label>
+                        <textarea
+                            id="admin-message-body"
+                            value={draft}
+                            onChange={(event) => onDraftChange(event.target.value)}
+                            placeholder="Write a shared company reply."
+                            disabled={sending}
+                        />
+                        {sendError ? <p className="messageError">{sendError}</p> : null}
+                        <div className="messageComposerActions">
+                            <button type="button" className="button" onClick={onSend} disabled={sending || !draft.trim()}>
+                                {sending ? "Sending..." : "Send reply"}
+                            </button>
+                        </div>
+                    </div>
+                </>
+            )}
+        </section>
     );
 }
 
@@ -175,18 +223,19 @@ export default function AdminMessages() {
             setError(null);
             const data = await UserServices.getAdminMessageConversations();
             setConversations(data);
-            if (!selectedConversation && data[0]?.conversationId) {
-                await loadConversation(data[0].conversationId);
-            }
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Could not load the shared inbox");
         } finally {
             setLoading(false);
         }
-    }, [selectedConversation]);
+    }, []);
 
     const loadConversation = async (conversationId: string) => {
         try {
+            const conversationPreview = conversations.find((conversation) => conversation.conversationId === conversationId);
+            if (conversationPreview) {
+                setSelectedConversation(conversationPreview);
+            }
             setDetailLoading(true);
             setDetailError(null);
             setSelectedConversation(await UserServices.getAdminMessageConversation(conversationId));
@@ -233,6 +282,11 @@ export default function AdminMessages() {
             onDraftChange={setDraft}
             onSend={() => void sendReply()}
             onRefresh={() => void loadConversations()}
+            onBackToInbox={() => {
+                setSelectedConversation(null);
+                setDraft("");
+                setDetailError(null);
+            }}
         />
     );
 }

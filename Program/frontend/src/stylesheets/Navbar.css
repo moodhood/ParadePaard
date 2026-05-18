@@ -321,6 +321,50 @@
     flex: 1;
 }
 
+.nav_message_button {
+    width: 48px;
+    height: 48px;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.82);
+    color: #1a1a1a;
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    transition:
+            transform 120ms ease,
+            border-color 120ms ease,
+            background 120ms ease,
+            box-shadow 120ms ease;
+}
+
+.nav_message_button:hover:not(:disabled),
+.nav_message_button--active {
+    transform: translateY(-1px);
+    background: #ffffff;
+    border-color: rgba(47, 107, 255, 0.35);
+    box-shadow: 0 16px 30px rgba(0, 0, 0, 0.32);
+}
+
+.nav_message_button:focus-visible {
+    outline: 2px solid rgba(79, 124, 255, 0.9);
+    outline-offset: 3px;
+}
+
+.nav_message_button:disabled {
+    opacity: 0.55;
+    cursor: default;
+}
+
+.nav_message_button svg {
+    width: 20px;
+    height: 20px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
 @media (max-width: 560px) {
     :root {
         --nav-search-width: 220px;
@@ -590,6 +634,11 @@
     }
 
     .nav_user_avatar {
+        width: 42px;
+        height: 42px;
+    }
+
+    .nav_message_button {
         width: 42px;
         height: 42px;
     }
