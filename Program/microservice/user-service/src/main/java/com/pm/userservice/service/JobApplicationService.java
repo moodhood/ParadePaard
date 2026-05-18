@@ -5,6 +5,7 @@ import com.pm.userservice.dto.AuthAdminOnboardUserRequestDTO;
 import com.pm.userservice.dto.AuthAdminOnboardUserResponseDTO;
 import com.pm.userservice.dto.JobApplicationRequestDTO;
 import com.pm.userservice.dto.JobApplicationResponseDTO;
+import com.pm.userservice.exception.EmailAlreadyExistsException;
 import com.pm.userservice.integration.AuthServiceClient;
 import com.pm.userservice.mapper.JobApplicationMapper;
 import com.pm.userservice.model.ApplicationStatus;
@@ -45,6 +46,7 @@ public class JobApplicationService {
 
     @Transactional
     public JobApplicationResponseDTO submitApplication(JobApplicationRequestDTO request, MultipartFile cv) throws IOException {
+        validateUniqueApplicationEmail(request);
         JobApplication application = JobApplicationMapper.toNewEntity(request);
         if (cv != null && !cv.isEmpty()) {
             application.setCvFileName(cv.getOriginalFilename());
@@ -52,6 +54,14 @@ public class JobApplicationService {
             application.setCvBytes(cv.getBytes());
         }
         return JobApplicationMapper.toDTO(repository.save(application));
+    }
+
+    private void validateUniqueApplicationEmail(JobApplicationRequestDTO request) {
+        String email = StringUtils.trimToEmpty(request.getEmail());
+        request.setEmail(email);
+        if (repository.existsByEmailIgnoreCase(email) || userRepository.existsByEmailIgnoreCase(email)) {
+            throw new EmailAlreadyExistsException("Email already exists " + email);
+        }
     }
 
     @Transactional(readOnly = true)

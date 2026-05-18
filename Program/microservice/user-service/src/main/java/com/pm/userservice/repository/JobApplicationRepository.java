@@ -14,6 +14,7 @@ import java.util.UUID;
 
 public interface JobApplicationRepository extends JpaRepository<JobApplication, UUID> {
     List<JobApplication> findAllByStatusOrderBySubmittedAtDesc(ApplicationStatus status);
+    boolean existsByEmailIgnoreCase(String email);
     boolean existsByEmailAndStatus(String email, ApplicationStatus status);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

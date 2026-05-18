@@ -5,6 +5,7 @@ import com.pm.userservice.dto.AuthAdminOnboardUserRequestDTO;
 import com.pm.userservice.dto.AuthAdminOnboardUserResponseDTO;
 import com.pm.userservice.dto.JobApplicationRequestDTO;
 import com.pm.userservice.dto.JobApplicationResponseDTO;
+import com.pm.userservice.exception.EmailAlreadyExistsException;
 import com.pm.userservice.integration.AuthServiceClient;
 import com.pm.userservice.model.ApplicationStatus;
 import com.pm.userservice.model.JobApplication;
@@ -65,6 +66,27 @@ class JobApplicationServiceTest {
         assertThat(saved.getNote()).isEqualTo("Weekends");
         assertThat(response.getStatus()).isEqualTo("APPLICATION_SUBMITTED");
         assertThat(response.getNote()).isEqualTo("Weekends");
+    }
+
+    @Test
+    void submitApplicationRejectsEmailAlreadyUsedByExistingApplication() {
+        when(repository.existsByEmailIgnoreCase("alex@example.com"))
+                .thenReturn(true);
+
+        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), null))
+                .isInstanceOf(EmailAlreadyExistsException.class)
+                .hasMessage("Email already exists alex@example.com");
+        verify(repository, never()).save(any(JobApplication.class));
+    }
+
+    @Test
+    void submitApplicationRejectsEmailAlreadyUsedByUserAccount() {
+        when(userRepository.existsByEmailIgnoreCase("alex@example.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), null))
+                .isInstanceOf(EmailAlreadyExistsException.class)
+                .hasMessage("Email already exists alex@example.com");
+        verify(repository, never()).save(any(JobApplication.class));
     }
 
     @Test

@@ -10,26 +10,38 @@ export async function SubmitApplication(
     payload: JobApplicationRequestDTO,
     cv?: File | null
 ): Promise<JobApplicationResponseDTO> {
-    const formData = new FormData();
-    formData.append(
-        "application",
-        new Blob([JSON.stringify(payload)], { type: "application/json" })
-    );
+    try {
+        const formData = new FormData();
+        formData.append(
+            "application",
+            new Blob([JSON.stringify(payload)], { type: "application/json" })
+        );
 
-    if (cv) {
-        formData.append("cv", cv);
-    }
-
-    const response = await axios.post<JobApplicationResponseDTO>(
-        `${API_BASE_URL}/api/applications`,
-        formData,
-        {
-            headers: { "Content-Type": "multipart/form-data" },
-            withCredentials: true,
+        if (cv) {
+            formData.append("cv", cv);
         }
-    );
 
-    return response.data;
+        const response = await axios.post<JobApplicationResponseDTO>(
+            `${API_BASE_URL}/api/applications`,
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" },
+                withCredentials: true,
+            }
+        );
+
+        return response.data;
+    } catch (error: unknown) {
+        if (axios.isAxiosError(error)) {
+            const data = error.response?.data as { message?: string } | string | undefined;
+            const message =
+                (typeof data === "string" && data.trim()) ||
+                (typeof data === "object" && data?.message) ||
+                "We could not submit your application. Please try again.";
+            throw new Error(message);
+        }
+        throw error;
+    }
 }
 
 export async function GetApplications(
