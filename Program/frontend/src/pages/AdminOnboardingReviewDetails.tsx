@@ -79,6 +79,12 @@ function isMissing(value?: string | null): boolean {
     return !(value ?? "").trim();
 }
 
+function statusForReviewDecision(decision: ReviewDecision): string {
+    if (decision === "NEEDS_CHANGES") return "CHANGES_REQUESTED";
+    if (decision === "REJECT_ONBOARDING") return "REJECTED";
+    return "PENDING_CONTRACT_REVIEW";
+}
+
 function buildContractPayload(input: {
     userId: string;
     selectedFunctionId: string;
@@ -271,16 +277,10 @@ export default function AdminOnboardingReviewDetails() {
         });
     }, [checklist.missing]);
 
-    const decisionStatus = useMemo(() => {
-        if (reviewDecision === "NEEDS_CHANGES") return "CHANGES_REQUESTED";
-        if (reviewDecision === "REJECT_ONBOARDING") return "REJECTED";
-        if (reviewDecision === "READY_TO_SEND_CONTRACT") return "PENDING_CONTRACT_SIGNATURE";
-        return null;
-    }, [reviewDecision]);
-
-    const handleSaveReview = async () => {
+    const handleSaveReview = async (nextDecision?: ReviewDecision) => {
         if (!userId) return;
-        if ((reviewDecision === "NEEDS_CHANGES" || reviewDecision === "REJECT_ONBOARDING") && !reviewNote.trim()) {
+        const decisionToSave = nextDecision ?? reviewDecision;
+        if ((decisionToSave === "NEEDS_CHANGES" || decisionToSave === "REJECT_ONBOARDING") && !reviewNote.trim()) {
             setActionError("Admin note is required for this decision.");
             return;
         }
@@ -289,9 +289,9 @@ export default function AdminOnboardingReviewDetails() {
             setActionError(null);
             setActionSuccess(null);
             const updated = await UserServices.updateOnboardingReview(userId, {
-                decision: reviewDecision,
+                decision: decisionToSave,
                 note: reviewNote.trim() ? reviewNote.trim() : null,
-                status: decisionStatus,
+                status: statusForReviewDecision(decisionToSave),
             });
             setUser(updated);
             setActionSuccess("Review saved.");
@@ -305,7 +305,7 @@ export default function AdminOnboardingReviewDetails() {
 
     const handleRequestChanges = async () => {
         setReviewDecision("NEEDS_CHANGES");
-        await handleSaveReview();
+        await handleSaveReview("NEEDS_CHANGES");
     };
 
     const requireContractReady = (): string[] => {
@@ -399,6 +399,18 @@ export default function AdminOnboardingReviewDetails() {
             const sent = await UserServices.sendContract(contract.contractId);
             setCurrentContract(sent);
             setActionSuccess("Contract email sent to employee.");
+            try {
+                const updatedUser = await UserServices.updateOnboardingReview(userId, {
+                    decision: "READY_TO_SEND_CONTRACT",
+                    note: reviewNote.trim() ? reviewNote.trim() : null,
+                    status: "PENDING_CONTRACT_SIGNATURE",
+                });
+                setUser(updatedUser);
+                setReviewDecision("READY_TO_SEND_CONTRACT");
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : "Contract sent, but failed to update onboarding status.";
+                setActionError(message);
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to create and send contract.";
             setActionError(message);
