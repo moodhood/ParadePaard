@@ -31,7 +31,6 @@ type ContractSetupDraft = {
     travelAllowance: boolean;
 };
 
-type ChecklistState = "COMPLETE" | "MISSING" | "NEEDS_REVIEW";
 type ChecklistSectionKey = "personal" | "address" | "identification" | "bank" | "emergency" | "tax" | "contract";
 
 function personFullName(user: UserResponseDTO): string {
@@ -214,7 +213,7 @@ export default function AdminOnboardingReviewDetails() {
             contract: [],
         };
 
-        if (!user) return { missing, states: {} as Record<string, ChecklistState> };
+        if (!user) return { missing };
 
         if (isMissing(user.firstNames)) missing.personal.push("First names");
         if (isMissing(user.lastName)) missing.personal.push("Last name");
@@ -252,11 +251,7 @@ export default function AdminOnboardingReviewDetails() {
         if (isMissing(contractDraft.grossHourlyWage)) missing.contract.push("Gross hourly wage");
         if (isMissing(contractDraft.paymentFrequency)) missing.contract.push("Payment frequency");
 
-        const states: Record<string, ChecklistState> = {};
-        (Object.keys(missing) as Array<keyof typeof missing>).forEach((key) => {
-            states[key] = missing[key].length > 0 ? "MISSING" : "COMPLETE";
-        });
-        return { missing, states };
+        return { missing };
     }, [user, contractDraft, selectedFunctionId]);
 
     useEffect(() => {
@@ -456,10 +451,6 @@ export default function AdminOnboardingReviewDetails() {
 
     const missingFor = (key: ChecklistSectionKey) => checklist.missing[key] ?? [];
     const canCheckSection = (key: ChecklistSectionKey) => missingFor(key).length === 0;
-    const displaySectionState = (key: ChecklistSectionKey): ChecklistState => {
-        if (!canCheckSection(key)) return "MISSING";
-        return checkedSections[key] ? "COMPLETE" : "NEEDS_REVIEW";
-    };
     const toggleSection = (key: ChecklistSectionKey) => {
         if (!canCheckSection(key)) return;
         setCheckedSections((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -878,168 +869,112 @@ export default function AdminOnboardingReviewDetails() {
 
                                         <Card title="Review checklist" className="reviewCard">
                                             <div className="reviewChecklist">
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("personal") ? (checkedSections.personal ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.personal}
                                                             onChange={() => toggleSection("personal")}
                                                             disabled={!canCheckSection("personal")}
                                                         />
-                                                        <span className="srOnly">Mark personal information as complete</span>
+                                                        <span className="reviewChecklistLabel">Personal information</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("personal")}`}>
-                                                        {displaySectionState("personal") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("personal") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Personal information</span>
                                                     {missingFor("personal").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("personal").join(", ")}
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("address") ? (checkedSections.address ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.address}
                                                             onChange={() => toggleSection("address")}
                                                             disabled={!canCheckSection("address")}
                                                         />
-                                                        <span className="srOnly">Mark address as complete</span>
+                                                        <span className="reviewChecklistLabel">Address</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("address")}`}>
-                                                        {displaySectionState("address") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("address") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Address</span>
                                                     {missingFor("address").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("address").join(", ")}
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("identification") ? (checkedSections.identification ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.identification}
                                                             onChange={() => toggleSection("identification")}
                                                             disabled={!canCheckSection("identification")}
                                                         />
-                                                        <span className="srOnly">Mark identification as complete</span>
+                                                        <span className="reviewChecklistLabel">Identification</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("identification")}`}>
-                                                        {displaySectionState("identification") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("identification") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Identification</span>
                                                     {missingFor("identification").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: Missing ID document
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("bank") ? (checkedSections.bank ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.bank}
                                                             onChange={() => toggleSection("bank")}
                                                             disabled={!canCheckSection("bank")}
                                                         />
-                                                        <span className="srOnly">Mark bank details as complete</span>
+                                                        <span className="reviewChecklistLabel">Bank details</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("bank")}`}>
-                                                        {displaySectionState("bank") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("bank") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Bank details</span>
                                                     {missingFor("bank").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("bank").join(", ")}
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("emergency") ? (checkedSections.emergency ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.emergency}
                                                             onChange={() => toggleSection("emergency")}
                                                             disabled={!canCheckSection("emergency")}
                                                         />
-                                                        <span className="srOnly">Mark emergency contact as complete</span>
+                                                        <span className="reviewChecklistLabel">Emergency contact</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("emergency")}`}>
-                                                        {displaySectionState("emergency") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("emergency") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Emergency contact</span>
                                                     {missingFor("emergency").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("emergency").join(", ")}
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("tax") ? (checkedSections.tax ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.tax}
                                                             onChange={() => toggleSection("tax")}
                                                             disabled={!canCheckSection("tax")}
                                                         />
-                                                        <span className="srOnly">Mark tax information as complete</span>
+                                                        <span className="reviewChecklistLabel">Tax information</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("tax")}`}>
-                                                        {displaySectionState("tax") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("tax") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Tax information</span>
                                                     {missingFor("tax").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("tax").join(", ")}
                                                         </div>
                                                     ) : null}
                                                 </div>
-                                                <div className="reviewChecklistItem">
-                                                    <label className="reviewChecklistToggle">
+                                                <div className={`reviewChecklistItem ${canCheckSection("contract") ? (checkedSections.contract ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
+                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
                                                         <input
                                                             type="checkbox"
                                                             checked={checkedSections.contract}
                                                             onChange={() => toggleSection("contract")}
                                                             disabled={!canCheckSection("contract")}
                                                         />
-                                                        <span className="srOnly">Mark contract setup as complete</span>
+                                                        <span className="reviewChecklistLabel">Contract setup</span>
                                                     </label>
-                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("contract")}`}>
-                                                        {displaySectionState("contract") === "MISSING"
-                                                            ? "Missing"
-                                                            : displaySectionState("contract") === "COMPLETE"
-                                                                ? "Complete"
-                                                                : "Needs review"}
-                                                    </span>
-                                                    <span className="reviewChecklistLabel">Contract setup</span>
                                                     {missingFor("contract").length ? (
                                                         <div className="reviewChecklistMissing">
                                                             Missing: {missingFor("contract").join(", ")}

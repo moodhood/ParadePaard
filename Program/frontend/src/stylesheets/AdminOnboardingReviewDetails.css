@@ -118,6 +118,16 @@
     gap: 8px;
 }
 
+.reviewChecklistItem--missing {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.reviewChecklistItem--complete {
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+}
+
 .reviewChecklistToggle {
     display: inline-flex;
     align-items: center;
@@ -125,6 +135,13 @@
     width: 26px;
     height: 26px;
     flex: 0 0 auto;
+}
+
+.reviewChecklistToggle--inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 26px;
 }
 
 .reviewChecklistToggle input {
@@ -172,83 +189,6 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
-}
-
-.reviewChecklistState {
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px 4px 30px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    border: 1px solid rgba(0, 0, 0, 0.08);
-    background: rgba(248, 250, 252, 0.9);
-    position: relative;
-    flex: 0 0 auto;
-}
-
-.reviewChecklistState::before {
-    content: "";
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 999px;
-    border: 2px solid currentColor;
-    box-sizing: border-box;
-}
-
-.reviewChecklistState--MISSING {
-    color: #991b1b;
-    border-color: #fecaca;
-    background: #fef2f2;
-}
-
-.reviewChecklistState--MISSING::before {
-    background: rgba(153, 27, 27, 0.15);
-}
-
-.reviewChecklistState--MISSING::after {
-    content: "!";
-    position: absolute;
-    left: 13px;
-    top: 50%;
-    transform: translateY(-54%);
-    font-size: 10px;
-    font-weight: 900;
-    line-height: 1;
-    color: currentColor;
-}
-
-.reviewChecklistState--NEEDS_REVIEW {
-    color: #92400e;
-    border-color: #fed7aa;
-    background: #fff7ed;
-}
-
-.reviewChecklistState--COMPLETE {
-    color: #166534;
-    border-color: #bbf7d0;
-    background: #ecfdf5;
-}
-
-.reviewChecklistState--COMPLETE::before {
-    background: #16a34a;
-    border-color: #16a34a;
-}
-
-.reviewChecklistState--COMPLETE::after {
-    content: "";
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    width: 4px;
-    height: 8px;
-    border-right: 2px solid #fff;
-    border-bottom: 2px solid #fff;
-    transform: translateY(-58%) rotate(45deg);
 }
 
 .reviewChecklistLabel {
@@ -438,4 +378,3 @@
         padding-left: 0;
     }
 }
-
