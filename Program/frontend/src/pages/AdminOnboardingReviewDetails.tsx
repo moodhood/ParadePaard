@@ -127,7 +127,7 @@ export default function AdminOnboardingReviewDetails() {
 
     const [contractDraft, setContractDraft] = useState<ContractSetupDraft>({
         functionName: "",
-        contractType: "ON_CALL",
+        contractType: "ON_CALL_RUNNER",
         startDate: "",
         endDate: "",
         grossHourlyWage: "",
@@ -828,8 +828,9 @@ export default function AdminOnboardingReviewDetails() {
                                                         disabled={actionLoading}
                                                     >
                                                         <option value="">Select a contract type</option>
-                                                        <option value="ON_CALL">On-call</option>
-                                                        <option value="FIXED">Fixed</option>
+                                                        <option value="ON_CALL_RUNNER">On-call (Runner)</option>
+                                                        <option value="ON_CALL_BAR">On-call (Bar)</option>
+                                                        <option value="FIXED_HOURS">Fixed hours</option>
                                                     </select>
                                                 </label>
                                                 <div className="reviewFieldRow">
