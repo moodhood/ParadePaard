@@ -15,7 +15,7 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 0 8px 24px 8px;
+    padding: 0 16px 24px 16px;
 }
 
 .reviewCard {
@@ -23,7 +23,7 @@
 }
 
 .reviewCard .uiCardBody {
-    padding: 16px;
+    padding: 18px;
 }
 
 .reviewSummaryTop {
@@ -112,24 +112,92 @@
     border-radius: 8px;
     padding: 10px;
     background: #fff;
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.reviewChecklistToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex: 0 0 auto;
+}
+
+.reviewChecklistToggle input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    appearance: none;
+    background: #fff;
+    border: 2px solid rgba(15, 23, 42, 0.25);
+    border-radius: 6px;
+    position: relative;
+}
+
+.reviewChecklistToggle input:checked {
+    border-color: #16a34a;
+    background: #16a34a;
+}
+
+.reviewChecklistToggle input:checked::after {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 1px;
+    width: 5px;
+    height: 10px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(45deg);
+}
+
+.reviewChecklistToggle input:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    border-color: rgba(15, 23, 42, 0.15);
+    background: rgba(248, 250, 252, 0.8);
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .reviewChecklistState {
     display: inline-flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 4px 10px 4px 30px;
     border-radius: 999px;
     font-size: 12px;
     font-weight: 800;
     border: 1px solid rgba(0, 0, 0, 0.08);
     background: rgba(248, 250, 252, 0.9);
-    margin-right: 8px;
+    position: relative;
+    flex: 0 0 auto;
 }
 
 .reviewChecklistState::before {
-    display: inline-block;
-    margin-right: 6px;
-    font-weight: 900;
+    content: "";
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    border: 2px solid currentColor;
+    box-sizing: border-box;
 }
 
 .reviewChecklistState--MISSING {
@@ -139,17 +207,25 @@
 }
 
 .reviewChecklistState--MISSING::before {
+    background: rgba(153, 27, 27, 0.15);
+}
+
+.reviewChecklistState--MISSING::after {
     content: "!";
+    position: absolute;
+    left: 13px;
+    top: 50%;
+    transform: translateY(-54%);
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    color: currentColor;
 }
 
 .reviewChecklistState--NEEDS_REVIEW {
     color: #92400e;
     border-color: #fed7aa;
     background: #fff7ed;
-}
-
-.reviewChecklistState--NEEDS_REVIEW::before {
-    content: "•";
 }
 
 .reviewChecklistState--COMPLETE {
@@ -159,19 +235,28 @@
 }
 
 .reviewChecklistState--COMPLETE::before {
-    content: "✓";
+    background: #16a34a;
+    border-color: #16a34a;
 }
 
-.reviewFieldRow {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+.reviewChecklistState--COMPLETE::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    width: 4px;
+    height: 8px;
+    border-right: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: translateY(-58%) rotate(45deg);
 }
 
 .reviewChecklistLabel {
     color: #0f172a;
     font-size: 14px;
     font-weight: 800;
+    flex: 1 1 auto;
+    min-width: 140px;
 }
 
 .reviewChecklistMissing {
@@ -179,6 +264,8 @@
     color: #64748b;
     font-size: 13px;
     font-weight: 600;
+    flex: 1 1 100%;
+    padding-left: 34px;
 }
 
 .reviewSections {
@@ -237,6 +324,12 @@
     color: #b91c1c;
     font-size: 13px;
     font-weight: 700;
+}
+
+.reviewFieldRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .reviewFormGrid {
@@ -340,4 +433,9 @@
     .reviewFieldCheckbox {
         padding-top: 0;
     }
+
+    .reviewChecklistMissing {
+        padding-left: 0;
+    }
 }
+

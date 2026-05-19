@@ -32,6 +32,7 @@ type ContractSetupDraft = {
 };
 
 type ChecklistState = "COMPLETE" | "MISSING" | "NEEDS_REVIEW";
+type ChecklistSectionKey = "personal" | "address" | "identification" | "bank" | "emergency" | "tax" | "contract";
 
 function personFullName(user: UserResponseDTO): string {
     const parts = [user.firstNames, user.middleNamePrefix, user.lastName]
@@ -147,6 +148,16 @@ export default function AdminOnboardingReviewDetails() {
     const [idDocumentError, setIdDocumentError] = useState<string | null>(null);
     const [idDocumentNoFile, setIdDocumentNoFile] = useState(false);
 
+    const [checkedSections, setCheckedSections] = useState<Record<ChecklistSectionKey, boolean>>({
+        personal: false,
+        address: false,
+        identification: false,
+        bank: false,
+        emergency: false,
+        tax: false,
+        contract: false,
+    });
+
     const load = useCallback(async () => {
         if (!userId) return;
         try {
@@ -247,6 +258,23 @@ export default function AdminOnboardingReviewDetails() {
         });
         return { missing, states };
     }, [user, contractDraft, selectedFunctionId]);
+
+    useEffect(() => {
+        // If fields become missing, clear the manual checkmark so the UI stays honest.
+        const keys: ChecklistSectionKey[] = ["personal", "address", "identification", "bank", "emergency", "tax", "contract"];
+        setCheckedSections((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            for (const key of keys) {
+                const hasMissing = (checklist.missing[key] ?? []).length > 0;
+                if (hasMissing && next[key]) {
+                    next[key] = false;
+                    changed = true;
+                }
+            }
+            return changed ? next : prev;
+        });
+    }, [checklist.missing]);
 
     const decisionStatus = useMemo(() => {
         if (reviewDecision === "NEEDS_CHANGES") return "CHANGES_REQUESTED";
@@ -426,7 +454,16 @@ export default function AdminOnboardingReviewDetails() {
         }
     };
 
-    const missingFor = (key: keyof typeof checklist.missing) => checklist.missing[key] ?? [];
+    const missingFor = (key: ChecklistSectionKey) => checklist.missing[key] ?? [];
+    const canCheckSection = (key: ChecklistSectionKey) => missingFor(key).length === 0;
+    const displaySectionState = (key: ChecklistSectionKey): ChecklistState => {
+        if (!canCheckSection(key)) return "MISSING";
+        return checkedSections[key] ? "COMPLETE" : "NEEDS_REVIEW";
+    };
+    const toggleSection = (key: ChecklistSectionKey) => {
+        if (!canCheckSection(key)) return;
+        setCheckedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+    };
 
     if (!userId) {
         return (
@@ -842,12 +879,21 @@ export default function AdminOnboardingReviewDetails() {
                                         <Card title="Review checklist" className="reviewCard">
                                             <div className="reviewChecklist">
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.personal}`}>
-                                                        {checklist.states.personal === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.personal}
+                                                            onChange={() => toggleSection("personal")}
+                                                            disabled={!canCheckSection("personal")}
+                                                        />
+                                                        <span className="srOnly">Mark personal information as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("personal")}`}>
+                                                        {displaySectionState("personal") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.personal === "COMPLETE"
+                                                            : displaySectionState("personal") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Personal information</span>
                                                     {missingFor("personal").length ? (
@@ -857,12 +903,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.address}`}>
-                                                        {checklist.states.address === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.address}
+                                                            onChange={() => toggleSection("address")}
+                                                            disabled={!canCheckSection("address")}
+                                                        />
+                                                        <span className="srOnly">Mark address as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("address")}`}>
+                                                        {displaySectionState("address") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.address === "COMPLETE"
+                                                            : displaySectionState("address") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Address</span>
                                                     {missingFor("address").length ? (
@@ -872,12 +927,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.identification}`}>
-                                                        {checklist.states.identification === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.identification}
+                                                            onChange={() => toggleSection("identification")}
+                                                            disabled={!canCheckSection("identification")}
+                                                        />
+                                                        <span className="srOnly">Mark identification as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("identification")}`}>
+                                                        {displaySectionState("identification") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.identification === "COMPLETE"
+                                                            : displaySectionState("identification") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Identification</span>
                                                     {missingFor("identification").length ? (
@@ -887,12 +951,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.bank}`}>
-                                                        {checklist.states.bank === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.bank}
+                                                            onChange={() => toggleSection("bank")}
+                                                            disabled={!canCheckSection("bank")}
+                                                        />
+                                                        <span className="srOnly">Mark bank details as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("bank")}`}>
+                                                        {displaySectionState("bank") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.bank === "COMPLETE"
+                                                            : displaySectionState("bank") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Bank details</span>
                                                     {missingFor("bank").length ? (
@@ -902,12 +975,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.emergency}`}>
-                                                        {checklist.states.emergency === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.emergency}
+                                                            onChange={() => toggleSection("emergency")}
+                                                            disabled={!canCheckSection("emergency")}
+                                                        />
+                                                        <span className="srOnly">Mark emergency contact as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("emergency")}`}>
+                                                        {displaySectionState("emergency") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.emergency === "COMPLETE"
+                                                            : displaySectionState("emergency") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Emergency contact</span>
                                                     {missingFor("emergency").length ? (
@@ -917,12 +999,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.tax}`}>
-                                                        {checklist.states.tax === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.tax}
+                                                            onChange={() => toggleSection("tax")}
+                                                            disabled={!canCheckSection("tax")}
+                                                        />
+                                                        <span className="srOnly">Mark tax information as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("tax")}`}>
+                                                        {displaySectionState("tax") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.tax === "COMPLETE"
+                                                            : displaySectionState("tax") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Tax information</span>
                                                     {missingFor("tax").length ? (
@@ -932,12 +1023,21 @@ export default function AdminOnboardingReviewDetails() {
                                                     ) : null}
                                                 </div>
                                                 <div className="reviewChecklistItem">
-                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.contract}`}>
-                                                        {checklist.states.contract === "MISSING"
+                                                    <label className="reviewChecklistToggle">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={checkedSections.contract}
+                                                            onChange={() => toggleSection("contract")}
+                                                            disabled={!canCheckSection("contract")}
+                                                        />
+                                                        <span className="srOnly">Mark contract setup as complete</span>
+                                                    </label>
+                                                    <span className={`reviewChecklistState reviewChecklistState--${displaySectionState("contract")}`}>
+                                                        {displaySectionState("contract") === "MISSING"
                                                             ? "Missing"
-                                                            : checklist.states.contract === "COMPLETE"
+                                                            : displaySectionState("contract") === "COMPLETE"
                                                                 ? "Complete"
-                                                                : "Review"}
+                                                                : "Needs review"}
                                                     </span>
                                                     <span className="reviewChecklistLabel">Contract setup</span>
                                                     {missingFor("contract").length ? (
