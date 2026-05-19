@@ -455,6 +455,17 @@ export default function AdminOnboardingReviewDetails() {
         if (!canCheckSection(key)) return;
         setCheckedSections((prev) => ({ ...prev, [key]: !prev[key] }));
     };
+    const sectionTitle = (key: ChecklistSectionKey, label: string) => (
+        <label className="reviewSectionTitle">
+            <input
+                type="checkbox"
+                checked={checkedSections[key]}
+                onChange={() => toggleSection(key)}
+                disabled={!canCheckSection(key)}
+            />
+            <span>{label}</span>
+        </label>
+    );
 
     if (!userId) {
         return (
@@ -542,7 +553,10 @@ export default function AdminOnboardingReviewDetails() {
                                     </Card>
 
                                     <div className="reviewSections">
-                                        <Card title="Personal information" className="reviewCard">
+                                        <Card title={sectionTitle("personal", "Personal information")} className="reviewCard">
+                                            {missingFor("personal").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("personal").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 <div className="reviewRow">
                                                     <div className="reviewLabel">Full name</div>
@@ -597,7 +611,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Address" className="reviewCard">
+                                        <Card title={sectionTitle("address", "Address")} className="reviewCard">
+                                            {missingFor("address").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("address").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 {[
                                                     ["Street", user.street],
@@ -617,7 +634,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Identification" className="reviewCard">
+                                        <Card title={sectionTitle("identification", "Identification")} className="reviewCard">
+                                            {missingFor("identification").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("identification").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 {[
                                                     ["Document type", user.idDocumentType ?? null],
@@ -659,7 +679,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Bank details" className="reviewCard">
+                                        <Card title={sectionTitle("bank", "Bank details")} className="reviewCard">
+                                            {missingFor("bank").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("bank").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 <div className="reviewRow">
                                                     <div className="reviewLabel">Account holder</div>
@@ -676,7 +699,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Emergency contact" className="reviewCard">
+                                        <Card title={sectionTitle("emergency", "Emergency contact")} className="reviewCard">
+                                            {missingFor("emergency").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("emergency").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 {[
                                                     ["Contact name", user.emergencyContactName ?? null],
@@ -694,7 +720,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Tax information" className="reviewCard">
+                                        <Card title={sectionTitle("tax", "Tax information")} className="reviewCard">
+                                            {missingFor("tax").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("tax").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewRows">
                                                 <div className="reviewRow">
                                                     <div className="reviewLabel">BSN</div>
@@ -721,7 +750,10 @@ export default function AdminOnboardingReviewDetails() {
                                             </div>
                                         </Card>
 
-                                        <Card title="Contract setup" className="reviewCard">
+                                        <Card title={sectionTitle("contract", "Contract setup")} className="reviewCard">
+                                            {missingFor("contract").length ? (
+                                                <div className="reviewSectionMissing">Missing: {missingFor("contract").join(", ")}</div>
+                                            ) : null}
                                             <div className="reviewFormGrid">
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
@@ -864,123 +896,6 @@ export default function AdminOnboardingReviewDetails() {
                                                     />
                                                     <span>Travel allowance</span>
                                                 </label>
-                                            </div>
-                                        </Card>
-
-                                        <Card title="Review checklist" className="reviewCard">
-                                            <div className="reviewChecklist">
-                                                <div className={`reviewChecklistItem ${canCheckSection("personal") ? (checkedSections.personal ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.personal}
-                                                            onChange={() => toggleSection("personal")}
-                                                            disabled={!canCheckSection("personal")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Personal information</span>
-                                                    </label>
-                                                    {missingFor("personal").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("personal").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("address") ? (checkedSections.address ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.address}
-                                                            onChange={() => toggleSection("address")}
-                                                            disabled={!canCheckSection("address")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Address</span>
-                                                    </label>
-                                                    {missingFor("address").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("address").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("identification") ? (checkedSections.identification ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.identification}
-                                                            onChange={() => toggleSection("identification")}
-                                                            disabled={!canCheckSection("identification")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Identification</span>
-                                                    </label>
-                                                    {missingFor("identification").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: Missing ID document
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("bank") ? (checkedSections.bank ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.bank}
-                                                            onChange={() => toggleSection("bank")}
-                                                            disabled={!canCheckSection("bank")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Bank details</span>
-                                                    </label>
-                                                    {missingFor("bank").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("bank").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("emergency") ? (checkedSections.emergency ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.emergency}
-                                                            onChange={() => toggleSection("emergency")}
-                                                            disabled={!canCheckSection("emergency")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Emergency contact</span>
-                                                    </label>
-                                                    {missingFor("emergency").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("emergency").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("tax") ? (checkedSections.tax ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.tax}
-                                                            onChange={() => toggleSection("tax")}
-                                                            disabled={!canCheckSection("tax")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Tax information</span>
-                                                    </label>
-                                                    {missingFor("tax").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("tax").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                                <div className={`reviewChecklistItem ${canCheckSection("contract") ? (checkedSections.contract ? "reviewChecklistItem--complete" : "") : "reviewChecklistItem--missing"}`}>
-                                                    <label className="reviewChecklistToggle reviewChecklistToggle--inline">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={checkedSections.contract}
-                                                            onChange={() => toggleSection("contract")}
-                                                            disabled={!canCheckSection("contract")}
-                                                        />
-                                                        <span className="reviewChecklistLabel">Contract setup</span>
-                                                    </label>
-                                                    {missingFor("contract").length ? (
-                                                        <div className="reviewChecklistMissing">
-                                                            Missing: {missingFor("contract").join(", ")}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
                                             </div>
                                         </Card>
 

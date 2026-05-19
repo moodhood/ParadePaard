@@ -197,6 +197,35 @@
     gap: 14px;
 }
 
+.reviewSectionTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+.reviewSectionTitle input {
+    width: 18px;
+    height: 18px;
+    accent-color: #16a34a;
+    cursor: pointer;
+    flex: 0 0 auto;
+}
+
+.reviewSectionTitle input:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.reviewSectionMissing {
+    margin: 2px 0 10px 0;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
 .reviewRows {
     display: grid;
     gap: 8px;
