@@ -192,6 +192,15 @@ export default function AdminOnboardingReviewDetails() {
                 }
             }
             setReviewNote(userRes.onboardingReviewNote ?? "");
+
+            const stored = localStorage.getItem(`onboarding-review-checked-${userId}`);
+            if (stored) {
+                try {
+                    setCheckedSections(JSON.parse(stored));
+                } catch {
+                    // ignore corrupted stored value
+                }
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load onboarding review.";
             setError(message);
@@ -259,6 +268,11 @@ export default function AdminOnboardingReviewDetails() {
 
         return { missing };
     }, [user, contractDraft, selectedFunctionId]);
+
+    useEffect(() => {
+        if (!userId) return;
+        localStorage.setItem(`onboarding-review-checked-${userId}`, JSON.stringify(checkedSections));
+    }, [checkedSections, userId]);
 
     useEffect(() => {
         // If fields become missing, clear the manual checkmark so the UI stays honest.
