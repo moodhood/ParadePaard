@@ -24,6 +24,17 @@ export type MessageSendRequestDTO = {
     body: string;
 };
 
+export type MessageRealtimeEventDTO = {
+    conversationId?: string | null;
+    userDisplayName?: string | null;
+    userEmail?: string | null;
+    message?: MessageEntryDTO | null;
+    lastMessageAt?: string | null;
+    lastMessagePreview?: string | null;
+    unreadByAdminCount?: number | null;
+    unreadByUserCount?: number | null;
+};
+
 const messageError = (error: unknown, fallback: string) => {
     if (axios.isAxiosError(error)) {
         return new Error(error.response?.data?.message || fallback);

@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AdminSharedInboxPanel } from "../pages/AdminMessages";
-import { UserServices, type MessageConversationDTO } from "../services/user-service/UserServices";
+import { UserServices, type MessageConversationDTO, type MessageRealtimeEventDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Messages.css";
 
 type AdminMessageDrawerProps = {
@@ -30,6 +30,25 @@ export default function AdminMessageDrawer({ open, onClose }: AdminMessageDrawer
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
     const [collapsed, setCollapsed] = useState(false);
+
+    const sseBaseUrl = useMemo(() => {
+        const base = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004").replace(/\/$/, "");
+        return base;
+    }, []);
+
+    const refreshSelectedConversation = useCallback(async () => {
+        const conversationId = selectedConversation?.conversationId;
+        if (!conversationId) return;
+        try {
+            setDetailLoading(true);
+            setDetailError(null);
+            setSelectedConversation(await UserServices.getAdminMessageConversation(conversationId));
+        } catch (err: unknown) {
+            setDetailError(err instanceof Error ? err.message : "Could not load this conversation");
+        } finally {
+            setDetailLoading(false);
+        }
+    }, [selectedConversation?.conversationId]);
 
     const loadConversations = useCallback(async () => {
         try {
@@ -64,6 +83,93 @@ export default function AdminMessageDrawer({ open, onClose }: AdminMessageDrawer
         if (!open) return;
         void loadConversations();
     }, [loadConversations, open]);
+
+    useEffect(() => {
+        if (!open) return;
+
+        if (typeof EventSource === "undefined") {
+            const interval = window.setInterval(() => {
+                void loadConversations();
+                void refreshSelectedConversation();
+            }, 4000);
+            return () => window.clearInterval(interval);
+        }
+
+        const source = new EventSource(`${sseBaseUrl}/api/messages/admin/conversations/stream`, { withCredentials: true });
+
+        source.onmessage = (evt: MessageEvent<string>) => {
+            let data: MessageRealtimeEventDTO | null = null;
+            try {
+                data = JSON.parse(evt.data) as MessageRealtimeEventDTO;
+            } catch {
+                return;
+            }
+
+            const conversationId = data?.conversationId ?? null;
+            const incoming = data?.message ?? null;
+            if (!conversationId || !incoming?.messageId) return;
+
+            setConversations((prev) => {
+                const next = prev.slice();
+                const idx = next.findIndex((c) => c.conversationId === conversationId);
+                if (idx === -1) {
+                    next.push({
+                        conversationId,
+                        userId: null,
+                        userDisplayName: data?.userDisplayName ?? null,
+                        userEmail: data?.userEmail ?? null,
+                        lastMessagePreview: data?.lastMessagePreview ?? incoming.body ?? null,
+                        lastMessageAt: data?.lastMessageAt ?? null,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? 0,
+                        unreadByUserCount: data?.unreadByUserCount ?? 0,
+                        messages: [],
+                    });
+                } else {
+                    const existing = next[idx];
+                    next[idx] = {
+                        ...existing,
+                        lastMessageAt: data?.lastMessageAt ?? existing.lastMessageAt,
+                        lastMessagePreview: data?.lastMessagePreview ?? existing.lastMessagePreview,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? existing.unreadByAdminCount,
+                        unreadByUserCount: data?.unreadByUserCount ?? existing.unreadByUserCount,
+                    };
+                }
+
+                next.sort((a, b) => {
+                    const ta = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0;
+                    const tb = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0;
+                    return tb - ta;
+                });
+                return next;
+            });
+
+            setSelectedConversation((prev) => {
+                if (!prev) return prev;
+                if ((prev.conversationId ?? null) !== conversationId) return prev;
+
+                const messages = prev.messages ?? [];
+                if (messages.some((m) => m.messageId === incoming.messageId)) return prev;
+
+                const nextMessages = [...messages, incoming].slice().sort((a, b) => {
+                    const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+                    const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+                    if (ta !== tb) return ta - tb;
+                    return String(a.messageId ?? "").localeCompare(String(b.messageId ?? ""));
+                });
+
+                return {
+                    ...prev,
+                    lastMessageAt: data?.lastMessageAt ?? prev.lastMessageAt,
+                    lastMessagePreview: data?.lastMessagePreview ?? prev.lastMessagePreview,
+                    unreadByAdminCount: data?.unreadByAdminCount ?? prev.unreadByAdminCount,
+                    unreadByUserCount: data?.unreadByUserCount ?? prev.unreadByUserCount,
+                    messages: nextMessages,
+                };
+            });
+        };
+
+        return () => source.close();
+    }, [loadConversations, open, refreshSelectedConversation, sseBaseUrl]);
 
     const sendReply = async () => {
         const conversationId = selectedConversation?.conversationId;

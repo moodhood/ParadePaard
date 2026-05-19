@@ -10,6 +10,7 @@ import com.pm.userservice.repository.MessageConversationRepository;
 import com.pm.userservice.repository.MessageEntryRepository;
 import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.service.MessageService;
+import com.pm.userservice.service.MessageSseService;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,10 +28,12 @@ class MessageServiceTest {
     private final MessageConversationRepository conversationRepository = mock(MessageConversationRepository.class);
     private final MessageEntryRepository entryRepository = mock(MessageEntryRepository.class);
     private final UserRepository userRepository = mock(UserRepository.class);
+    private final MessageSseService messageSseService = mock(MessageSseService.class);
     private final MessageService messageService = new MessageService(
             conversationRepository,
             entryRepository,
-            userRepository
+            userRepository,
+            messageSseService
     );
 
     @Test

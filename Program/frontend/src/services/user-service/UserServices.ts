@@ -28,6 +28,7 @@ import {
     type MessageConversationDTO,
     type MessageEntryDTO,
     type MessageSendRequestDTO,
+    type MessageRealtimeEventDTO,
 } from "./Messages";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
@@ -179,6 +180,7 @@ export type {
     MessageConversationDTO,
     MessageEntryDTO,
     MessageSendRequestDTO,
+    MessageRealtimeEventDTO,
     PlanningEventDTO,
     PlanningDayDTO,
     PlanningShiftDTO,

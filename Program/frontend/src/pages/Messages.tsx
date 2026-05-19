@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
-import { UserServices, type MessageConversationDTO, type MessageEntryDTO } from "../services/user-service/UserServices";
+import { UserServices, type MessageConversationDTO, type MessageEntryDTO, type MessageRealtimeEventDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Messages.css";
 
 type UserMessagesViewProps = {
@@ -56,6 +56,17 @@ export function UserMessagesView({
     onReload,
 }: UserMessagesViewProps) {
     const messages = conversation?.messages ?? [];
+    const messageListRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const el = messageListRef.current;
+        if (!el) return;
+        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        const nearBottom = distanceFromBottom < 80;
+        if (!nearBottom) return;
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }, [messages.length]);
+
     return (
         <>
             <Navbar />
@@ -80,7 +91,7 @@ export function UserMessagesView({
                             {loading ? <p className="messageEmpty">Loading messages...</p> : null}
                             {error ? <p className="messageError">{error}</p> : null}
                             {!loading && !error ? (
-                                <div className="messageList">
+                                <div className="messageList" ref={messageListRef}>
                                     {messages.length === 0 ? (
                                         <div>
                                             <p className="messageEmpty">No messages yet</p>
@@ -126,6 +137,11 @@ export default function Messages() {
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
 
+    const sseBaseUrl = useMemo(() => {
+        const base = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004").replace(/\/$/, "");
+        return base;
+    }, []);
+
     const loadConversation = useCallback(async () => {
         try {
             setLoading(true);
@@ -141,6 +157,70 @@ export default function Messages() {
     useEffect(() => {
         void loadConversation();
     }, [loadConversation]);
+
+    useEffect(() => {
+        if (typeof EventSource === "undefined") {
+            const interval = window.setInterval(() => void loadConversation(), 4000);
+            return () => window.clearInterval(interval);
+        }
+
+        const source = new EventSource(`${sseBaseUrl}/api/messages/me/stream`, { withCredentials: true });
+
+        source.onmessage = (evt: MessageEvent<string>) => {
+            let data: MessageRealtimeEventDTO | null = null;
+            try {
+                data = JSON.parse(evt.data) as MessageRealtimeEventDTO;
+            } catch {
+                return;
+            }
+
+            const incoming = data?.message ?? null;
+            if (!incoming?.messageId) return;
+
+            setConversation((prev) => {
+                if (!prev) return prev;
+                const prevId = prev.conversationId ?? null;
+                const nextId = data?.conversationId ?? null;
+                if (prevId && nextId && prevId !== nextId) return prev;
+
+                const messages = prev.messages ?? [];
+                if (messages.some((m) => m.messageId === incoming.messageId)) {
+                    // still update preview/unread metadata if needed
+                    return {
+                        ...prev,
+                        lastMessageAt: data?.lastMessageAt ?? prev.lastMessageAt,
+                        lastMessagePreview: data?.lastMessagePreview ?? prev.lastMessagePreview,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? prev.unreadByAdminCount,
+                        unreadByUserCount: data?.unreadByUserCount ?? prev.unreadByUserCount,
+                    };
+                }
+
+                const nextMessages: MessageEntryDTO[] = [...messages, incoming].slice().sort((a, b) => {
+                    const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+                    const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+                    if (ta !== tb) return ta - tb;
+                    return String(a.messageId ?? "").localeCompare(String(b.messageId ?? ""));
+                });
+
+                return {
+                    ...prev,
+                    lastMessageAt: data?.lastMessageAt ?? prev.lastMessageAt,
+                    lastMessagePreview: data?.lastMessagePreview ?? prev.lastMessagePreview,
+                    unreadByAdminCount: data?.unreadByAdminCount ?? prev.unreadByAdminCount,
+                    unreadByUserCount: data?.unreadByUserCount ?? prev.unreadByUserCount,
+                    messages: nextMessages,
+                };
+            });
+        };
+
+        source.addEventListener("error", () => {
+            // EventSource will auto-reconnect; nothing to do here.
+        });
+
+        return () => {
+            source.close();
+        };
+    }, [loadConversation, sseBaseUrl]);
 
     const sendMessage = async () => {
         const body = draft.trim();

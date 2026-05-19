@@ -100,7 +100,9 @@ The page keeps the shared top navigation bar visible, consistent with the other 
 
 The page shows the message history in chronological order. Messages from the signed-in user are shown as the user's own messages, and replies from management are shown as Company messages. The user can refresh the thread, type a new message, and send it to the company. If there are no messages yet, the page explains that the user can send the first message to the company.
 
-The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates so the user can continue in the same thread later.
+While the user stays on the page, the thread updates live. New company replies appear automatically without the user needing to refresh the page. The Refresh button is still available as a manual fallback, but it is no longer required for normal use.
+
+The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates immediately so the user can continue in the same thread later.
 
 \subsection{Management Dashboard}
 
@@ -126,6 +128,8 @@ The inbox starts as a list of messenger names. Each row shows the employee name,
 When an admin clicks a messenger name, the whole message box changes into that user's chat. The list is no longer shown beside the thread, so the selected conversation fills the message box. A Back to inbox button returns the admin to the name list.
 
 Admins can type a reply in the selected thread and send it as the company. The frontend does not ask the admin to choose which individual admin account should receive the message. The backend still records which admin sent the reply, but the normal user sees the reply as a Company message.
+
+While an admin keeps the shared inbox open, new incoming user messages and new admin replies appear automatically. This keeps the inbox list and open conversation thread in sync across multiple admins without a manual page refresh. The Refresh button is still available as a manual fallback, but it is no longer required for normal use.
 
 The page includes loading, empty, error, refresh, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
 \subsection{Management Applications Page}
@@ -472,6 +476,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 19: Made the user and admin Messages inbox update live so new incoming messages appear automatically without a manual page refresh.
     \item 2026 05 19: Restored the shared top navigation bar on the Messages pages so they match the layout of the other pages.
     \item 2026 05 19: Blocked the onboarding review Create and send contract action until every review section checkbox is checked.
     \item 2026 05 19: Made completed onboarding review section headers turn green when the section checkbox is checked.
