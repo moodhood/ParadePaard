@@ -17,7 +17,6 @@ type AdminMessagesViewProps = {
     onSelectConversation: (conversationId: string) => void;
     onDraftChange: (value: string) => void;
     onSend: () => void;
-    onRefresh: () => void;
     onBackToInbox: () => void;
     headerActions?: ReactNode;
 };
@@ -61,7 +60,6 @@ export function AdminMessagesView({
     onSelectConversation,
     onDraftChange,
     onSend,
-    onRefresh,
     onBackToInbox,
     headerActions,
 }: AdminMessagesViewProps) {
@@ -89,7 +87,6 @@ export function AdminMessagesView({
                                 onSelectConversation={onSelectConversation}
                                 onDraftChange={onDraftChange}
                                 onSend={onSend}
-                                onRefresh={onRefresh}
                                 onBackToInbox={onBackToInbox}
                                 headerActions={headerActions}
                             />
@@ -114,7 +111,6 @@ export function AdminSharedInboxPanel({
     onSelectConversation,
     onDraftChange,
     onSend,
-    onRefresh,
     onBackToInbox,
     headerActions,
 }: AdminMessagesViewProps) {
@@ -140,9 +136,6 @@ export function AdminSharedInboxPanel({
                             <p className="messagePanelMeta">Visible to all admins with message access.</p>
                         </div>
                         <div className="messagePanelActions">
-                            <button type="button" className="buttonSecondary" onClick={onRefresh} disabled={loading}>
-                                Refresh
-                            </button>
                             {headerActions}
                         </div>
                     </div>
@@ -410,7 +403,6 @@ export default function AdminMessages() {
             onSelectConversation={(conversationId) => void loadConversation(conversationId)}
             onDraftChange={setDraft}
             onSend={() => void sendReply()}
-            onRefresh={() => void loadConversations()}
             onBackToInbox={() => {
                 setSelectedConversation(null);
                 setDraft("");

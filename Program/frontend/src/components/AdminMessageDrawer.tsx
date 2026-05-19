@@ -5,7 +5,6 @@ import "../stylesheets/Messages.css";
 
 type AdminMessageDrawerProps = {
     open: boolean;
-    onClose: () => void;
 };
 
 function initialsFor(conversation: MessageConversationDTO) {
@@ -19,7 +18,7 @@ function displayNameFor(conversation: MessageConversationDTO) {
     return conversation.userDisplayName ?? conversation.userEmail ?? "Unknown user";
 }
 
-export default function AdminMessageDrawer({ open, onClose }: AdminMessageDrawerProps) {
+export default function AdminMessageDrawer({ open }: AdminMessageDrawerProps) {
     const [conversations, setConversations] = useState<MessageConversationDTO[]>([]);
     const [selectedConversation, setSelectedConversation] = useState<MessageConversationDTO | null>(null);
     const [loading, setLoading] = useState(false);
@@ -238,18 +237,6 @@ export default function AdminMessageDrawer({ open, onClose }: AdminMessageDrawer
                     <path d="m15 18-6-6 6-6" />
                 </svg>
             </button>
-            <button
-                type="button"
-                className="adminMessageDrawerIconButton"
-                aria-label="Close shared admin inbox"
-                title="Close shared admin inbox"
-                onClick={onClose}
-            >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M18 6 6 18" />
-                    <path d="m6 6 12 12" />
-                </svg>
-            </button>
         </>
     );
 
@@ -268,7 +255,6 @@ export default function AdminMessageDrawer({ open, onClose }: AdminMessageDrawer
                 onSelectConversation={(conversationId) => void loadConversation(conversationId)}
                 onDraftChange={setDraft}
                 onSend={() => void sendReply()}
-                onRefresh={() => void loadConversations()}
                 onBackToInbox={() => {
                     setSelectedConversation(null);
                     setDraft("");
