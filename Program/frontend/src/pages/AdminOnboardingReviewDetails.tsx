@@ -504,88 +504,6 @@ export default function AdminOnboardingReviewDetails() {
                                         </div>
                                     </Card>
 
-                                    <Card title="Review checklist" className="reviewCard">
-                                        <div className="reviewChecklist">
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.personal}`}>
-                                                    {checklist.states.personal === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Personal information</span>
-                                                {missingFor("personal").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("personal").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.address}`}>
-                                                    {checklist.states.address === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Address</span>
-                                                {missingFor("address").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("address").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.identification}`}>
-                                                    {checklist.states.identification === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Identification</span>
-                                                {missingFor("identification").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: Missing ID document
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.bank}`}>
-                                                    {checklist.states.bank === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Bank details</span>
-                                                {missingFor("bank").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("bank").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.emergency}`}>
-                                                    {checklist.states.emergency === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Emergency contact</span>
-                                                {missingFor("emergency").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("emergency").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.tax}`}>
-                                                    {checklist.states.tax === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Tax information</span>
-                                                {missingFor("tax").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("tax").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="reviewChecklistItem">
-                                                <span className={`reviewChecklistState reviewChecklistState--${checklist.states.contract}`}>
-                                                    {checklist.states.contract === "MISSING" ? "Missing information" : "Needs review"}
-                                                </span>
-                                                <span className="reviewChecklistLabel">Contract setup</span>
-                                                {missingFor("contract").length ? (
-                                                    <div className="reviewChecklistMissing">
-                                                        Missing: {missingFor("contract").join(", ")}
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                        </div>
-                                    </Card>
-
                                     <div className="reviewSections">
                                         <Card title="Personal information" className="reviewCard">
                                             <div className="reviewRows">
@@ -886,6 +804,88 @@ export default function AdminOnboardingReviewDetails() {
                                                     />
                                                     <span>Travel allowance</span>
                                                 </label>
+                                            </div>
+                                        </Card>
+
+                                        <Card title="Review checklist" className="reviewCard">
+                                            <div className="reviewChecklist">
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.personal}`}>
+                                                        {checklist.states.personal === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Personal information</span>
+                                                    {missingFor("personal").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("personal").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.address}`}>
+                                                        {checklist.states.address === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Address</span>
+                                                    {missingFor("address").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("address").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.identification}`}>
+                                                        {checklist.states.identification === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Identification</span>
+                                                    {missingFor("identification").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: Missing ID document
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.bank}`}>
+                                                        {checklist.states.bank === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Bank details</span>
+                                                    {missingFor("bank").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("bank").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.emergency}`}>
+                                                        {checklist.states.emergency === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Emergency contact</span>
+                                                    {missingFor("emergency").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("emergency").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.tax}`}>
+                                                        {checklist.states.tax === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Tax information</span>
+                                                    {missingFor("tax").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("tax").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                                <div className="reviewChecklistItem">
+                                                    <span className={`reviewChecklistState reviewChecklistState--${checklist.states.contract}`}>
+                                                        {checklist.states.contract === "MISSING" ? "Missing information" : "Needs review"}
+                                                    </span>
+                                                    <span className="reviewChecklistLabel">Contract setup</span>
+                                                    {missingFor("contract").length ? (
+                                                        <div className="reviewChecklistMissing">
+                                                            Missing: {missingFor("contract").join(", ")}
+                                                        </div>
+                                                    ) : null}
+                                                </div>
                                             </div>
                                         </Card>
 
