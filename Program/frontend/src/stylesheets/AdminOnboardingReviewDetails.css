@@ -159,7 +159,8 @@
 
 .reviewChecklistToggle input:disabled {
     cursor: not-allowed;
-    opacity: 0.6;
+    /* Keep the visual state readable in the read-only checklist. */
+    opacity: 1;
 }
 
 .srOnly {
