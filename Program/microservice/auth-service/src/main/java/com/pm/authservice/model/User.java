@@ -34,6 +34,10 @@ public class User {
     @Column(nullable = false)
     private boolean mustChangePassword = false;
 
+    @Column(nullable = false)
+    @ColumnDefault("false")
+    private boolean disabled = false;
+
     @Column(name = "company_id", nullable = false)
     @ColumnDefault("'00000000-0000-0000-0000-000000000001'")
     private UUID companyId;
@@ -67,6 +71,9 @@ public class User {
 
     public boolean isMustChangePassword() { return mustChangePassword; }
     public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+
+    public boolean isDisabled() { return disabled; }
+    public void setDisabled(boolean disabled) { this.disabled = disabled; }
 
     public UUID getCompanyId() { return companyId; }
     public void setCompanyId(UUID companyId) { this.companyId = companyId; }

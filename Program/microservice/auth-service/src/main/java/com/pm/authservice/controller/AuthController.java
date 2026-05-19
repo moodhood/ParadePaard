@@ -80,6 +80,22 @@ public class AuthController {
         return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Disable user login")
+    @PreAuthorize("hasAuthority('CAN_REVIEW_ONBOARDING') or hasAuthority('CAN_MANAGE_USERS')")
+    @PutMapping("/admin/users/{id}/disable")
+    public ResponseEntity<Void> disableUser(@PathVariable("id") UUID userId) {
+        authService.setUserDisabled(userId, true);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Enable user login")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_USERS')")
+    @PutMapping("/admin/users/{id}/enable")
+    public ResponseEntity<Void> enableUser(@PathVariable("id") UUID userId) {
+        authService.setUserDisabled(userId, false);
+        return ResponseEntity.noContent().build();
+    }
+
     @Operation(summary = "Update existing role")
     @PreAuthorize("hasAuthority('CAN_EDIT_ROLES')")
     @PutMapping("/admin/roles/{id}")

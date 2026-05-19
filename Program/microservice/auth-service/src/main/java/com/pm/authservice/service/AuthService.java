@@ -190,6 +190,9 @@ public class AuthService {
                 .filter(user -> passwordEncoder.matches(loginRequestDTO.getPassword(), user.getPassword()))
                 .map(user -> {
                     User normalizedUser = normalizeBuiltInUserRoles(user);
+                    if (normalizedUser.isDisabled()) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).<AuthResponseDTO>build();
+                    }
                     String accessToken = accessToken(normalizedUser);
                     String refreshToken = refreshToken(normalizedUser);
 
@@ -218,6 +221,13 @@ public class AuthService {
                             .body(authResponseDTO);
                 })
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
+    }
+
+    public void setUserDisabled(UUID id, boolean disabled) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setDisabled(disabled);
+        userRepository.save(user);
     }
 
     private String ensureUniqueUsername(String baseUsername) {

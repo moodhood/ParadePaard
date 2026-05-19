@@ -42,11 +42,13 @@ CREATE TABLE IF NOT EXISTS "users" (
                                        username VARCHAR(255) UNIQUE NOT NULL,
                                        password VARCHAR(255) NOT NULL,
                                        must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+                                       disabled BOOLEAN NOT NULL DEFAULT FALSE,
                                        company_id UUID NOT NULL
     );
 
 -- keep seed scripts compatible with existing databases
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS disabled BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS first_name VARCHAR(255);
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS last_name VARCHAR(255);
 ALTER TABLE IF EXISTS "users" ADD COLUMN IF NOT EXISTS username VARCHAR(255);
@@ -61,6 +63,7 @@ SET email = COALESCE(email, CONCAT('unknown_', id, '@example.com')),
     last_name = COALESCE(last_name, 'User'),
     password = COALESCE(password, '$2b$12$7hoRZfJrRKD2nIm2vHLs7OBETy.LWenXXMLKf99W8M4PUwO6KB7fu'),
     must_change_password = COALESCE(must_change_password, FALSE),
+    disabled = COALESCE(disabled, FALSE),
     company_id = COALESCE(company_id, '00000000-0000-0000-0000-000000000001'::uuid)
 WHERE email IS NULL
    OR username IS NULL
@@ -68,6 +71,7 @@ WHERE email IS NULL
    OR last_name IS NULL
    OR password IS NULL
    OR must_change_password IS NULL
+   OR disabled IS NULL
    OR company_id IS NULL;
 
 ALTER TABLE IF EXISTS "users" ALTER COLUMN email SET NOT NULL;
@@ -75,6 +79,7 @@ ALTER TABLE IF EXISTS "users" ALTER COLUMN username SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN first_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN last_name SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN password SET NOT NULL;
+ALTER TABLE IF EXISTS "users" ALTER COLUMN disabled SET NOT NULL;
 ALTER TABLE IF EXISTS "users" ALTER COLUMN company_id SET NOT NULL;
 ALTER TABLE IF EXISTS "users" DROP CONSTRAINT IF EXISTS users_email_key;
 ALTER TABLE IF EXISTS "users" DROP CONSTRAINT IF EXISTS users_company_email_key;
