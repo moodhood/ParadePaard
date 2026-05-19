@@ -122,6 +122,54 @@
     margin-top: 6px;
 }
 
+.onboardingFileField {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.onboardingFilePicker {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 46px;
+    border: 1px dashed #a8b3c7;
+    border-radius: 8px;
+    background: #f8fafc;
+    padding: 10px;
+}
+
+.onboardingFilePicker input {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+}
+
+.onboardingFileButton {
+    border-radius: 6px;
+    background: #1f2937;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700;
+    padding: 10px 14px;
+}
+
+.onboardingFileName {
+    min-width: 0;
+    color: #4b5563;
+    font-weight: 500;
+    overflow-wrap: anywhere;
+}
+
 .onboarding-actions {
     display: flex;
     justify-content: space-between;

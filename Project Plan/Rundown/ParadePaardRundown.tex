@@ -69,7 +69,7 @@ The Address section collects street, house number, optional suffix, postal code,
 
 The Bank details section collects the IBAN and the bank account holder name. The Payroll and tax section collects the BSN, optional nationality, loonheffingskorting choice, pension participation choice, special Zvw contribution choice, and optional payroll notes.
 
-The ID verification section collects the document type, document number, issue date, expiration date, issuing country, and a required ID document image upload. The Emergency contact section collects the emergency contact name, relationship, phone number, and optional email address.
+The ID verification section collects the document type, document number, issue date, expiration date, issuing country, and a required ID document image upload. The image upload uses the same styled file picker pattern as the CV upload on the public application form, showing a clear Choose image action and the currently selected filename. The Emergency contact section collects the emergency contact name, relationship, phone number, and optional email address.
 
 The employee can move forward only after completing the required fields for the current section. The Back button lets the employee return to earlier sections. When the employee finishes setup, the frontend uploads the ID document image first and then submits the setup details. If the image upload fails, the employee is returned to the ID verification section and sees a clear upload error so they can retry before the account moves into review. Pending setup employees can complete the ID document upload even if their temporary setup account is missing the normal onboarding permission in its token, as long as their own user profile is still in a setup state.
 
@@ -462,6 +462,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 19: Updated the employee onboarding ID document image picker to match the styled CV upload control.
     \item 2026 05 18: Fixed the employee onboarding ID document upload so pending setup users are not blocked by missing token permissions.
     \item 2026 05 18: Added spacing between the accepted application closed-decision message and the resend decision email button.
     \item 2026 05 18: Changed the accepted application resend action so it sends an account setup email instead of a password reset email.

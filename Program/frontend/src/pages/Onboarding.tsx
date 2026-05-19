@@ -393,15 +393,19 @@ export default function Onboarding() {
                                     required
                                 />
                             </label>
-                            <label>
-                                ID document image
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={(e) => setIdDocumentImage(e.target.files?.[0] ?? null)}
-                                    required
-                                />
-                            </label>
+                            <div className="onboardingFileField">
+                                <span className="onboardingFileLabel">ID document image</span>
+                                <label className="onboardingFilePicker">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => setIdDocumentImage(e.target.files?.[0] ?? null)}
+                                        required
+                                    />
+                                    <span className="onboardingFileButton">Choose image</span>
+                                    <span className="onboardingFileName">{idDocumentImage?.name ?? "No file selected"}</span>
+                                </label>
+                            </div>
                             <p className="hint">Upload a clear image of the ID document used for verification.</p>
                         </section>
                     )}
