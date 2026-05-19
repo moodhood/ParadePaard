@@ -125,7 +125,7 @@ The page also keeps the shared top navigation bar visible, consistent with the r
 
 The admin message UI works like a shared company inbox. It shows the same user conversations to all admins with message access, and replies are shared across admins so the conversation stays consistent.
 
-The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review. The inbox can be collapsed into a narrow right-side rail that keeps the messenger initials available.
+The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review.
 
 When an admin clicks a messenger name, the whole message box changes into that user's chat. The list is no longer shown beside the thread, so the selected conversation fills the message box. A Back to inbox button returns the admin to the name list.
 
@@ -133,7 +133,7 @@ Admins can type a reply in the selected thread and send it as the company. The f
 
 While an admin keeps the shared inbox open, new incoming user messages and new admin replies appear automatically. This keeps the inbox list and open conversation thread in sync across multiple admins without a manual page refresh.
 
-The page includes loading, empty, error, refresh, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
+The page includes loading, empty, error, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
 \subsection{Management Applications Page}
 
 The Management Applications Page is a protected application-review area for users with application permissions. Users with \code{CAN_VIEW_APPLICATIONS} or \code{CAN_REVIEW_APPLICATIONS} can open the queue from the Management area. Users without those permissions cannot open the route or see the management card.
@@ -478,8 +478,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
-    \item 2026 05 19: Removed the refresh and close controls from the shared admin inbox UI.
-    \item 2026 05 19: Removed the shared admin inbox button from the top navigation bar.
+    \item 2026 05 19: Removed the collapse, refresh, and close controls from the shared admin inbox UI.
     \item 2026 05 19: Removed the Messages card from the Management dashboard.
     \item 2026 05 19: Made the user and admin Messages inbox update live so new incoming messages appear automatically without a manual page refresh.
     \item 2026 05 19: Restored the shared top navigation bar on the Messages pages so they match the layout of the other pages.

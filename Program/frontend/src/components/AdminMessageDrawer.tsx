@@ -28,7 +28,6 @@ export default function AdminMessageDrawer({ open }: AdminMessageDrawerProps) {
     const [draft, setDraft] = useState("");
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
-    const [collapsed, setCollapsed] = useState(false);
 
     const sseBaseUrl = useMemo(() => {
         const base = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004").replace(/\/$/, "");
@@ -67,7 +66,6 @@ export default function AdminMessageDrawer({ open }: AdminMessageDrawerProps) {
             if (conversationPreview) {
                 setSelectedConversation(conversationPreview);
             }
-            setCollapsed(false);
             setDetailLoading(true);
             setDetailError(null);
             setSelectedConversation(await UserServices.getAdminMessageConversation(conversationId));
@@ -189,57 +187,6 @@ export default function AdminMessageDrawer({ open }: AdminMessageDrawerProps) {
 
     if (!open) return null;
 
-    if (collapsed) {
-        return (
-            <aside className="adminMessageDrawer adminMessageDrawer--collapsed" aria-label="Shared admin inbox">
-                <button
-                    type="button"
-                    className="adminMessageDrawerIconButton"
-                    aria-label="Expand shared admin inbox"
-                    title="Expand shared admin inbox"
-                    onClick={() => setCollapsed(false)}
-                >
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="m9 18 6-6-6-6" />
-                    </svg>
-                </button>
-                <div className="adminMessageDrawerRailList" aria-label="Messenger names">
-                    {conversations.map((conversation) => (
-                        <button
-                            key={conversation.conversationId}
-                            type="button"
-                            className="adminMessageDrawerInitial"
-                            title={displayNameFor(conversation)}
-                            aria-label={displayNameFor(conversation)}
-                            onClick={() => conversation.conversationId && void loadConversation(conversation.conversationId)}
-                        >
-                            {initialsFor(conversation)}
-                            {(conversation.unreadByAdminCount ?? 0) > 0 ? (
-                                <span className="adminMessageDrawerDot" aria-hidden="true" />
-                            ) : null}
-                        </button>
-                    ))}
-                </div>
-            </aside>
-        );
-    }
-
-    const drawerActions = (
-        <>
-            <button
-                type="button"
-                className="adminMessageDrawerIconButton"
-                aria-label="Collapse shared admin inbox"
-                title="Collapse shared admin inbox"
-                onClick={() => setCollapsed(true)}
-            >
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="m15 18-6-6 6-6" />
-                </svg>
-            </button>
-        </>
-    );
-
     return (
         <aside className="adminMessageDrawer" aria-label="Shared admin inbox">
             <AdminSharedInboxPanel
@@ -260,7 +207,6 @@ export default function AdminMessageDrawer({ open }: AdminMessageDrawerProps) {
                     setDraft("");
                     setDetailError(null);
                 }}
-                headerActions={drawerActions}
             />
         </aside>
     );

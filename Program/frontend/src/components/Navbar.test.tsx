@@ -28,7 +28,7 @@ describe("Navbar", () => {
         expect(html).toContain('aria-label="Go to previous page"');
     });
 
-    it("does not render a shared inbox button in the navbar", () => {
+    it("renders an admin message icon next to the account menu for message admins", () => {
         permissions = ["CAN_MANAGE_MESSAGES"];
 
         const html = renderToStaticMarkup(
@@ -37,6 +37,9 @@ describe("Navbar", () => {
             </MemoryRouter>
         );
 
-        expect(html).not.toContain('aria-label="Open shared admin inbox"');
+        expect(html).toContain('aria-label="Open shared admin inbox"');
+        expect(html.indexOf('aria-label="Open shared admin inbox"')).toBeLessThan(
+            html.indexOf('aria-label="Open user menu"')
+        );
     });
 });
