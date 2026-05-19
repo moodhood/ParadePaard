@@ -107,6 +107,12 @@ public class User {
     @ColumnDefault("CURRENT_DATE")
     private LocalDate registeredDate = LocalDate.now();
 
+    @Column(name = "onboarding_review_decision")
+    private String onboardingReviewDecision;
+
+    @Column(name = "onboarding_review_note", length = 2000)
+    private String onboardingReviewNote;
+
     public UUID getUserId() {
         return userId;
     }
@@ -441,5 +447,21 @@ public class User {
 
     public void setRegisteredDate(LocalDate registeredDate) {
         this.registeredDate = registeredDate;
+    }
+
+    public String getOnboardingReviewDecision() {
+        return onboardingReviewDecision;
+    }
+
+    public void setOnboardingReviewDecision(String onboardingReviewDecision) {
+        this.onboardingReviewDecision = onboardingReviewDecision;
+    }
+
+    public String getOnboardingReviewNote() {
+        return onboardingReviewNote;
+    }
+
+    public void setOnboardingReviewNote(String onboardingReviewNote) {
+        this.onboardingReviewNote = onboardingReviewNote;
     }
 }

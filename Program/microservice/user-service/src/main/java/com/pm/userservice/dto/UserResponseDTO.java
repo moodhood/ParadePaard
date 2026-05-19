@@ -35,6 +35,8 @@ public class UserResponseDTO {
     private String registeredDate;
     private String status;
     private EmployeeTaxProfileDTO employeeTaxProfile;
+    private String onboardingReviewDecision;
+    private String onboardingReviewNote;
 
     public String getUserId() {
         return userId;
@@ -306,5 +308,21 @@ public class UserResponseDTO {
 
     public void setEmployeeTaxProfile(EmployeeTaxProfileDTO employeeTaxProfile) {
         this.employeeTaxProfile = employeeTaxProfile;
+    }
+
+    public String getOnboardingReviewDecision() {
+        return onboardingReviewDecision;
+    }
+
+    public void setOnboardingReviewDecision(String onboardingReviewDecision) {
+        this.onboardingReviewDecision = onboardingReviewDecision;
+    }
+
+    public String getOnboardingReviewNote() {
+        return onboardingReviewNote;
+    }
+
+    public void setOnboardingReviewNote(String onboardingReviewNote) {
+        this.onboardingReviewNote = onboardingReviewNote;
     }
 }

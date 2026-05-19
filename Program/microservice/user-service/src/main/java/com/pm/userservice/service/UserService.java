@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
 import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.PayrollTaxTemplateDTO;
 import com.pm.userservice.dto.UserRequestDTO;
@@ -12,6 +13,7 @@ import com.pm.userservice.exception.UserNotFoundException;
 import com.pm.userservice.mapper.UserMapper;
 import com.pm.userservice.model.Company;
 import com.pm.userservice.model.User;
+import com.pm.userservice.model.UserStatus;
 import com.pm.userservice.repository.CompanyRepository;
 import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
@@ -313,6 +315,35 @@ public class UserService {
         byte[] data = user.getProfilePicture();
         if (data == null || data.length == 0) return Optional.empty();
         return Optional.of(new ProfilePicture(data, user.getProfilePictureContentType()));
+    }
+
+    @Transactional
+    public UserResponseDTO updateOnboardingReview(UUID id, UUID companyId, OnboardingReviewUpdateDTO body) {
+        User existing = companyId != null
+                ? userRepository.findByUserIdAndCompanyId(id, companyId)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"))
+                : userRepository.findByUserId(id)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+
+        existing.setOnboardingReviewDecision(body.getDecision());
+        existing.setOnboardingReviewNote(normalizeOptionalText(body.getNote()));
+
+        String rawStatus = normalizeOptionalText(body.getStatus());
+        if (rawStatus != null) {
+            existing.setStatus(UserStatus.valueOf(rawStatus.trim().toUpperCase()));
+        }
+
+        User updatedUser = userRepository.save(existing);
+        Integer payoutFrequency = updatedUser.getCompanyId() != null
+                ? resolveCompanyPayoutFrequency(updatedUser.getCompanyId())
+                : updatedUser.getPayslipFrequencyMinutes();
+        return UserMapper.toDTO(updatedUser, payoutFrequency);
+    }
+
+    private static String normalizeOptionalText(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional(readOnly = true)

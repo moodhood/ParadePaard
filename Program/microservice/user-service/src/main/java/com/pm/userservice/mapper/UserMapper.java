@@ -56,6 +56,8 @@ public class UserMapper {
         dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
         dto.setEmployeeTaxProfile(toEmployeeTaxProfile(user));
+        dto.setOnboardingReviewDecision(user.getOnboardingReviewDecision());
+        dto.setOnboardingReviewNote(user.getOnboardingReviewNote());
 
         return dto;
     }
