@@ -19,6 +19,7 @@ const statusLabel = (status?: string | null) => {
     const normalized = (status ?? "").toUpperCase();
     if (normalized === "ACTIVE") return "Active";
     if (normalized === "PENDING_SETUP") return "Pending setup";
+    if (normalized === "REJECTED") return "Rejected";
     return status ?? "-";
 };
 
@@ -26,6 +27,7 @@ const statusClass = (status?: string | null) => {
     const normalized = (status ?? "").toUpperCase();
     if (normalized === "ACTIVE") return "cellOk";
     if (normalized === "PENDING_SETUP") return "cellWarn";
+    if (normalized === "REJECTED") return "cellBad";
     return "cellSub";
 };
 

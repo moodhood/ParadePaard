@@ -20,6 +20,7 @@ import AccountContractSign from "./pages/AccountContractSign";
 import SettingsCompany from "./pages/SettingsCompany";
 import AdminOnboarding from "./pages/AdminOnboarding";
 import AdminOnboardingReview from "./pages/AdminOnboardingReview";
+import AdminOnboardingReviewDetails from "./pages/AdminOnboardingReviewDetails";
 import AdminApplications from "./pages/AdminApplications";
 import AdminApplicationDetails from "./pages/AdminApplicationDetails";
 import AdminContracts from "./pages/AdminContracts";
@@ -183,6 +184,16 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission anyOf={ONBOARDING_REVIEW_PERMISSIONS}>
                             <AdminOnboardingReview />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/onboarding-review/:userId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={ONBOARDING_REVIEW_PERMISSIONS}>
+                            <AdminOnboardingReviewDetails />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

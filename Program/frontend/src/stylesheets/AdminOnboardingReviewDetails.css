@@ -1,0 +1,307 @@
+.adminOnboardingReviewHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.pageSubtitle {
+    margin: 0;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.adminOnboardingReviewDetails {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.reviewCard {
+    border-radius: 8px;
+}
+
+.reviewSummaryTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.reviewSummaryName {
+    color: #0f172a;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.reviewStatusBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(255, 255, 255, 0.65);
+}
+
+.reviewStatusBadge--ok {
+    color: #166534;
+    background: #ecfdf5;
+    border-color: #bbf7d0;
+}
+
+.reviewStatusBadge--warn {
+    color: #92400e;
+    background: #fff7ed;
+    border-color: #fed7aa;
+}
+
+.reviewStatusBadge--bad {
+    color: #991b1b;
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.reviewStatusBadge--sub {
+    color: #334155;
+}
+
+.reviewSummaryGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.reviewSummaryItem {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff;
+}
+
+.reviewSummaryLabel {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.reviewSummaryValue {
+    margin-top: 6px;
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.reviewChecklist {
+    display: grid;
+    gap: 10px;
+}
+
+.reviewChecklistItem {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 8px;
+    padding: 10px;
+    background: #fff;
+}
+
+.reviewChecklistState {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    background: rgba(248, 250, 252, 0.9);
+    margin-right: 8px;
+}
+
+.reviewChecklistState--MISSING {
+    color: #991b1b;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.reviewChecklistState--NEEDS_REVIEW {
+    color: #92400e;
+    border-color: #fed7aa;
+    background: #fff7ed;
+}
+
+.reviewChecklistState--COMPLETE {
+    color: #166534;
+    border-color: #bbf7d0;
+    background: #ecfdf5;
+}
+
+.reviewChecklistLabel {
+    color: #0f172a;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.reviewChecklistMissing {
+    margin-top: 6px;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.reviewSections {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.reviewRows {
+    display: grid;
+    gap: 8px;
+}
+
+.reviewRow {
+    display: grid;
+    grid-template-columns: minmax(220px, 320px) minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.reviewRow:last-child {
+    border-bottom: none;
+}
+
+.reviewLabel {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.reviewValue {
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+    word-break: break-word;
+}
+
+.reviewValue--missing {
+    color: #b45309;
+}
+
+.reviewValue--important {
+    color: #991b1b;
+}
+
+.reviewInlineWarn {
+    margin-top: 8px;
+    color: #b45309;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.reviewInlineError {
+    margin-top: 8px;
+    color: #b91c1c;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.reviewFormGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.reviewField {
+    display: grid;
+    gap: 6px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.reviewFieldLabel {
+    font-size: 13px;
+    font-weight: 800;
+    color: #475569;
+}
+
+.reviewFieldCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-top: 30px;
+}
+
+.reviewFieldCheckbox input {
+    width: auto;
+}
+
+.reviewRequired {
+    color: #b91c1c;
+}
+
+.reviewInputMissing {
+    border-color: #fca5a5 !important;
+    background: #fff1f2;
+}
+
+.reviewFinalCard {
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.reviewFinalDescription {
+    margin: 0 0 12px 0;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.reviewFinalFields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+}
+
+.reviewActionError {
+    margin: 12px 0 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #991b1b;
+    font-weight: 800;
+    white-space: pre-wrap;
+}
+
+.reviewActions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.reviewFooterNav {
+    margin-top: 6px;
+}
+
+@media (max-width: 720px) {
+    .reviewSummaryGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .reviewRow {
+        grid-template-columns: 1fr;
+    }
+
+    .reviewFormGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .reviewFieldCheckbox {
+        padding-top: 0;
+    }
+}
+
