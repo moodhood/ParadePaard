@@ -1,0 +1,116 @@
+.adminCaoPage {
+    min-height: 100vh;
+    background: var(--color-bg);
+}
+
+.caoList {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.caoListItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--color-border);
+    gap: 12px;
+}
+
+.caoListItem:last-child {
+    border-bottom: none;
+}
+
+.caoListItemInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.caoListItemName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
+}
+
+.caoListItemMeta {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+.caoListItemActions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.caoFormGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .caoFormGrid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.caoFormGridFull {
+    grid-column: 1 / -1;
+}
+
+.caoVariableList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.caoVariableRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+}
+
+@media (max-width: 900px) {
+    .caoVariableRow {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.caoVariableField {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.caoVariableFieldLabel {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+.caoVariableRemove {
+    padding: 0 6px;
+    height: 36px;
+    align-self: flex-end;
+}
+
+.caoActionsRow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 8px;
+}
+
+.caoEmpty {
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    padding: 16px 0;
+}

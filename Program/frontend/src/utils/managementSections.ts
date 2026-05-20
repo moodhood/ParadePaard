@@ -52,6 +52,7 @@ const SECTION_BY_LABEL: Record<string, ManagementSectionKey> = {
     "Payslip review": "payroll",
     Contracts: "contracts",
     "Company settings": "company",
+    "CAO templates": "company",
 };
 
 export function buildManagementSections(items: NavItem[]): ManagementSection[] {

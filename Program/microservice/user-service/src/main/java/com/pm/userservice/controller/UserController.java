@@ -1,6 +1,7 @@
 // src/main/java/com/pm/userservice/controller/UserController.java
 package com.pm.userservice.controller;
 
+import com.pm.userservice.dto.CaoUserAssignDTO;
 import com.pm.userservice.dto.CompanyResponseDTO;
 import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
 import com.pm.userservice.dto.PagedResponseDTO;
@@ -400,6 +401,23 @@ public class UserController {
         UUID companyId = resolveCompanyId(authentication);
         UserResponseDTO userResponseDTO = userService.updateOnboardingReview(id, companyId, body);
         return ResponseEntity.ok(userResponseDTO);
+    }
+
+    @PutMapping("/{id}/cao")
+    @Operation(summary = "Assign or remove a CAO template for a user")
+    @PreAuthorize("hasAuthority('CAN_REVIEW_ONBOARDING') or hasAuthority('CAN_MANAGE_USERS')")
+    public ResponseEntity<?> assignUserCao(
+            @PathVariable UUID id,
+            @RequestBody CaoUserAssignDTO body,
+            Authentication authentication
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        try {
+            UserResponseDTO result = userService.assignUserCao(id, companyId, body);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

@@ -12,6 +12,7 @@ import {
     type FunctionResponseDTO,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
+import { CaoServices, type CaoTemplateDTO } from "../services/user-service/CaoServices";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 
@@ -197,6 +198,10 @@ export default function AdminOnboardingReviewDetails() {
     const [idDocumentError, setIdDocumentError] = useState<string | null>(null);
     const [idDocumentNoFile, setIdDocumentNoFile] = useState(false);
 
+    const [caoTemplates, setCaoTemplates] = useState<CaoTemplateDTO[]>([]);
+    const [selectedCaoId, setSelectedCaoId] = useState("");
+    const [savingCao, setSavingCao] = useState(false);
+
     const [checkedSections, setCheckedSections] = useState<Record<ChecklistSectionKey, boolean>>({
         personal: false,
         address: false,
@@ -215,15 +220,18 @@ export default function AdminOnboardingReviewDetails() {
             setActionError(null);
             setActionSuccess(null);
 
-            const [userRes, contractRes, functionsRes] = await Promise.all([
+            const [userRes, contractRes, functionsRes, caoRes] = await Promise.all([
                 UserServices.getUserById(userId),
                 UserServices.getCurrentContractForUser(userId),
                 UserServices.getFunctions(),
+                CaoServices.getCaoTemplates().catch(() => [] as CaoTemplateDTO[]),
             ]);
 
             setUser(userRes);
             setCurrentContract(contractRes);
             setFunctions(functionsRes);
+            setCaoTemplates(caoRes);
+            setSelectedCaoId(userRes.assignedCaoId ?? "");
 
             const existingDecision = (userRes.onboardingReviewDecision ?? "").trim();
             if (existingDecision) {
@@ -567,6 +575,22 @@ export default function AdminOnboardingReviewDetails() {
             setIdDocumentError(message);
         } finally {
             setIdDocumentLoading(false);
+        }
+    };
+
+    const handleSaveCao = async () => {
+        if (!userId) return;
+        try {
+            setSavingCao(true);
+            setActionError(null);
+            setActionSuccess(null);
+            const updated = await UserServices.assignUserCao(userId, selectedCaoId || null);
+            setUser(updated);
+            setActionSuccess("CAO assignment saved.");
+        } catch (err: unknown) {
+            setActionError(err instanceof Error ? err.message : "Failed to save CAO assignment.");
+        } finally {
+            setSavingCao(false);
         }
     };
 
@@ -1062,6 +1086,68 @@ export default function AdminOnboardingReviewDetails() {
                                                         </div>
                                                     );
                                                 })}
+                                            </div>
+                                        </Card>
+
+                                        <Card title="CAO assignment" className="reviewCard">
+                                            <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 12 }}>
+                                                Assign a collective labor agreement (CAO) preset to this employee. The selected CAO variables will apply to their payroll.
+                                            </p>
+                                            {user.assignedCaoId && user.assignedCaoName ? (
+                                                <div style={{ marginBottom: 10, fontSize: 13 }}>
+                                                    Current: <strong>{user.assignedCaoName}</strong>
+                                                </div>
+                                            ) : null}
+                                            <div className="reviewFormGrid">
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">CAO template</span>
+                                                    <select
+                                                        className="uiSelect"
+                                                        value={selectedCaoId}
+                                                        onChange={(e) => setSelectedCaoId(e.target.value)}
+                                                        disabled={savingCao || actionLoading}
+                                                    >
+                                                        <option value="">No CAO assigned</option>
+                                                        {caoTemplates.map((cao) => (
+                                                            <option key={cao.caoId} value={cao.caoId}>
+                                                                {cao.name}{cao.sector ? ` (${cao.sector})` : ""}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </label>
+                                            </div>
+                                            {selectedCaoId ? (
+                                                (() => {
+                                                    const cao = caoTemplates.find((c) => c.caoId === selectedCaoId);
+                                                    if (!cao || !cao.variables?.length) return null;
+                                                    return (
+                                                        <div style={{ marginTop: 12 }}>
+                                                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
+                                                                Variables in this CAO:
+                                                            </div>
+                                                            <div className="reviewRows">
+                                                                {cao.variables.map((v) => (
+                                                                    <div key={v.code} className="reviewRow">
+                                                                        <div className="reviewLabel">{v.label || v.code}</div>
+                                                                        <div className="reviewValue">
+                                                                            {v.value != null ? `${v.value} (${v.valueType})` : "-"}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })()
+                                            ) : null}
+                                            <div className="reviewActions" style={{ marginTop: 12 }}>
+                                                <button
+                                                    type="button"
+                                                    className="button buttonSecondary"
+                                                    onClick={() => void handleSaveCao()}
+                                                    disabled={savingCao || actionLoading}
+                                                >
+                                                    {savingCao ? "Saving..." : "Save CAO assignment"}
+                                                </button>
                                             </div>
                                         </Card>
 

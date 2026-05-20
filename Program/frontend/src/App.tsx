@@ -30,6 +30,8 @@ import PayslipDetails from "./pages/PayslipDetails";
 import AdminUserDetails from "./pages/AdminUserDetails";
 import AdminPayslipDetails from "./pages/AdminPayslipDetails";
 import AdminUsers from "./pages/AdminUsers";
+import AdminCaoList from "./pages/AdminCaoList";
+import AdminCaoDetails from "./pages/AdminCaoDetails";
 import AdminMessages from "./pages/AdminMessages";
 import AdminPlanningOverview from "./pages/AdminPlanningOverview";
 import AdminPlanningClients from "./pages/AdminPlanningClients";
@@ -40,6 +42,7 @@ import RequireOnboarding from "./components/RequireOnboarding";
 import RequirePermission from "./components/RequirePermission";
 import {
     APPLICATION_REVIEW_PERMISSIONS,
+    CAO_MANAGEMENT_PERMISSIONS,
     COMPANY_SETTINGS_PERMISSIONS,
     CONTRACT_WORKSPACE_PERMISSIONS,
     MANAGEMENT_PERMISSIONS,
@@ -335,6 +338,26 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
                             <AdminPlanningShiftDetail />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/cao"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={CAO_MANAGEMENT_PERMISSIONS}>
+                            <AdminCaoList />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/cao/:caoId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={CAO_MANAGEMENT_PERMISSIONS}>
+                            <AdminCaoDetails />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

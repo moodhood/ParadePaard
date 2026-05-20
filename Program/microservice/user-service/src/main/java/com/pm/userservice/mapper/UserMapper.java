@@ -59,6 +59,7 @@ public class UserMapper {
         dto.setOnboardingReviewDecision(user.getOnboardingReviewDecision());
         dto.setOnboardingReviewNote(user.getOnboardingReviewNote());
         dto.setHasIdDocumentImage(user.getIdDocumentImage() != null && user.getIdDocumentImage().length > 0);
+        dto.setAssignedCaoId(user.getAssignedCaoId() != null ? user.getAssignedCaoId().toString() : null);
 
         return dto;
     }

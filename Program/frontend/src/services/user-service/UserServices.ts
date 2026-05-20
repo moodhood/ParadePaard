@@ -1,3 +1,4 @@
+import axios from "axios";
 import ApproveLeaveRequest from "./ApproveLeaveRequest";
 import CompleteSetup, { UploadIdDocumentImage, type UserSetupRequest } from "./CompleteSetup";
 import CreateLeaveRequest from "./CreateLeaveRequest";
@@ -513,5 +514,17 @@ export const UserServices = {
         reject: async (requestId: string, note?: string): Promise<void> => {
             return await RejectLeaveRequest(API_BASE_URL, requestId, note);
         },
+    },
+    assignUserCao: async (
+        userId: string,
+        caoId: string | null,
+        overrides?: Record<string, number> | null
+    ): Promise<UserResponseDTO> => {
+        const res = await axios.put<UserResponseDTO>(
+            `${API_BASE_URL}/api/users/${userId}/cao`,
+            { caoId, overrides: overrides ?? null },
+            { withCredentials: true }
+        );
+        return res.data;
     },
 };

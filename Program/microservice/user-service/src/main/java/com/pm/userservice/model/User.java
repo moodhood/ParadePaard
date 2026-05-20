@@ -119,6 +119,12 @@ public class User {
     @Column(name = "onboarding_review_contract_setup_json", columnDefinition = "TEXT")
     private String onboardingReviewContractSetupJson;
 
+    @Column(name = "assigned_cao_id")
+    private UUID assignedCaoId;
+
+    @Column(name = "cao_variable_overrides_json", columnDefinition = "TEXT")
+    private String caoVariableOverridesJson;
+
     public UUID getUserId() {
         return userId;
     }
@@ -486,4 +492,9 @@ public class User {
     public void setOnboardingReviewContractSetupJson(String onboardingReviewContractSetupJson) {
         this.onboardingReviewContractSetupJson = onboardingReviewContractSetupJson;
     }
+
+    public UUID getAssignedCaoId() { return assignedCaoId; }
+    public void setAssignedCaoId(UUID assignedCaoId) { this.assignedCaoId = assignedCaoId; }
+    public String getCaoVariableOverridesJson() { return caoVariableOverridesJson; }
+    public void setCaoVariableOverridesJson(String caoVariableOverridesJson) { this.caoVariableOverridesJson = caoVariableOverridesJson; }
 }

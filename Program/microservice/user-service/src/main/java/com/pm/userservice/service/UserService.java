@@ -3,6 +3,7 @@ package com.pm.userservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pm.userservice.dto.CaoUserAssignDTO;
 import com.pm.userservice.dto.CompanyResponseDTO;
 import com.pm.userservice.dto.OnboardingReviewContractSetupDraftDTO;
 import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
@@ -12,9 +13,11 @@ import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.exception.UserNotFoundException;
 import com.pm.userservice.mapper.UserMapper;
+import com.pm.userservice.model.CaoTemplate;
 import com.pm.userservice.model.Company;
 import com.pm.userservice.model.User;
 import com.pm.userservice.model.UserStatus;
+import com.pm.userservice.repository.CaoTemplateRepository;
 import com.pm.userservice.repository.CompanyRepository;
 import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
@@ -42,6 +45,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final CaoTemplateRepository caoTemplateRepository;
     private final UserDuplicateValidator userDuplicateValidator;
     private final ObjectMapper objectMapper;
 
@@ -51,10 +55,12 @@ public class UserService {
 
     public UserService(UserRepository userRepository,
                        CompanyRepository companyRepository,
+                       CaoTemplateRepository caoTemplateRepository,
                        UserDuplicateValidator userDuplicateValidator,
                        ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
+        this.caoTemplateRepository = caoTemplateRepository;
         this.userDuplicateValidator = userDuplicateValidator;
         this.objectMapper = objectMapper;
     }
@@ -349,12 +355,42 @@ public class UserService {
         return toUserResponseDTO(updatedUser, payoutFrequency);
     }
 
+    @Transactional
+    public UserResponseDTO assignUserCao(UUID id, UUID companyId, CaoUserAssignDTO body) {
+        User existing = companyId != null
+                ? userRepository.findByUserIdAndCompanyId(id, companyId)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"))
+                : userRepository.findByUserId(id)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+
+        if (body.getCaoId() == null || body.getCaoId().isBlank()) {
+            existing.setAssignedCaoId(null);
+            existing.setCaoVariableOverridesJson(null);
+        } else {
+            UUID caoId = UUID.fromString(body.getCaoId());
+            existing.setAssignedCaoId(caoId);
+            existing.setCaoVariableOverridesJson(writeJsonSafely(body.getOverrides()));
+        }
+
+        User updated = userRepository.save(existing);
+        Integer payoutFrequency = updated.getCompanyId() != null
+                ? resolveCompanyPayoutFrequency(updated.getCompanyId())
+                : updated.getPayslipFrequencyMinutes();
+        return toUserResponseDTO(updated, payoutFrequency);
+    }
+
     private UserResponseDTO toUserResponseDTO(User user, Integer payoutFrequencyMinutes) {
         UserResponseDTO dto = UserMapper.toDTO(user, payoutFrequencyMinutes);
         if (dto == null || user == null) return dto;
 
         dto.setOnboardingReviewCheckedSections(readCheckedSections(user.getOnboardingReviewCheckedSectionsJson()));
         dto.setOnboardingReviewContractSetupDraft(readContractSetupDraft(user.getOnboardingReviewContractSetupJson()));
+
+        if (user.getAssignedCaoId() != null) {
+            caoTemplateRepository.findById(user.getAssignedCaoId())
+                    .ifPresent(cao -> dto.setAssignedCaoName(cao.getName()));
+        }
+
         return dto;
     }
 

@@ -52,6 +52,10 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
         description: "Manage company details, roles, workflow settings, and tax setup.",
         meta: "Configuration",
     },
+    "CAO templates": {
+        description: "Define and manage collective labor agreement presets and assign them to employees.",
+        meta: "Labor agreements",
+    },
 };
 
 export default function Management() {
