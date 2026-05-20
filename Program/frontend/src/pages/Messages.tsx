@@ -13,7 +13,6 @@ type UserMessagesViewProps = {
     sendError: string | null;
     onDraftChange: (value: string) => void;
     onSend: () => void;
-    onReload: () => void;
 };
 
 function formatMessageTime(value?: string | null) {
@@ -53,7 +52,6 @@ export function UserMessagesView({
     sendError,
     onDraftChange,
     onSend,
-    onReload,
 }: UserMessagesViewProps) {
     const messages = conversation?.messages ?? [];
     const messageListRef = useRef<HTMLDivElement | null>(null);
@@ -83,9 +81,6 @@ export function UserMessagesView({
                                     <h2 className="messagePanelTitle">Company inbox</h2>
                                     <p className="messagePanelMeta">One ongoing conversation with the company.</p>
                                 </div>
-                                <button type="button" className="buttonSecondary" onClick={onReload} disabled={loading}>
-                                    Refresh
-                                </button>
                             </div>
 
                             {loading ? <p className="messageEmpty">Loading messages...</p> : null}
@@ -247,7 +242,6 @@ export default function Messages() {
             sendError={sendError}
             onDraftChange={setDraft}
             onSend={() => void sendMessage()}
-            onReload={() => void loadConversation()}
         />
     );
 }

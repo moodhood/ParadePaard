@@ -98,9 +98,9 @@ The Messages Page lets an active user send messages to the company from one ongo
 
 The page keeps the shared top navigation bar visible, consistent with the other personal pages, while the left side navigation shows the normal personal navigation items.
 
-The page shows the message history in chronological order. Messages from the signed-in user are shown as the user's own messages, and replies from management are shown as Company messages. The user can refresh the thread, type a new message, and send it to the company. If there are no messages yet, the page explains that the user can send the first message to the company.
+The page shows the message history in chronological order. Messages from the signed-in user are shown as the user's own messages, and replies from management are shown as Company messages. The user can type a new message and send it to the company. If there are no messages yet, the page explains that the user can send the first message to the company.
 
-While the user stays on the page, the thread updates live. New company replies appear automatically without the user needing to refresh the page. The Refresh button is still available as a manual fallback, but it is no longer required for normal use.
+While the user stays on the page, the thread updates live. New company replies appear automatically without the user needing to manually refresh the page.
 
 The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates immediately so the user can continue in the same thread later.
 
@@ -478,6 +478,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 20: Removed the manual Refresh button from the user Messages page because the thread updates live.
     \item 2026 05 20: Updated the onboarding review Save review action to also store section checkmarks and contract setup draft fields so a review can be resumed later.
     \item 2026 05 20: Fixed the onboarding review Save review actions so Request changes saves the correct decision, Ready to send contract moves the employee to Contract review, and sending the contract moves the employee to Awaiting signature.
     \item 2026 05 20: Fixed contract draft creation by aligning the contract type dropdown values with the backend (Fixed hours, On-call Runner, On-call Bar).
