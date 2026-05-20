@@ -123,9 +123,9 @@ Selecting “Plan someone in” replaces the menu contents with a compact planni
   - Popover shows success or error message
 
 **Duplicate handling**
-- If a user is already scheduled on a selected shift, skip creating a duplicate assignment.
+- If a user is already linked to a selected shift, update that existing assignment back to status `ASSIGNED` instead of creating a duplicate.
 - After planning, show a compact success summary like:
-  - `Planned 6 assignments (2 already existed)`
+  - `Planned 6 assignments (2 updated)`
 
 ### 6) View shift details / View selected shifts
 
@@ -153,4 +153,3 @@ If allocation details are not currently present in the overview payload, the ove
 - Keep the existing planning layout (week/month columns, shift cards).
 - Keep Events mode behavior unchanged.
 - Keep popover small and fast; no heavy UI transitions.
-
