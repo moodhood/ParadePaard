@@ -87,66 +87,49 @@ export function MyPlanningView({
                         >
                             {error ? <p className="errorText userPlanningSectionMessage">{error}</p> : null}
                             <div className="userPlanningAcceptedLayout">
-                                <section className="userPlanningSection">
-                                    <div className="userPlanningSectionHeader">
-                                        <div>
-                                            <div className="userPlanningSectionTitle">Scheduled shifts</div>
-                                            <div className="userPlanningSectionText">
-                                                Accept a scheduled shift and it moves into your accepted list.
-                                            </div>
-                                        </div>
-                                        <span className="userPlanningSectionBadge">{scheduledItems.length}</span>
+                                {scheduledItems.length > 0 ? (
+                                    <div className="userPlanningSectionCardList">
+                                        {scheduledItems.map((item) => {
+                                            const isExpiredRequest = Boolean(item.isPast);
+                                            return (
+                                                <article key={item.scheduleEntryId} className="userPlanningRequestCard userPlanningPanelCard">
+                                                    <div className="userPlanningRequestMain">
+                                                        <div className="userPlanningRequestTitle">{item.eventName}</div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {formatDate(item.shiftDate)} - {timeLabel(item.startTime, item.endTime)}
+                                                        </div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {item.functionName} - {item.shiftLocation ?? item.eventLocation ?? "Location follows after acceptance"}
+                                                        </div>
+                                                        {isExpiredRequest ? (
+                                                            <div className="userPlanningRequestMeta">
+                                                                This request is visible for history, but the shift has already ended.
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="userPlanningRequestActions">
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningDeclineButton"
+                                                            disabled={Boolean(pendingActionId) || isExpiredRequest}
+                                                            onClick={() => onDecline(item.scheduleEntryId)}
+                                                        >
+                                                            {pendingActionId === `${item.scheduleEntryId}:CANCELLED` ? "Declining..." : "Decline"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningAcceptButton"
+                                                            disabled={Boolean(pendingActionId) || isExpiredRequest}
+                                                            onClick={() => onAccept(item.scheduleEntryId)}
+                                                        >
+                                                            {pendingActionId === `${item.scheduleEntryId}:CONFIRMED` ? "Accepting..." : "Accept"}
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
                                     </div>
-                                    {scheduledItems.length === 0 ? (
-                                        <p className="helperText userPlanningSectionMessage">
-                                            {activeTab === "past"
-                                                ? "No past scheduled shifts waiting for a response."
-                                                : "No scheduled shifts waiting for a response."}
-                                        </p>
-                                    ) : (
-                                        <div className="userPlanningSectionCardList">
-                                            {scheduledItems.map((item) => {
-                                                const isExpiredRequest = Boolean(item.isPast);
-                                                return (
-                                                    <article key={item.scheduleEntryId} className="userPlanningRequestCard userPlanningPanelCard">
-                                                        <div className="userPlanningRequestMain">
-                                                            <div className="userPlanningRequestTitle">{item.eventName}</div>
-                                                            <div className="userPlanningRequestMeta">
-                                                                {formatDate(item.shiftDate)} - {timeLabel(item.startTime, item.endTime)}
-                                                            </div>
-                                                            <div className="userPlanningRequestMeta">
-                                                                {item.functionName} - {item.shiftLocation ?? item.eventLocation ?? "Location follows after acceptance"}
-                                                            </div>
-                                                            {isExpiredRequest ? (
-                                                                <div className="userPlanningRequestMeta">
-                                                                    This request is visible for history, but the shift has already ended.
-                                                                </div>
-                                                            ) : null}
-                                                        </div>
-                                                        <div className="userPlanningRequestActions">
-                                                            <button
-                                                                type="button"
-                                                                className="button userPlanningDeclineButton"
-                                                                disabled={Boolean(pendingActionId) || isExpiredRequest}
-                                                                onClick={() => onDecline(item.scheduleEntryId)}
-                                                            >
-                                                                {pendingActionId === `${item.scheduleEntryId}:CANCELLED` ? "Declining..." : "Decline"}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="button userPlanningAcceptButton"
-                                                                disabled={Boolean(pendingActionId) || isExpiredRequest}
-                                                                onClick={() => onAccept(item.scheduleEntryId)}
-                                                            >
-                                                                {pendingActionId === `${item.scheduleEntryId}:CONFIRMED` ? "Accepting..." : "Accept"}
-                                                            </button>
-                                                        </div>
-                                                    </article>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </section>
+                                ) : null}
 
                                 <section className="userPlanningSection">
                                     <div className="userPlanningSectionHeader">
