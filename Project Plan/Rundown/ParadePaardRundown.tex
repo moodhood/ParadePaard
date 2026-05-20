@@ -88,7 +88,7 @@ The General Information card summarizes the employee's worked hours for the curr
 
 The Payslips card shows a compact table of payslips with date, week, function, hours, net amount, and actions. The employee can download a PDF directly from the table. If the employee thinks a payslip is wrong, they can open a report modal, enter a short title and optional note, and submit the error for payroll review. A payslip that is already disputed shows as Reported rather than showing the report button again. The View all button opens the full payslips page.
 
-The My planning card is both an overview and an action area for active planning. Pending shift requests are shown first, but shifts that have already ended are not shown on the dashboard. Each request gives the employee the event name, date, time, function, and location. The employee can accept or decline current and future requests. Accepted shifts shown on the dashboard are also limited to current and future shifts. They are grouped by day, and each accepted shift row shows event, day, time, function, and whether its timesheet is Scheduled or Logged. Clicking a row opens the shift detail page. The View all button opens the full My Planning page, where the Past tab keeps completed shifts available for history.
+The My planning card is both an overview and an action area for active planning. Pending shift requests are shown first, but shifts that have already ended are not shown on the dashboard. Each request gives the employee the event name, date, time, function, and location. The employee can accept or decline current and future requests. Accepted shifts shown on the dashboard are also limited to current and future shifts. They are shown as one compact table with event, day, time, function, and whether its timesheet is Scheduled or Logged. The list becomes scrollable when there are many shifts, so the dashboard card stays compact. Clicking a row opens the shift detail page. The View all button opens the full My Planning page, where the Past tab keeps completed shifts available for history.
 
 The My leave requests card lists the employee's leave requests with date range, requested hours, status, and optional note. The New Request button opens the leave request modal, where the employee can create another leave request. The dashboard therefore acts as a daily command center for employees: it shows what is planned, what has been worked, what has been paid, and what still needs action.
 
@@ -484,6 +484,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 21: Simplified the dashboard My planning card by removing the per-day header and using a single scrollable shift list.
     \item 2026 05 21: Moved the Payslip Detail Back control into the page header so it matches the rest of the app.
     \item 2026 05 21: Updated the Payslip Detail page so the cards use a list view layout instead of field tiles.
     \item 2026 05 21: Made Planning Overview default to Shifts mode and added selectable shift cards with a compact pop up action menu and bulk Plan someone in panel.

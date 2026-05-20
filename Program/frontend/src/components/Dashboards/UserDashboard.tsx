@@ -294,25 +294,12 @@ ${note}` : title;
         return getDashboardAcceptedPlanningRows(allMyPlanningRows);
     }, [allMyPlanningRows]);
     const myPlanningRows = useMemo(() => {
-        return planningRowsForCard;
-    }, [planningRowsForCard]);
-
-    const myPlanningGroups = useMemo(() => {
-        const groups = new Map<string, EmployeePlanningAssignmentDTO[]>();
-        myPlanningRows.forEach((row) => {
-            const key = row.shiftDate;
-            const current = groups.get(key) ?? [];
-            current.push(row);
-            groups.set(key, current);
+        return [...planningRowsForCard].sort((left, right) => {
+            const dateCompare = left.shiftDate.localeCompare(right.shiftDate);
+            if (dateCompare !== 0) return dateCompare;
+            return left.startTime.localeCompare(right.startTime);
         });
-        return [...groups.entries()]
-            .sort(([left], [right]) => left.localeCompare(right))
-            .map(([key, rows]) => ({
-                key,
-                label: formatDate(key),
-                rows: [...rows].sort((a, b) => a.startTime.localeCompare(b.startTime)),
-            }));
-    }, [myPlanningRows]);
+    }, [planningRowsForCard]);
 
     const pendingPlanningRequests = useMemo(
         () => getDashboardPendingPlanningRequests(allMyPlanningRows),
@@ -338,49 +325,6 @@ ${note}` : title;
         }
     }, [loadPlanning]);
 
-    const renderPlanningGroup = (label: string, rows: EmployeePlanningAssignmentDTO[]) => (
-        <section key={label} className="planningGroupSection userPlanningGroup">
-            <div className="planningGroupHeader">
-                <div className="planningGroupTitleBlock">
-                    <div className="planningGroupTitle">{label}</div>
-                    <div className="planningMetaSecondary">
-                        {rows.length} shift{rows.length === 1 ? "" : "s"}
-                    </div>
-                </div>
-            </div>
-            <div className="listContainer planningAllocationList">
-                <div className="listHeaderGrid userPlanningGrid">
-                    <div>Event</div>
-                    <div>Day</div>
-                    <div>Time</div>
-                    <div>Function</div>
-                    <div>Timesheet</div>
-                </div>
-                <div className="listScrollArea planningScrollArea userPlanningScrollArea">
-                    {rows.map((row) => (
-                        <button
-                            type="button"
-                            key={row.scheduleEntryId}
-                            className="listRowGrid userPlanningGrid"
-                            style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
-                            onClick={() => navigate(`/my-planning/${row.scheduleEntryId}`)}
-                        >
-                            <div>
-                                <div className="cellMain">{row.eventName}</div>
-                                <div className="cellSub">{row.shiftName ?? row.functionName}</div>
-                            </div>
-                            <div className="cellSub">{formatDate(row.shiftDate)}</div>
-                            <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
-                            <div className="cellSub">{row.functionName}</div>
-                            <div className="cellSub">
-                                {row.timesheetExported ? "Logged" : "Scheduled"}
-                            </div>
-                        </button>
-                    ))}
-                </div>
-            </div>
-        </section>
-    );
 
     return (
         <div className="pageShell">
@@ -611,9 +555,39 @@ ${note}` : title;
                             {myPlanningRows.length === 0 ? (
                                 <p className="requestListEmpty">{planningEmptyMessage}</p>
                             ) : (
-                                <div className="planningGroupList">
-                                    {myPlanningGroups.map((group) => renderPlanningGroup(group.label, group.rows))}
-                                </div>
+                                <section className="planningGroupSection userPlanningGroup">
+                                    <div className="listContainer planningAllocationList">
+                                        <div className="listHeaderGrid userPlanningGrid">
+                                            <div>Event</div>
+                                            <div>Day</div>
+                                            <div>Time</div>
+                                            <div>Function</div>
+                                            <div>Timesheet</div>
+                                        </div>
+                                        <div className="listScrollArea planningScrollArea userPlanningScrollArea">
+                                            {myPlanningRows.map((row) => (
+                                                <button
+                                                    type="button"
+                                                    key={row.scheduleEntryId}
+                                                    className="listRowGrid userPlanningGrid"
+                                                    style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
+                                                    onClick={() => navigate(`/my-planning/${row.scheduleEntryId}`)}
+                                                >
+                                                    <div>
+                                                        <div className="cellMain">{row.eventName}</div>
+                                                        <div className="cellSub">{row.shiftName ?? row.functionName}</div>
+                                                    </div>
+                                                    <div className="cellSub">{formatDate(row.shiftDate)}</div>
+                                                    <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
+                                                    <div className="cellSub">{row.functionName}</div>
+                                                    <div className="cellSub">
+                                                        {row.timesheetExported ? "Logged" : "Scheduled"}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </section>
                             )}
                         </div>
                     ) : null}
