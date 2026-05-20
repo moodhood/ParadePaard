@@ -265,9 +265,9 @@ The event can also be finalized. When the event is finalized, the frontend label
 
 \subsection{My Planning Page}
 
-The My Planning page is the employee's full planning page. It expands the planning card from the dashboard into a larger two-section view. The page has an Upcoming/Past toggle, a Scheduled shifts section, and an Accepted shifts section. Upcoming is for current and future planning. Past is the place where shifts that have already ended remain available for history.
+The My Planning page is the employee's full planning page. It expands the planning card from the dashboard into a larger view with an Upcoming/Past toggle and an Accepted shifts list. Upcoming is for current and future planning. Past is the place where shifts that have already ended remain available for history.
 
-Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. Each request card shows event name, shift date, time, function, and location. The employee can accept or decline each request. If the request is already in the past, the page still displays it for history, but the buttons are disabled.
+Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. When there are scheduled shifts waiting for a response, each one appears as a response card above the accepted shifts list. Each card shows event name, shift date, time, function, and location, and the employee can accept or decline it from actions on the right. If the request is already in the past, the page still displays it for history, but the buttons are disabled. If there are no scheduled shifts waiting for a response, the page does not show a scheduled section or an empty-state message.
 
 Accepted shifts are assignments with status \code{CONFIRMED}. Each accepted row shows event, shift or function, date, time, location, and a timesheet state. Future shifts show Scheduled. Past accepted shifts that have not become timesheets show Pending log. Shifts already exported or recorded as timesheets show Logged. Clicking an accepted shift opens the shift detail page.
 
@@ -478,6 +478,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 20: Updated the My Planning page so scheduled shifts only appear as response cards when a shift needs acceptance or decline.
     \item 2026 05 20: Added a My Planning scheduled-shift response card design note (no UI change yet).
     \item 2026 05 20: Removed the manual Refresh button from the user Messages page because the thread updates live.
     \item 2026 05 20: Updated the onboarding review Save review action to also store section checkmarks and contract setup draft fields so a review can be resumed later.
