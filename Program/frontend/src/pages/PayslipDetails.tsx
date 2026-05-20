@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
+import PageBack from "../components/PageBack";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import { UserServices, type PayslipResponseDTO } from "../services/user-service/UserServices";
-import { goBackOrFallback } from "../utils/backNavigation";
 import { formatDate, formatDateTime } from "../utils/dateFormat";
 
 import "../stylesheets/AdminDashboard.css";
@@ -33,7 +33,6 @@ const statusTone = (value?: string | null) => (value ?? "UNKNOWN").toLowerCase()
 
 export default function PayslipDetails() {
     const { payslipId } = useParams<{ payslipId: string }>();
-    const navigate = useNavigate();
 
     const [payslip, setPayslip] = useState<PayslipResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -115,6 +114,7 @@ export default function PayslipDetails() {
 
     const pageHeader = (
         <header className="pageHeader">
+            <PageBack to="/payslips" />
             <h1 className="pageTitle">Payslip Overview</h1>
         </header>
     );
@@ -148,12 +148,6 @@ export default function PayslipDetails() {
                         {pageHeader}
                         <div className="adminDashboardCard">
                             <div className="pageActions">
-                                <button
-                                    className="button buttonSecondary"
-                                    onClick={() => goBackOrFallback(navigate, "/payslips")}
-                                >
-                                    Back
-                                </button>
                                 <button
                                     className="button"
                                     onClick={() => void downloadPayslipPdf()}
