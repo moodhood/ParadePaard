@@ -321,7 +321,7 @@ The user can download a payslip PDF from the list, open a detail page by selecti
 
 The Payslip Detail page is the readable payslip view. It starts with page actions for returning to the payslip list and downloading the PDF. The hero summary shows employee name, function, week, issue date, available date, status badge, payslip ID, and key metrics for hours, gross amount, and net amount.
 
-The rest of the page is organized into cards. The Overview card shows issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card shows function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total. The Deductions card lists deduction lines with label, code, category, and calculated amount. The Employee details card shows name, user ID, date of birth, start date, address, and country. Payslips can now carry contract snapshot fields such as contract id, contract type, payment frequency, contract dates, weekly hours, and holiday allowance, so payroll reviewers can see what contract rule produced the period.
+The rest of the page is organized into cards, but the information is shown in a list view instead of separate field tiles. Each card uses a simple two-column list (Item and Value). The Overview card lists issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card lists function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total, with gross and net totals visually highlighted. The Deductions card shows a list with Deduction, Category, and Amount columns. The Deduction column shows the label, or falls back to the code when no label is available. The Employee details card lists name, user ID, date of birth, start date, address, and country. Payslips can now carry contract snapshot fields such as contract id, contract type, payment frequency, contract dates, weekly hours, and holiday allowance, so payroll reviewers can see what contract rule produced the period.
 
 The page is read-only except for downloading the PDF and navigating back. Its role is to explain the payslip calculation to the user in a structured way.
 
@@ -484,6 +484,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 21: Updated the Payslip Detail page so the cards use a list view layout instead of field tiles.
     \item 2026 05 21: Made Planning Overview default to Shifts mode and added selectable shift cards with a compact pop up action menu and bulk Plan someone in panel.
     \item 2026 05 21: Updated the planning shift selection + popover design spec to re-invite existing assignments when planning people in bulk (no UI change yet).
     \item 2026 05 21: Added a Planning Overview shift selection + popover actions design spec (no UI change yet).

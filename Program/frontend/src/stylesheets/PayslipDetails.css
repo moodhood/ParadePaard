@@ -162,6 +162,51 @@
   padding: 22px;
 }
 
+.payslipDetailLayout--list .payslipDetailSection .uiCardBody {
+  padding: 0;
+}
+
+.payslipDetailListBody {
+  display: flex;
+  flex-direction: column;
+}
+
+.gridPayslipDetailKV {
+  grid-template-columns: minmax(180px, 0.9fr) minmax(0, 1.1fr);
+}
+
+.listHeaderGrid.gridPayslipDetailKV > :last-child,
+.listRowGrid.gridPayslipDetailKV > :last-child {
+  text-align: left;
+}
+
+.gridPayslipDetailDeductions {
+  grid-template-columns: minmax(0, 1.4fr) minmax(140px, 0.9fr) minmax(120px, 0.7fr);
+}
+
+.payslipDetailListValue {
+  text-align: left;
+}
+
+.payslipDetailListValue--numeric {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.listRowGrid.gridPayslipDetailKV > .payslipDetailListValue--numeric {
+  text-align: right;
+}
+
+.payslipDetailListValue--wrap {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.payslipDetailListRow--accent {
+  background: #fff7e6;
+}
+
 .payslipDetailSection--wide {
   grid-column: 1 / -1;
 }
@@ -334,6 +379,10 @@
 
   .payslipDetailSection .uiCardBody {
     padding: 18px;
+  }
+
+  .payslipDetailLayout--list .payslipDetailSection .uiCardBody {
+    padding: 0;
   }
 
   .payslipDetailFields {
