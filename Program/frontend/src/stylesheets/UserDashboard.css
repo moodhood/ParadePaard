@@ -82,6 +82,50 @@ body{
   max-height: 280px;
 }
 
+.userPlanningRowButton {
+  width: 100%;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.userPlanningRowButton:focus-visible {
+  outline: 3px solid rgba(47, 107, 255, 0.38);
+  outline-offset: -3px;
+  border-radius: 10px;
+}
+
+.userPlanningTimeCell {
+  font-variant-numeric: tabular-nums;
+}
+
+.userPlanningStatusPill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(15, 23, 42, 0.78);
+}
+
+.userPlanningStatusPill--scheduled {
+  border-color: rgba(47, 107, 255, 0.22);
+  background: rgba(47, 107, 255, 0.08);
+  color: #1b4fd6;
+}
+
+.userPlanningStatusPill--logged {
+  border-color: rgba(46, 125, 50, 0.22);
+  background: rgba(46, 125, 50, 0.10);
+  color: #2e7d32;
+}
+
 .userPlanningGroup {
   padding: 14px;
 }

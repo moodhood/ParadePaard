@@ -569,8 +569,7 @@ ${note}` : title;
                                                 <button
                                                     type="button"
                                                     key={row.scheduleEntryId}
-                                                    className="listRowGrid userPlanningGrid"
-                                                    style={{ cursor: "pointer", background: "transparent", border: 0, width: "100%", textAlign: "left" }}
+                                                    className="listRowGrid userPlanningGrid clickableRow userPlanningRowButton"
                                                     onClick={() => navigate(`/my-planning/${row.scheduleEntryId}`)}
                                                 >
                                                     <div>
@@ -578,10 +577,21 @@ ${note}` : title;
                                                         <div className="cellSub">{row.shiftName ?? row.functionName}</div>
                                                     </div>
                                                     <div className="cellSub">{formatDate(row.shiftDate)}</div>
-                                                    <div className="cellSub">{row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}</div>
+                                                    <div className="cellSub userPlanningTimeCell">
+                                                        {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
+                                                    </div>
                                                     <div className="cellSub">{row.functionName}</div>
                                                     <div className="cellSub">
-                                                        {row.timesheetExported ? "Logged" : "Scheduled"}
+                                                        <span
+                                                            className={[
+                                                                "userPlanningStatusPill",
+                                                                row.timesheetExported
+                                                                    ? "userPlanningStatusPill--logged"
+                                                                    : "userPlanningStatusPill--scheduled",
+                                                            ].join(" ")}
+                                                        >
+                                                            {row.timesheetExported ? "Logged" : "Scheduled"}
+                                                        </span>
                                                     </div>
                                                 </button>
                                             ))}
