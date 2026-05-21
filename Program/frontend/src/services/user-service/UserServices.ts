@@ -1,3 +1,4 @@
+import axios from "axios";
 import ApproveLeaveRequest from "./ApproveLeaveRequest";
 import CompleteSetup, { UploadIdDocumentImage, type UserSetupRequest } from "./CompleteSetup";
 import CreateLeaveRequest from "./CreateLeaveRequest";
@@ -28,6 +29,7 @@ import {
     type MessageConversationDTO,
     type MessageEntryDTO,
     type MessageSendRequestDTO,
+    type MessageRealtimeEventDTO,
 } from "./Messages";
 import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
@@ -74,6 +76,7 @@ import UpdatePayslip, { type UpdatePayslipRequestDTO } from "./UpdatePayslip";
 import GetUserProfilePicture from "./GetUserProfilePicture";
 import GetUserIdDocumentImage from "./GetUserIdDocumentImage";
 import UpdateUser from "./UpdateUser";
+import UpdateOnboardingReview, { type OnboardingReviewUpdateRequest } from "./UpdateOnboardingReview";
 import GetPlanningOverview, {
     type PlanningOverviewQuery,
     type PlanningDayDTO,
@@ -178,6 +181,7 @@ export type {
     MessageConversationDTO,
     MessageEntryDTO,
     MessageSendRequestDTO,
+    MessageRealtimeEventDTO,
     PlanningEventDTO,
     PlanningDayDTO,
     PlanningShiftDTO,
@@ -246,6 +250,9 @@ export const UserServices = {
     },
     updateUser: async (userId: string, payload: UserUpdateRequestDTO): Promise<UserResponseDTO> => {
         return await UpdateUser(API_BASE_URL, userId, payload);
+    },
+    updateOnboardingReview: async (userId: string, payload: OnboardingReviewUpdateRequest): Promise<UserResponseDTO> => {
+        return await UpdateOnboardingReview(API_BASE_URL, userId, payload);
     },
     getMe: async (): Promise<UserResponseDTO> => {
         return await GetMe(API_BASE_URL);
@@ -507,5 +514,17 @@ export const UserServices = {
         reject: async (requestId: string, note?: string): Promise<void> => {
             return await RejectLeaveRequest(API_BASE_URL, requestId, note);
         },
+    },
+    assignUserCao: async (
+        userId: string,
+        caoId: string | null,
+        overrides?: Record<string, number> | null
+    ): Promise<UserResponseDTO> => {
+        const res = await axios.put<UserResponseDTO>(
+            `${API_BASE_URL}/api/users/${userId}/cao`,
+            { caoId, overrides: overrides ?? null },
+            { withCredentials: true }
+        );
+        return res.data;
     },
 };

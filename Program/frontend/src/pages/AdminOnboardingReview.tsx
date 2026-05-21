@@ -95,7 +95,7 @@ export default function AdminOnboardingReview() {
                     <div className="pageShellContent">
                         <header className="pageHeader">
                             <PageBack to="/management" />
-                            <h1 className="pageTitle">Onboarding review</h1>
+                            <h1 className="pageTitle">Onboarding Review</h1>
                         </header>
                         <div className="adminDashboardCard">
                             <Card
@@ -135,7 +135,7 @@ export default function AdminOnboardingReview() {
                                                   <div
                                                       key={user.userId}
                                                       className="listRowGrid gridOnboardingReview clickableRow"
-                                                      onClick={() => navigate(`/management/users/${user.userId}`)}
+                                                      onClick={() => navigate(`/management/onboarding-review/${user.userId}`)}
                                                   >
                                                       <div className="cellMain">{displayNameForUser(user)}</div>
                                                       <div className="cellSub">{user.email}</div>
@@ -146,10 +146,10 @@ export default function AdminOnboardingReview() {
                                                           className="listLink"
                                                           onClick={(event) => {
                                                               event.stopPropagation();
-                                                              navigate(`/management/users/${user.userId}`);
+                                                              navigate(`/management/onboarding-review/${user.userId}`);
                                                           }}
                                                       >
-                                                          Open profile
+                                                          Open review
                                                       </button>
                                                   </div>
                                               ))

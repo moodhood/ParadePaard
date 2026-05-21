@@ -19,6 +19,10 @@ export const COMPANY_SETTINGS_PERMISSIONS = [
     ...ROLE_MANAGEMENT_PERMISSIONS,
 ];
 
+export const CAO_MANAGEMENT_PERMISSIONS = [
+    "CAN_MANAGE_COMPANY",
+];
+
 export const ONBOARDING_REVIEW_PERMISSIONS = [
     "CAN_VIEW_ONBOARDING_QUEUE",
     "CAN_REVIEW_ONBOARDING",
@@ -89,6 +93,7 @@ export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
     { label: "All payslips", to: "/payslips?scope=all", permissions: ["CAN_VIEW_ALL_PAYSLIPS"] },
     { label: "Payslip review", to: "/management/payslip-review", permissions: ["CAN_REVIEW_PAYSLIPS"] },
     { label: "Company settings", to: "/account/company", permissions: COMPANY_SETTINGS_PERMISSIONS },
+    { label: "CAO templates", to: "/management/cao", permissions: CAO_MANAGEMENT_PERMISSIONS },
 ];
 
 export const hasPermission = (

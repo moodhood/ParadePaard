@@ -559,9 +559,7 @@ export default function Navbar(): JSX.Element {
                     </div>
                 </div>
             </header>
-            {canManageMessages ? (
-                <AdminMessageDrawer open={adminMessagesOpen} onClose={() => setAdminMessagesOpen(false)} />
-            ) : null}
+            {canManageMessages ? <AdminMessageDrawer open={adminMessagesOpen} /> : null}
         </>
     );
 }

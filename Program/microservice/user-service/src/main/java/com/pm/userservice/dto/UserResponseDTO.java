@@ -1,5 +1,7 @@
 package com.pm.userservice.dto;
 
+import java.util.Map;
+
 public class UserResponseDTO {
     private String userId;
     private String email;
@@ -35,6 +37,13 @@ public class UserResponseDTO {
     private String registeredDate;
     private String status;
     private EmployeeTaxProfileDTO employeeTaxProfile;
+    private String onboardingReviewDecision;
+    private String onboardingReviewNote;
+    private Map<String, Boolean> onboardingReviewCheckedSections;
+    private OnboardingReviewContractSetupDraftDTO onboardingReviewContractSetupDraft;
+    private Boolean hasIdDocumentImage;
+    private String assignedCaoId;
+    private String assignedCaoName;
 
     public String getUserId() {
         return userId;
@@ -307,4 +316,49 @@ public class UserResponseDTO {
     public void setEmployeeTaxProfile(EmployeeTaxProfileDTO employeeTaxProfile) {
         this.employeeTaxProfile = employeeTaxProfile;
     }
+
+    public String getOnboardingReviewDecision() {
+        return onboardingReviewDecision;
+    }
+
+    public void setOnboardingReviewDecision(String onboardingReviewDecision) {
+        this.onboardingReviewDecision = onboardingReviewDecision;
+    }
+
+    public String getOnboardingReviewNote() {
+        return onboardingReviewNote;
+    }
+
+    public void setOnboardingReviewNote(String onboardingReviewNote) {
+        this.onboardingReviewNote = onboardingReviewNote;
+    }
+
+    public Map<String, Boolean> getOnboardingReviewCheckedSections() {
+        return onboardingReviewCheckedSections;
+    }
+
+    public void setOnboardingReviewCheckedSections(Map<String, Boolean> onboardingReviewCheckedSections) {
+        this.onboardingReviewCheckedSections = onboardingReviewCheckedSections;
+    }
+
+    public OnboardingReviewContractSetupDraftDTO getOnboardingReviewContractSetupDraft() {
+        return onboardingReviewContractSetupDraft;
+    }
+
+    public void setOnboardingReviewContractSetupDraft(OnboardingReviewContractSetupDraftDTO onboardingReviewContractSetupDraft) {
+        this.onboardingReviewContractSetupDraft = onboardingReviewContractSetupDraft;
+    }
+
+    public Boolean getHasIdDocumentImage() {
+        return hasIdDocumentImage;
+    }
+
+    public void setHasIdDocumentImage(Boolean hasIdDocumentImage) {
+        this.hasIdDocumentImage = hasIdDocumentImage;
+    }
+
+    public String getAssignedCaoId() { return assignedCaoId; }
+    public void setAssignedCaoId(String assignedCaoId) { this.assignedCaoId = assignedCaoId; }
+    public String getAssignedCaoName() { return assignedCaoName; }
+    public void setAssignedCaoName(String assignedCaoName) { this.assignedCaoName = assignedCaoName; }
 }

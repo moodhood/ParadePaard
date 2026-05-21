@@ -3,6 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 import { UserMessagesView } from "./Messages";
 import type { MessageConversationDTO } from "../services/user-service/UserServices";
 
+vi.mock("../components/Navbar", () => ({
+    default: function MockNavbar() {
+        return <header aria-label="Navbar" />;
+    },
+}));
+
 vi.mock("../components/PrimaryNav", () => ({
     default: function MockPrimaryNav() {
         return <nav aria-label="Primary navigation" />;

@@ -172,6 +172,15 @@ spring:
                 - StripPrefix=1
                 - JwtValidation
 
+            # CAO templates through user service
+            - id: user-service-cao-route
+              uri: http://user-service:4006
+              predicates:
+                - Path=/api/cao/**
+              filters:
+                - StripPrefix=1
+                - JwtValidation
+
             # User swagger
             - id: api-docs-user-route
               uri: http://user-service:4006

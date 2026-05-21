@@ -3,15 +3,21 @@ package com.pm.userservice.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pm.userservice.dto.CaoUserAssignDTO;
 import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.OnboardingReviewContractSetupDraftDTO;
+import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
 import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.PayrollTaxTemplateDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.exception.UserNotFoundException;
 import com.pm.userservice.mapper.UserMapper;
+import com.pm.userservice.model.CaoTemplate;
 import com.pm.userservice.model.Company;
 import com.pm.userservice.model.User;
+import com.pm.userservice.model.UserStatus;
+import com.pm.userservice.repository.CaoTemplateRepository;
 import com.pm.userservice.repository.CompanyRepository;
 import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
@@ -39,6 +45,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
+    private final CaoTemplateRepository caoTemplateRepository;
     private final UserDuplicateValidator userDuplicateValidator;
     private final ObjectMapper objectMapper;
 
@@ -48,10 +55,12 @@ public class UserService {
 
     public UserService(UserRepository userRepository,
                        CompanyRepository companyRepository,
+                       CaoTemplateRepository caoTemplateRepository,
                        UserDuplicateValidator userDuplicateValidator,
                        ObjectMapper objectMapper) {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
+        this.caoTemplateRepository = caoTemplateRepository;
         this.userDuplicateValidator = userDuplicateValidator;
         this.objectMapper = objectMapper;
     }
@@ -69,7 +78,7 @@ public class UserService {
         if (companyId != null) {
             Integer payoutFrequency = resolveCompanyPayoutFrequency(companyId);
             return users.stream()
-                    .map(user -> UserMapper.toDTO(user, payoutFrequency))
+                    .map(user -> toUserResponseDTO(user, payoutFrequency))
                     .toList();
         }
 
@@ -79,7 +88,7 @@ public class UserService {
                 .collect(Collectors.toSet());
         var payoutByCompany = resolveCompanyPayoutFrequencies(companyIds);
         return users.stream()
-                .map(user -> UserMapper.toDTO(user, payoutByCompany.get(user.getCompanyId())))
+                .map(user -> toUserResponseDTO(user, payoutByCompany.get(user.getCompanyId())))
                 .toList();
     }
 
@@ -91,12 +100,12 @@ public class UserService {
                 : userRepository.findAll(pageable);
 
         if (users.isEmpty()) {
-            return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, null));
+            return PagedResponseDTO.from(users, user -> toUserResponseDTO(user, null));
         }
 
         if (companyId != null) {
             Integer payoutFrequency = resolveCompanyPayoutFrequency(companyId);
-            return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, payoutFrequency));
+            return PagedResponseDTO.from(users, user -> toUserResponseDTO(user, payoutFrequency));
         }
 
         Set<UUID> companyIds = users.getContent().stream()
@@ -104,7 +113,7 @@ public class UserService {
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
         var payoutByCompany = resolveCompanyPayoutFrequencies(companyIds);
-        return PagedResponseDTO.from(users, user -> UserMapper.toDTO(user, payoutByCompany.get(user.getCompanyId())));
+        return PagedResponseDTO.from(users, user -> toUserResponseDTO(user, payoutByCompany.get(user.getCompanyId())));
     }
 
     @Transactional(readOnly = true)
@@ -117,7 +126,7 @@ public class UserService {
         Integer payoutFrequency = user.getCompanyId() != null
                 ? resolveCompanyPayoutFrequency(user.getCompanyId())
                 : user.getPayslipFrequencyMinutes();
-        return UserMapper.toDTO(user, payoutFrequency);
+        return toUserResponseDTO(user, payoutFrequency);
     }
 
     @Transactional(readOnly = true)
@@ -200,7 +209,7 @@ public class UserService {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new UserNotFoundException("User with id: " + userId + " not found"));
         Integer payoutFrequency = company.getPayoutFrequencyMinutes();
-        return UserMapper.toDTO(user, payoutFrequency);
+        return toUserResponseDTO(user, payoutFrequency);
     }
 
     @Transactional(readOnly = true)
@@ -313,6 +322,109 @@ public class UserService {
         byte[] data = user.getProfilePicture();
         if (data == null || data.length == 0) return Optional.empty();
         return Optional.of(new ProfilePicture(data, user.getProfilePictureContentType()));
+    }
+
+    @Transactional
+    public UserResponseDTO updateOnboardingReview(UUID id, UUID companyId, OnboardingReviewUpdateDTO body) {
+        User existing = companyId != null
+                ? userRepository.findByUserIdAndCompanyId(id, companyId)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"))
+                : userRepository.findByUserId(id)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+
+        existing.setOnboardingReviewDecision(body.getDecision());
+        existing.setOnboardingReviewNote(normalizeOptionalText(body.getNote()));
+
+        if (body.getCheckedSections() != null) {
+            existing.setOnboardingReviewCheckedSectionsJson(writeJsonSafely(body.getCheckedSections()));
+        }
+
+        if (body.getContractSetupDraft() != null) {
+            existing.setOnboardingReviewContractSetupJson(writeJsonSafely(body.getContractSetupDraft()));
+        }
+
+        String rawStatus = normalizeOptionalText(body.getStatus());
+        if (rawStatus != null) {
+            existing.setStatus(UserStatus.valueOf(rawStatus.trim().toUpperCase()));
+        }
+
+        User updatedUser = userRepository.save(existing);
+        Integer payoutFrequency = updatedUser.getCompanyId() != null
+                ? resolveCompanyPayoutFrequency(updatedUser.getCompanyId())
+                : updatedUser.getPayslipFrequencyMinutes();
+        return toUserResponseDTO(updatedUser, payoutFrequency);
+    }
+
+    @Transactional
+    public UserResponseDTO assignUserCao(UUID id, UUID companyId, CaoUserAssignDTO body) {
+        User existing = companyId != null
+                ? userRepository.findByUserIdAndCompanyId(id, companyId)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"))
+                : userRepository.findByUserId(id)
+                    .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+
+        if (body.getCaoId() == null || body.getCaoId().isBlank()) {
+            existing.setAssignedCaoId(null);
+            existing.setCaoVariableOverridesJson(null);
+        } else {
+            UUID caoId = UUID.fromString(body.getCaoId());
+            existing.setAssignedCaoId(caoId);
+            existing.setCaoVariableOverridesJson(writeJsonSafely(body.getOverrides()));
+        }
+
+        User updated = userRepository.save(existing);
+        Integer payoutFrequency = updated.getCompanyId() != null
+                ? resolveCompanyPayoutFrequency(updated.getCompanyId())
+                : updated.getPayslipFrequencyMinutes();
+        return toUserResponseDTO(updated, payoutFrequency);
+    }
+
+    private UserResponseDTO toUserResponseDTO(User user, Integer payoutFrequencyMinutes) {
+        UserResponseDTO dto = UserMapper.toDTO(user, payoutFrequencyMinutes);
+        if (dto == null || user == null) return dto;
+
+        dto.setOnboardingReviewCheckedSections(readCheckedSections(user.getOnboardingReviewCheckedSectionsJson()));
+        dto.setOnboardingReviewContractSetupDraft(readContractSetupDraft(user.getOnboardingReviewContractSetupJson()));
+
+        if (user.getAssignedCaoId() != null) {
+            caoTemplateRepository.findById(user.getAssignedCaoId())
+                    .ifPresent(cao -> dto.setAssignedCaoName(cao.getName()));
+        }
+
+        return dto;
+    }
+
+    private java.util.Map<String, Boolean> readCheckedSections(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, new TypeReference<HashMap<String, Boolean>>() {});
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private OnboardingReviewContractSetupDraftDTO readContractSetupDraft(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return objectMapper.readValue(json, OnboardingReviewContractSetupDraftDTO.class);
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String writeJsonSafely(Object value) {
+        if (value == null) return null;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ignored) {
+            return null;
+        }
+    }
+
+    private static String normalizeOptionalText(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Transactional(readOnly = true)

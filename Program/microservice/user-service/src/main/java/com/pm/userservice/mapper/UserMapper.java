@@ -56,6 +56,10 @@ public class UserMapper {
         dto.setRegisteredDate(user.getRegisteredDate() != null ? user.getRegisteredDate().toString() : null);
         dto.setStatus(user.getStatus() != null ? user.getStatus().name() : null);
         dto.setEmployeeTaxProfile(toEmployeeTaxProfile(user));
+        dto.setOnboardingReviewDecision(user.getOnboardingReviewDecision());
+        dto.setOnboardingReviewNote(user.getOnboardingReviewNote());
+        dto.setHasIdDocumentImage(user.getIdDocumentImage() != null && user.getIdDocumentImage().length > 0);
+        dto.setAssignedCaoId(user.getAssignedCaoId() != null ? user.getAssignedCaoId().toString() : null);
 
         return dto;
     }

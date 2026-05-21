@@ -1,7 +1,9 @@
 // src/main/java/com/pm/userservice/controller/UserController.java
 package com.pm.userservice.controller;
 
+import com.pm.userservice.dto.CaoUserAssignDTO;
 import com.pm.userservice.dto.CompanyResponseDTO;
+import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
 import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.UpdateCompanyRequestDTO;
 import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
@@ -10,6 +12,7 @@ import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -385,6 +388,36 @@ public class UserController {
         UUID companyId = resolveCompanyId(authentication);
         UserResponseDTO userResponseDTO = userService.updateUser(id, userRequestDTO, companyId);
         return ResponseEntity.ok(userResponseDTO);
+    }
+
+    @PutMapping("/{id}/onboarding-review")
+    @Operation(summary = "Update onboarding review decision admin only")
+    @PreAuthorize("hasAuthority('CAN_REVIEW_ONBOARDING')")
+    public ResponseEntity<UserResponseDTO> updateOnboardingReview(
+            @PathVariable UUID id,
+            @Valid @RequestBody OnboardingReviewUpdateDTO body,
+            Authentication authentication
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        UserResponseDTO userResponseDTO = userService.updateOnboardingReview(id, companyId, body);
+        return ResponseEntity.ok(userResponseDTO);
+    }
+
+    @PutMapping("/{id}/cao")
+    @Operation(summary = "Assign or remove a CAO template for a user")
+    @PreAuthorize("hasAuthority('CAN_REVIEW_ONBOARDING') or hasAuthority('CAN_MANAGE_USERS')")
+    public ResponseEntity<?> assignUserCao(
+            @PathVariable UUID id,
+            @RequestBody CaoUserAssignDTO body,
+            Authentication authentication
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        try {
+            UserResponseDTO result = userService.assignUserCao(id, companyId, body);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
     }
 
     @DeleteMapping("/{id}")

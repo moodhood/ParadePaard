@@ -23,6 +23,161 @@ function sortAssignments(items: EmployeePlanningAssignmentDTO[]): EmployeePlanni
     });
 }
 
+export type MyPlanningViewProps = {
+    activeTab: PlanningTab;
+    scheduledItems: EmployeePlanningAssignmentDTO[];
+    acceptedItems: EmployeePlanningAssignmentDTO[];
+    loading: boolean;
+    error: string | null;
+    pendingActionId: string | null;
+    onTabChange: (next: PlanningTab) => void;
+    onDecline: (scheduleEntryId: string) => void;
+    onAccept: (scheduleEntryId: string) => void;
+    onOpenShift: (scheduleEntryId: string) => void;
+};
+
+export function MyPlanningView({
+    activeTab,
+    scheduledItems,
+    acceptedItems,
+    loading,
+    error,
+    pendingActionId,
+    onTabChange,
+    onDecline,
+    onAccept,
+    onOpenShift,
+}: MyPlanningViewProps) {
+    return (
+        <>
+            <Navbar />
+            <div className="pageShell">
+                <PrimaryNav />
+                <div className="pageShellContent">
+                    <header className="pageHeader">
+                        <h1 className="pageTitle">My Planning</h1>
+                    </header>
+                    {loading ? (
+                        <Spinner text="Loading your planning" />
+                    ) : (
+                        <Card
+                            title="Accepted shifts"
+                            className="userPlanningCard userPlanningAcceptedCard"
+                            right={
+                                <div className="planningModeToggle userPlanningStatusToggle">
+                                    {([
+                                        { value: "upcoming", label: "Upcoming" },
+                                        { value: "past", label: "Past" },
+                                    ] as const).map((option) => (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            className={[
+                                                "planningModeButton",
+                                                activeTab === option.value ? "planningModeButton--active" : "",
+                                            ].filter(Boolean).join(" ")}
+                                            onClick={() => onTabChange(option.value)}
+                                            aria-pressed={activeTab === option.value}
+                                        >
+                                            {option.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            }
+                        >
+                            {error ? <p className="errorText userPlanningSectionMessage">{error}</p> : null}
+                            <div className="userPlanningAcceptedLayout">
+                                {scheduledItems.length > 0 ? (
+                                    <div className="userPlanningSectionCardList">
+                                        {scheduledItems.map((item) => {
+                                            const isExpiredRequest = Boolean(item.isPast);
+                                            return (
+                                                <article key={item.scheduleEntryId} className="userPlanningRequestCard userPlanningPanelCard">
+                                                    <div className="userPlanningRequestMain">
+                                                        <div className="userPlanningRequestTitle">{item.eventName}</div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {formatDate(item.shiftDate)} - {timeLabel(item.startTime, item.endTime)}
+                                                        </div>
+                                                        <div className="userPlanningRequestMeta">
+                                                            {item.functionName} - {item.shiftLocation ?? item.eventLocation ?? "Location follows after acceptance"}
+                                                        </div>
+                                                        {isExpiredRequest ? (
+                                                            <div className="userPlanningRequestMeta">
+                                                                This request is visible for history, but the shift has already ended.
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="userPlanningRequestActions">
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningDeclineButton"
+                                                            disabled={Boolean(pendingActionId) || isExpiredRequest}
+                                                            onClick={() => onDecline(item.scheduleEntryId)}
+                                                        >
+                                                            {pendingActionId === `${item.scheduleEntryId}:CANCELLED` ? "Declining..." : "Decline"}
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="button userPlanningAcceptButton"
+                                                            disabled={Boolean(pendingActionId) || isExpiredRequest}
+                                                            onClick={() => onAccept(item.scheduleEntryId)}
+                                                        >
+                                                            {pendingActionId === `${item.scheduleEntryId}:CONFIRMED` ? "Accepting..." : "Accept"}
+                                                        </button>
+                                                    </div>
+                                                </article>
+                                            );
+                                        })}
+                                    </div>
+                                ) : null}
+
+                                <section className="userPlanningSection">
+                                    <div className="userPlanningSectionHeader">
+                                        <div>
+                                            <div className="userPlanningSectionTitle">Accepted shifts</div>
+                                            <div className="userPlanningSectionText">
+                                                {activeTab === "past" ? "Review completed accepted shifts." : "Your confirmed shifts for the coming period."}
+                                            </div>
+                                        </div>
+                                        <span className="userPlanningSectionBadge">{acceptedItems.length}</span>
+                                    </div>
+                                    {acceptedItems.length === 0 ? (
+                                        <p className="helperText userPlanningSectionMessage">
+                                            {activeTab === "past" ? "No past accepted shifts yet." : "No upcoming accepted shifts."}
+                                        </p>
+                                    ) : (
+                                        <div className="userPlanningAcceptedList">
+                                            {acceptedItems.map((item) => (
+                                                <button
+                                                    key={item.scheduleEntryId}
+                                                    type="button"
+                                                    className="userPlanningAcceptedItem"
+                                                    onClick={() => onOpenShift(item.scheduleEntryId)}
+                                                >
+                                                    <div className="userPlanningAcceptedItemMain">
+                                                        <div className="userPlanningAcceptedItemTitle">{item.eventName}</div>
+                                                        <div className="userPlanningAcceptedItemMeta">{item.shiftName ?? item.functionName}</div>
+                                                    </div>
+                                                    <div className="userPlanningAcceptedItemMeta">{formatDate(item.shiftDate)}</div>
+                                                    <div className="userPlanningAcceptedItemMeta">{timeLabel(item.startTime, item.endTime)}</div>
+                                                    <div className="userPlanningAcceptedItemMeta">{item.shiftLocation ?? item.eventLocation ?? "-"}</div>
+                                                    <div className="userPlanningAcceptedItemStatus">
+                                                        {item.timesheetExported ? "Logged" : activeTab === "past" ? "Pending log" : "Scheduled"}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    )}
+                                </section>
+                            </div>
+                        </Card>
+                    )}
+                </div>
+            </div>
+        </>
+    );
+}
+
 export default function MyPlanning() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -83,148 +238,19 @@ export default function MyPlanning() {
     };
 
     return (
-        <>
-            <Navbar />
-            <div className="pageShell">
-                <PrimaryNav />
-                <div className="pageShellContent">
-                    <header className="pageHeader">
-                        <h1 className="pageTitle">My Planning</h1>
-                    </header>
-                    {loading ? (
-                        <Spinner text="Loading your planning" />
-                    ) : (
-                        <Card
-                            title="Accepted shifts"
-                            className="userPlanningCard userPlanningAcceptedCard"
-                            right={
-                                <div className="planningModeToggle userPlanningStatusToggle">
-                                    {([
-                                        { value: "upcoming", label: "Upcoming" },
-                                        { value: "past", label: "Past" },
-                                    ] as const).map((option) => (
-                                        <button
-                                            key={option.value}
-                                            type="button"
-                                            className={[
-                                                "planningModeButton",
-                                                activeTab === option.value ? "planningModeButton--active" : "",
-                                            ].filter(Boolean).join(" ")}
-                                            onClick={() => setActiveTab(option.value)}
-                                            aria-pressed={activeTab === option.value}
-                                        >
-                                            {option.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            }
-                        >
-                            {error ? <p className="errorText userPlanningSectionMessage">{error}</p> : null}
-                            <div className="userPlanningAcceptedLayout">
-                                <section className="userPlanningSection">
-                                    <div className="userPlanningSectionHeader">
-                                        <div>
-                                            <div className="userPlanningSectionTitle">Scheduled shifts</div>
-                                            <div className="userPlanningSectionText">
-                                                Accept a scheduled shift and it moves into your accepted list.
-                                            </div>
-                                        </div>
-                                        <span className="userPlanningSectionBadge">{scheduledItems.length}</span>
-                                    </div>
-                                    {scheduledItems.length === 0 ? (
-                                        <p className="helperText userPlanningSectionMessage">
-                                            {activeTab === "past"
-                                                ? "No past scheduled shifts waiting for a response."
-                                                : "No scheduled shifts waiting for a response."}
-                                        </p>
-                                    ) : (
-                                        <div className="userPlanningSectionCardList">
-                                            {scheduledItems.map((item) => {
-                                                const isExpiredRequest = Boolean(item.isPast);
-                                                return (
-                                                    <article key={item.scheduleEntryId} className="userPlanningRequestCard userPlanningPanelCard">
-                                                        <div className="userPlanningRequestMain">
-                                                            <div className="userPlanningRequestTitle">{item.eventName}</div>
-                                                            <div className="userPlanningRequestMeta">
-                                                                {formatDate(item.shiftDate)} - {timeLabel(item.startTime, item.endTime)}
-                                                            </div>
-                                                            <div className="userPlanningRequestMeta">
-                                                                {item.functionName} - {item.shiftLocation ?? item.eventLocation ?? "Location follows after acceptance"}
-                                                            </div>
-                                                            {isExpiredRequest ? (
-                                                                <div className="userPlanningRequestMeta">
-                                                                    This request is visible for history, but the shift has already ended.
-                                                                </div>
-                                                            ) : null}
-                                                        </div>
-                                                        <div className="userPlanningRequestActions">
-                                                            <button
-                                                                type="button"
-                                                                className="button userPlanningDeclineButton"
-                                                                disabled={Boolean(pendingActionId) || isExpiredRequest}
-                                                                onClick={() => void respond(item.scheduleEntryId, "CANCELLED")}
-                                                            >
-                                                                {pendingActionId === `${item.scheduleEntryId}:CANCELLED` ? "Declining..." : "Decline"}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className="button userPlanningAcceptButton"
-                                                                disabled={Boolean(pendingActionId) || isExpiredRequest}
-                                                                onClick={() => void respond(item.scheduleEntryId, "CONFIRMED")}
-                                                            >
-                                                                {pendingActionId === `${item.scheduleEntryId}:CONFIRMED` ? "Accepting..." : "Accept"}
-                                                            </button>
-                                                        </div>
-                                                    </article>
-                                                );
-                                            })}
-                                        </div>
-                                    )}
-                                </section>
-
-                                <section className="userPlanningSection">
-                                    <div className="userPlanningSectionHeader">
-                                        <div>
-                                            <div className="userPlanningSectionTitle">Accepted shifts</div>
-                                            <div className="userPlanningSectionText">
-                                                {activeTab === "past" ? "Review completed accepted shifts." : "Your confirmed shifts for the coming period."}
-                                            </div>
-                                        </div>
-                                        <span className="userPlanningSectionBadge">{acceptedItems.length}</span>
-                                    </div>
-                                    {acceptedItems.length === 0 ? (
-                                        <p className="helperText userPlanningSectionMessage">
-                                            {activeTab === "past" ? "No past accepted shifts yet." : "No upcoming accepted shifts."}
-                                        </p>
-                                    ) : (
-                                        <div className="userPlanningAcceptedList">
-                                            {acceptedItems.map((item) => (
-                                                <button
-                                                    key={item.scheduleEntryId}
-                                                    type="button"
-                                                    className="userPlanningAcceptedItem"
-                                                    onClick={() => navigate(`/my-planning/${item.scheduleEntryId}${activeTab === "past" ? "?tab=past" : ""}`)}
-                                                >
-                                                    <div className="userPlanningAcceptedItemMain">
-                                                        <div className="userPlanningAcceptedItemTitle">{item.eventName}</div>
-                                                        <div className="userPlanningAcceptedItemMeta">{item.shiftName ?? item.functionName}</div>
-                                                    </div>
-                                                    <div className="userPlanningAcceptedItemMeta">{formatDate(item.shiftDate)}</div>
-                                                    <div className="userPlanningAcceptedItemMeta">{timeLabel(item.startTime, item.endTime)}</div>
-                                                    <div className="userPlanningAcceptedItemMeta">{item.shiftLocation ?? item.eventLocation ?? "-"}</div>
-                                                    <div className="userPlanningAcceptedItemStatus">
-                                                        {item.timesheetExported ? "Logged" : activeTab === "past" ? "Pending log" : "Scheduled"}
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </section>
-                            </div>
-                        </Card>
-                    )}
-                </div>
-            </div>
-        </>
+        <MyPlanningView
+            activeTab={activeTab}
+            scheduledItems={scheduledItems}
+            acceptedItems={acceptedItems}
+            loading={loading}
+            error={error}
+            pendingActionId={pendingActionId}
+            onTabChange={setActiveTab}
+            onDecline={(scheduleEntryId) => void respond(scheduleEntryId, "CANCELLED")}
+            onAccept={(scheduleEntryId) => void respond(scheduleEntryId, "CONFIRMED")}
+            onOpenShift={(scheduleEntryId) =>
+                navigate(`/my-planning/${scheduleEntryId}${activeTab === "past" ? "?tab=past" : ""}`)
+            }
+        />
     );
 }

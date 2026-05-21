@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
-import { UserServices, type MessageConversationDTO, type MessageEntryDTO } from "../services/user-service/UserServices";
+import { UserServices, type MessageConversationDTO, type MessageEntryDTO, type MessageRealtimeEventDTO } from "../services/user-service/UserServices";
 import "../stylesheets/Messages.css";
 
 type AdminMessagesViewProps = {
@@ -16,7 +17,6 @@ type AdminMessagesViewProps = {
     onSelectConversation: (conversationId: string) => void;
     onDraftChange: (value: string) => void;
     onSend: () => void;
-    onRefresh: () => void;
     onBackToInbox: () => void;
     headerActions?: ReactNode;
 };
@@ -60,40 +60,41 @@ export function AdminMessagesView({
     onSelectConversation,
     onDraftChange,
     onSend,
-    onRefresh,
     onBackToInbox,
     headerActions,
 }: AdminMessagesViewProps) {
     return (
-        <div className="messagesPage">
-            <div className="pageShell">
-                <PrimaryNav />
-                <main className="pageShellContent">
-                    <header className="pageHeader">
-                        <h1 className="pageTitle">Shared Inbox</h1>
-                    </header>
-                    <div className="messagesDockLayout">
-                        <AdminSharedInboxPanel
-                            conversations={conversations}
-                            selectedConversation={selectedConversation}
-                            loading={loading}
-                            detailLoading={detailLoading}
-                            error={error}
-                            detailError={detailError}
-                            draft={draft}
-                            sending={sending}
-                            sendError={sendError}
-                            onSelectConversation={onSelectConversation}
-                            onDraftChange={onDraftChange}
-                            onSend={onSend}
-                            onRefresh={onRefresh}
-                            onBackToInbox={onBackToInbox}
-                            headerActions={headerActions}
-                        />
-                    </div>
-                </main>
+        <>
+            <Navbar />
+            <div className="messagesPage">
+                <div className="pageShell">
+                    <PrimaryNav />
+                    <main className="pageShellContent">
+                        <header className="pageHeader">
+                            <h1 className="pageTitle">Shared Inbox</h1>
+                        </header>
+                        <div className="messagesDockLayout">
+                            <AdminSharedInboxPanel
+                                conversations={conversations}
+                                selectedConversation={selectedConversation}
+                                loading={loading}
+                                detailLoading={detailLoading}
+                                error={error}
+                                detailError={detailError}
+                                draft={draft}
+                                sending={sending}
+                                sendError={sendError}
+                                onSelectConversation={onSelectConversation}
+                                onDraftChange={onDraftChange}
+                                onSend={onSend}
+                                onBackToInbox={onBackToInbox}
+                                headerActions={headerActions}
+                            />
+                        </div>
+                    </main>
+                </div>
             </div>
-        </div>
+        </>
     );
 }
 
@@ -110,11 +111,20 @@ export function AdminSharedInboxPanel({
     onSelectConversation,
     onDraftChange,
     onSend,
-    onRefresh,
     onBackToInbox,
     headerActions,
 }: AdminMessagesViewProps) {
     const chatOpen = Boolean(selectedConversation);
+    const messageListRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const el = messageListRef.current;
+        if (!el) return;
+        const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        const nearBottom = distanceFromBottom < 80;
+        if (!nearBottom) return;
+        el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }, [(selectedConversation?.messages ?? []).length]);
 
     return (
         <section className={`messagePanel messageAdminBox${chatOpen ? " messageAdminBox--chat" : ""}`}>
@@ -126,9 +136,6 @@ export function AdminSharedInboxPanel({
                             <p className="messagePanelMeta">Visible to all admins with message access.</p>
                         </div>
                         <div className="messagePanelActions">
-                            <button type="button" className="buttonSecondary" onClick={onRefresh} disabled={loading}>
-                                Refresh
-                            </button>
                             {headerActions}
                         </div>
                     </div>
@@ -179,7 +186,7 @@ export function AdminSharedInboxPanel({
                     </div>
                     {detailLoading ? <p className="messageEmpty">Loading conversation...</p> : null}
                     {detailError ? <p className="messageError">{detailError}</p> : null}
-                    <div className="messageList">
+                    <div className="messageList" ref={messageListRef}>
                         {(selectedConversation.messages ?? []).map((message) => (
                             <AdminThreadMessage key={message.messageId ?? `${message.createdAt}-${message.body}`} message={message} />
                         ))}
@@ -217,6 +224,25 @@ export default function AdminMessages() {
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState<string | null>(null);
 
+    const sseBaseUrl = useMemo(() => {
+        const base = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004").replace(/\/$/, "");
+        return base;
+    }, []);
+
+    const refreshSelectedConversation = useCallback(async () => {
+        const conversationId = selectedConversation?.conversationId;
+        if (!conversationId) return;
+        try {
+            setDetailLoading(true);
+            setDetailError(null);
+            setSelectedConversation(await UserServices.getAdminMessageConversation(conversationId));
+        } catch (err: unknown) {
+            setDetailError(err instanceof Error ? err.message : "Could not load this conversation");
+        } finally {
+            setDetailLoading(false);
+        }
+    }, [selectedConversation?.conversationId]);
+
     const loadConversations = useCallback(async () => {
         try {
             setLoading(true);
@@ -250,6 +276,102 @@ export default function AdminMessages() {
         void loadConversations();
     }, [loadConversations]);
 
+    useEffect(() => {
+        if (typeof EventSource === "undefined") {
+            const interval = window.setInterval(() => {
+                void loadConversations();
+                void refreshSelectedConversation();
+            }, 4000);
+            return () => window.clearInterval(interval);
+        }
+
+        const source = new EventSource(`${sseBaseUrl}/api/messages/admin/conversations/stream`, { withCredentials: true });
+
+        source.onmessage = (evt: MessageEvent<string>) => {
+            let data: MessageRealtimeEventDTO | null = null;
+            try {
+                data = JSON.parse(evt.data) as MessageRealtimeEventDTO;
+            } catch {
+                return;
+            }
+
+            const conversationId = data?.conversationId ?? null;
+            const incoming = data?.message ?? null;
+            if (!conversationId || !incoming?.messageId) return;
+
+            setConversations((prev) => {
+                const next = prev.slice();
+                const idx = next.findIndex((c) => c.conversationId === conversationId);
+                if (idx === -1) {
+                    next.push({
+                        conversationId,
+                        userId: null,
+                        userDisplayName: data?.userDisplayName ?? null,
+                        userEmail: data?.userEmail ?? null,
+                        lastMessagePreview: data?.lastMessagePreview ?? incoming.body ?? null,
+                        lastMessageAt: data?.lastMessageAt ?? null,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? 0,
+                        unreadByUserCount: data?.unreadByUserCount ?? 0,
+                        messages: [],
+                    });
+                }
+
+                if (idx !== -1) {
+                    const existing = next[idx];
+                    const updated: MessageConversationDTO = {
+                        ...existing,
+                        lastMessageAt: data?.lastMessageAt ?? existing.lastMessageAt,
+                        lastMessagePreview: data?.lastMessagePreview ?? existing.lastMessagePreview,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? existing.unreadByAdminCount,
+                        unreadByUserCount: data?.unreadByUserCount ?? existing.unreadByUserCount,
+                    };
+                    next[idx] = updated;
+                }
+                next.sort((a, b) => {
+                    const ta = a.lastMessageAt ? Date.parse(a.lastMessageAt) : 0;
+                    const tb = b.lastMessageAt ? Date.parse(b.lastMessageAt) : 0;
+                    return tb - ta;
+                });
+                return next;
+            });
+
+            setSelectedConversation((prev) => {
+                if (!prev) return prev;
+                if ((prev.conversationId ?? null) !== conversationId) return prev;
+
+                const messages = prev.messages ?? [];
+                if (messages.some((m) => m.messageId === incoming.messageId)) {
+                    return {
+                        ...prev,
+                        lastMessageAt: data?.lastMessageAt ?? prev.lastMessageAt,
+                        lastMessagePreview: data?.lastMessagePreview ?? prev.lastMessagePreview,
+                        unreadByAdminCount: data?.unreadByAdminCount ?? prev.unreadByAdminCount,
+                        unreadByUserCount: data?.unreadByUserCount ?? prev.unreadByUserCount,
+                    };
+                }
+
+                const nextMessages: MessageEntryDTO[] = [...messages, incoming].slice().sort((a, b) => {
+                    const ta = a.createdAt ? Date.parse(a.createdAt) : 0;
+                    const tb = b.createdAt ? Date.parse(b.createdAt) : 0;
+                    if (ta !== tb) return ta - tb;
+                    return String(a.messageId ?? "").localeCompare(String(b.messageId ?? ""));
+                });
+
+                return {
+                    ...prev,
+                    lastMessageAt: data?.lastMessageAt ?? prev.lastMessageAt,
+                    lastMessagePreview: data?.lastMessagePreview ?? prev.lastMessagePreview,
+                    unreadByAdminCount: data?.unreadByAdminCount ?? prev.unreadByAdminCount,
+                    unreadByUserCount: data?.unreadByUserCount ?? prev.unreadByUserCount,
+                    messages: nextMessages,
+                };
+            });
+        };
+
+        return () => source.close();
+    }, [loadConversations, refreshSelectedConversation, sseBaseUrl]);
+
+
     const sendReply = async () => {
         const conversationId = selectedConversation?.conversationId;
         const body = draft.trim();
@@ -281,7 +403,6 @@ export default function AdminMessages() {
             onSelectConversation={(conversationId) => void loadConversation(conversationId)}
             onDraftChange={setDraft}
             onSend={() => void sendReply()}
-            onRefresh={() => void loadConversations()}
             onBackToInbox={() => {
                 setSelectedConversation(null);
                 setDraft("");

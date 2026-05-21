@@ -107,6 +107,24 @@ public class User {
     @ColumnDefault("CURRENT_DATE")
     private LocalDate registeredDate = LocalDate.now();
 
+    @Column(name = "onboarding_review_decision")
+    private String onboardingReviewDecision;
+
+    @Column(name = "onboarding_review_note", length = 2000)
+    private String onboardingReviewNote;
+
+    @Column(name = "onboarding_review_checked_sections_json", columnDefinition = "TEXT")
+    private String onboardingReviewCheckedSectionsJson;
+
+    @Column(name = "onboarding_review_contract_setup_json", columnDefinition = "TEXT")
+    private String onboardingReviewContractSetupJson;
+
+    @Column(name = "assigned_cao_id")
+    private UUID assignedCaoId;
+
+    @Column(name = "cao_variable_overrides_json", columnDefinition = "TEXT")
+    private String caoVariableOverridesJson;
+
     public UUID getUserId() {
         return userId;
     }
@@ -442,4 +460,41 @@ public class User {
     public void setRegisteredDate(LocalDate registeredDate) {
         this.registeredDate = registeredDate;
     }
+
+    public String getOnboardingReviewDecision() {
+        return onboardingReviewDecision;
+    }
+
+    public void setOnboardingReviewDecision(String onboardingReviewDecision) {
+        this.onboardingReviewDecision = onboardingReviewDecision;
+    }
+
+    public String getOnboardingReviewNote() {
+        return onboardingReviewNote;
+    }
+
+    public void setOnboardingReviewNote(String onboardingReviewNote) {
+        this.onboardingReviewNote = onboardingReviewNote;
+    }
+
+    public String getOnboardingReviewCheckedSectionsJson() {
+        return onboardingReviewCheckedSectionsJson;
+    }
+
+    public void setOnboardingReviewCheckedSectionsJson(String onboardingReviewCheckedSectionsJson) {
+        this.onboardingReviewCheckedSectionsJson = onboardingReviewCheckedSectionsJson;
+    }
+
+    public String getOnboardingReviewContractSetupJson() {
+        return onboardingReviewContractSetupJson;
+    }
+
+    public void setOnboardingReviewContractSetupJson(String onboardingReviewContractSetupJson) {
+        this.onboardingReviewContractSetupJson = onboardingReviewContractSetupJson;
+    }
+
+    public UUID getAssignedCaoId() { return assignedCaoId; }
+    public void setAssignedCaoId(UUID assignedCaoId) { this.assignedCaoId = assignedCaoId; }
+    public String getCaoVariableOverridesJson() { return caoVariableOverridesJson; }
+    public void setCaoVariableOverridesJson(String caoVariableOverridesJson) { this.caoVariableOverridesJson = caoVariableOverridesJson; }
 }

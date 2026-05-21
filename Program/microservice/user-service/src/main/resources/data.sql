@@ -144,21 +144,50 @@ ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS emergency_contact_name VARC
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS emergency_contact_relationship VARCHAR(255);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS emergency_contact_phone VARCHAR(255);
 ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS emergency_contact_email VARCHAR(255);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_review_decision VARCHAR(255);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_review_note VARCHAR(2000);
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_review_checked_sections_json TEXT;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS onboarding_review_contract_setup_json TEXT;
 ALTER TABLE IF EXISTS users ALTER COLUMN registered_date SET DEFAULT CURRENT_DATE;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS assigned_cao_id UUID;
+ALTER TABLE IF EXISTS users ADD COLUMN IF NOT EXISTS cao_variable_overrides_json TEXT;
+
+CREATE TABLE IF NOT EXISTS cao_templates (
+    cao_id UUID PRIMARY KEY,
+    company_id UUID NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    sector VARCHAR(255),
+    effective_from DATE,
+    effective_until DATE,
+    variables_json TEXT,
+    CONSTRAINT cao_templates_company_name_key UNIQUE (company_id, name)
+);
+
+INSERT INTO cao_templates (cao_id, company_id, name, sector, effective_from, variables_json)
+SELECT CAST('ca000000-0000-0000-0000-000000000001' AS UUID),
+       CAST('00000000-0000-0000-0000-000000000001' AS UUID),
+       'Horeca CAO 2026',
+       'HORECA',
+       '2026-01-01',
+       '[{"code":"HOLIDAY_ALLOWANCE_PCT","label":"Vakantietoeslag (%)","valueType":"PERCENTAGE","value":8.0},{"code":"OVERTIME_THRESHOLD_HOURS","label":"Overwerkdrempel (uren/week)","valueType":"HOURS","value":40.0},{"code":"OVERTIME_RATE_MULTIPLIER","label":"Overwerktoeslag (x)","valueType":"MULTIPLIER","value":1.5},{"code":"TRAVEL_ALLOWANCE_PER_KM","label":"Reiskostenvergoeding (per km)","valueType":"AMOUNT","value":0.23},{"code":"PENSION_CONTRIBUTION_PCT","label":"Pensioenbijdrage werknemer (%)","valueType":"PERCENTAGE","value":3.0},{"code":"YOUTH_WAGE_UNDER_18","label":"Jeugdloon t\/m 17 jaar (% van volloon)","valueType":"PERCENTAGE","value":60.0},{"code":"YOUTH_WAGE_UNDER_21","label":"Jeugdloon t\/m 20 jaar (% van volloon)","valueType":"PERCENTAGE","value":80.0}]'
+    WHERE NOT EXISTS (
+        SELECT 1 FROM cao_templates WHERE cao_id = CAST('ca000000-0000-0000-0000-000000000001' AS UUID)
+    );
 
 UPDATE users SET status = 'PENDING_SETUP' WHERE status IS NULL;
 UPDATE users SET company_id = COALESCE(company_id, CAST('00000000-0000-0000-0000-000000000001' AS UUID))
     WHERE company_id IS NULL;
 ALTER TABLE IF EXISTS users ALTER COLUMN company_id SET NOT NULL;
 ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_status_check;
-ALTER TABLE IF EXISTS users ADD CONSTRAINT users_status_check CHECK (status IN (
-    'PENDING_SETUP',
-    'PENDING_PROFILE_REVIEW',
-    'CHANGES_REQUESTED',
-    'PENDING_CONTRACT_SIGNATURE',
-    'PENDING_CONTRACT_REVIEW',
-    'ACTIVE'
-));
+	ALTER TABLE IF EXISTS users ADD CONSTRAINT users_status_check CHECK (status IN (
+	    'PENDING_SETUP',
+	    'PENDING_PROFILE_REVIEW',
+	    'CHANGES_REQUESTED',
+	    'PENDING_CONTRACT_SIGNATURE',
+	    'PENDING_CONTRACT_REVIEW',
+	    'ACTIVE',
+	    'REJECTED'
+	));
 ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_email_key;
 ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_company_email_key;
 ALTER TABLE IF EXISTS users ADD CONSTRAINT users_company_email_key UNIQUE (company_id, email);

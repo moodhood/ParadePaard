@@ -13,12 +13,6 @@ vi.mock("../context/AuthContext", () => ({
     }),
 }));
 
-vi.mock("./AdminMessageDrawer", () => ({
-    default: function MockAdminMessageDrawer() {
-        return <aside aria-label="Shared admin inbox" />;
-    },
-}));
-
 describe("Navbar", () => {
     beforeEach(() => {
         permissions = [];

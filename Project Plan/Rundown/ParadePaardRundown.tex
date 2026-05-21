@@ -88,7 +88,7 @@ The General Information card summarizes the employee's worked hours for the curr
 
 The Payslips card shows a compact table of payslips with date, week, function, hours, net amount, and actions. The employee can download a PDF directly from the table. If the employee thinks a payslip is wrong, they can open a report modal, enter a short title and optional note, and submit the error for payroll review. A payslip that is already disputed shows as Reported rather than showing the report button again. The View all button opens the full payslips page.
 
-The My planning card is both an overview and an action area for active planning. Pending shift requests are shown first, but shifts that have already ended are not shown on the dashboard. Each request gives the employee the event name, date, time, function, and location. The employee can accept or decline current and future requests. Accepted shifts shown on the dashboard are also limited to current and future shifts. They are grouped by day, and each accepted shift row shows event, day, time, function, and whether its timesheet is Scheduled or Logged. Clicking a row opens the shift detail page. The View all button opens the full My Planning page, where the Past tab keeps completed shifts available for history.
+The My planning card is both an overview and an action area for active planning. Pending shift requests are shown first, but shifts that have already ended are not shown on the dashboard. Each request gives the employee the event name, date, time, function, and location. The employee can accept or decline current and future requests. Accepted shifts shown on the dashboard are also limited to current and future shifts. They are shown as one compact table with event, day, time, function, and a status pill for whether its timesheet is Scheduled or Logged. The list becomes scrollable when there are many shifts, so the dashboard card stays compact. Clicking a row opens the shift detail page. The View all button opens the full My Planning page, where the Past tab keeps completed shifts available for history.
 
 The My leave requests card lists the employee's leave requests with date range, requested hours, status, and optional note. The New Request button opens the leave request modal, where the employee can create another leave request. The dashboard therefore acts as a daily command center for employees: it shows what is planned, what has been worked, what has been paid, and what still needs action.
 
@@ -96,15 +96,21 @@ The My leave requests card lists the employee's leave requests with date range, 
 
 The Messages Page lets an active user send messages to the company from one ongoing conversation. The page is meant to feel like one direct line to the ParadePaard company inbox, not like a list of separate admins or separate support tickets.
 
-The page shows the message history in chronological order. Messages from the signed-in user are shown as the user's own messages, and replies from management are shown as Company messages. The user can refresh the thread, type a new message, and send it to the company. If there are no messages yet, the page explains that the user can send the first message to the company.
+The page keeps the shared top navigation bar visible, consistent with the other personal pages, while the left side navigation shows the normal personal navigation items.
 
-The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates so the user can continue in the same thread later.
+The page shows the message history in chronological order. Messages from the signed-in user are shown as the user's own messages, and replies from management are shown as Company messages. The user can type a new message and send it to the company. If there are no messages yet, the page explains that the user can send the first message to the company.
+
+While the user stays on the page, the thread updates live. New company replies appear automatically without the user needing to manually refresh the page.
+
+The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates immediately so the user can continue in the same thread later.
 
 \subsection{Management Dashboard}
 
-The Management Dashboard is the entry page for permission-based company work. It does not assume the user has broad access. Instead, it reads the user's permissions and shows only the management areas they can open.
+The Management Dashboard is the entry page for permission-based company work. It does not assume the user has broad access. Instead, it reads the user's permissions and shows only the management areas the user can open from this dashboard.
 
-A user with user-view access sees user management. A user with message-management access sees Messages. A user with application-review access sees Applications. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace. A planning manager sees planning and clients. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
+A user with user-view access sees user management. A user with application-review access sees Applications. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace. A planning manager sees planning and clients. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
+
+Messages are still available to admins with \code{CAN_MANAGE_MESSAGES} through the shared inbox interface, but the Management dashboard does not show a Messages card.
 
 The management tools are now organized into clear page sections, such as People, Planning, Payroll, Contracts, and Company. Each section contains polished action cards with a short label and a clearer description. The whole card is clickable, so the user can open a management area without aiming for a separate Open button. This keeps the page as a launcher, but makes it easier for the user to scan which kind of management work each card belongs to.
 
@@ -115,15 +121,19 @@ This page replaces the old separate dashboard flow. The dashboard is now a permi
 
 The Management Messages Page is a shared company inbox for users with \code{CAN_MANAGE_MESSAGES}. It shows user conversations that belong to the admin's company. Multiple admins with the permission can open the same inbox, see the same incoming user threads, and reply in the same conversation.
 
-The admin message UI now works like a right-side shared inbox. Admins with message access also see a message icon beside the account avatar in the top navbar. Opening that icon shows the shared inbox on the right side of the screen without making the admin leave the current page. If the inbox is open and the admin clicks the company menu or account menu, the inbox closes automatically so only one top-navbar panel is active at a time.
+The page also keeps the shared top navigation bar visible, consistent with the rest of the management workspace.
 
-The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review. The inbox can be collapsed into a narrow right-side rail that keeps the messenger initials available.
+The admin message UI works like a shared company inbox. It shows the same user conversations to all admins with message access, and replies are shared across admins so the conversation stays consistent.
+
+The inbox starts as a list of messenger names. Each row shows the employee name, email address, latest message preview, and an unread count when there are messages waiting for admin review.
 
 When an admin clicks a messenger name, the whole message box changes into that user's chat. The list is no longer shown beside the thread, so the selected conversation fills the message box. A Back to inbox button returns the admin to the name list.
 
 Admins can type a reply in the selected thread and send it as the company. The frontend does not ask the admin to choose which individual admin account should receive the message. The backend still records which admin sent the reply, but the normal user sees the reply as a Company message.
 
-The page includes loading, empty, error, refresh, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
+While an admin keeps the shared inbox open, new incoming user messages and new admin replies appear automatically. This keeps the inbox list and open conversation thread in sync across multiple admins without a manual page refresh.
+
+The page includes loading, empty, error, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
 \subsection{Management Applications Page}
 
 The Management Applications Page is a protected application-review area for users with application permissions. Users with \code{CAN_VIEW_APPLICATIONS} or \code{CAN_REVIEW_APPLICATIONS} can open the queue from the Management area. Users without those permissions cannot open the route or see the management card.
@@ -146,7 +156,7 @@ The Management User Detail page is the complete company view of one employee for
 
 The page is organized into Profile, Timesheets, and Planning tabs. The Profile tab shows personal information, work details, active contract details, employee tax profile, roles and access, address, onboarding evidence, emergency contact, and bank details. The onboarding evidence card shows the submitted ID document type, number, issue date, expiration date, issuing country, and an action to open the uploaded ID document image. The page shows loading, missing-file, and error states for that image. Bank details also show the bank account holder name, and the personal information area includes nationality.
 
-The active contract card now also shows contract status, contract payment frequency, signature timestamps, finalization timestamps, employer signature name, and review comments. If a pending profile review employee does not yet have a current contract, a manager with contract-management permission can create a contract draft from this card by choosing or typing the role or function, contract type, start date, optional end date, gross hourly wage, payment frequency, and travel allowance. After the draft is created, it becomes the current contract on the page so the normal Send contract action appears, but the page does not send the email automatically. If the viewer has the right contract permissions, they can send a draft contract email to the employee, resend a contract email when the contract is already marked sent, finalize an employee-signed contract through an employer signing panel, or reject it with a review comment. The employer signing panel asks the manager to confirm the review, type their full legal name, optionally draw a signature, and then finalize and sign the contract. When the email is accepted for delivery, the page confirms that the contract email was sent. If email delivery fails, the page shows the failure instead of showing a false sent message. If the viewer also has role permissions, they can add or remove roles. If they have user-management permissions, they can save management fields that are editable for them.
+The active contract card now also shows contract status, contract payment frequency, signature timestamps, finalization timestamps, employer signature name, and review comments. If a pending profile review employee does not yet have a current contract, a manager with contract-management permission can create a contract draft from this card by choosing or typing the role or function, contract type (Fixed hours, On-call Runner, or On-call Bar), start date, optional end date, gross hourly wage, payment frequency, and travel allowance. After the draft is created, it becomes the current contract on the page so the normal Send contract action appears, but the page does not send the email automatically. If the viewer has the right contract permissions, they can send a draft contract email to the employee, resend a contract email when the contract is already marked sent, finalize an employee-signed contract through an employer signing panel, or reject it with a review comment. The employer signing panel asks the manager to confirm the review, type their full legal name, optionally draw a signature, and then finalize and sign the contract. When the email is accepted for delivery, the page confirms that the contract email was sent. If email delivery fails, the page shows the failure instead of showing a false sent message. If the viewer also has role permissions, they can add or remove roles. If they have user-management permissions, they can save management fields that are editable for them.
 
 The Timesheets tab shows summary cards and timesheet history for that employee. The Planning tab shows the employee's relationship to scheduled work and can link back into planning screens. The page therefore connects a person's account, contract, payroll setup, worked hours, and planning record, while individual actions remain controlled by permissions.
 \subsection{Management Employee Onboarding Page}
@@ -162,7 +172,13 @@ The Management Onboarding Review page is a focused queue for users with onboardi
 
 The page shows employees whose setup or contract flow needs management attention. Each row shows the employee name, email address, onboarding status, date added, and an action. The status labels make the work clearer by showing items such as Profile review, Changes requested, Awaiting signature, and Contract review.
 
-The user can refresh the queue and open an employee profile from any row. The profile page is where the detailed review or contract action happens. If there are no employees in the review states, the page shows an empty queue message instead of a generic list.
+The user can refresh the queue and open an Onboarding Review form from any row. The Onboarding Review page is a dedicated review workspace and does not show general profile tabs such as Profile, Timesheets, Planning, or roles and access.
+
+The Onboarding Review page starts with a clear header that explains the purpose: review employee information before creating and sending the contract. A compact employee summary card shows full name, email, phone number, position, status as a badge, and registered date. Each review section header (Personal information, Address, Identification, Bank details, Emergency contact, Tax information, and Contract setup) has a checkbox directly in front of the section name. When the admin checks a section, it becomes Complete. If required fields are missing for that section, the checkbox is disabled and a Missing line lists what still needs attention.
+
+The main body is a set of scan-friendly review sections: personal information, address, identification (including an Open ID document action when an upload exists), bank details (with IBAN highlighted when missing), emergency contact, and tax information shown as simple Yes/No rows. Contract setup is an editable section where the admin prepares company-side contract data such as function name, contract type (Fixed hours, On-call Runner, or On-call Bar), start and end dates, gross hourly wage, payment frequency, and travel allowance, with required fields marked.
+
+At the bottom, a Final review decision section lets the admin choose Ready to send contract, Needs changes, or Reject onboarding, enter an admin note, and run actions to save the review, request changes, create a contract draft, or create and send the contract. Saving the review updates the employee status so Needs changes moves the person to Changes requested, and Ready to send contract moves the person to Contract review. Saving the review also stores which review sections were checked and the contract setup draft fields so the onboarding review can be reopened later and continued from the same state. After Create and send contract sends the email, the employee status changes to Awaiting signature. The Create and send contract action is only available when all review section checkboxes are marked complete. If required fields are missing, the page blocks sending and shows a clear message listing what still needs to be completed.
 \subsection{Management Contracts Page}
 
 The Management Contracts page is the contract workspace for users with contract permissions. It is separate from the user directory, so opening Contracts from the Management Dashboard no longer sends the user to the general users list.
@@ -217,11 +233,17 @@ The Tax settings tab is where payroll deduction templates are configured. The pa
 
 \subsection{Management Planning Overview Page}
 
-The Planning Overview page is the calendar view for operational planning. It lets the planner look at events and shifts across a week or a month. The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, an Events or Shifts mode toggle, a search field, and a Create event button.
+The Planning Overview page is the calendar view for operational planning. It lets the planner look at shifts across a week or a month (the Events view is hidden for now). The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, a Shifts indicator, a search field, and a Create event button.
 
-In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. Depending on the selected mode, the cards represent either events or shifts. A card shows the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when the event or shift is empty, partially staffed, or staffed.
+In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. The shift cards show the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when a shift is empty, partially staffed, or staffed.
 
 The search field sits next to the Events and Shifts toggle. The planner can search by assigned user, client, or event. The calendar then only shows matching event or shift cards within the current week or month.
+
+Shift cards are selectable. Clicking a shift selects it. Holding Shift while clicking other shift cards adds or removes shifts from the current selection. Selected shifts show a clear highlighted state so the planner can see what is selected even after a menu is closed.
+
+Clicking the main body of a selected shift opens a compact pop up menu near that shift. When one shift is selected, the menu offers Plan someone in and View shift details. When multiple shifts are selected, the menu offers Plan someone in and View selected shifts. Clicking outside the menu closes it, but the selected highlight remains.
+
+Plan someone in opens a small planning panel in the same pop up. The planner can search active employees, select multiple people, and then plan the selected people into all selected shifts at once. The page updates immediately after planning so staffing counters and shift states stay accurate without a manual refresh.
 
 The planning calendar now stretches to the available browser height. This lets the day cells fill the screen so the white day columns continue down to the bottom of the planning area instead of ending early with empty background below them.
 
@@ -249,9 +271,9 @@ The event can also be finalized. When the event is finalized, the frontend label
 
 \subsection{My Planning Page}
 
-The My Planning page is the employee's full planning page. It expands the planning card from the dashboard into a larger two-section view. The page has an Upcoming/Past toggle, a Scheduled shifts section, and an Accepted shifts section. Upcoming is for current and future planning. Past is the place where shifts that have already ended remain available for history.
+The My Planning page is the employee's full planning page. It expands the planning card from the dashboard into a larger view with an Upcoming/Past toggle and an Accepted shifts list. Upcoming is for current and future planning. Past is the place where shifts that have already ended remain available for history.
 
-Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. Each request card shows event name, shift date, time, function, and location. The employee can accept or decline each request. If the request is already in the past, the page still displays it for history, but the buttons are disabled.
+Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. When there are scheduled shifts waiting for a response, each one appears as a response card above the accepted shifts list. Each card shows event name, shift date, time, function, and location, and the employee can accept or decline it from actions on the right. If the request is already in the past, the page still displays it for history, but the buttons are disabled. If there are no scheduled shifts waiting for a response, the page does not show a scheduled section or an empty-state message.
 
 Accepted shifts are assignments with status \code{CONFIRMED}. Each accepted row shows event, shift or function, date, time, location, and a timesheet state. Future shifts show Scheduled. Past accepted shifts that have not become timesheets show Pending log. Shifts already exported or recorded as timesheets show Logged. Clicking an accepted shift opens the shift detail page.
 
@@ -297,9 +319,9 @@ The user can download a payslip PDF from the list, open a detail page by selecti
 
 \subsection{Payslip Detail Page}
 
-The Payslip Detail page is the readable payslip view. It starts with page actions for returning to the payslip list and downloading the PDF. The hero summary shows employee name, function, week, issue date, available date, status badge, payslip ID, and key metrics for hours, gross amount, and net amount.
+The Payslip Detail page is the readable payslip view. The page header uses the standard Back control above the page title, and there is a separate Download PDF button. The hero summary shows employee name, function, week, issue date, available date, status badge, payslip ID, and key metrics for hours, gross amount, and net amount.
 
-The rest of the page is organized into cards. The Overview card shows issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card shows function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total. The Deductions card lists deduction lines with label, code, category, and calculated amount. The Employee details card shows name, user ID, date of birth, start date, address, and country. Payslips can now carry contract snapshot fields such as contract id, contract type, payment frequency, contract dates, weekly hours, and holiday allowance, so payroll reviewers can see what contract rule produced the period.
+The rest of the page is organized into cards, but the information is shown in a list view instead of separate field tiles. Each card uses a simple two-column list (Item and Value). The Overview card lists issue date, week, available-to-user time, generated-at time, status, and payslip ID. The Pay details card lists function, hourly wage, hours worked, loonheffing, total deductions, travel expenses, gross total, and net total, with gross and net totals visually highlighted. The Deductions card shows a list with Deduction, Category, and Amount columns. The Deduction column shows the label, or falls back to the code when no label is available. The Employee details card lists name, user ID, date of birth, start date, address, and country. Payslips can now carry contract snapshot fields such as contract id, contract type, payment frequency, contract dates, weekly hours, and holiday allowance, so payroll reviewers can see what contract rule produced the period.
 
 The page is read-only except for downloading the PDF and navigating back. Its role is to explain the payslip calculation to the user in a structured way.
 
@@ -416,11 +438,11 @@ This workflow is less frequent than scheduling or payslips, but it defines the r
 
 \section{Navigation}
 
-Navigation is split between the top navbar and the primary navigation. The top navbar gives global account actions. It starts with a top-left arrow button that returns to the previous page in the user's actual browser history. If there is no previous page, it falls back to the dashboard. This makes page-to-page movement consistent across the app, including when a user opens an employee profile from search or from another page that is not the Users list. The top navbar also shows the ParadePaard brand, user search when the user has \code{CAN_VIEW_USERS}, a company menu when the user has company or role permissions, a shared inbox icon when the user has message-management permission, and the user avatar menu. The avatar menu shows the signed-in name, links to Account, and supports logout.
+Navigation is split between the top navbar and the primary navigation. The top navbar gives global account actions. It starts with a top-left arrow button that returns to the previous page in the user's actual browser history. If there is no previous page, it falls back to the dashboard. This makes page-to-page movement consistent across the app, including when a user opens an employee profile from search or from another page that is not the Users list. The top navbar also shows the ParadePaard brand, user search when the user has \code{CAN_VIEW_USERS}, a company menu when the user has company or role permissions, and the user avatar menu. The avatar menu shows the signed-in name, links to Account, and supports logout.
 
 The user search in the navbar is a fast path to employee detail pages for authorized users. A user types part of a name, preferred name, or email, and the dropdown shows up to eight matches. Selecting a result opens that employee's Management User Detail page. The company menu opens Company Settings and is hidden from users without company or role-management permissions.
 
-The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, Messages, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, messages, applications, onboarding, onboarding review, contracts, planning, clients, travel claims, payslip review, all payslips, and company settings.
+The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, Messages, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, applications, onboarding, onboarding review, contracts, planning, clients, travel claims, payslip review, all payslips, and company settings.
 
 Access checks make the navigation rules enforceable. The root route is guarded and forwards users to the right first page: dashboard for active sessions, onboarding for pending setup, or login for signed-out visitors. Active pages require an active signed-in user. Onboarding is reserved for pending setup users. Permission-based pages require the matching permission. Old \code{/admin/...} URLs remain only as compatibility redirects into the new \code{/management/...} routes.
 \section{Important Shared Components}
@@ -462,6 +484,39 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 21: Improved the My planning dashboard rows with clearer hover/focus styling and a status pill.
+    \item 2026 05 21: Simplified the dashboard My planning card by removing the per-day header and using a single scrollable shift list.
+    \item 2026 05 21: Moved the Payslip Detail Back control into the page header so it matches the rest of the app.
+    \item 2026 05 21: Updated the Payslip Detail page so the cards use a list view layout instead of field tiles.
+    \item 2026 05 21: Made Planning Overview default to Shifts mode and added selectable shift cards with a compact pop up action menu and bulk Plan someone in panel.
+    \item 2026 05 21: Updated the planning shift selection + popover design spec to re-invite existing assignments when planning people in bulk (no UI change yet).
+    \item 2026 05 21: Added a Planning Overview shift selection + popover actions design spec (no UI change yet).
+    \item 2026 05 20: Updated the My Planning page so scheduled shifts only appear as response cards when a shift needs acceptance or decline.
+    \item 2026 05 20: Added a My Planning scheduled-shift response card design note (no UI change yet).
+    \item 2026 05 20: Removed the manual Refresh button from the user Messages page because the thread updates live.
+    \item 2026 05 20: Updated the onboarding review Save review action to also store section checkmarks and contract setup draft fields so a review can be resumed later.
+    \item 2026 05 20: Fixed the onboarding review Save review actions so Request changes saves the correct decision, Ready to send contract moves the employee to Contract review, and sending the contract moves the employee to Awaiting signature.
+    \item 2026 05 20: Fixed contract draft creation by aligning the contract type dropdown values with the backend (Fixed hours, On-call Runner, On-call Bar).
+    \item 2026 05 19: Removed the collapse, refresh, and close controls from the shared admin inbox UI.
+    \item 2026 05 19: Removed the Messages card from the Management dashboard.
+    \item 2026 05 19: Made the user and admin Messages inbox update live so new incoming messages appear automatically without a manual page refresh.
+    \item 2026 05 19: Restored the shared top navigation bar on the Messages pages so they match the layout of the other pages.
+    \item 2026 05 19: Blocked the onboarding review Create and send contract action until every review section checkbox is checked.
+    \item 2026 05 19: Made completed onboarding review section headers turn green when the section checkbox is checked.
+    \item 2026 05 19: Moved the onboarding review checklist card to the end of the page so it acts as a final status summary.
+    \item 2026 05 19: Added a read-only review checklist card that turns checklist items green when their section checkbox is marked complete.
+    \item 2026 05 19: Moved onboarding review completion checkboxes onto each review section header and removed the separate checklist card.
+    \item 2026 05 19: Fixed the onboarding review checklist layout so the checkbox and section label render on one clean line.
+    \item 2026 05 19: Updated the onboarding review checklist rows to use simple checkboxes (no buttons or extra status dots).
+    \item 2026 05 19: Simplified the onboarding review checklist to checkbox-only rows and removed the extra status pills.
+    \item 2026 05 19: Refined the onboarding review checklist visuals and spacing so checklist items are clearly checkable and do not sit against card edges.
+    \item 2026 05 19: Added manual checklist checkboxes to the onboarding review page so admins can mark each section complete once required fields are filled.
+    \item 2026 05 19: Made onboarding review contract setup require role/function selection and an end date, and improved checklist status pills with clearer complete markers.
+    \item 2026 05 19: Changed onboarding review contract setup dates to use dd/mm/yyyy input with auto formatting while typing.
+    \item 2026 05 19: Moved the onboarding review checklist below the review sections so it appears at the end of the form.
+    \item 2026 05 19: Added padding inside onboarding review form cards so the fields do not sit against the edges.
+    \item 2026 05 19: Added extra padding around the management onboarding review detail form for better spacing.
+    \item 2026 05 19: Redesigned the management onboarding review flow with a dedicated Onboarding Review detail form, checklist, and contract setup section.
     \item 2026 05 19: Updated the employee onboarding ID document image picker to match the styled CV upload control.
     \item 2026 05 18: Fixed the employee onboarding ID document upload so pending setup users are not blocked by missing token permissions.
     \item 2026 05 18: Added spacing between the accepted application closed-decision message and the resend decision email button.
