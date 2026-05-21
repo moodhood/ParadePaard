@@ -497,65 +497,70 @@ ${note}` : title;
                     {planningLoading ? <p className="helperText">Loading planning...</p> : null}
                     {planningError ? <p className="errorText">{planningError}</p> : null}
                     {!planningLoading && !planningError ? (
-                        <div className="planningOverviewLayout">
-                            {planningActionError ? <p className="errorText userPlanningActionError">{planningActionError}</p> : null}
-                            {pendingPlanningRequests.length > 0 ? (
-                                <section className="userPlanningRequestSection">
-                                    <div className="userPlanningRequestSectionHeader">
-                                        <div>
-                                            <div className="planningGroupTitle">Shift requests</div>
-                                            <div className="planningMetaSecondary">
-                                                Accept or decline newly scheduled shifts.
+                        <div className="userPlanningCardBody">
+                            {planningActionError || pendingPlanningRequests.length > 0 ? (
+                                <div className="planningOverviewLayout userPlanningCardBodyPad">
+                                    {planningActionError ? <p className="errorText userPlanningActionError">{planningActionError}</p> : null}
+                                    {pendingPlanningRequests.length > 0 ? (
+                                        <section className="userPlanningRequestSection">
+                                            <div className="userPlanningRequestSectionHeader">
+                                                <div>
+                                                    <div className="planningGroupTitle">Shift requests</div>
+                                                    <div className="planningMetaSecondary">
+                                                        Accept or decline newly scheduled shifts.
+                                                    </div>
+                                                </div>
+                                                <span className="planningEntryBadge">{pendingPlanningRequests.length} pending</span>
                                             </div>
-                                        </div>
-                                        <span className="planningEntryBadge">{pendingPlanningRequests.length} pending</span>
-                                    </div>
-                                        <div className="userPlanningRequestList">
-                                        {pendingPlanningRequests.map((row) => {
-                                            const confirmActionId = `${row.scheduleEntryId}:CONFIRMED`;
-                                            const declineActionId = `${row.scheduleEntryId}:CANCELLED`;
-                                            return (
-                                                <article
-                                                    key={`request-${row.scheduleEntryId}`}
-                                                    className="userPlanningRequestCard userPlanningRequestCard--pending"
-                                                >
-                                                    <div className="userPlanningRequestMain">
-                                                        <div className="userPlanningRequestTitle">{row.eventName}</div>
-                                                        <div className="userPlanningRequestMeta">
-                                                            {formatDate(row.shiftDate)} at {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
-                                                        </div>
-                                                        <div className="userPlanningRequestMeta">
-                                                            {row.functionName} - {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
-                                                        </div>
-                                                    </div>
-                                                    <div className="userPlanningRequestActions">
-                                                        <button
-                                                            type="button"
-                                                            className="button userPlanningDeclineButton"
-                                                            onClick={() => void handlePlanningResponse(row, "CANCELLED")}
-                                                            disabled={Boolean(pendingPlanningActionId)}
+                                            <div className="userPlanningRequestList">
+                                                {pendingPlanningRequests.map((row) => {
+                                                    const confirmActionId = `${row.scheduleEntryId}:CONFIRMED`;
+                                                    const declineActionId = `${row.scheduleEntryId}:CANCELLED`;
+                                                    return (
+                                                        <article
+                                                            key={`request-${row.scheduleEntryId}`}
+                                                            className="userPlanningRequestCard userPlanningRequestCard--pending"
                                                         >
-                                                            {pendingPlanningActionId === declineActionId ? "Declining..." : "Decline"}
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="button userPlanningAcceptButton"
-                                                            onClick={() => void handlePlanningResponse(row, "CONFIRMED")}
-                                                            disabled={Boolean(pendingPlanningActionId)}
-                                                        >
-                                                            {pendingPlanningActionId === confirmActionId ? "Accepting..." : "Accept"}
-                                                        </button>
-                                                    </div>
-                                                </article>
-                                            );
-                                        })}
-                                    </div>
-                                </section>
+                                                            <div className="userPlanningRequestMain">
+                                                                <div className="userPlanningRequestTitle">{row.eventName}</div>
+                                                                <div className="userPlanningRequestMeta">
+                                                                    {formatDate(row.shiftDate)} at {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
+                                                                </div>
+                                                                <div className="userPlanningRequestMeta">
+                                                                    {row.functionName} - {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
+                                                                </div>
+                                                            </div>
+                                                            <div className="userPlanningRequestActions">
+                                                                <button
+                                                                    type="button"
+                                                                    className="button userPlanningDeclineButton"
+                                                                    onClick={() => void handlePlanningResponse(row, "CANCELLED")}
+                                                                    disabled={Boolean(pendingPlanningActionId)}
+                                                                >
+                                                                    {pendingPlanningActionId === declineActionId ? "Declining..." : "Decline"}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="button userPlanningAcceptButton"
+                                                                    onClick={() => void handlePlanningResponse(row, "CONFIRMED")}
+                                                                    disabled={Boolean(pendingPlanningActionId)}
+                                                                >
+                                                                    {pendingPlanningActionId === confirmActionId ? "Accepting..." : "Accept"}
+                                                                </button>
+                                                            </div>
+                                                        </article>
+                                                    );
+                                                })}
+                                            </div>
+                                        </section>
+                                    ) : null}
+                                </div>
                             ) : null}
+
                             {myPlanningRows.length === 0 ? (
-                                <p className="requestListEmpty">{planningEmptyMessage}</p>
+                                <p className="requestListEmpty userPlanningCardBodyPad">{planningEmptyMessage}</p>
                             ) : (
-                                <section className="planningGroupSection userPlanningGroup">
+                                <section className="planningGroupSection userPlanningGroup userPlanningGroup--flush">
                                     <div className="listContainer planningAllocationList">
                                         <div className="listHeaderGrid userPlanningGrid">
                                             <div>Event</div>

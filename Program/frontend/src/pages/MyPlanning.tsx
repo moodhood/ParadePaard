@@ -7,6 +7,7 @@ import Spinner from "../components/Spinner";
 import { UserServices, type EmployeePlanningAssignmentDTO } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
 import "../stylesheets/UserDashboard.css";
+import "../stylesheets/AdminLists.css";
 import "../stylesheets/AdminPlanningOverview.css";
 
 type PlanningTab = "upcoming" | "past";
@@ -88,7 +89,7 @@ export function MyPlanningView({
                             {error ? <p className="errorText userPlanningSectionMessage">{error}</p> : null}
                             <div className="userPlanningAcceptedLayout">
                                 {scheduledItems.length > 0 ? (
-                                    <div className="userPlanningSectionCardList">
+                                    <div className="userPlanningSectionCardList userPlanningCardBodyPad--wide">
                                         {scheduledItems.map((item) => {
                                             const isExpiredRequest = Boolean(item.isPast);
                                             return (
@@ -131,41 +132,56 @@ export function MyPlanningView({
                                     </div>
                                 ) : null}
 
-                                <section className="userPlanningSection">
-                                    <div className="userPlanningSectionHeader">
-                                        <div>
-                                            <div className="userPlanningSectionTitle">Accepted shifts</div>
-                                            <div className="userPlanningSectionText">
-                                                {activeTab === "past" ? "Review completed accepted shifts." : "Your confirmed shifts for the coming period."}
-                                            </div>
-                                        </div>
-                                        <span className="userPlanningSectionBadge">{acceptedItems.length}</span>
-                                    </div>
+                                <section
+                                    className={["userPlanningSection", "userPlanningSection--table", scheduledItems.length > 0 ? "" : "userPlanningSection--flushTop"].filter(Boolean).join(" ")}
+                                >
                                     {acceptedItems.length === 0 ? (
-                                        <p className="helperText userPlanningSectionMessage">
+                                        <p className="helperText userPlanningSectionMessage userPlanningCardBodyPad--wide">
                                             {activeTab === "past" ? "No past accepted shifts yet." : "No upcoming accepted shifts."}
                                         </p>
                                     ) : (
-                                        <div className="userPlanningAcceptedList">
-                                            {acceptedItems.map((item) => (
-                                                <button
-                                                    key={item.scheduleEntryId}
-                                                    type="button"
-                                                    className="userPlanningAcceptedItem"
-                                                    onClick={() => onOpenShift(item.scheduleEntryId)}
-                                                >
-                                                    <div className="userPlanningAcceptedItemMain">
-                                                        <div className="userPlanningAcceptedItemTitle">{item.eventName}</div>
-                                                        <div className="userPlanningAcceptedItemMeta">{item.shiftName ?? item.functionName}</div>
-                                                    </div>
-                                                    <div className="userPlanningAcceptedItemMeta">{formatDate(item.shiftDate)}</div>
-                                                    <div className="userPlanningAcceptedItemMeta">{timeLabel(item.startTime, item.endTime)}</div>
-                                                    <div className="userPlanningAcceptedItemMeta">{item.shiftLocation ?? item.eventLocation ?? "-"}</div>
-                                                    <div className="userPlanningAcceptedItemStatus">
-                                                        {item.timesheetExported ? "Logged" : activeTab === "past" ? "Pending log" : "Scheduled"}
-                                                    </div>
-                                                </button>
-                                            ))}
+                                        <div className="listContainer userPlanningAcceptedTable">
+                                            <div className="listHeaderGrid userPlanningAcceptedGrid">
+                                                <div>Event</div>
+                                                <div>Day</div>
+                                                <div>Time</div>
+                                                <div>Location</div>
+                                                <div>Timesheet</div>
+                                            </div>
+                                            <div className="listScrollArea userPlanningAcceptedScrollArea">
+                                                {acceptedItems.map((item) => (
+                                                    <button
+                                                        key={item.scheduleEntryId}
+                                                        type="button"
+                                                        className="listRowGrid userPlanningAcceptedGrid clickableRow userPlanningRowButton"
+                                                        onClick={() => onOpenShift(item.scheduleEntryId)}
+                                                    >
+                                                        <div>
+                                                            <div className="cellMain">{item.eventName}</div>
+                                                            <div className="cellSub">{item.shiftName ?? item.functionName}</div>
+                                                        </div>
+                                                        <div className="cellSub">{formatDate(item.shiftDate)}</div>
+                                                        <div className="cellSub userPlanningTimeCell">{timeLabel(item.startTime, item.endTime)}</div>
+                                                        <div className="cellSub">{item.shiftLocation ?? item.eventLocation ?? "-"}</div>
+                                                        <div className="cellSub">
+                                                            <span
+                                                                className={[
+                                                                    "userPlanningStatusPill",
+                                                                    item.timesheetExported
+                                                                        ? "userPlanningStatusPill--logged"
+                                                                        : "userPlanningStatusPill--scheduled",
+                                                                ].join(" ")}
+                                                            >
+                                                                {item.timesheetExported
+                                                                    ? "Logged"
+                                                                    : activeTab === "past"
+                                                                      ? "Pending log"
+                                                                      : "Scheduled"}
+                                                            </span>
+                                                        </div>
+                                                    </button>
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
                                 </section>

@@ -275,7 +275,7 @@ The My Planning page is the employee's full planning page. It expands the planni
 
 Scheduled shifts are assignments with status \code{ASSIGNED}. These are requests waiting for the employee's response. When there are scheduled shifts waiting for a response, each one appears as a response card above the accepted shifts list. Each card shows event name, shift date, time, function, and location, and the employee can accept or decline it from actions on the right. If the request is already in the past, the page still displays it for history, but the buttons are disabled. If there are no scheduled shifts waiting for a response, the page does not show a scheduled section or an empty-state message.
 
-Accepted shifts are assignments with status \code{CONFIRMED}. Each accepted row shows event, shift or function, date, time, location, and a timesheet state. Future shifts show Scheduled. Past accepted shifts that have not become timesheets show Pending log. Shifts already exported or recorded as timesheets show Logged. Clicking an accepted shift opens the shift detail page.
+Accepted shifts are assignments with status \code{CONFIRMED}. They are shown in the same table-style layout as the dashboard planning card. The table header sits directly under the card header, and the list is scrollable when there are many accepted shifts. Columns show event (with shift name or function as a second line), day, time, location, and a timesheet status pill. Future shifts show Scheduled. Past accepted shifts that have not become timesheets show Pending log. Shifts already exported or recorded as timesheets show Logged. Clicking an accepted shift opens the shift detail page.
 
 \subsection{My Planning Shift Detail Page}
 
@@ -484,6 +484,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 21: Tightened the My planning spacing so the table header sits directly under the card header, and updated the My Planning page accepted list to use the same table styling.
     \item 2026 05 21: Tightened the My planning dashboard table spacing so the header and rows use the full card width.
     \item 2026 05 21: Improved the My planning dashboard rows with clearer hover/focus styling and a status pill.
     \item 2026 05 21: Simplified the dashboard My planning card by removing the per-day header and using a single scrollable shift list.

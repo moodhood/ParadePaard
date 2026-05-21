@@ -58,7 +58,15 @@ body{
 }
 
 .userPlanningCard .uiCardBody {
+  padding: 0;
+}
+
+.userPlanningCardBodyPad {
   padding: 16px;
+}
+
+.userPlanningCardBodyPad--wide {
+  padding: 24px;
 }
 
 .userPlanningAcceptedCard {
@@ -66,7 +74,7 @@ body{
 }
 
 .userPlanningAcceptedCard .uiCardBody {
-  padding: 24px;
+  padding: 0;
 }
 
 .userPlanningStatusToggle {
@@ -128,11 +136,14 @@ body{
 
 .userPlanningGroup {
   padding: 0;
-  margin: 0 -16px;
 }
 
-.userPlanningGroup .listHeaderGrid,
-.userPlanningGroup .listRowGrid {
+.userPlanningGroup--flush {
+  margin: 0;
+}
+
+.userPlanningGroup--flush .listHeaderGrid,
+.userPlanningGroup--flush .listRowGrid {
   padding-left: 16px;
   padding-right: 16px;
 }
@@ -184,6 +195,14 @@ body{
   gap: 16px;
 }
 
+.userPlanningSection--table {
+  gap: 0;
+}
+
+.userPlanningSection--flushTop {
+  margin-top: 0;
+}
+
 .userPlanningSectionHeader {
   display: flex;
   align-items: flex-start;
@@ -222,6 +241,18 @@ body{
 .userPlanningAcceptedList {
   display: grid;
   gap: 14px;
+}
+
+.userPlanningAcceptedTable {
+  margin: 0;
+}
+
+.userPlanningAcceptedGrid {
+  grid-template-columns: minmax(220px, 1.2fr) minmax(130px, 0.85fr) minmax(130px, 0.85fr) minmax(170px, 1fr) minmax(120px, 0.7fr);
+}
+
+.userPlanningAcceptedScrollArea {
+  max-height: 60vh;
 }
 
 .userPlanningPanelCard {
