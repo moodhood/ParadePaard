@@ -81,6 +81,18 @@ public class UserController {
         }
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Search active users by name/email/position (planning helper)")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
+    public ResponseEntity<List<UserResponseDTO>> searchUsers(
+            Authentication authentication,
+            @RequestParam("q") String query,
+            @RequestParam(value = "limit", defaultValue = "20") int limit
+    ) {
+        UUID companyId = resolveCompanyId(authentication);
+        return ResponseEntity.ok(userService.searchActiveUsers(companyId, query, limit));
+    }
+
     @GetMapping("/me/company")
     @Operation(summary = "Return current company from the token")
     public ResponseEntity<CompanyResponseDTO> getMyCompany(Authentication authentication) {

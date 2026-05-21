@@ -243,7 +243,7 @@ Shift cards are selectable. Clicking a shift selects it. Holding Shift while cli
 
 Clicking the main body of a selected shift opens a compact pop up menu near that shift. When one shift is selected, the menu offers Plan someone in and View shift details. When multiple shifts are selected, the menu offers Plan someone in and View selected shifts. Clicking outside the menu closes it, but the selected highlight remains.
 
-Plan someone in opens a small planning panel in the same pop up. The planner can search active employees, select multiple people, and then plan the selected people into all selected shifts at once. The page updates immediately after planning so staffing counters and shift states stay accurate without a manual refresh.
+Plan someone in opens a small planning panel in the same pop up. The panel starts empty and only searches employees once the planner types a name or email, so it does not load every user up front. Selected people appear as removable chips above the search results so the planner can keep track of the selection while continuing to search. The results list scrolls when many matches exist and supports long names with horizontal scrolling. The planner can then plan the selected people into all selected shifts at once. The page updates immediately after planning so staffing counters and shift states stay accurate without a manual refresh.
 
 The planning calendar now stretches to the available browser height. This lets the day cells fill the screen so the white day columns continue down to the bottom of the planning area instead of ending early with empty background below them.
 
@@ -484,6 +484,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 21: Updated the Planning Overview Plan someone in panel to search employees on demand (no full user list), keep selected people visible as chips, and allow horizontal scrolling for long names.
     \item 2026 05 21: Tightened the My planning spacing so the table header sits directly under the card header, and updated the My Planning page accepted list to use the same table styling.
     \item 2026 05 21: Tightened the My planning dashboard table spacing so the header and rows use the full card width.
     \item 2026 05 21: Improved the My planning dashboard rows with clearer hover/focus styling and a status pill.

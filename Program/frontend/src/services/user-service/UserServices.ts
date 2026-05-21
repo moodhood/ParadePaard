@@ -8,6 +8,7 @@ import GetListUserLeaveRequests from "./GetListUserLeaveRequests";
 import GetMe from "./GetMe";
 import GetUsers from "./GetUsers";
 import GetUsersPage from "./GetUsersPage";
+import SearchUsers from "./SearchUsers";
 import GetUserById from "./GetUserById";
 import RejectLeaveRequest from "./RejectLeaveRequest";
 import AdminOnboardEmployee from "./AdminOnboardEmployee";
@@ -241,6 +242,9 @@ export const UserServices = {
     },
     getUsers: async (): Promise<UserResponseDTO[]> => {
         return await GetUsers(API_BASE_URL);
+    },
+    searchUsers: async (query: string, limit = 20): Promise<UserResponseDTO[]> => {
+        return await SearchUsers(API_BASE_URL, query, limit);
     },
     getUsersPage: async (page: number, size = 50, sortKey?: string, sortDirection?: "asc" | "desc"): Promise<PaginatedResponse<UserResponseDTO>> => {
         return await GetUsersPage(API_BASE_URL, { page, size, sortKey, sortDirection });

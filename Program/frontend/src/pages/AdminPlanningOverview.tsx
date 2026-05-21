@@ -486,7 +486,7 @@ export default function AdminPlanningOverview() {
     const [selectedDate, setSelectedDate] = useState<string>(today);
     const [expandedDay, setExpandedDay] = useState<string>(today);
     const [planningView, setPlanningView] = useState<PlanningView>("week");
-    const [plannerMode, setPlannerMode] = useState<PlannerMode>("shifts");
+    const [plannerMode] = useState<PlannerMode>("shifts");
     const [planningSearchQuery, setPlanningSearchQuery] = useState("");
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
     const [isViewSelectedOpen, setIsViewSelectedOpen] = useState(false);
@@ -512,12 +512,13 @@ export default function AdminPlanningOverview() {
         left: 0,
     });
     const popoverRef = useRef<HTMLDivElement | null>(null);
-    const [planningUsers, setPlanningUsers] = useState<UserResponseDTO[]>([]);
-    const [planningUsersLoaded, setPlanningUsersLoaded] = useState(false);
     const [planningUsersLoading, setPlanningUsersLoading] = useState(false);
     const [planningUsersError, setPlanningUsersError] = useState<string | null>(null);
     const [planUserSearch, setPlanUserSearch] = useState("");
     const [selectedPlanUserIds, setSelectedPlanUserIds] = useState<Set<string>>(() => new Set());
+    const [selectedPlanUsers, setSelectedPlanUsers] = useState<Record<string, UserResponseDTO>>({});
+    const [planningUserResults, setPlanningUserResults] = useState<UserResponseDTO[]>([]);
+    const [planningUserResultsLoaded, setPlanningUserResultsLoaded] = useState(false);
     const [planningActionBusy, setPlanningActionBusy] = useState(false);
     const [planningActionError, setPlanningActionError] = useState<string | null>(null);
     const [planningActionSuccess, setPlanningActionSuccess] = useState<string | null>(null);
@@ -535,17 +536,18 @@ export default function AdminPlanningOverview() {
         return meta;
     }, [selectedShiftKeyList]);
 
+    const selectedPlanningUsers = useMemo(() => {
+        return [...selectedPlanUserIds.values()]
+            .map((id) => selectedPlanUsers[id])
+            .filter((user): user is UserResponseDTO => Boolean(user))
+            .sort((left, right) => getUserDisplayName(left).localeCompare(getUserDisplayName(right)));
+    }, [selectedPlanUserIds, selectedPlanUsers]);
+
     const visiblePlanningUsers = useMemo(() => {
-        const normalizedSearch = planUserSearch.trim().toLowerCase();
-        const users = planningUsers;
-        if (!normalizedSearch) return users;
-        return users.filter((user) => {
-            const displayName = getUserDisplayName(user).toLowerCase();
-            return displayName.includes(normalizedSearch)
-                || user.email.toLowerCase().includes(normalizedSearch)
-                || (user.position ?? "").toLowerCase().includes(normalizedSearch);
-        });
-    }, [planUserSearch, planningUsers]);
+        const results = planningUserResults;
+        if (selectedPlanUserIds.size === 0) return results;
+        return results.filter((user) => !selectedPlanUserIds.has(user.userId));
+    }, [planningUserResults, selectedPlanUserIds]);
 
     const allocationsByShiftId = useMemo(() => {
         const map = new Map<string, Map<string, PlanningResourceAllocationDTO>>();
@@ -616,25 +618,12 @@ export default function AdminPlanningOverview() {
         }
     }, [clientsLoaded, loadingClients]);
 
-    const loadPlanningUsers = useCallback(async () => {
-        if (planningUsersLoaded || planningUsersLoading) return;
-        try {
-            setPlanningUsersLoading(true);
-            setPlanningUsersError(null);
-            const users = await UserServices.getUsers();
-            const activeUsers = users
-                .filter((user) => user.status === "ACTIVE")
-                .slice()
-                .sort((left, right) => getUserDisplayName(left).localeCompare(getUserDisplayName(right)));
-            setPlanningUsers(activeUsers);
-            setPlanningUsersLoaded(true);
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to load users";
-            setPlanningUsersError(message);
-        } finally {
-            setPlanningUsersLoading(false);
-        }
-    }, [planningUsersLoaded, planningUsersLoading]);
+    const clearPlanningUserSearchState = useCallback(() => {
+        setPlanningUsersError(null);
+        setPlanningUsersLoading(false);
+        setPlanningUserResults([]);
+        setPlanningUserResultsLoaded(false);
+    }, []);
 
     const loadTimeZoneOptions = useCallback(() => {
         setTimeZoneOptions((current) => current.length > 0 ? current : getTimeZoneOptions());
@@ -807,12 +796,16 @@ export default function AdminPlanningOverview() {
         setSelectedShiftKeys(() => new Set([keyString]));
     }, []);
 
-    const togglePlanUserSelected = useCallback((userId: string) => {
+    const togglePlanUserSelected = useCallback((user: UserResponseDTO) => {
         setSelectedPlanUserIds((current) => {
             const next = new Set(current);
-            if (next.has(userId)) next.delete(userId);
-            else next.add(userId);
+            if (next.has(user.userId)) next.delete(user.userId);
+            else next.add(user.userId);
             return next;
+        });
+        setSelectedPlanUsers((current) => {
+            if (!user.userId) return current;
+            return { ...current, [user.userId]: user };
         });
     }, []);
 
@@ -932,8 +925,47 @@ export default function AdminPlanningOverview() {
 
     useEffect(() => {
         if (!popover.open || popover.mode !== "plan") return;
-        void loadPlanningUsers();
-    }, [loadPlanningUsers, popover.mode, popover.open]);
+        clearPlanningUserSearchState();
+        setPlanUserSearch("");
+        setSelectedPlanUserIds(new Set());
+        setSelectedPlanUsers({});
+    }, [clearPlanningUserSearchState, popover.mode, popover.open]);
+
+    useEffect(() => {
+        if (!popover.open || popover.mode !== "plan") return;
+
+        const query = planUserSearch.trim();
+        if (!query) {
+            clearPlanningUserSearchState();
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            void (async () => {
+                try {
+                    setPlanningUsersLoading(true);
+                    setPlanningUsersError(null);
+                    const results = await UserServices.searchUsers(query, 25);
+                    setPlanningUserResults(
+                        results
+                            .filter((user) => user.status === "ACTIVE")
+                            .slice()
+                            .sort((left, right) => getUserDisplayName(left).localeCompare(getUserDisplayName(right)))
+                    );
+                    setPlanningUserResultsLoaded(true);
+                } catch (err: unknown) {
+                    const message = err instanceof Error ? err.message : "Failed to search users";
+                    setPlanningUsersError(message);
+                    setPlanningUserResults([]);
+                    setPlanningUserResultsLoaded(false);
+                } finally {
+                    setPlanningUsersLoading(false);
+                }
+            })();
+        }, 220);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [clearPlanningUserSearchState, planUserSearch, popover.mode, popover.open]);
 
     useEffect(() => {
         if (!popover.open || !popover.anchorId) return;
@@ -945,8 +977,8 @@ export default function AdminPlanningOverview() {
                 return;
             }
             const rect = anchorEl.getBoundingClientRect();
-            const MENU_WIDTH = 260;
-            const MENU_HEIGHT_ESTIMATE = 220;
+            const MENU_WIDTH = popover.mode === "plan" ? 420 : 260;
+            const MENU_HEIGHT_ESTIMATE = popover.mode === "plan" ? 360 : 220;
             const padding = 10;
             const left = Math.min(Math.max(padding, rect.left), window.innerWidth - MENU_WIDTH - padding);
             const fitsBelow = rect.bottom + MENU_HEIGHT_ESTIMATE <= window.innerHeight - padding;
@@ -965,14 +997,17 @@ export default function AdminPlanningOverview() {
             window.removeEventListener("resize", recompute);
             window.removeEventListener("scroll", recompute, true);
         };
-    }, [closePopover, popover.anchorId, popover.open]);
+    }, [closePopover, popover.anchorId, popover.mode, popover.open]);
 
     const renderPlannerEntry = (day: string, entry: PlannerEntry) => {
-        const isShiftEntry = plannerMode === "shifts" && entry.tone === "shifts" && entry.shiftId && entry.eventId && entry.day;
-        const shiftKeyString = isShiftEntry
-            ? toShiftKeyString({ day: entry.day, shiftId: entry.shiftId, eventId: entry.eventId })
-            : null;
-        const shiftAnchorId = isShiftEntry ? `planning-shift-entry-${entry.day}-${entry.shiftId}` : null;
+        let shiftKeyString: string | null = null;
+        let shiftAnchorId: string | null = null;
+
+        if (plannerMode === "shifts" && entry.tone === "shifts" && entry.shiftId && entry.eventId && entry.day) {
+            shiftKeyString = toShiftKeyString({ day: entry.day, shiftId: entry.shiftId, eventId: entry.eventId });
+            shiftAnchorId = `planning-shift-entry-${entry.day}-${entry.shiftId}`;
+        }
+        const isShiftEntry = Boolean(shiftKeyString);
         const isSelected = shiftKeyString ? selectedShiftKeys.has(shiftKeyString) : false;
 
         return (
@@ -1253,6 +1288,7 @@ export default function AdminPlanningOverview() {
                     ref={popoverRef}
                     className={[
                         "planningShiftPopover",
+                        popover.mode === "plan" ? "planningShiftPopover--plan" : "",
                         popover.placement === "top" ? "planningShiftPopover--top" : "planningShiftPopover--bottom",
                     ].filter(Boolean).join(" ")}
                     style={{ top: `${popover.top}px`, left: `${popover.left}px` }}
@@ -1269,15 +1305,16 @@ export default function AdminPlanningOverview() {
                     ) : (
                         <div className="planningShiftPopoverPlan" aria-label="Plan people panel">
                             <div className="planningShiftPopoverPlanHeader">
-                                <div className="planningShiftPopoverPlanTitle">
-                                    Plan people to {selectedShiftMeta.length} shift{selectedShiftMeta.length === 1 ? "" : "s"}
-                                </div>
                                 <button
                                     type="button"
-                                    className="planningShiftPopoverBack"
+                                    className="pageBack planningShiftPopoverBack"
                                     onClick={() => setPopover((current) => (current.open ? { ...current, mode: "menu" } : current))}
+                                    aria-label="Back to shift actions"
                                 >
-                                    Back
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M15 18l-6-6 6-6" />
+                                    </svg>
+                                    <span>Back</span>
                                 </button>
                             </div>
 
@@ -1291,16 +1328,41 @@ export default function AdminPlanningOverview() {
                                 disabled={planningUsersLoading || planningActionBusy}
                             />
 
-                            {planningUsersLoading ? <div className="planningShiftPopoverHint">Loading people...</div> : null}
+                            {planningUsersLoading ? <div className="planningShiftPopoverHint">Searching...</div> : null}
                             {!planningUsersLoading && planningUsersError ? (
                                 <div className="planningShiftPopoverHint planningShiftPopoverHint--error">{planningUsersError}</div>
                             ) : null}
 
-                            {!planningUsersLoading && !planningUsersError ? (
-                                <div className="planningShiftPopoverPeople">
-                                    {visiblePlanningUsers.length === 0 ? (
+                            <div className="planningShiftPopoverPeople" data-has-query={Boolean(planUserSearch.trim())}>
+                                    {selectedPlanningUsers.length > 0 ? (
+                                        <div className="planningShiftPopoverSelected">
+                                            {selectedPlanningUsers.map((user) => (
+                                                <button
+                                                    key={`selected-${user.userId}`}
+                                                    type="button"
+                                                    className="planningShiftPopoverSelectedPill"
+                                                    onClick={() => togglePlanUserSelected(user)}
+                                                    title="Remove from selection"
+                                                >
+                                                    <span className="planningShiftPopoverSelectedPillName">{getUserDisplayName(user)}</span>
+                                                    <span className="planningShiftPopoverSelectedPillX" aria-hidden="true">
+                                                        ×
+                                                    </span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    ) : null}
+
+                                    {!planUserSearch.trim() ? (
+                                        <div className="planningShiftPopoverHint">Type a name or email to search.</div>
+                                    ) : null}
+                                    {planUserSearch.trim() &&
+                                    !planningUsersLoading &&
+                                    !planningUsersError &&
+                                    visiblePlanningUsers.length === 0 &&
+                                    planningUserResultsLoaded ? (
                                         <div className="planningShiftPopoverHint">No matching people.</div>
-                                    ) : (
+                                    ) : planUserSearch.trim() && !planningUsersLoading && !planningUsersError ? (
                                         visiblePlanningUsers.map((user) => {
                                             const isChecked = selectedPlanUserIds.has(user.userId);
                                             return (
@@ -1311,7 +1373,7 @@ export default function AdminPlanningOverview() {
                                                         "planningShiftPopoverPerson",
                                                         isChecked ? "planningShiftPopoverPerson--checked" : "",
                                                     ].filter(Boolean).join(" ")}
-                                                    onClick={() => togglePlanUserSelected(user.userId)}
+                                                    onClick={() => togglePlanUserSelected(user)}
                                                 >
                                                     <span className="planningShiftPopoverPersonCheck" aria-hidden="true">
                                                         {isChecked ? "✓" : ""}
@@ -1325,9 +1387,8 @@ export default function AdminPlanningOverview() {
                                                 </button>
                                             );
                                         })
-                                    )}
-                                </div>
-                            ) : null}
+                                    ) : null}
+                            </div>
 
                             {planningActionError ? (
                                 <div className="planningShiftPopoverHint planningShiftPopoverHint--error">{planningActionError}</div>

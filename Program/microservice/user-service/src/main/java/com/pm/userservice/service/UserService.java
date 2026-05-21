@@ -117,6 +117,30 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
+    public List<UserResponseDTO> searchActiveUsers(UUID companyId, String query, int limit) {
+        if (query == null || query.isBlank() || limit <= 0) {
+            return List.of();
+        }
+
+        int safeLimit = Math.min(Math.max(limit, 1), 50);
+        Pageable pageable = PageRequest.of(
+                0,
+                safeLimit,
+                Sort.by("lastName").ascending().and(Sort.by("firstNames").ascending())
+        );
+
+        Page<User> page = userRepository.searchUsers(companyId, UserStatus.ACTIVE, query.trim(), pageable);
+        if (page.isEmpty()) {
+            return List.of();
+        }
+
+        Integer payoutFrequency = companyId != null ? resolveCompanyPayoutFrequency(companyId) : null;
+        return page.getContent().stream()
+                .map(user -> toUserResponseDTO(user, payoutFrequency))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public UserResponseDTO getUserById(UUID id, UUID companyId) {
         User user = companyId != null
                 ? userRepository.findByUserIdAndCompanyId(id, companyId)
