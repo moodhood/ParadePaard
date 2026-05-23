@@ -38,6 +38,20 @@ describe("HorecaPayrollRules", () => {
         });
     });
 
+    it("renders a job preset header action and icon-labelled row actions without the inline editor", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <HorecaPayrollRules />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain('aria-label="Create job preset"');
+        expect(html).toContain('aria-label="Edit preset Bar employee"');
+        expect(html).toContain('aria-label="Disable preset Bar employee"');
+        expect(html).toContain('aria-label="Delete preset Bar employee"');
+        expect(html).not.toContain("Clear form");
+    });
+
     it("shows important values with direct source labels", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>

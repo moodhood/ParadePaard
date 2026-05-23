@@ -183,6 +183,14 @@
     padding-top: 4px;
 }
 
+.cardHeaderActions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
 .presetEditorHeader {
     justify-content: space-between;
 }
@@ -199,6 +207,46 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
+}
+
+.presetModalBody {
+    display: grid;
+    gap: 14px;
+}
+
+.tableActionIconButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    background: #fff;
+    color: #334155;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.tableActionIconButton svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tableActionIconButton:hover,
+.tableActionIconButton:focus-visible {
+    border-color: #2563eb;
+    color: #1d4ed8;
+    background: #eff6ff;
+    outline: none;
+}
+
+.tableActionIconButton--danger:hover,
+.tableActionIconButton--danger:focus-visible {
+    border-color: #dc2626;
+    color: #b91c1c;
+    background: #fef2f2;
 }
 
 .rulesField {
