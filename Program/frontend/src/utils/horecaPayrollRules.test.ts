@@ -77,21 +77,16 @@ describe("horecaPayrollRules", () => {
         expect(result.warnings).toContain("Gross hourly wage is above the horeca CAO wage table amount.");
     });
 
-    it("calculates a payroll scenario from calculator inputs", () => {
+    it("calculates a payroll scenario from high-level calculator inputs", () => {
         const example = calculatePayrollCalculator({
-            grossWage: 2422.25,
+            dateOfBirth: "1998-02-10",
+            startDate: "2026-01-01",
+            functionGroup: "I+II",
+            contractType: "FULL_TIME",
+            hoursPerWeek: 38,
             hourlyWage: 14.71,
-            monthlyHours: 164.67,
-            payrollTaxWithheld: 160.5,
-            holidayAllowancePercentage: 8,
-            vacationBuildUpPerPaidHour: 0.0961,
-            employeePensionPercentage: 8.4,
-            employerPensionPercentage: 8.4,
-            employerAwfPercentage: 2.74,
-            employerAofPercentage: 6.27,
-            employerWhkPercentage: 1.77,
-            employerWkoPercentage: 0.5,
-            employerZvwPercentage: 6.1,
+            loonheffingskorting: true,
+            pensionApplicable: true,
         });
 
         expect(example.grossWage).toBe(2422.25);
@@ -103,5 +98,25 @@ describe("horecaPayrollRules", () => {
         expect(example.amountPayableToBelastingdienst).toBe(581.49);
         expect(example.amountPayableToPensionFund).toBe(406.94);
         expect(example.totalEmployerCostBeforePayrollMargin).toBe(3240.49);
+    });
+
+    it("lets wage change while keeping deductions source-driven", () => {
+        const result = calculatePayrollCalculator({
+            dateOfBirth: "1998-02-10",
+            startDate: "2026-01-01",
+            functionGroup: "I+II",
+            contractType: "PART_TIME",
+            hoursPerWeek: 24,
+            hourlyWage: 15.5,
+            loonheffingskorting: false,
+            pensionApplicable: false,
+        });
+
+        expect(result.grossWage).toBe(1612);
+        expect(result.employeePensionDeduction).toBe(0);
+        expect(result.employerPension).toBe(0);
+        expect(result.payrollTaxWithheld).toBeGreaterThan(0);
+        expect(result.netWagePaid).toBeLessThan(result.grossWage);
+        expect(result.amountPayableToBelastingdienst).toBeGreaterThan(result.payrollTaxWithheld);
     });
 });

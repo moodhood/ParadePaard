@@ -21,6 +21,7 @@ import {
     calculatePayrollCalculator,
     calculateMonthlyHours,
     formatSourceLabel,
+    getHorecaRequiredHourlyWage,
     getPayrollVariableNumber,
     loadHorecaJobPresets,
     resetHorecaJobPresets,
@@ -57,19 +58,14 @@ type ContractRuleDraft = {
 };
 
 type PayrollCalculatorDraft = {
-    grossWage: number;
+    employeeDateOfBirth: string;
+    startDate: string;
+    functionGroup: string;
+    contractType: ContractType;
+    hoursPerWeek: number;
     hourlyWage: number;
-    monthlyHours: number;
-    payrollTaxWithheld: number;
-    holidayAllowancePercentage: number;
-    vacationBuildUpPerPaidHour: number;
-    employeePensionPercentage: number;
-    employerPensionPercentage: number;
-    employerAwfPercentage: number;
-    employerAofPercentage: number;
-    employerWhkPercentage: number;
-    employerWkoPercentage: number;
-    employerZvwPercentage: number;
+    loonheffingskorting: boolean;
+    pensionApplicable: boolean;
 };
 
 const currencyFormatter = new Intl.NumberFormat("nl-NL", {
@@ -258,21 +254,29 @@ export default function HorecaPayrollRules() {
         manualWageOverrideReason: contractDraft.manualWageOverrideReason,
     });
     const [calculatorDraft, setCalculatorDraft] = useState<PayrollCalculatorDraft>(() => ({
-        grossWage: 2422.25,
+        employeeDateOfBirth: "1998-02-10",
+        startDate: "2026-01-01",
+        functionGroup: "I+II",
+        contractType: "FULL_TIME",
+        hoursPerWeek: 38,
         hourlyWage: 14.71,
-        monthlyHours: 164.67,
-        payrollTaxWithheld: getPayrollVariableNumber("monthlyPayrollTaxWithCreditAt2425_50"),
-        holidayAllowancePercentage: holidayAllowancePct,
-        vacationBuildUpPerPaidHour: vacationBuildUp,
-        employeePensionPercentage: pensionEmployeePct,
-        employerPensionPercentage: pensionEmployerPct,
-        employerAwfPercentage: 2.74,
-        employerAofPercentage: 6.27,
-        employerWhkPercentage: 1.77,
-        employerWkoPercentage: 0.5,
-        employerZvwPercentage: 6.1,
+        loonheffingskorting: true,
+        pensionApplicable: true,
     }));
     const [calculatorResult, setCalculatorResult] = useState(() => calculatePayrollCalculator(calculatorDraft));
+    const calculatorMonthlyHours =
+        calculatorDraft.contractType === "FULL_TIME"
+            ? calculateMonthlyHours(38)
+            : calculateMonthlyHours(calculatorDraft.hoursPerWeek);
+    const calculatorRequiredWage = getHorecaRequiredHourlyWage({
+        dateOfBirth: calculatorDraft.employeeDateOfBirth,
+        startDate: calculatorDraft.startDate,
+        functionGroup: calculatorDraft.functionGroup,
+    });
+    const calculatorWageWarning =
+        calculatorRequiredWage && calculatorDraft.hourlyWage < calculatorRequiredWage.hourlyWage
+            ? `Entered wage is below the horeca minimum of ${money(calculatorRequiredWage.hourlyWage)} for this age and function group.`
+            : null;
 
     const sourceButton = (sourceId: string, pageNumber?: string) => (
         <button
@@ -916,10 +920,97 @@ export default function HorecaPayrollRules() {
                                 <Card title="Payroll calculator" className="horecaRulesCard">
                                     <div className="horecaCardBody">
                                         <div className="sectionIntro">
-                                            Enter the payroll variables for a horeca scenario and generate the payroll outcome
-                                            from the selected inputs.
+                                            Enter the employee and contract context. The calculator derives horeca tax,
+                                            pension, holiday allowance, vacation buildup, and employer premiums from the
+                                            official source-backed rules. Only the wage is meant to be adjusted manually.
+                                        </div>
+                                        <div className="ruleValueGrid">
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Derived monthly hours</span>
+                                                <strong>{numberFormatter.format(calculatorMonthlyHours)} hours</strong>
+                                                {sourceButton("horeca-cao-2025-2026", "12")}
+                                            </div>
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Required horeca hourly wage</span>
+                                                <strong>
+                                                    {calculatorRequiredWage ? money(calculatorRequiredWage.hourlyWage) : "Not available"}
+                                                </strong>
+                                                {sourceButton("loontabel-2026-01-01", "1")}
+                                            </div>
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Tax source</span>
+                                                <strong>Belastingdienst monthly wage tax table 2026</strong>
+                                                {sourceButton("witte-maandloon-2026-01-01", "15")}
+                                            </div>
                                         </div>
                                         <div className="rulesFormGrid">
+                                            <label className="rulesField">
+                                                <span>Employee date of birth</span>
+                                                <input
+                                                    className="uiSelect"
+                                                    type="date"
+                                                    value={calculatorDraft.employeeDateOfBirth}
+                                                    onChange={(event) =>
+                                                        updateCalculatorDraft("employeeDateOfBirth", event.target.value)
+                                                    }
+                                                />
+                                            </label>
+                                            <label className="rulesField">
+                                                <span>Start date</span>
+                                                <input
+                                                    className="uiSelect"
+                                                    type="date"
+                                                    value={calculatorDraft.startDate}
+                                                    onChange={(event) =>
+                                                        updateCalculatorDraft("startDate", event.target.value)
+                                                    }
+                                                />
+                                            </label>
+                                            <label className="rulesField">
+                                                <span>Function group</span>
+                                                <select
+                                                    className="uiSelect"
+                                                    value={calculatorDraft.functionGroup}
+                                                    onChange={(event) =>
+                                                        updateCalculatorDraft("functionGroup", event.target.value)
+                                                    }
+                                                >
+                                                    <option value="I+II">I plus II</option>
+                                                </select>
+                                            </label>
+                                            <label className="rulesField">
+                                                <span>Contract type</span>
+                                                <select
+                                                    className="uiSelect"
+                                                    value={calculatorDraft.contractType}
+                                                    onChange={(event) => {
+                                                        const nextContractType = event.target.value as ContractType;
+                                                        setCalculatorDraft((prev) => ({
+                                                            ...prev,
+                                                            contractType: nextContractType,
+                                                            hoursPerWeek: nextContractType === "FULL_TIME" ? 38 : prev.hoursPerWeek,
+                                                        }));
+                                                    }}
+                                                >
+                                                    <option value="FULL_TIME">Full time</option>
+                                                    <option value="PART_TIME">Part time</option>
+                                                    <option value="ZERO_HOURS">Zero hours</option>
+                                                </select>
+                                            </label>
+                                            <label className="rulesField">
+                                                <span>Hours per week</span>
+                                                <input
+                                                    className="uiSelect"
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.25"
+                                                    value={calculatorDraft.hoursPerWeek}
+                                                    onChange={(event) =>
+                                                        updateCalculatorDraft("hoursPerWeek", Number(event.target.value))
+                                                    }
+                                                    disabled={calculatorDraft.contractType === "FULL_TIME"}
+                                                />
+                                            </label>
                                             <label className="rulesField">
                                                 <span>Hourly wage</span>
                                                 <input
@@ -933,152 +1024,34 @@ export default function HorecaPayrollRules() {
                                                     }
                                                 />
                                             </label>
-                                            <label className="rulesField">
-                                                <span>Monthly hours</span>
+                                            <label className="rulesCheckbox">
                                                 <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.monthlyHours}
+                                                    type="checkbox"
+                                                    checked={calculatorDraft.loonheffingskorting}
                                                     onChange={(event) =>
-                                                        updateCalculatorDraft("monthlyHours", Number(event.target.value))
+                                                        updateCalculatorDraft("loonheffingskorting", event.target.checked)
                                                     }
                                                 />
+                                                <span>Loonheffingskorting</span>
                                             </label>
-                                            <label className="rulesField">
-                                                <span>Payroll tax withheld</span>
+                                            <label className="rulesCheckbox">
                                                 <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.payrollTaxWithheld}
+                                                    type="checkbox"
+                                                    checked={calculatorDraft.pensionApplicable}
                                                     onChange={(event) =>
-                                                        updateCalculatorDraft("payrollTaxWithheld", Number(event.target.value))
+                                                        updateCalculatorDraft("pensionApplicable", event.target.checked)
                                                     }
                                                 />
+                                                <span>Pension applies</span>
                                             </label>
-                                            <label className="rulesField">
-                                                <span>Holiday allowance percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.holidayAllowancePercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("holidayAllowancePercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Vacation build-up per paid hour</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.0001"
-                                                    value={calculatorDraft.vacationBuildUpPerPaidHour}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft(
-                                                            "vacationBuildUpPerPaidHour",
-                                                            Number(event.target.value)
-                                                        )
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employee pension percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employeePensionPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employeePensionPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer pension percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerPensionPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerPensionPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer AWf percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerAwfPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerAwfPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer Aof percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerAofPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerAofPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer Whk percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerWhkPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerWhkPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer Wko percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerWkoPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerWkoPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Employer Zvw percentage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.employerZvwPercentage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employerZvwPercentage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
+                                        </div>
+                                        {calculatorWageWarning ? (
+                                            <div className="rulesValidationError">{calculatorWageWarning}</div>
+                                        ) : null}
+                                        <div className="exampleNotice">
+                                            Payroll tax withholding is estimated from the Belastingdienst monthly wage tax
+                                            table example and scales automatically from the selected wage and
+                                            loonheffingskorting choice.
                                         </div>
                                         <div className="rulesActions">
                                             <button type="button" className="button" onClick={handleGenerateCalculatorOutput}>
@@ -1089,8 +1062,16 @@ export default function HorecaPayrollRules() {
                                             <table className="rulesTable">
                                                 <tbody>
                                                     <tr>
+                                                        <th>Monthly hours</th>
+                                                        <td>{numberFormatter.format(calculatorMonthlyHours)} hours</td>
+                                                    </tr>
+                                                    <tr>
                                                         <th>Gross wage</th>
                                                         <td>{money(calculatorResult.grossWage)}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Payroll tax withheld</th>
+                                                        <td>{money(calculatorResult.payrollTaxWithheld)}</td>
                                                     </tr>
                                                     <tr>
                                                         <th>Holiday allowance reservation</th>

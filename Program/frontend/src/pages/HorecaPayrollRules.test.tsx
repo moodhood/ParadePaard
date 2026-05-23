@@ -73,9 +73,13 @@ describe("HorecaPayrollRules", () => {
             </MemoryRouter>
         );
 
-        expect(html).toContain("Monthly hours");
-        expect(html).toContain("Payroll tax withheld");
+        expect(html).toContain("Employee date of birth");
+        expect(html).toContain("Hours per week");
+        expect(html).toContain("Loonheffingskorting");
         expect(html).toContain("Generate output");
+        expect(html).toContain("Payroll tax withholding is estimated");
+        expect(html).not.toContain("Payroll tax withheld</span>");
+        expect(html).not.toContain("Employer AWf percentage");
         expect(html).not.toContain("Example payroll calculation");
     });
 });
