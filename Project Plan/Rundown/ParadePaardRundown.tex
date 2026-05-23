@@ -278,6 +278,8 @@ The page's main user flow is simple: the planner searches for a client, opens th
 
 The Event Detail page is where planning becomes concrete. The page opens one event and shows its shifts, staffing level, client information, timing, location, and notes. The main card title combines the event name and context, while the right side shows an event-level staffing requirement ratio.
 
+The page is available from the Management Planning Overview page by opening an event card, and it can also be accessed directly at \code{/management/planning/events/:eventId}.
+
 The page is split into a main shift area and a side event-details panel. The event-details panel shows client, client line, location, dates, default time, time zone, staffing summary, status, and notes. The edit button opens the event edit modal, where the planner can change event name, client, dates, times, time zone, location, internal notes, external notes, and summary. The modal also includes event deletion, with a browser confirmation before deleting.
 
 The shift list is the main working area. A shift card shows the shift date, weekday, time, display name, function, staffing, duration, location, and the required/scheduled/checked-in ratio. The planner can create a shift, edit a shift, or delete a shift. The create and edit shift modals use the same core fields: start date and time, end date and time, job function, shift name, people needed, break minutes, and location.
@@ -501,6 +503,8 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 23: Fixed Planning service exports so the Planning Overview page can load again after the Event to Project rename (restored missing CreatePlanningEvent and getEvent helper exports).
+    \item 2026 05 23: Fixed the Management Planning Event Detail route so opening an event detail page no longer fails due to a missing frontend page import.
     \item 2026 05 23: Added the Horeca Payroll and Contract Rules management page and updated the onboarding review contract setup to use source-based horeca job presets, wage validation, payroll settings, and source details.
     \item 2026 05 21: Added a Calendar view or List view selector to Planning Overview so planners can switch between the grid and a day grouped list.
     \item 2026 05 21: Updated the Planning Overview Plan someone in panel to search employees on demand (no full user list), keep selected people visible as chips, and allow horizontal scrolling for long names.

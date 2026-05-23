@@ -1,10 +1,10 @@
 import axios from "axios";
 
-export type PlanningEventSaveDTO = {
+export type PlanningProjectSaveDTO = {
     name: string;
     startDate: string;
     endDate: string;
-    eventTimezone?: string | null;
+    projectTimezone?: string | null;
     clientCompanyId?: string | null;
     internalDescription?: string | null;
     externalDescription?: string | null;
@@ -13,6 +13,11 @@ export type PlanningEventSaveDTO = {
     location?: string | null;
     status?: string | null;
 };
+
+// Backwards-compatible aliases: the frontend historically used "Event" naming.
+// The backend and DTOs have been migrated to "Project", but most UI and services
+// still refer to "events". Keep these exports so existing imports keep working.
+export type PlanningEventSaveDTO = PlanningProjectSaveDTO;
 
 export type PlanningShiftSaveDTO = {
     startTime: string;
@@ -29,13 +34,15 @@ export type PlanningAssignmentSaveDTO = {
     status?: string;
 };
 
-export type PlanningEventMutationResponseDTO = {
-    eventId: string;
+export type PlanningProjectMutationResponseDTO = {
+    projectId: string;
 };
+
+export type PlanningEventMutationResponseDTO = PlanningProjectMutationResponseDTO;
 
 export type PlanningShiftMutationResponseDTO = {
     shiftId: string;
-    eventId: string;
+    projectId: string;
 };
 
 export type PlanningAssignmentMutationResponseDTO = {
@@ -58,16 +65,37 @@ async function unwrap<T>(promise: Promise<{ data: T; status: number }>, fallback
     }
 }
 
+export async function CreatePlanningProject(
+    apiBaseUrl: string,
+    payload: PlanningProjectSaveDTO
+): Promise<PlanningProjectMutationResponseDTO> {
+    return unwrap(
+        axios.post<PlanningProjectMutationResponseDTO>(`${apiBaseUrl}/api/planning/projects`, payload, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        }),
+        "Failed to create planning project"
+    );
+}
+
 export async function CreatePlanningEvent(
     apiBaseUrl: string,
     payload: PlanningEventSaveDTO
 ): Promise<PlanningEventMutationResponseDTO> {
+    return CreatePlanningProject(apiBaseUrl, payload);
+}
+
+export async function UpdatePlanningProject(
+    apiBaseUrl: string,
+    projectId: string,
+    payload: PlanningProjectSaveDTO
+): Promise<PlanningProjectMutationResponseDTO> {
     return unwrap(
-        axios.post<PlanningEventMutationResponseDTO>(`${apiBaseUrl}/api/planning/events`, payload, {
+        axios.put<PlanningProjectMutationResponseDTO>(`${apiBaseUrl}/api/planning/projects/${projectId}`, payload, {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,
         }),
-        "Failed to create planning event"
+        "Failed to update planning project"
     );
 }
 
@@ -76,29 +104,27 @@ export async function UpdatePlanningEvent(
     eventId: string,
     payload: PlanningEventSaveDTO
 ): Promise<PlanningEventMutationResponseDTO> {
-    return unwrap(
-        axios.put<PlanningEventMutationResponseDTO>(`${apiBaseUrl}/api/planning/events/${eventId}`, payload, {
-            headers: { "Content-Type": "application/json" },
-            withCredentials: true,
-        }),
-        "Failed to update planning event"
+    return UpdatePlanningProject(apiBaseUrl, eventId, payload);
+}
+
+export async function DeletePlanningProject(apiBaseUrl: string, projectId: string): Promise<void> {
+    await unwrap(
+        axios.delete<void>(`${apiBaseUrl}/api/planning/projects/${projectId}`, { withCredentials: true }),
+        "Failed to delete planning project"
     );
 }
 
 export async function DeletePlanningEvent(apiBaseUrl: string, eventId: string): Promise<void> {
-    await unwrap(
-        axios.delete<void>(`${apiBaseUrl}/api/planning/events/${eventId}`, { withCredentials: true }),
-        "Failed to delete planning event"
-    );
+    return DeletePlanningProject(apiBaseUrl, eventId);
 }
 
 export async function CreatePlanningShift(
     apiBaseUrl: string,
-    eventId: string,
+    projectId: string,
     payload: PlanningShiftSaveDTO
 ): Promise<PlanningShiftMutationResponseDTO> {
     return unwrap(
-        axios.post<PlanningShiftMutationResponseDTO>(`${apiBaseUrl}/api/planning/events/${eventId}/shifts`, payload, {
+        axios.post<PlanningShiftMutationResponseDTO>(`${apiBaseUrl}/api/planning/projects/${projectId}/shifts`, payload, {
             headers: { "Content-Type": "application/json" },
             withCredentials: true,
         }),

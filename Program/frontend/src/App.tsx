@@ -36,7 +36,7 @@ import HorecaPayrollRules from "./pages/HorecaPayrollRules";
 import AdminMessages from "./pages/AdminMessages";
 import AdminPlanningOverview from "./pages/AdminPlanningOverview";
 import AdminPlanningClients from "./pages/AdminPlanningClients";
-import AdminPlanningEventDetail from "./pages/AdminPlanningEventDetail";
+import AdminPlanningProjectDetail from "./pages/AdminPlanningProjectDetail";
 import AdminPlanningShiftDetail from "./pages/AdminPlanningShiftDetail";
 import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
@@ -60,7 +60,7 @@ function RedirectAdminPayslip() {
     return <Navigate to={`/management/payslips/${payslipId ?? ""}`} replace />;
 }
 
-function RedirectAdminPlanningEvent() {
+function RedirectAdminPlanningProject() {
     const { eventId } = useParams();
     return <Navigate to={`/management/planning/events/${eventId ?? ""}`} replace />;
 }
@@ -328,7 +328,7 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <RequirePermission permission="CAN_MANAGE_PLANNING">
-                            <AdminPlanningEventDetail />
+                            <AdminPlanningProjectDetail />
                         </RequirePermission>
                     </RequireActiveUser>
                 }
@@ -400,7 +400,7 @@ export default function App() {
             <Route path="/admin/payslip-review" element={<Navigate to="/management/payslip-review" replace />} />
             <Route path="/admin/payslip/:payslipId" element={<RedirectAdminPayslip />} />
             <Route path="/admin/planning" element={<Navigate to="/management/planning" replace />} />
-            <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningEvent />} />
+            <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningProject />} />
             <Route path="/admin/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
             <Route path="/admin/clients" element={<Navigate to="/management/clients" replace />} />
             <Route

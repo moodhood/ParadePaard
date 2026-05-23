@@ -1,10 +1,10 @@
 import type {
-    PlanningEventDTO,
+    PlanningProjectDTO,
     PlanningResourceAllocationDTO,
     PlanningShiftDTO,
 } from "../services/user-service/UserServices";
 
-export type PlanningEventShiftRecord = {
+export type PlanningProjectShiftRecord = {
     day: string;
     shift: PlanningShiftDTO;
 };
@@ -33,16 +33,16 @@ export function getShiftDisplayName(shift: PlanningShiftDTO): string {
     return normalizeText(shift.name, shift.functionName || "Unnamed shift");
 }
 
-export function getEventClientName(event: PlanningEventDTO): string {
-    return normalizeText(event.clientCompanyName, "No client");
+export function getProjectClientName(project: PlanningProjectDTO): string {
+    return normalizeText(project.clientCompanyName, "No client");
 }
 
-export function getEventLocation(event: PlanningEventDTO): string {
-    return normalizeText(event.location, "No location");
+export function getProjectLocation(project: PlanningProjectDTO): string {
+    return normalizeText(project.location, "No location");
 }
 
-export function getShiftLocation(event: PlanningEventDTO, shift: PlanningShiftDTO): string {
-    return normalizeText(shift.location, getEventLocation(event));
+export function getShiftLocation(project: PlanningProjectDTO, shift: PlanningShiftDTO): string {
+    return normalizeText(shift.location, getProjectLocation(project));
 }
 
 export function getShiftRequiredCount(shift: PlanningShiftDTO): number {
@@ -89,8 +89,8 @@ export function isShiftStaffed(shift: PlanningShiftDTO): boolean {
     return getShiftStaffingTone(shift) === "staffed";
 }
 
-export function getEventShiftRecords(event: PlanningEventDTO): PlanningEventShiftRecord[] {
-    return event.days
+export function getProjectShiftRecords(project: PlanningProjectDTO): PlanningProjectShiftRecord[] {
+    return project.days
         .flatMap((day) => day.shifts.map((shift) => ({ day: day.day, shift })))
         .sort((left, right) => {
             return (
@@ -101,41 +101,41 @@ export function getEventShiftRecords(event: PlanningEventDTO): PlanningEventShif
         });
 }
 
-export function getEventRequiredCount(event: PlanningEventDTO): number {
-    if (typeof event.peopleNeededTotal === "number") {
-        return event.peopleNeededTotal;
+export function getProjectRequiredCount(project: PlanningProjectDTO): number {
+    if (typeof project.peopleNeededTotal === "number") {
+        return project.peopleNeededTotal;
     }
 
-    return event.days.reduce(
+    return project.days.reduce(
         (total, day) => total + day.shifts.reduce((dayTotal, shift) => dayTotal + getShiftRequiredCount(shift), 0),
         0
     );
 }
 
-export function getEventScheduledCount(event: PlanningEventDTO): number {
-    return event.days.reduce(
+export function getProjectScheduledCount(project: PlanningProjectDTO): number {
+    return project.days.reduce(
         (total, day) => total + day.shifts.reduce((dayTotal, shift) => dayTotal + getShiftScheduledCount(shift), 0),
         0
     );
 }
 
-export function getEventCheckedInCount(event: PlanningEventDTO): number {
-    return event.days.reduce(
+export function getProjectCheckedInCount(project: PlanningProjectDTO): number {
+    return project.days.reduce(
         (total, day) => total + day.shifts.reduce((dayTotal, shift) => dayTotal + getShiftCheckedInCount(shift), 0),
         0
     );
 }
 
-export function getEventStaffingLabel(event: PlanningEventDTO): string {
-    return `${getEventRequiredCount(event)} required, ${getEventScheduledCount(event)} scheduled, ${getEventCheckedInCount(event)} checked in`;
+export function getProjectStaffingLabel(project: PlanningProjectDTO): string {
+    return `${getProjectRequiredCount(project)} required, ${getProjectScheduledCount(project)} scheduled, ${getProjectCheckedInCount(project)} checked in`;
 }
 
-export function getEventStaffingTone(event: PlanningEventDTO): PlanningStaffingTone {
-    return getStaffingTone(getEventRequiredCount(event), getEventScheduledCount(event));
+export function getProjectStaffingTone(project: PlanningProjectDTO): PlanningStaffingTone {
+    return getStaffingTone(getProjectRequiredCount(project), getProjectScheduledCount(project));
 }
 
-export function isEventStaffed(event: PlanningEventDTO): boolean {
-    return getEventStaffingTone(event) === "staffed";
+export function isProjectStaffed(project: PlanningProjectDTO): boolean {
+    return getProjectStaffingTone(project) === "staffed";
 }
 
 export function getShiftTimeLabel(shift: PlanningShiftDTO): string {
@@ -148,15 +148,26 @@ export function getShiftTimeLabel(shift: PlanningShiftDTO): string {
     return "No time set";
 }
 
-export function getEventTimeLabel(event: PlanningEventDTO): string {
-    const start = toTimeLabel(event.defaultStartTime);
-    const end = toTimeLabel(event.defaultEndTime);
+export function getProjectTimeLabel(project: PlanningProjectDTO): string {
+    const start = toTimeLabel(project.defaultStartTime);
+    const end = toTimeLabel(project.defaultEndTime);
 
     if (start && end) return `${start} - ${end}`;
     if (start) return `Starts ${start}`;
     if (end) return `Until ${end}`;
     return "No time set";
 }
+
+// Backwards-compatible aliases: the UI still uses "event" wording in many places.
+export const getEventClientName = getProjectClientName;
+export const getEventLocation = getProjectLocation;
+export const getEventShiftRecords = getProjectShiftRecords;
+export const getEventRequiredCount = getProjectRequiredCount;
+export const getEventScheduledCount = getProjectScheduledCount;
+export const getEventCheckedInCount = getProjectCheckedInCount;
+export const getEventStaffingLabel = getProjectStaffingLabel;
+export const getEventStaffingTone = getProjectStaffingTone;
+export const getEventTimeLabel = getProjectTimeLabel;
 
 export function getAllocationDisplayName(allocation: PlanningResourceAllocationDTO): string {
     return normalizeText(allocation.userDisplayName, "Unnamed employee");
@@ -188,8 +199,8 @@ export function getAllocationStatusTone(status: string | null | undefined): Plan
 }
 
 export function findShiftRecord(
-    event: PlanningEventDTO,
+    project: PlanningProjectDTO,
     shiftId: string
-): PlanningEventShiftRecord | null {
-    return getEventShiftRecords(event).find((record) => record.shift.shiftId === shiftId) ?? null;
+): PlanningProjectShiftRecord | null {
+    return getProjectShiftRecords(project).find((record) => record.shift.shiftId === shiftId) ?? null;
 }
