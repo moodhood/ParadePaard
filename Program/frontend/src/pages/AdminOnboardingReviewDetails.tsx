@@ -12,7 +12,22 @@ import {
     type FunctionResponseDTO,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
-import { CaoServices, type CaoTemplateDTO } from "../services/user-service/CaoServices";
+import {
+    HORECA_CAO_OPTIONS,
+    type ContractType,
+    type HolidayAllowanceMode,
+    type JobPreset,
+    type PayrollPeriod,
+} from "../data/horecaPayrollRules";
+import {
+    calculateMonthlyHours,
+    formatSourceLabel,
+    getHorecaRequiredHourlyWage,
+    getPayrollVariableNumber,
+    getRuleSource,
+    loadHorecaJobPresets,
+    validateContractPayrollSettings,
+} from "../utils/horecaPayrollRules";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 
@@ -24,11 +39,31 @@ import "../stylesheets/AdminOnboardingReviewDetails.css";
 type ReviewDecision = "READY_TO_SEND_CONTRACT" | "NEEDS_CHANGES" | "REJECT_ONBOARDING";
 
 type ContractSetupDraft = {
+    caoId: string;
+    jobPresetId: string;
+    jobTitle: string;
+    jobFunction: string;
+    functionGroup: string;
     functionName: string;
     contractType: string;
     startDate: string;
     endDate: string;
     grossHourlyWage: string;
+    grossMonthlyWage: string;
+    hoursPerWeek: string;
+    payrollPeriod: PayrollPeriod;
+    workLocation: string;
+    loonheffingskorting: "" | "YES" | "NO";
+    pensionApplicable: "" | "YES" | "NO";
+    holidayAllowanceMode: HolidayAllowanceMode;
+    vacationBuildUpApplicable: boolean;
+    isManualWageOverride: boolean;
+    manualWageOverrideReason: string;
+    payrollBillingRate: string;
+    awfType: "LOW" | "HIGH";
+    aofType: "LOW" | "HIGH";
+    whkSector: string;
+    zvwApplicable: boolean;
     paymentFrequency: string;
     travelAllowance: boolean;
 };
@@ -67,11 +102,44 @@ function sanitizeContractSetupDraft(
     const selectedFunctionId = typeof record.selectedFunctionId === "string" ? record.selectedFunctionId : "";
     const draft: Partial<ContractSetupDraft> = {};
 
+    if (typeof record.caoId === "string") draft.caoId = record.caoId;
+    if (typeof record.jobPresetId === "string") draft.jobPresetId = record.jobPresetId;
+    if (typeof record.jobTitle === "string") draft.jobTitle = record.jobTitle;
+    if (typeof record.jobFunction === "string") draft.jobFunction = record.jobFunction;
+    if (typeof record.functionGroup === "string") draft.functionGroup = record.functionGroup;
     if (typeof record.functionName === "string") draft.functionName = record.functionName;
     if (typeof record.contractType === "string") draft.contractType = record.contractType;
     if (typeof record.startDate === "string") draft.startDate = record.startDate;
     if (typeof record.endDate === "string") draft.endDate = record.endDate;
     if (typeof record.grossHourlyWage === "string") draft.grossHourlyWage = record.grossHourlyWage;
+    if (typeof record.grossMonthlyWage === "string") draft.grossMonthlyWage = record.grossMonthlyWage;
+    if (typeof record.hoursPerWeek === "string") draft.hoursPerWeek = record.hoursPerWeek;
+    if (
+        record.payrollPeriod === "MONTHLY" ||
+        record.payrollPeriod === "WEEKLY" ||
+        record.payrollPeriod === "BIWEEKLY" ||
+        record.payrollPeriod === "FOUR_WEEKLY"
+    ) {
+        draft.payrollPeriod = record.payrollPeriod;
+    }
+    if (typeof record.workLocation === "string") draft.workLocation = record.workLocation;
+    if (record.loonheffingskorting === "YES" || record.loonheffingskorting === "NO" || record.loonheffingskorting === "") {
+        draft.loonheffingskorting = record.loonheffingskorting;
+    }
+    if (record.pensionApplicable === "YES" || record.pensionApplicable === "NO" || record.pensionApplicable === "") {
+        draft.pensionApplicable = record.pensionApplicable;
+    }
+    if (record.holidayAllowanceMode === "RESERVED" || record.holidayAllowanceMode === "PAID_EACH_PERIOD") {
+        draft.holidayAllowanceMode = record.holidayAllowanceMode;
+    }
+    if (typeof record.vacationBuildUpApplicable === "boolean") draft.vacationBuildUpApplicable = record.vacationBuildUpApplicable;
+    if (typeof record.isManualWageOverride === "boolean") draft.isManualWageOverride = record.isManualWageOverride;
+    if (typeof record.manualWageOverrideReason === "string") draft.manualWageOverrideReason = record.manualWageOverrideReason;
+    if (typeof record.payrollBillingRate === "string") draft.payrollBillingRate = record.payrollBillingRate;
+    if (record.awfType === "LOW" || record.awfType === "HIGH") draft.awfType = record.awfType;
+    if (record.aofType === "LOW" || record.aofType === "HIGH") draft.aofType = record.aofType;
+    if (typeof record.whkSector === "string") draft.whkSector = record.whkSector;
+    if (typeof record.zvwApplicable === "boolean") draft.zvwApplicable = record.zvwApplicable;
     if (typeof record.paymentFrequency === "string") draft.paymentFrequency = record.paymentFrequency;
     if (typeof record.travelAllowance === "boolean") draft.travelAllowance = record.travelAllowance;
 
@@ -125,6 +193,33 @@ function isMissing(value?: string | null): boolean {
     return !(value ?? "").trim();
 }
 
+function boolChoice(value?: boolean | null): "" | "YES" | "NO" {
+    if (value == null) return "";
+    return value ? "YES" : "NO";
+}
+
+function choiceToBool(value: "" | "YES" | "NO"): boolean | null {
+    if (value === "YES") return true;
+    if (value === "NO") return false;
+    return null;
+}
+
+function numberFromDraft(value?: string | null): number | null {
+    if (!value?.trim()) return null;
+    const parsed = Number(value.replace(",", "."));
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+const reviewCurrencyFormatter = new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+});
+
+function moneyLabel(value?: number | null): string {
+    return value == null || !Number.isFinite(value) ? "Missing" : reviewCurrencyFormatter.format(value);
+}
+
 function statusForReviewDecision(decision: ReviewDecision): string {
     if (decision === "NEEDS_CHANGES") return "CHANGES_REQUESTED";
     if (decision === "REJECT_ONBOARDING") return "REJECTED";
@@ -133,23 +228,43 @@ function statusForReviewDecision(decision: ReviewDecision): string {
 
 function buildContractPayload(input: {
     userId: string;
+    employeeDateOfBirth?: string | null;
     selectedFunctionId: string;
     functions: FunctionResponseDTO[];
     draft: ContractSetupDraft;
 }): CreateContractRequestDTO {
     const selectedFunction = input.functions.find((item) => item.functionId === input.selectedFunctionId);
-    const functionName = selectedFunction?.functionName || input.draft.functionName.trim();
-    const wageSource = selectedFunction?.hourlyWage ?? Number(input.draft.grossHourlyWage);
+    const functionName =
+        selectedFunction?.functionName ||
+        input.draft.jobTitle.trim() ||
+        input.draft.jobFunction.trim() ||
+        input.draft.functionName.trim();
+    const wageSource = selectedFunction?.hourlyWage ?? numberFromDraft(input.draft.grossHourlyWage);
     const startIso = parseDisplayDate(input.draft.startDate) ?? null;
     const endIso = input.draft.endDate.trim() ? parseDisplayDate(input.draft.endDate) : null;
+    const validation = validateContractPayrollSettings({
+        employeeDateOfBirth: input.employeeDateOfBirth,
+        startDate: startIso,
+        caoId: input.draft.caoId,
+        jobPresetId: input.draft.jobPresetId,
+        contractType: input.draft.contractType,
+        functionGroup: input.draft.functionGroup,
+        hourlyWage: wageSource,
+        loonheffingskorting: choiceToBool(input.draft.loonheffingskorting),
+        pensionApplicable: choiceToBool(input.draft.pensionApplicable),
+        isManualWageOverride: input.draft.isManualWageOverride,
+        manualWageOverrideReason: input.draft.manualWageOverrideReason,
+    });
 
-    if (!input.selectedFunctionId.trim()) throw new Error("Role or function is required.");
+    if (!input.draft.caoId.trim()) throw new Error("CAO is required.");
+    if (!input.draft.jobPresetId.trim()) throw new Error("Job preset is required.");
     if (!functionName.trim()) throw new Error("Function name is required.");
     if (!input.draft.contractType.trim()) throw new Error("Contract type is required.");
     if (!startIso) throw new Error("Start date is required (dd/mm/yyyy).");
-    if (!endIso) throw new Error("End date is required (dd/mm/yyyy).");
-    if (!Number.isFinite(wageSource) || wageSource <= 0) throw new Error("Gross hourly wage is required.");
-    if (!input.draft.paymentFrequency.trim()) throw new Error("Payment frequency is required.");
+    if (input.draft.endDate.trim() && !endIso) throw new Error("End date must use dd/mm/yyyy.");
+    if (!Number.isFinite(wageSource) || !wageSource || wageSource <= 0) throw new Error("Gross hourly wage is required.");
+    if (!input.draft.payrollPeriod.trim() && !input.draft.paymentFrequency.trim()) throw new Error("Payment frequency is required.");
+    if (validation.blockingErrors.length > 0) throw new Error(validation.blockingErrors.join("\n"));
 
     return {
         userId: input.userId,
@@ -158,8 +273,8 @@ function buildContractPayload(input: {
         contractType: input.draft.contractType,
         startDate: startIso,
         endDate: endIso,
-        grossHourlyWage: Number(wageSource),
-        paymentFrequency: input.draft.paymentFrequency as any,
+        grossHourlyWage: wageSource,
+        paymentFrequency: (input.draft.payrollPeriod || input.draft.paymentFrequency) as CreateContractRequestDTO["paymentFrequency"],
         travelAllowance: Boolean(input.draft.travelAllowance),
     };
 }
@@ -176,14 +291,35 @@ export default function AdminOnboardingReviewDetails() {
 
     const [functions, setFunctions] = useState<FunctionResponseDTO[]>([]);
     const [selectedFunctionId, setSelectedFunctionId] = useState("");
+    const [horecaJobPresets] = useState<JobPreset[]>(() => loadHorecaJobPresets().filter((preset) => preset.isActive));
 
     const [contractDraft, setContractDraft] = useState<ContractSetupDraft>({
-        functionName: "",
-        contractType: "ON_CALL_RUNNER",
+        caoId: HORECA_CAO_OPTIONS[0].id,
+        jobPresetId: "bar-employee",
+        jobTitle: "Bar employee",
+        jobFunction: "Bar service and guest support",
+        functionGroup: "I+II",
+        functionName: "Bar employee",
+        contractType: "PART_TIME",
         startDate: "",
         endDate: "",
-        grossHourlyWage: "",
-        paymentFrequency: "WEEKLY",
+        grossHourlyWage: "14.71",
+        grossMonthlyWage: "2422.25",
+        hoursPerWeek: "24",
+        payrollPeriod: "MONTHLY",
+        workLocation: "",
+        loonheffingskorting: "",
+        pensionApplicable: "YES",
+        holidayAllowanceMode: "RESERVED",
+        vacationBuildUpApplicable: true,
+        isManualWageOverride: false,
+        manualWageOverrideReason: "",
+        payrollBillingRate: "",
+        awfType: "LOW",
+        aofType: "LOW",
+        whkSector: "33 Horeca algemeen",
+        zvwApplicable: true,
+        paymentFrequency: "MONTHLY",
         travelAllowance: false,
     });
 
@@ -199,9 +335,7 @@ export default function AdminOnboardingReviewDetails() {
     const [idDocumentError, setIdDocumentError] = useState<string | null>(null);
     const [idDocumentNoFile, setIdDocumentNoFile] = useState(false);
 
-    const [caoTemplates, setCaoTemplates] = useState<CaoTemplateDTO[]>([]);
-    const [selectedCaoId, setSelectedCaoId] = useState("");
-    const [savingCao, setSavingCao] = useState(false);
+    const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
 
     const [checkedSections, setCheckedSections] = useState<Record<ChecklistSectionKey, boolean>>({
         personal: false,
@@ -221,18 +355,15 @@ export default function AdminOnboardingReviewDetails() {
             setActionError(null);
             setActionSuccess(null);
 
-            const [userRes, contractRes, functionsRes, caoRes] = await Promise.all([
+            const [userRes, contractRes, functionsRes] = await Promise.all([
                 UserServices.getUserById(userId),
                 UserServices.getCurrentContractForUser(userId),
                 UserServices.getFunctions(),
-                CaoServices.getCaoTemplates().catch(() => [] as CaoTemplateDTO[]),
             ]);
 
             setUser(userRes);
             setCurrentContract(contractRes);
             setFunctions(functionsRes);
-            setCaoTemplates(caoRes);
-            setSelectedCaoId(userRes.assignedCaoId ?? "");
 
             const existingDecision = (userRes.onboardingReviewDecision ?? "").trim();
             if (existingDecision) {
@@ -275,6 +406,15 @@ export default function AdminOnboardingReviewDetails() {
                 } catch {
                     // ignore corrupted stored value
                 }
+            } else {
+                setContractDraft((prev) => ({
+                    ...prev,
+                    loonheffingskorting: boolChoice(userRes.employeeTaxProfile?.applyLoonheffingskorting),
+                    pensionApplicable:
+                        userRes.employeeTaxProfile?.pensionParticipant == null
+                            ? prev.pensionApplicable
+                            : boolChoice(userRes.employeeTaxProfile.pensionParticipant),
+                }));
             }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load onboarding review.";
@@ -291,6 +431,61 @@ export default function AdminOnboardingReviewDetails() {
     const registeredLabel = useMemo(() => formatDate(user?.registeredDate), [user?.registeredDate]);
     const badgeLabel = useMemo(() => statusBadgeLabel(user?.status, currentContract), [user?.status, currentContract]);
     const badgeTone = useMemo(() => statusBadgeTone(user?.status, currentContract), [user?.status, currentContract]);
+    const selectedJobPreset = useMemo(
+        () => horecaJobPresets.find((preset) => preset.id === contractDraft.jobPresetId) ?? null,
+        [horecaJobPresets, contractDraft.jobPresetId]
+    );
+    const contractStartIso = useMemo(() => parseDisplayDate(contractDraft.startDate), [contractDraft.startDate]);
+    const contractHourlyWage = useMemo(() => numberFromDraft(contractDraft.grossHourlyWage), [contractDraft.grossHourlyWage]);
+    const contractHoursPerWeek = useMemo(() => numberFromDraft(contractDraft.hoursPerWeek), [contractDraft.hoursPerWeek]);
+    const wageRule = useMemo(
+        () =>
+            getHorecaRequiredHourlyWage({
+                dateOfBirth: user?.dateOfBirth,
+                startDate: contractStartIso,
+                functionGroup: contractDraft.functionGroup,
+            }),
+        [user?.dateOfBirth, contractStartIso, contractDraft.functionGroup]
+    );
+    const contractValidation = useMemo(
+        () =>
+            validateContractPayrollSettings({
+                employeeDateOfBirth: user?.dateOfBirth,
+                startDate: contractStartIso,
+                caoId: contractDraft.caoId,
+                jobPresetId: contractDraft.jobPresetId,
+                contractType: contractDraft.contractType,
+                functionGroup: contractDraft.functionGroup,
+                hourlyWage: contractHourlyWage,
+                loonheffingskorting: choiceToBool(contractDraft.loonheffingskorting),
+                pensionApplicable: choiceToBool(contractDraft.pensionApplicable),
+                isManualWageOverride: contractDraft.isManualWageOverride,
+                manualWageOverrideReason: contractDraft.manualWageOverrideReason,
+            }),
+        [
+            user?.dateOfBirth,
+            contractStartIso,
+            contractDraft.caoId,
+            contractDraft.jobPresetId,
+            contractDraft.contractType,
+            contractDraft.functionGroup,
+            contractDraft.loonheffingskorting,
+            contractDraft.pensionApplicable,
+            contractDraft.isManualWageOverride,
+            contractDraft.manualWageOverrideReason,
+            contractHourlyWage,
+        ]
+    );
+    const selectedSource = useMemo(() => getRuleSource(selectedSourceId), [selectedSourceId]);
+    const expectedMonthlyHours = useMemo(() => {
+        if (contractDraft.contractType === "FULL_TIME") return 164.67;
+        if (contractDraft.contractType === "ZERO_HOURS" && (!contractHoursPerWeek || contractHoursPerWeek === 0)) return 0;
+        return calculateMonthlyHours(contractHoursPerWeek ?? 0);
+    }, [contractDraft.contractType, contractHoursPerWeek]);
+    const holidayAllowancePct = getPayrollVariableNumber("holidayAllowancePercentage");
+    const vacationBuildUpRate = getPayrollVariableNumber("vacationBuildUpPerPaidHour");
+    const pensionEmployeePct = getPayrollVariableNumber("pensionPremiumEmployee");
+    const pensionEmployerPct = getPayrollVariableNumber("pensionPremiumEmployer");
 
     const checklist = useMemo(() => {
         const missing: Record<string, string[]> = {
@@ -333,16 +528,23 @@ export default function AdminOnboardingReviewDetails() {
 
         if (isMissing(user.employeeTaxProfile?.bsn ?? null)) missing.tax.push("BSN");
 
-        if (!selectedFunctionId) missing.contract.push("Role or function");
-        if (isMissing(contractDraft.functionName) && !selectedFunctionId) missing.contract.push("Function name");
+        if (isMissing(contractDraft.caoId)) missing.contract.push("CAO");
+        if (isMissing(contractDraft.jobPresetId)) missing.contract.push("Job preset");
+        if (isMissing(contractDraft.jobTitle)) missing.contract.push("Job title");
+        if (isMissing(contractDraft.jobFunction)) missing.contract.push("Job function");
+        if (isMissing(contractDraft.functionGroup)) missing.contract.push("Function group");
         if (isMissing(contractDraft.contractType)) missing.contract.push("Contract type");
         if (!parseDisplayDate(contractDraft.startDate)) missing.contract.push("Start date");
-        if (!parseDisplayDate(contractDraft.endDate)) missing.contract.push("End date");
+        if (contractDraft.endDate.trim() && !parseDisplayDate(contractDraft.endDate)) missing.contract.push("Valid end date");
+        if (isMissing(contractDraft.hoursPerWeek) && contractDraft.contractType !== "ZERO_HOURS") missing.contract.push("Hours per week");
         if (isMissing(contractDraft.grossHourlyWage)) missing.contract.push("Gross hourly wage");
-        if (isMissing(contractDraft.paymentFrequency)) missing.contract.push("Payment frequency");
+        if (isMissing(contractDraft.payrollPeriod)) missing.contract.push("Payroll period");
+        if (isMissing(contractDraft.loonheffingskorting)) missing.contract.push("Loonheffingskorting");
+        if (isMissing(contractDraft.pensionApplicable)) missing.contract.push("Pension setting");
+        if (contractValidation.blockingErrors.length > 0) missing.contract.push(...contractValidation.blockingErrors);
 
         return { missing };
-    }, [user, contractDraft, selectedFunctionId]);
+    }, [user, contractDraft, contractValidation.blockingErrors]);
 
     useEffect(() => {
         if (!userId) return;
@@ -414,13 +616,20 @@ export default function AdminOnboardingReviewDetails() {
         const missingFields: string[] = [];
         if (!user) return ["User data not loaded"];
         if (isMissing(user.iban)) missingFields.push("IBAN");
-        if (!selectedFunctionId) missingFields.push("Role or function");
-        if (isMissing(contractDraft.functionName) && !selectedFunctionId) missingFields.push("Function name");
+        if (isMissing(contractDraft.caoId)) missingFields.push("CAO");
+        if (isMissing(contractDraft.jobPresetId)) missingFields.push("Job preset");
+        if (isMissing(contractDraft.jobTitle)) missingFields.push("Job title");
+        if (isMissing(contractDraft.jobFunction)) missingFields.push("Job function");
+        if (isMissing(contractDraft.functionGroup)) missingFields.push("Function group");
         if (isMissing(contractDraft.contractType)) missingFields.push("Contract type");
         if (!parseDisplayDate(contractDraft.startDate)) missingFields.push("Start date");
-        if (!parseDisplayDate(contractDraft.endDate)) missingFields.push("End date");
+        if (contractDraft.endDate.trim() && !parseDisplayDate(contractDraft.endDate)) missingFields.push("Valid end date");
+        if (isMissing(contractDraft.hoursPerWeek) && contractDraft.contractType !== "ZERO_HOURS") missingFields.push("Hours per week");
         if (isMissing(contractDraft.grossHourlyWage)) missingFields.push("Gross hourly wage");
-        if (isMissing(contractDraft.paymentFrequency)) missingFields.push("Payment frequency");
+        if (isMissing(contractDraft.payrollPeriod)) missingFields.push("Payroll period");
+        if (isMissing(contractDraft.loonheffingskorting)) missingFields.push("Loonheffingskorting");
+        if (isMissing(contractDraft.pensionApplicable)) missingFields.push("Pension setting");
+        missingFields.push(...contractValidation.blockingErrors);
         return missingFields;
     };
 
@@ -440,6 +649,7 @@ export default function AdminOnboardingReviewDetails() {
 
             const payload = buildContractPayload({
                 userId,
+                employeeDateOfBirth: user.dateOfBirth,
                 selectedFunctionId,
                 functions,
                 draft: contractDraft,
@@ -490,6 +700,7 @@ export default function AdminOnboardingReviewDetails() {
             if (!contract) {
                 const payload = buildContractPayload({
                     userId,
+                    employeeDateOfBirth: user.dateOfBirth,
                     selectedFunctionId,
                     functions,
                     draft: contractDraft,
@@ -579,22 +790,6 @@ export default function AdminOnboardingReviewDetails() {
         }
     };
 
-    const handleSaveCao = async () => {
-        if (!userId) return;
-        try {
-            setSavingCao(true);
-            setActionError(null);
-            setActionSuccess(null);
-            const updated = await UserServices.assignUserCao(userId, selectedCaoId || null);
-            setUser(updated);
-            setActionSuccess("CAO assignment saved.");
-        } catch (err: unknown) {
-            setActionError(err instanceof Error ? err.message : "Failed to save CAO assignment.");
-        } finally {
-            setSavingCao(false);
-        }
-    };
-
     const missingFor = (key: ChecklistSectionKey) => checklist.missing[key] ?? [];
     const canCheckSection = (key: ChecklistSectionKey) => missingFor(key).length === 0;
     const isSectionComplete = (key: ChecklistSectionKey) => canCheckSection(key) && checkedSections[key];
@@ -617,6 +812,43 @@ export default function AdminOnboardingReviewDetails() {
     );
     const sectionCardClass = (key: ChecklistSectionKey) =>
         `reviewCard${isSectionComplete(key) ? " reviewCard--complete" : ""}`;
+    const sourceButton = (sourceId: string, pageNumber?: string) => (
+        <button
+            type="button"
+            className="reviewSourcePill"
+            onClick={() => setSelectedSourceId(sourceId)}
+        >
+            {formatSourceLabel(sourceId, pageNumber)}
+        </button>
+    );
+    const applyJobPreset = (presetId: string) => {
+        const preset = horecaJobPresets.find((item) => item.id === presetId);
+        if (!preset) {
+            setContractDraft((prev) => ({ ...prev, jobPresetId: "" }));
+            return;
+        }
+        setSelectedFunctionId("");
+        setContractDraft((prev) => ({
+            ...prev,
+            caoId: HORECA_CAO_OPTIONS[0].id,
+            jobPresetId: preset.id,
+            jobTitle: preset.jobTitle,
+            jobFunction: preset.jobFunction,
+            functionGroup: preset.functionGroup,
+            functionName: preset.jobTitle,
+            contractType: preset.defaultContractType,
+            grossHourlyWage: preset.defaultHourlyWage.toFixed(2),
+            grossMonthlyWage: preset.defaultMonthlyWage.toFixed(2),
+            hoursPerWeek: String(preset.defaultContractType === "FULL_TIME" ? 38 : preset.defaultHoursPerWeek),
+            payrollPeriod: preset.defaultPayrollPeriod,
+            paymentFrequency: preset.defaultPayrollPeriod,
+            pensionApplicable: boolChoice(preset.pensionApplicable),
+            holidayAllowanceMode: preset.holidayAllowanceMode,
+            vacationBuildUpApplicable: preset.vacationBuildUpApplicable,
+            isManualWageOverride: false,
+            manualWageOverrideReason: "",
+        }));
+    };
 
     if (!userId) {
         return (
@@ -905,45 +1137,111 @@ export default function AdminOnboardingReviewDetails() {
                                             {missingFor("contract").length ? (
                                                 <div className="reviewSectionMissing">Missing: {missingFor("contract").join(", ")}</div>
                                             ) : null}
+                                            <div className="reviewContractSplit">
+                                                <div className="reviewContractSourceBox">
+                                                    <h3>Employee provided information</h3>
+                                                    <p>
+                                                        Personal identity, address, bank, identification, emergency contact, and tax
+                                                        choice come from the employee onboarding profile.
+                                                    </p>
+                                                </div>
+                                                <div className="reviewContractSourceBox">
+                                                    <h3>Admin selected contract information</h3>
+                                                    <p>
+                                                        CAO, job preset, function group, wage, dates, hours, pension, holiday
+                                                        allowance, payroll period, and billing settings are chosen here by management.
+                                                    </p>
+                                                </div>
+                                            </div>
                                             <div className="reviewFormGrid">
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
-                                                        Role or function <span className="reviewRequired">*</span>
+                                                        CAO <span className="reviewRequired">*</span>
                                                     </span>
                                                     <select
-                                                        className={`uiSelect ${!selectedFunctionId ? "reviewInputMissing" : ""}`}
-                                                        value={selectedFunctionId}
-                                                        onChange={(event) => {
-                                                            const nextId = event.target.value;
-                                                            setSelectedFunctionId(nextId);
-                                                            const selected = functions.find((fn) => fn.functionId === nextId);
-                                                            if (selected?.functionName) {
-                                                                setContractDraft((prev) => ({ ...prev, functionName: selected.functionName }));
-                                                            }
-                                                        }}
+                                                        className={`uiSelect ${isMissing(contractDraft.caoId) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.caoId}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, caoId: event.target.value }))
+                                                        }
                                                         disabled={actionLoading}
                                                     >
-                                                        <option value="">Select a function</option>
-                                                        {functions.map((fn) => (
-                                                            <option key={fn.functionId} value={fn.functionId}>
-                                                                {fn.functionName}
+                                                        <option value="">Select a CAO</option>
+                                                        {HORECA_CAO_OPTIONS.map((cao) => (
+                                                            <option key={cao.id} value={cao.id}>
+                                                                {cao.name}
                                                             </option>
                                                         ))}
                                                     </select>
+                                                    {sourceButton("horeca-cao-2025-2026", "12")}
                                                 </label>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
-                                                        Function name <span className="reviewRequired">*</span>
+                                                        Job preset <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <select
+                                                        className={`uiSelect ${isMissing(contractDraft.jobPresetId) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.jobPresetId}
+                                                        onChange={(event) => applyJobPreset(event.target.value)}
+                                                        disabled={actionLoading}
+                                                    >
+                                                        <option value="">Select a job preset</option>
+                                                        {horecaJobPresets.map((preset) => (
+                                                            <option key={preset.id} value={preset.id}>
+                                                                {preset.presetName}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    {selectedJobPreset ? sourceButton(selectedJobPreset.sourceId, "1") : null}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
+                                                        Job title <span className="reviewRequired">*</span>
                                                     </span>
                                                     <input
-                                                        className={`uiSelect ${isMissing(contractDraft.functionName) && !selectedFunctionId ? "reviewInputMissing" : ""}`}
-                                                        value={contractDraft.functionName}
+                                                        className={`uiSelect ${isMissing(contractDraft.jobTitle) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.jobTitle}
                                                         onChange={(event) =>
-                                                            setContractDraft((prev) => ({ ...prev, functionName: event.target.value }))
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                jobTitle: event.target.value,
+                                                                functionName: event.target.value,
+                                                            }))
                                                         }
-                                                        placeholder="Function name"
-                                                        disabled={actionLoading || Boolean(selectedFunctionId)}
+                                                        placeholder="Bar employee"
+                                                        disabled={actionLoading}
                                                     />
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
+                                                        Job function <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <input
+                                                        className={`uiSelect ${isMissing(contractDraft.jobFunction) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.jobFunction}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, jobFunction: event.target.value }))
+                                                        }
+                                                        placeholder="Guest service and table care"
+                                                        disabled={actionLoading}
+                                                    />
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
+                                                        Function group <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <select
+                                                        className={`uiSelect ${isMissing(contractDraft.functionGroup) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.functionGroup}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, functionGroup: event.target.value }))
+                                                        }
+                                                        disabled={actionLoading}
+                                                    >
+                                                        <option value="">Select a function group</option>
+                                                        <option value="I+II">I plus II</option>
+                                                    </select>
+                                                    {sourceButton("loontabel-2026-01-01", "1")}
                                                 </label>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
@@ -953,14 +1251,18 @@ export default function AdminOnboardingReviewDetails() {
                                                         className={`uiSelect ${isMissing(contractDraft.contractType) ? "reviewInputMissing" : ""}`}
                                                         value={contractDraft.contractType}
                                                         onChange={(event) =>
-                                                            setContractDraft((prev) => ({ ...prev, contractType: event.target.value }))
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                contractType: event.target.value as ContractType,
+                                                                hoursPerWeek: event.target.value === "FULL_TIME" ? "38" : prev.hoursPerWeek,
+                                                            }))
                                                         }
                                                         disabled={actionLoading}
                                                     >
                                                         <option value="">Select a contract type</option>
-                                                        <option value="ON_CALL_RUNNER">On-call (Runner)</option>
-                                                        <option value="ON_CALL_BAR">On-call (Bar)</option>
-                                                        <option value="FIXED_HOURS">Fixed hours</option>
+                                                        <option value="FULL_TIME">Full time</option>
+                                                        <option value="PART_TIME">Part time</option>
+                                                        <option value="ZERO_HOURS">Zero hours</option>
                                                     </select>
                                                 </label>
                                                 <div className="reviewFieldRow">
@@ -984,11 +1286,13 @@ export default function AdminOnboardingReviewDetails() {
                                                         />
                                                     </label>
                                                     <label className="reviewField">
-                                                        <span className="reviewFieldLabel">
-                                                            End date <span className="reviewRequired">*</span>
-                                                        </span>
+                                                        <span className="reviewFieldLabel">End date if needed</span>
                                                         <input
-                                                            className={`uiSelect ${!parseDisplayDate(contractDraft.endDate) ? "reviewInputMissing" : ""}`}
+                                                            className={`uiSelect ${
+                                                                contractDraft.endDate.trim() && !parseDisplayDate(contractDraft.endDate)
+                                                                    ? "reviewInputMissing"
+                                                                    : ""
+                                                            }`}
                                                             value={contractDraft.endDate}
                                                             onChange={(event) =>
                                                                 setContractDraft((prev) => ({
@@ -1005,37 +1309,187 @@ export default function AdminOnboardingReviewDetails() {
                                                 </div>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
+                                                        Hours per week <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <input
+                                                        className={`uiSelect ${
+                                                            isMissing(contractDraft.hoursPerWeek) && contractDraft.contractType !== "ZERO_HOURS"
+                                                                ? "reviewInputMissing"
+                                                                : ""
+                                                        }`}
+                                                        inputMode="decimal"
+                                                        value={contractDraft.contractType === "FULL_TIME" ? "38" : contractDraft.hoursPerWeek}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, hoursPerWeek: event.target.value }))
+                                                        }
+                                                        disabled={actionLoading || contractDraft.contractType === "FULL_TIME"}
+                                                    />
+                                                    {sourceButton("horeca-cao-2025-2026", "12")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
                                                         Gross hourly wage <span className="reviewRequired">*</span>
                                                     </span>
                                                     <input
-                                                        className={`uiSelect ${isMissing(contractDraft.grossHourlyWage) ? "reviewInputMissing" : ""}`}
+                                                        className={`uiSelect ${
+                                                            isMissing(contractDraft.grossHourlyWage) || contractValidation.blockingErrors.length
+                                                                ? "reviewInputMissing"
+                                                                : ""
+                                                        }`}
                                                         inputMode="decimal"
                                                         value={contractDraft.grossHourlyWage}
                                                         onChange={(event) =>
-                                                            setContractDraft((prev) => ({ ...prev, grossHourlyWage: event.target.value }))
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                grossHourlyWage: event.target.value,
+                                                                isManualWageOverride: true,
+                                                            }))
                                                         }
-                                                        placeholder="e.g. 17.50"
+                                                        placeholder="e.g. 14.71"
+                                                        disabled={actionLoading}
+                                                    />
+                                                    {sourceButton("loontabel-2026-01-01", "1")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Gross monthly wage if applicable</span>
+                                                    <input
+                                                        className="uiSelect"
+                                                        inputMode="decimal"
+                                                        value={contractDraft.grossMonthlyWage}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, grossMonthlyWage: event.target.value }))
+                                                        }
+                                                        placeholder="e.g. 2422.25"
+                                                        disabled={actionLoading}
+                                                    />
+                                                    {sourceButton("loontabel-2026-01-01", "1")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
+                                                        Payroll period <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <select
+                                                        className={`uiSelect ${isMissing(contractDraft.payrollPeriod) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.payrollPeriod}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                payrollPeriod: event.target.value as PayrollPeriod,
+                                                                paymentFrequency: event.target.value,
+                                                            }))
+                                                        }
+                                                        disabled={actionLoading}
+                                                    >
+                                                        <option value="">Select a period</option>
+                                                        <option value="WEEKLY">Weekly</option>
+                                                        <option value="BIWEEKLY">Bi-weekly</option>
+                                                        <option value="MONTHLY">Monthly</option>
+                                                        <option value="FOUR_WEEKLY">Four-weekly</option>
+                                                    </select>
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Work location</span>
+                                                    <input
+                                                        className="uiSelect"
+                                                        value={contractDraft.workLocation}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, workLocation: event.target.value }))
+                                                        }
+                                                        placeholder="Client location"
                                                         disabled={actionLoading}
                                                     />
                                                 </label>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
-                                                        Payment frequency <span className="reviewRequired">*</span>
+                                                        Loonheffingskorting <span className="reviewRequired">*</span>
                                                     </span>
                                                     <select
-                                                        className={`uiSelect ${isMissing(contractDraft.paymentFrequency) ? "reviewInputMissing" : ""}`}
-                                                        value={contractDraft.paymentFrequency}
+                                                        className={`uiSelect ${
+                                                            isMissing(contractDraft.loonheffingskorting) ? "reviewInputMissing" : ""
+                                                        }`}
+                                                        value={contractDraft.loonheffingskorting}
                                                         onChange={(event) =>
-                                                            setContractDraft((prev) => ({ ...prev, paymentFrequency: event.target.value }))
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                loonheffingskorting: event.target.value as "" | "YES" | "NO",
+                                                            }))
                                                         }
                                                         disabled={actionLoading}
                                                     >
-                                                        <option value="">Select a frequency</option>
-                                                        <option value="DAILY">Daily</option>
-                                                        <option value="WEEKLY">Weekly</option>
-                                                        <option value="BIWEEKLY">Bi-weekly</option>
-                                                        <option value="MONTHLY">Monthly</option>
+                                                        <option value="">Select tax credit setting</option>
+                                                        <option value="YES">Yes</option>
+                                                        <option value="NO">No</option>
                                                     </select>
+                                                    {sourceButton("witte-maandloon-2026-01-01", "15")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">
+                                                        Pension applies <span className="reviewRequired">*</span>
+                                                    </span>
+                                                    <select
+                                                        className={`uiSelect ${isMissing(contractDraft.pensionApplicable) ? "reviewInputMissing" : ""}`}
+                                                        value={contractDraft.pensionApplicable}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                pensionApplicable: event.target.value as "" | "YES" | "NO",
+                                                            }))
+                                                        }
+                                                        disabled={actionLoading}
+                                                    >
+                                                        <option value="">Select pension setting</option>
+                                                        <option value="YES">Yes</option>
+                                                        <option value="NO">No</option>
+                                                    </select>
+                                                    {sourceButton("phenc-pensioenpremie", "Web page")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Holiday allowance</span>
+                                                    <select
+                                                        className="uiSelect"
+                                                        value={contractDraft.holidayAllowanceMode}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                holidayAllowanceMode: event.target.value as HolidayAllowanceMode,
+                                                            }))
+                                                        }
+                                                        disabled={actionLoading}
+                                                    >
+                                                        <option value="RESERVED">Reserved</option>
+                                                        <option value="PAID_EACH_PERIOD">Paid each period</option>
+                                                    </select>
+                                                    {sourceButton("horeca-cao-2025-2026", "32")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Payroll billing rate</span>
+                                                    <input
+                                                        className="uiSelect"
+                                                        inputMode="decimal"
+                                                        value={contractDraft.payrollBillingRate}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({ ...prev, payrollBillingRate: event.target.value }))
+                                                        }
+                                                        placeholder="Commercial client rate"
+                                                        disabled={actionLoading}
+                                                    />
+                                                    <span className="reviewCommercialLabel">Commercial value</span>
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Manual wage override reason</span>
+                                                    <textarea
+                                                        className="uiSelect"
+                                                        rows={3}
+                                                        value={contractDraft.manualWageOverrideReason}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                manualWageOverrideReason: event.target.value,
+                                                            }))
+                                                        }
+                                                        placeholder="Required when the wage is manually changed"
+                                                        disabled={actionLoading}
+                                                    />
                                                 </label>
                                                 <label className="reviewField reviewFieldCheckbox">
                                                     <input
@@ -1049,6 +1503,103 @@ export default function AdminOnboardingReviewDetails() {
                                                     <span>Travel allowance</span>
                                                 </label>
                                             </div>
+                                            <div className="reviewRuleSummary">
+                                                <div>
+                                                    <span>Expected monthly hours</span>
+                                                    <strong>{expectedMonthlyHours.toFixed(2)}</strong>
+                                                    {sourceButton("horeca-cao-2025-2026", "12")}
+                                                </div>
+                                                <div>
+                                                    <span>Official hourly wage row</span>
+                                                    <strong>{moneyLabel(wageRule?.hourlyWage ?? null)}</strong>
+                                                    {sourceButton("loontabel-2026-01-01", "1")}
+                                                </div>
+                                                <div>
+                                                    <span>Holiday allowance</span>
+                                                    <strong>
+                                                        {holidayAllowancePct}%{" "}
+                                                        {contractDraft.holidayAllowanceMode === "RESERVED"
+                                                            ? "reserved"
+                                                            : "paid each period"}
+                                                    </strong>
+                                                    {sourceButton("horeca-cao-2025-2026", "32")}
+                                                </div>
+                                                <div>
+                                                    <span>Vacation buildup</span>
+                                                    <strong>{vacationBuildUpRate} vacation hour per paid hour</strong>
+                                                    {sourceButton("horeca-cao-2025-2026", "23")}
+                                                </div>
+                                                <div>
+                                                    <span>Pension premium</span>
+                                                    <strong>
+                                                        {pensionEmployeePct + pensionEmployerPct}% total, {pensionEmployeePct}% employee and{" "}
+                                                        {pensionEmployerPct}% employer
+                                                    </strong>
+                                                    {sourceButton("phenc-pensioenpremie", "Web page")}
+                                                </div>
+                                            </div>
+                                            {contractValidation.blockingErrors.length || contractValidation.warnings.length ? (
+                                                <div className="reviewRulesValidation">
+                                                    {contractValidation.blockingErrors.map((item) => (
+                                                        <div key={item} className="reviewInlineError">
+                                                            {item}
+                                                        </div>
+                                                    ))}
+                                                    {contractValidation.warnings.map((item) => (
+                                                        <div key={item} className="reviewInlineWarn">
+                                                            {item}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : null}
+                                            <div className="reviewSourceDetailsSection">
+                                                <h3>Source details</h3>
+                                                <p>
+                                                    The contract preview uses employee identity fields from the employee profile and legal
+                                                    employment fields from the admin selections above. Wage, holiday allowance, vacation,
+                                                    payroll tax, pension, and employer premium values come from the official source labels
+                                                    shown next to each value.
+                                                </p>
+                                            </div>
+                                            {selectedSource ? (
+                                                <aside className="reviewSourcePanel" aria-label="Source details">
+                                                    <div className="reviewSourcePanelHeader">
+                                                        <h3>{selectedSource.documentName}</h3>
+                                                        <button
+                                                            type="button"
+                                                            className="button buttonSecondary"
+                                                            onClick={() => setSelectedSourceId(null)}
+                                                        >
+                                                            Close source
+                                                        </button>
+                                                    </div>
+                                                    <div className="reviewRows">
+                                                        <div className="reviewRow">
+                                                            <div className="reviewLabel">Document URL</div>
+                                                            <div className="reviewValue">
+                                                                <a href={selectedSource.sourceUrl} target="_blank" rel="noreferrer">
+                                                                    {selectedSource.sourceUrl}
+                                                                </a>
+                                                            </div>
+                                                        </div>
+                                                        <div className="reviewRow">
+                                                            <div className="reviewLabel">Page number</div>
+                                                            <div className="reviewValue">{selectedSource.pageNumber}</div>
+                                                        </div>
+                                                        <div className="reviewRow">
+                                                            <div className="reviewLabel">Effective date</div>
+                                                            <div className="reviewValue">
+                                                                {selectedSource.effectiveFrom}
+                                                                {selectedSource.effectiveTo ? ` to ${selectedSource.effectiveTo}` : ""}
+                                                            </div>
+                                                        </div>
+                                                        <div className="reviewRow">
+                                                            <div className="reviewLabel">Explanation</div>
+                                                            <div className="reviewValue">{selectedSource.sourceNote}</div>
+                                                        </div>
+                                                    </div>
+                                                </aside>
+                                            ) : null}
                                         </Card>
 
                                         <Card title="Review checklist" className="reviewCard">
@@ -1087,68 +1638,6 @@ export default function AdminOnboardingReviewDetails() {
                                                         </div>
                                                     );
                                                 })}
-                                            </div>
-                                        </Card>
-
-                                        <Card title="CAO assignment" className="reviewCard">
-                                            <p style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 12 }}>
-                                                Assign a collective labor agreement (CAO) preset to this employee. The selected CAO variables will apply to their payroll.
-                                            </p>
-                                            {user.assignedCaoId && user.assignedCaoName ? (
-                                                <div style={{ marginBottom: 10, fontSize: 13 }}>
-                                                    Current: <strong>{user.assignedCaoName}</strong>
-                                                </div>
-                                            ) : null}
-                                            <div className="reviewFormGrid">
-                                                <label className="reviewField">
-                                                    <span className="reviewFieldLabel">CAO template</span>
-                                                    <select
-                                                        className="uiSelect"
-                                                        value={selectedCaoId}
-                                                        onChange={(e) => setSelectedCaoId(e.target.value)}
-                                                        disabled={savingCao || actionLoading}
-                                                    >
-                                                        <option value="">No CAO assigned</option>
-                                                        {caoTemplates.map((cao) => (
-                                                            <option key={cao.caoId} value={cao.caoId}>
-                                                                {cao.name}{cao.sector ? ` (${cao.sector})` : ""}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-                                            </div>
-                                            {selectedCaoId ? (
-                                                (() => {
-                                                    const cao = caoTemplates.find((c) => c.caoId === selectedCaoId);
-                                                    if (!cao || !cao.variables?.length) return null;
-                                                    return (
-                                                        <div style={{ marginTop: 12 }}>
-                                                            <div style={{ fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6 }}>
-                                                                Variables in this CAO:
-                                                            </div>
-                                                            <div className="reviewRows">
-                                                                {cao.variables.map((v) => (
-                                                                    <div key={v.code} className="reviewRow">
-                                                                        <div className="reviewLabel">{v.label || v.code}</div>
-                                                                        <div className="reviewValue">
-                                                                            {v.value != null ? `${v.value} (${v.valueType})` : "-"}
-                                                                        </div>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    );
-                                                })()
-                                            ) : null}
-                                            <div className="reviewActions" style={{ marginTop: 12 }}>
-                                                <button
-                                                    type="button"
-                                                    className="button buttonSecondary"
-                                                    onClick={() => void handleSaveCao()}
-                                                    disabled={savingCao || actionLoading}
-                                                >
-                                                    {savingCao ? "Saving..." : "Save CAO assignment"}
-                                                </button>
                                             </div>
                                         </Card>
 

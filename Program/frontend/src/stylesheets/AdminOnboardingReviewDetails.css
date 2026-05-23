@@ -328,6 +328,121 @@
     width: auto;
 }
 
+.reviewContractSplit {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.reviewContractSourceBox,
+.reviewSourceDetailsSection,
+.reviewSourcePanel {
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: #fff;
+    padding: 12px;
+}
+
+.reviewContractSourceBox h3,
+.reviewSourceDetailsSection h3,
+.reviewSourcePanel h3 {
+    margin: 0 0 6px 0;
+    color: #0f172a;
+    font-size: 15px;
+}
+
+.reviewContractSourceBox p,
+.reviewSourceDetailsSection p {
+    margin: 0;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.45;
+}
+
+.reviewSourcePill,
+.reviewCommercialLabel {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    min-height: 24px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid #dbe4f0;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.reviewSourcePill {
+    cursor: pointer;
+}
+
+.reviewSourcePill:hover,
+.reviewSourcePill:focus-visible {
+    border-color: #2563eb;
+    color: #1d4ed8;
+    outline: none;
+}
+
+.reviewCommercialLabel {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.reviewRuleSummary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.reviewRuleSummary > div {
+    display: grid;
+    align-content: start;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.reviewRuleSummary span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.reviewRuleSummary strong {
+    color: #0f172a;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.reviewRulesValidation {
+    display: grid;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.reviewSourceDetailsSection,
+.reviewSourcePanel {
+    margin-top: 12px;
+}
+
+.reviewSourcePanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
 .reviewRequired {
     color: #b91c1c;
 }
@@ -389,6 +504,10 @@
     }
 
     .reviewFormGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .reviewContractSplit {
         grid-template-columns: 1fr;
     }
 

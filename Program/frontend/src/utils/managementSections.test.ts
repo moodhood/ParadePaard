@@ -16,6 +16,11 @@ describe("managementSections", () => {
             { label: "Planning", to: "/management/planning", permissions: ["CAN_MANAGE_PLANNING"] },
             { label: "Clients", to: "/management/clients", permissions: ["CAN_MANAGE_PLANNING"] },
             { label: "All payslips", to: "/payslips?scope=all", permissions: ["CAN_VIEW_ALL_PAYSLIPS"] },
+            {
+                label: "Horeca Payroll and Contract Rules",
+                to: "/management/horeca-payroll-rules",
+                permissions: ["CAN_MANAGE_COMPANY"],
+            },
         ];
 
         const sections = buildManagementSections(items);
@@ -24,7 +29,10 @@ describe("managementSections", () => {
         expect(sections[0]?.items.map((item) => item.label)).toEqual(["Users", "Onboarding", "Onboarding review"]);
         expect(sections[1]?.items.map((item) => item.label)).toEqual(["Planning", "Clients"]);
         expect(sections[2]?.items.map((item) => item.label)).toEqual(["All payslips"]);
-        expect(sections[3]?.items.map((item) => item.label)).toEqual(["Contracts"]);
+        expect(sections[3]?.items.map((item) => item.label)).toEqual([
+            "Contracts",
+            "Horeca Payroll and Contract Rules",
+        ]);
     });
 
     it("keeps unrecognized management cards available under Other tools", () => {

@@ -1,0 +1,393 @@
+.horecaRulesPage {
+    background: #f6f7fb;
+}
+
+.horecaRulesLayout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+
+.horecaRulesMain {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+
+.horecaRulesCard {
+    border-radius: 8px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+}
+
+.horecaRulesCard .uiCardHeader {
+    background: #fff;
+    border-bottom-color: #edf0f5;
+}
+
+.horecaRulesCard .uiCardBody {
+    padding: 0;
+}
+
+.horecaCardBody {
+    display: grid;
+    gap: 16px;
+    padding: 18px;
+}
+
+.sectionIntro,
+.businessFlowText {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.55;
+}
+
+.ruleValueGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.ruleValueCard {
+    display: grid;
+    align-content: start;
+    gap: 7px;
+    min-height: 118px;
+    padding: 13px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.ruleValueCard strong {
+    color: #0f172a;
+    font-size: 16px;
+    line-height: 1.35;
+}
+
+.ruleValueLabel {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ruleValueNote {
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1.35;
+}
+
+.sourcePill,
+.commercialLabel {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    min-height: 26px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    border: 1px solid #dbe4f0;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+.sourcePill {
+    cursor: pointer;
+}
+
+.sourcePill:hover,
+.sourcePill:focus-visible {
+    border-color: #2563eb;
+    color: #1d4ed8;
+    outline: none;
+}
+
+.commercialLabel {
+    border-color: #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.tableScroll {
+    overflow-x: auto;
+}
+
+.rulesTable {
+    width: 100%;
+    min-width: 760px;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.rulesTable th,
+.rulesTable td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    color: #334155;
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+    vertical-align: top;
+}
+
+.rulesTable th {
+    color: #475569;
+    background: #f8fafc;
+    font-weight: 800;
+}
+
+.rulesTable td strong,
+.rulesTable td span {
+    display: block;
+}
+
+.rulesTable td strong {
+    color: #0f172a;
+    font-weight: 800;
+}
+
+.rulesTable td span {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.rulesTable a {
+    display: inline-flex;
+    margin: 0 8px 6px 0;
+    color: #1d4ed8;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.tableActions,
+.rulesActions,
+.presetEditorHeader {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.presetEditor {
+    display: grid;
+    gap: 14px;
+    padding-top: 4px;
+}
+
+.presetEditorHeader {
+    justify-content: space-between;
+}
+
+.presetEditorHeader h3,
+.contractPopulationGrid h3,
+.sourceDetailsBlock h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 16px;
+}
+
+.rulesFormGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.rulesField {
+    display: grid;
+    gap: 6px;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.rulesFieldFull {
+    grid-column: 1 / -1;
+}
+
+.rulesCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 42px;
+    padding-top: 22px;
+}
+
+.rulesCheckbox input {
+    width: 18px;
+    height: 18px;
+    accent-color: #2563eb;
+}
+
+.rulesError,
+.rulesValidationError,
+.rulesValidationWarning,
+.exampleNotice {
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1.4;
+}
+
+.rulesError,
+.rulesValidationError {
+    color: #991b1b;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+}
+
+.rulesValidation {
+    display: grid;
+    gap: 8px;
+}
+
+.rulesValidationWarning,
+.exampleNotice {
+    color: #92400e;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+}
+
+.contractPopulationGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.rulesList {
+    margin: 10px 0 0;
+    padding-left: 18px;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.55;
+}
+
+.sourceDetailsBlock {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: #fff;
+}
+
+.rulesRows {
+    display: grid;
+    gap: 10px;
+}
+
+.rulesRows > div {
+    display: grid;
+    grid-template-columns: minmax(160px, 240px) minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.rulesRows > div:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.rulesRows span {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.rulesRows strong {
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.sourcePanel {
+    position: sticky;
+    top: 16px;
+    align-self: start;
+    display: grid;
+    gap: 14px;
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    background: #fff;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
+}
+
+.sourcePanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sourcePanelHeader h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 18px;
+}
+
+.sourcePanelRows {
+    display: grid;
+    gap: 12px;
+}
+
+.sourcePanelRows > div {
+    display: grid;
+    gap: 4px;
+}
+
+.sourcePanelRows span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.sourcePanelRows strong,
+.sourcePanelRows p,
+.sourcePanelRows a {
+    margin: 0;
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.45;
+    word-break: break-word;
+}
+
+.sourcePanelRows a {
+    color: #1d4ed8;
+}
+
+@media (min-width: 1180px) {
+    .horecaRulesLayout {
+        grid-template-columns: minmax(0, 1fr) 360px;
+        align-items: start;
+    }
+}
+
+@media (max-width: 840px) {
+    .rulesFormGrid,
+    .contractPopulationGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .rulesRows > div {
+        grid-template-columns: 1fr;
+    }
+
+    .rulesCheckbox {
+        padding-top: 0;
+    }
+}

@@ -5,7 +5,7 @@ import Management from "./Management";
 
 vi.mock("../context/AuthContext", () => ({
     useAuth: () => ({
-        permissions: ["CAN_VIEW_USERS", "CAN_ONBOARD_USERS"],
+        permissions: ["CAN_VIEW_USERS", "CAN_ONBOARD_USERS", "CAN_MANAGE_COMPANY"],
     }),
 }));
 
@@ -42,5 +42,16 @@ describe("Management", () => {
         expect(html).toContain("managementCardLink");
         expect(html).not.toContain("managementCardAction");
         expect(html).not.toContain(">Open</a>");
+    });
+
+    it("renders the horeca payroll and contract rules card for company managers", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <Management />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Horeca Payroll and Contract Rules");
+        expect(html).toContain("/management/horeca-payroll-rules");
     });
 });

@@ -32,6 +32,7 @@ import AdminPayslipDetails from "./pages/AdminPayslipDetails";
 import AdminUsers from "./pages/AdminUsers";
 import AdminCaoList from "./pages/AdminCaoList";
 import AdminCaoDetails from "./pages/AdminCaoDetails";
+import HorecaPayrollRules from "./pages/HorecaPayrollRules";
 import AdminMessages from "./pages/AdminMessages";
 import AdminPlanningOverview from "./pages/AdminPlanningOverview";
 import AdminPlanningClients from "./pages/AdminPlanningClients";
@@ -358,6 +359,16 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission anyOf={CAO_MANAGEMENT_PERMISSIONS}>
                             <AdminCaoDetails />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/horeca-payroll-rules"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={CAO_MANAGEMENT_PERMISSIONS}>
+                            <HorecaPayrollRules />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

@@ -56,6 +56,10 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
         description: "Define and manage collective labor agreement presets and assign them to employees.",
         meta: "Labor agreements",
     },
+    "Horeca Payroll and Contract Rules": {
+        description: "Manage horeca CAO sources, job presets, wage checks, payroll rules, and example calculations.",
+        meta: "Horeca rules",
+    },
 };
 
 export default function Management() {

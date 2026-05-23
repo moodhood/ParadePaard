@@ -41,11 +41,31 @@ export type PayrollDeductionLineDTO = {
 
 export type OnboardingReviewContractSetupDraftDTO = {
     selectedFunctionId?: string | null;
+    caoId?: string | null;
+    jobPresetId?: string | null;
+    jobTitle?: string | null;
+    jobFunction?: string | null;
+    functionGroup?: string | null;
     functionName?: string | null;
     contractType?: string | null;
     startDate?: string | null;
     endDate?: string | null;
     grossHourlyWage?: string | null;
+    grossMonthlyWage?: string | null;
+    hoursPerWeek?: string | null;
+    payrollPeriod?: string | null;
+    workLocation?: string | null;
+    loonheffingskorting?: "" | "YES" | "NO" | null;
+    pensionApplicable?: "" | "YES" | "NO" | null;
+    holidayAllowanceMode?: "RESERVED" | "PAID_EACH_PERIOD" | string | null;
+    vacationBuildUpApplicable?: boolean | null;
+    isManualWageOverride?: boolean | null;
+    manualWageOverrideReason?: string | null;
+    payrollBillingRate?: string | null;
+    awfType?: "LOW" | "HIGH" | string | null;
+    aofType?: "LOW" | "HIGH" | string | null;
+    whkSector?: string | null;
+    zvwApplicable?: boolean | null;
     paymentFrequency?: string | null;
     travelAllowance?: boolean | null;
 };
