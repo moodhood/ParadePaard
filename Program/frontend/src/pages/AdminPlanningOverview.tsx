@@ -9,21 +9,21 @@ import ShiftActionMenu from "../components/planning/ShiftActionMenu";
 import {
     UserServices,
     type PlanningClientCompanyDTO,
-    type PlanningEventDTO,
-    type PlanningEventSaveDTO,
+    type PlanningProjectDTO,
+    type PlanningProjectSaveDTO,
     type PlanningResourceAllocationDTO,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
 import { formatDate } from "../utils/dateFormat";
 import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import {
-    getEventCheckedInCount,
-    getEventClientName,
-    getEventRequiredCount,
-    getEventScheduledCount,
-    getEventShiftRecords,
-    getEventStaffingTone,
-    getEventTimeLabel,
+    getProjectCheckedInCount,
+    getProjectClientName,
+    getProjectRequiredCount,
+    getProjectScheduledCount,
+    getProjectShiftRecords,
+    getProjectStaffingTone,
+    getProjectTimeLabel,
     getShiftCheckedInCount,
     getShiftDisplayName,
     getShiftRequiredCount,
@@ -47,11 +47,11 @@ import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminPlanningOverview.css";
 import "../stylesheets/Settings.css";
 
-type PlannerMode = "events" | "shifts";
+type PlannerMode = "projects" | "shifts";
 type PlanningView = "week" | "month";
 type PlanningLayoutMode = "calendar" | "list";
-type EventCreateStep = "details" | "client" | "notes";
-const EVENT_TIMEZONE_DATALIST_ID = "planning-event-timezones";
+type ProjectCreateStep = "details" | "client" | "notes";
+const PROJECT_TIMEZONE_DATALIST_ID = "planning-project-timezones";
 
 function parseTimeInput(value: string): string | null {
     const trimmed = value.trim();
@@ -72,7 +72,7 @@ type PlannerEntry = {
     staffingTone: PlanningStaffingTone;
     tone: PlannerMode;
     day?: string;
-    eventId?: string;
+    projectId?: string;
     shiftId?: string;
     href?: string;
     searchText: string;
@@ -94,13 +94,13 @@ function getAllocationSearchValues(allocations: PlanningResourceAllocationDTO[])
     ]);
 }
 
-function getEventSearchValues(event: PlanningEventDTO): Array<string | null | undefined> {
+function getProjectSearchValues(project: PlanningProjectDTO): Array<string | null | undefined> {
     return [
-        event.eventName,
-        event.eventId,
-        event.clientCompanyName,
-        event.clientCompanyId,
-        ...event.days.flatMap((day) => [
+        project.projectName,
+        project.projectId,
+        project.clientCompanyName,
+        project.clientCompanyId,
+        ...project.days.flatMap((day) => [
             ...getAllocationSearchValues(day.allocations),
             ...day.shifts.flatMap((shift) => getAllocationSearchValues(shift.allocations)),
         ]),
@@ -249,7 +249,7 @@ function getMajorityMonthLabel(days: string[], fallback: string): string {
     return formatMonthHeader(`${dominantMonth ?? fallback.slice(0, 7)}-01`);
 }
 
-function formatEventDefaultTimeSummary(startTime: string | null | undefined, endTime: string | null | undefined): string {
+function formatProjectDefaultTimeSummary(startTime: string | null | undefined, endTime: string | null | undefined): string {
     const start = parseTimeInput(startTime ?? "");
     const end = parseTimeInput(endTime ?? "");
 
@@ -267,24 +267,24 @@ function getVisibleDateRange(value: string, view: PlanningView): { startDate: st
     };
 }
 
-function renderEventSummaryCard(
+function renderProjectSummaryCard(
     title: string,
-    eventDraft: PlanningEventSaveDTO,
+    projectDraft: PlanningProjectSaveDTO,
     selectedClient: PlanningClientCompanyDTO | null
 ) {
     const summaryRows = [
-        { label: "Event", value: (eventDraft.name ?? "").trim() || "Unnamed event" },
+        { label: "Project", value: (projectDraft.name ?? "").trim() || "Unnamed project" },
         {
-            label: "Event window",
-            value: `${eventDraft.startDate || "dd/mm/yyyy"} to ${eventDraft.endDate || "dd/mm/yyyy"}`,
+            label: "Project window",
+            value: `${projectDraft.startDate || "dd/mm/yyyy"} to ${projectDraft.endDate || "dd/mm/yyyy"}`,
         },
         {
             label: "Default time",
-            value: formatEventDefaultTimeSummary(eventDraft.defaultStartTime, eventDraft.defaultEndTime),
+            value: formatProjectDefaultTimeSummary(projectDraft.defaultStartTime, projectDraft.defaultEndTime),
         },
         {
             label: "Time zone",
-            value: formatTimeZoneLabel(eventDraft.eventTimezone || getBrowserTimeZone()),
+            value: formatTimeZoneLabel(projectDraft.projectTimezone || getBrowserTimeZone()),
         },
         {
             label: "Client",
@@ -296,7 +296,7 @@ function renderEventSummaryCard(
         },
         {
             label: "Internal note",
-            value: eventDraft.internalDescription?.trim() || "No internal note added",
+            value: projectDraft.internalDescription?.trim() || "No internal note added",
         },
     ];
 
@@ -313,41 +313,41 @@ function renderEventSummaryCard(
     );
 }
 
-function getEventEntriesByDay(events: PlanningEventDTO[], rangeStartDate: string, rangeEndDate: string): Map<string, PlannerEntry[]> {
+function getProjectEntriesByDay(projects: PlanningProjectDTO[], rangeStartDate: string, rangeEndDate: string): Map<string, PlannerEntry[]> {
     const entriesByDay = new Map<string, PlannerEntry[]>();
 
-    for (const event of events) {
-        const totalShiftCount = getEventShiftRecords(event).length;
-        const dateLabel = event.startDate === event.endDate
-            ? formatDate(event.startDate)
-            : `${formatDate(event.startDate)} to ${formatDate(event.endDate)}`;
-        const eventTimeLabel = getEventTimeLabel(event);
-        const requiredCount = getEventRequiredCount(event);
-        const scheduledCount = getEventScheduledCount(event);
-        const checkedInCount = getEventCheckedInCount(event);
-        const eventSearchText = buildPlanningSearchText(getEventSearchValues(event));
-        const eventDays = buildDayRange(
-            event.startDate > rangeStartDate ? event.startDate : rangeStartDate,
-            event.endDate < rangeEndDate ? event.endDate : rangeEndDate
+    for (const project of projects) {
+        const totalShiftCount = getProjectShiftRecords(project).length;
+        const dateLabel = project.startDate === project.endDate
+            ? formatDate(project.startDate)
+            : `${formatDate(project.startDate)} to ${formatDate(project.endDate)}`;
+        const projectTimeLabel = getProjectTimeLabel(project);
+        const requiredCount = getProjectRequiredCount(project);
+        const scheduledCount = getProjectScheduledCount(project);
+        const checkedInCount = getProjectCheckedInCount(project);
+        const projectSearchText = buildPlanningSearchText(getProjectSearchValues(project));
+        const projectDays = buildDayRange(
+            project.startDate > rangeStartDate ? project.startDate : rangeStartDate,
+            project.endDate < rangeEndDate ? project.endDate : rangeEndDate
         );
 
-        for (const day of eventDays) {
+        for (const day of projectDays) {
             const entries = entriesByDay.get(day) ?? [];
 
             entries.push({
-                id: `${event.eventId}-${day}`,
-                title: event.eventName,
+                id: `${project.projectId}-${day}`,
+                title: project.projectName,
                 subtitle: totalShiftCount === 0
                     ? "No shifts planned"
                     : `${totalShiftCount} shift${totalShiftCount === 1 ? "" : "s"} planned`,
-                timeLabel: `${dateLabel}${eventTimeLabel === "No time set" ? "" : ` - ${eventTimeLabel}`}`,
-                clientLabel: getEventClientName(event),
+                timeLabel: `${dateLabel}${projectTimeLabel === "No time set" ? "" : ` - ${projectTimeLabel}`}`,
+                clientLabel: getProjectClientName(project),
                 ratioLabel: `(${requiredCount}/${scheduledCount}/${checkedInCount})`,
                 completionLabel: getCompletionLabel(requiredCount, scheduledCount),
-                staffingTone: getEventStaffingTone(event),
-                tone: "events",
-                href: `/management/planning/events/${event.eventId}`,
-                searchText: eventSearchText,
+                staffingTone: getProjectStaffingTone(project),
+                tone: "projects",
+                href: `/management/planning/projects/${project.projectId}`,
+                searchText: projectSearchText,
             });
 
             entriesByDay.set(day, entries);
@@ -361,11 +361,11 @@ function getEventEntriesByDay(events: PlanningEventDTO[], rangeStartDate: string
     return entriesByDay;
 }
 
-function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEntry[]> {
+function getShiftEntriesByDay(projects: PlanningProjectDTO[]): Map<string, PlannerEntry[]> {
     const entriesByDay = new Map<string, PlannerEntry[]>();
 
-    for (const event of events) {
-        for (const day of event.days) {
+    for (const project of projects) {
+        for (const day of project.days) {
             const entries = entriesByDay.get(day.day) ?? [];
             const sortedShifts = [...day.shifts].sort((left, right) => left.startTime.localeCompare(right.startTime));
 
@@ -378,22 +378,22 @@ function getShiftEntriesByDay(events: PlanningEventDTO[]): Map<string, PlannerEn
                 entries.push({
                     id: `${day.day}-${shift.shiftId}`,
                     title: shiftName,
-                    subtitle: event.eventName,
+                    subtitle: project.projectName,
                     timeLabel: getShiftTimeLabel(shift),
-                    clientLabel: getEventClientName(event),
+                    clientLabel: getProjectClientName(project),
                     ratioLabel: `(${requiredCount}/${scheduledCount}/${checkedInCount})`,
                     completionLabel: getCompletionLabel(requiredCount, scheduledCount),
                     staffingTone: getShiftStaffingTone(shift),
                     tone: "shifts",
                     day: day.day,
-                    eventId: event.eventId,
+                    projectId: project.projectId,
                     shiftId: shift.shiftId,
-                    href: `/management/planning/events/${event.eventId}?shift=${shift.shiftId}`,
+                    href: `/management/planning/projects/${project.projectId}?shift=${shift.shiftId}`,
                     searchText: buildPlanningSearchText([
-                        event.eventName,
-                        event.eventId,
-                        event.clientCompanyName,
-                        event.clientCompanyId,
+                        project.projectName,
+                        project.projectId,
+                        project.clientCompanyName,
+                        project.clientCompanyId,
                         shiftName,
                         shift.functionName,
                         ...getAllocationSearchValues(shift.allocations),
@@ -449,11 +449,11 @@ function getUserDisplayName(user: UserResponseDTO): string {
 type ShiftSelectionKey = {
     day: string;
     shiftId: string;
-    eventId: string;
+    projectId: string;
 };
 
 function toShiftKeyString(key: ShiftSelectionKey): string {
-    return `${key.day}:${key.shiftId}:${key.eventId}`;
+    return `${key.day}:${key.shiftId}:${key.projectId}`;
 }
 
 type PlanningPopoverMode = "menu" | "plan";
@@ -477,32 +477,32 @@ export default function AdminPlanningOverview() {
     const [loading, setLoading] = useState(true);
     const [loadingClients, setLoadingClients] = useState(false);
     const [clientsLoaded, setClientsLoaded] = useState(false);
-    const [savingEvent, setSavingEvent] = useState(false);
+    const [savingProject, setSavingProject] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [clientError, setClientError] = useState<string | null>(null);
-    const [eventSaveError, setEventSaveError] = useState<string | null>(null);
-    const [eventSaveSuccess, setEventSaveSuccess] = useState<string | null>(null);
-    const [events, setEvents] = useState<PlanningEventDTO[]>([]);
+    const [projectSaveError, setProjectSaveError] = useState<string | null>(null);
+    const [projectSaveSuccess, setProjectSaveSuccess] = useState<string | null>(null);
+    const [projects, setProjects] = useState<PlanningProjectDTO[]>([]);
     const [clients, setClients] = useState<PlanningClientCompanyDTO[]>([]);
     const [selectedDate, setSelectedDate] = useState<string>(today);
     const [expandedDay, setExpandedDay] = useState<string>(today);
     const [planningView, setPlanningView] = useState<PlanningView>("week");
+    const [planningLayoutMode, setPlanningLayoutMode] = useState<PlanningLayoutMode>("calendar");
     const [plannerMode, setPlannerMode] = useState<PlannerMode>("shifts");
     const [planningSearchQuery, setPlanningSearchQuery] = useState("");
-    const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
+    const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
     const [isViewSelectedOpen, setIsViewSelectedOpen] = useState(false);
-    const [createEventStep, setCreateEventStep] = useState<EventCreateStep>("details");
-    const [eventDraft, setEventDraft] = useState<PlanningEventSaveDTO>({
+    const [createProjectStep, setCreateProjectStep] = useState<ProjectCreateStep>("details");
+    const [projectDraft, setProjectDraft] = useState<PlanningProjectSaveDTO>({
         name: "",
         startDate: formatDateInput(today),
         endDate: formatDateInput(today),
-        eventTimezone: browserTimeZone,
+        projectTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
         internalDescription: "",
     });
     const visibleRange = useMemo(() => getVisibleDateRange(selectedDate, planningView), [planningView, selectedDate]);
-    const effectiveLayoutMode = plannerMode === "projects" ? "list" : "calendar";
 
     const [selectedShiftKeys, setSelectedShiftKeys] = useState<Set<string>>(() => new Set());
     const [popover, setPopover] = useState<PlanningPopoverState>({
@@ -531,9 +531,9 @@ export default function AdminPlanningOverview() {
         for (const keyString of selectedShiftKeyList) {
             const parts = keyString.split(":");
             if (parts.length !== 3) continue;
-            const [day, shiftId, eventId] = parts;
-            if (!day || !shiftId || !eventId) continue;
-            meta.push({ day, shiftId, eventId });
+            const [day, shiftId, projectId] = parts;
+            if (!day || !shiftId || !projectId) continue;
+            meta.push({ day, shiftId, projectId });
         }
         return meta;
     }, [selectedShiftKeyList]);
@@ -553,8 +553,8 @@ export default function AdminPlanningOverview() {
 
     const allocationsByShiftId = useMemo(() => {
         const map = new Map<string, Map<string, PlanningResourceAllocationDTO>>();
-        for (const event of events) {
-            for (const day of event.days) {
+        for (const project of projects) {
+            for (const day of project.days) {
                 for (const shift of day.shifts) {
                     const byUser = map.get(shift.shiftId) ?? new Map<string, PlanningResourceAllocationDTO>();
                     for (const allocation of shift.allocations ?? []) {
@@ -566,24 +566,24 @@ export default function AdminPlanningOverview() {
             }
         }
         return map;
-    }, [events]);
+    }, [projects]);
 
     const selectedShiftDetails = useMemo(() => {
         return selectedShiftMeta.map((meta) => {
-            const event = events.find((candidate) => candidate.eventId === meta.eventId) ?? null;
-            const dayRecord = event?.days.find((d) => d.day === meta.day) ?? null;
+            const project = projects.find((candidate) => candidate.projectId === meta.projectId) ?? null;
+            const dayRecord = project?.days.find((d) => d.day === meta.day) ?? null;
             const shift = dayRecord?.shifts.find((s) => s.shiftId === meta.shiftId) ?? null;
             const title = shift ? getShiftDisplayName(shift) : "Shift";
             const timeLabel = shift ? getShiftTimeLabel(shift) : "";
             return {
                 key: toShiftKeyString(meta),
                 meta,
-                eventName: event?.eventName ?? meta.eventId,
+                projectName: project?.projectName ?? meta.projectId,
                 title,
                 timeLabel,
             };
         });
-    }, [events, selectedShiftMeta]);
+    }, [projects, selectedShiftMeta]);
 
     const loadPlanningOverview = useCallback(async (anchorDate = selectedDate, view = planningView) => {
         try {
@@ -594,7 +594,7 @@ export default function AdminPlanningOverview() {
                 ...range,
                 includeAllocationDetails: true,
             });
-            setEvents(data);
+            setProjects(data);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load planning overview";
             setError(message);
@@ -636,21 +636,21 @@ export default function AdminPlanningOverview() {
     }, [loadPlanningOverview]);
 
     useEffect(() => {
-        if (!eventSaveSuccess) return;
-        const timeoutId = window.setTimeout(() => setEventSaveSuccess(null), 3200);
+        if (!projectSaveSuccess) return;
+        const timeoutId = window.setTimeout(() => setProjectSaveSuccess(null), 3200);
         return () => window.clearTimeout(timeoutId);
-    }, [eventSaveSuccess]);
+    }, [projectSaveSuccess]);
 
-    const eventEntriesByDay = useMemo(
+    const projectEntriesByDay = useMemo(
         () => filterEntriesBySearchQuery(
-            getEventEntriesByDay(events, visibleRange.startDate, visibleRange.endDate),
+            getProjectEntriesByDay(projects, visibleRange.startDate, visibleRange.endDate),
             planningSearchQuery
         ),
-        [events, planningSearchQuery, visibleRange.endDate, visibleRange.startDate]
+        [projects, planningSearchQuery, visibleRange.endDate, visibleRange.startDate]
     );
     const shiftEntriesByDay = useMemo(
-        () => filterEntriesBySearchQuery(getShiftEntriesByDay(events), planningSearchQuery),
-        [events, planningSearchQuery]
+        () => filterEntriesBySearchQuery(getShiftEntriesByDay(projects), planningSearchQuery),
+        [projects, planningSearchQuery]
     );
     const weekDays = useMemo(() => buildWeek(selectedDate), [selectedDate]);
     const monthDays = useMemo(() => buildMonth(selectedDate), [selectedDate]);
@@ -671,15 +671,15 @@ export default function AdminPlanningOverview() {
         setExpandedDay((current) => current ? addMonths(current, direction) : current);
     };
 
-    const resetCreateEventForm = useCallback(() => {
-        setCreateEventStep("details");
-        setEventSaveError(null);
-        setEventSaveSuccess(null);
-        setEventDraft({
+    const resetCreateProjectForm = useCallback(() => {
+        setCreateProjectStep("details");
+        setProjectSaveError(null);
+        setProjectSaveSuccess(null);
+        setProjectDraft({
             name: "",
             startDate: formatDateInput(selectedDate),
             endDate: formatDateInput(selectedDate),
-            eventTimezone: browserTimeZone,
+            projectTimezone: browserTimeZone,
             clientCompanyId: "",
             location: "",
             internalDescription: "",
@@ -688,102 +688,102 @@ export default function AdminPlanningOverview() {
         });
     }, [browserTimeZone, selectedDate]);
 
-    const parsedEventStartDate = parseDisplayDate(eventDraft.startDate);
-    const parsedEventEndDate = parseDisplayDate(eventDraft.endDate);
+    const parsedProjectStartDate = parseDisplayDate(projectDraft.startDate);
+    const parsedProjectEndDate = parseDisplayDate(projectDraft.endDate);
     const selectedClient = useMemo(
-        () => clients.find((client) => client.clientCompanyId === eventDraft.clientCompanyId) ?? null,
-        [clients, eventDraft.clientCompanyId]
+        () => clients.find((client) => client.clientCompanyId === projectDraft.clientCompanyId) ?? null,
+        [clients, projectDraft.clientCompanyId]
     );
-    const normalizedEventTimezone = eventDraft.eventTimezone?.trim() || "";
-    const hasValidEventTimezone = isSupportedTimeZone(normalizedEventTimezone);
+    const normalizedProjectTimezone = projectDraft.projectTimezone?.trim() || "";
+    const hasValidProjectTimezone = isSupportedTimeZone(normalizedProjectTimezone);
 
-    const openCreateEventModal = () => {
-        resetCreateEventForm();
+    const openCreateProjectModal = () => {
+        resetCreateProjectForm();
         void loadPlanningClients();
         loadTimeZoneOptions();
-        setIsCreateEventOpen(true);
+        setIsCreateProjectOpen(true);
     };
 
-    const closeCreateEventModal = () => {
-        if (savingEvent) return;
-        setIsCreateEventOpen(false);
-        resetCreateEventForm();
+    const closeCreateProjectModal = () => {
+        if (savingProject) return;
+        setIsCreateProjectOpen(false);
+        resetCreateProjectForm();
     };
 
-    const handleCreateEvent = async (event: FormEvent) => {
+    const handleCreateProject = async (event: FormEvent) => {
         event.preventDefault();
 
-        const defaultStartTime = parseTimeInput(eventDraft.defaultStartTime?.toString() ?? "");
-        const defaultEndTime = parseTimeInput(eventDraft.defaultEndTime?.toString() ?? "");
-        const startDate = parseDisplayDate(eventDraft.startDate);
-        const endDate = parseDisplayDate(eventDraft.endDate);
+        const defaultStartTime = parseTimeInput(projectDraft.defaultStartTime?.toString() ?? "");
+        const defaultEndTime = parseTimeInput(projectDraft.defaultEndTime?.toString() ?? "");
+        const startDate = parseDisplayDate(projectDraft.startDate);
+        const endDate = parseDisplayDate(projectDraft.endDate);
 
-        const payload: PlanningEventSaveDTO = {
-            name: eventDraft.name.trim(),
+        const payload: PlanningProjectSaveDTO = {
+            name: projectDraft.name.trim(),
             startDate: startDate ?? "",
             endDate: endDate ?? "",
-            eventTimezone: normalizedEventTimezone,
-            clientCompanyId: eventDraft.clientCompanyId?.trim() ? eventDraft.clientCompanyId : null,
-            location: eventDraft.location?.trim() || null,
-            internalDescription: eventDraft.internalDescription?.trim() || null,
+            projectTimezone: normalizedProjectTimezone,
+            clientCompanyId: projectDraft.clientCompanyId?.trim() ? projectDraft.clientCompanyId : null,
+            location: projectDraft.location?.trim() || null,
+            internalDescription: projectDraft.internalDescription?.trim() || null,
             defaultStartTime,
             defaultEndTime,
         };
 
         if (!payload.name) {
-            setEventSaveError("Event name is required.");
+            setProjectSaveError("Project name is required.");
             return;
         }
 
         if (!payload.startDate || !payload.endDate) {
-            setEventSaveError("Start and end date must use dd/mm/yyyy.");
+            setProjectSaveError("Start and end date must use dd/mm/yyyy.");
             return;
         }
 
         if (payload.endDate < payload.startDate) {
-            setEventSaveError("End date cannot be before start date.");
+            setProjectSaveError("End date cannot be before start date.");
             return;
         }
 
-        if (!hasValidEventTimezone) {
-            setEventSaveError("Event time zone must be a valid value like Europe/Amsterdam.");
+        if (!hasValidProjectTimezone) {
+            setProjectSaveError("Project time zone must be a valid value like Europe/Amsterdam.");
             return;
         }
 
-        if (eventDraft.defaultStartTime?.toString().trim() && !defaultStartTime) {
-            setEventSaveError("Default start time must be a valid 24-hour time, like 9:00 or 09:00.");
+        if (projectDraft.defaultStartTime?.toString().trim() && !defaultStartTime) {
+            setProjectSaveError("Default start time must be a valid 24-hour time, like 9:00 or 09:00.");
             return;
         }
 
-        if (eventDraft.defaultEndTime?.toString().trim() && !defaultEndTime) {
-            setEventSaveError("Default end time must be a valid 24-hour time, like 9:00 or 09:00.");
+        if (projectDraft.defaultEndTime?.toString().trim() && !defaultEndTime) {
+            setProjectSaveError("Default end time must be a valid 24-hour time, like 9:00 or 09:00.");
             return;
         }
 
         try {
-            setSavingEvent(true);
-            setEventSaveError(null);
-            setEventSaveSuccess(null);
-            await UserServices.createPlanningEvent(payload);
+            setSavingProject(true);
+            setProjectSaveError(null);
+            setProjectSaveSuccess(null);
+            await UserServices.createPlanningProject(payload);
             setSelectedDate(payload.startDate);
             setExpandedDay(payload.startDate);
             await loadPlanningOverview(payload.startDate, planningView);
-            setIsCreateEventOpen(false);
-            resetCreateEventForm();
-            setEventSaveSuccess("Event created.");
+            setIsCreateProjectOpen(false);
+            resetCreateProjectForm();
+            setProjectSaveSuccess("Project created.");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to create event";
-            setEventSaveError(message);
+            const message = err instanceof Error ? err.message : "Failed to create project";
+            setProjectSaveError(message);
         } finally {
-            setSavingEvent(false);
+            setSavingProject(false);
         }
     };
 
-    const canSubmitCreateEvent = Boolean(eventDraft.name.trim())
-        && Boolean(parsedEventStartDate)
-        && Boolean(parsedEventEndDate)
-        && hasValidEventTimezone
-        && (parsedEventEndDate ?? "") >= (parsedEventStartDate ?? "");
+    const canSubmitCreateProject = Boolean(projectDraft.name.trim())
+        && Boolean(parsedProjectStartDate)
+        && Boolean(parsedProjectEndDate)
+        && hasValidProjectTimezone
+        && (parsedProjectEndDate ?? "") >= (parsedProjectStartDate ?? "");
 
     const toggleShiftSelected = useCallback((keyString: string) => {
         setSelectedShiftKeys((current) => {
@@ -850,7 +850,7 @@ export default function AdminPlanningOverview() {
     }, [closePopover]);
 
     const openViewShiftDetails = useCallback((meta: ShiftSelectionKey) => {
-        navigate(`/management/planning/events/${meta.eventId}?shift=${meta.shiftId}`);
+        navigate(`/management/planning/projects/${meta.projectId}?shift=${meta.shiftId}`);
         closePopover();
     }, [closePopover, navigate]);
 
@@ -1005,8 +1005,8 @@ export default function AdminPlanningOverview() {
         let shiftKeyString: string | null = null;
         let shiftAnchorId: string | null = null;
 
-        if (plannerMode === "shifts" && entry.tone === "shifts" && entry.shiftId && entry.eventId && entry.day) {
-            shiftKeyString = toShiftKeyString({ day: entry.day, shiftId: entry.shiftId, eventId: entry.eventId });
+        if (plannerMode === "shifts" && entry.tone === "shifts" && entry.shiftId && entry.projectId && entry.day) {
+            shiftKeyString = toShiftKeyString({ day: entry.day, shiftId: entry.shiftId, projectId: entry.projectId });
             shiftAnchorId = `planning-shift-entry-${entry.day}-${entry.shiftId}`;
         }
         const isShiftEntry = Boolean(shiftKeyString);
@@ -1084,7 +1084,7 @@ export default function AdminPlanningOverview() {
                         <header className="pageHeader">
                             <PageBack to="/management" />
                             <h1 className="pageTitle">Planning Overview</h1>
-                            <p className="pageSubtitle">Weekly or monthly view for events and shifts.</p>
+                            <p className="pageSubtitle">Weekly or monthly view for projects and shifts.</p>
                         </header>
 
                         <div className="adminDashboardCard planningOverviewDashboardCard">
@@ -1184,18 +1184,18 @@ export default function AdminPlanningOverview() {
                                                 type="search"
                                                 value={planningSearchQuery}
                                                 onChange={(event) => setPlanningSearchQuery(event.target.value)}
-                                                placeholder="Search user, client, event"
-                                                aria-label="Search planning by user, client, or event"
+                                                placeholder="Search user, client, project"
+                                                aria-label="Search planning by user, client, or project"
                                                 disabled={loading}
                                             />
 
                                             <button
                                                 type="button"
                                                 className="button"
-                                                onClick={openCreateEventModal}
-                                                disabled={loading || savingEvent}
+                                                onClick={openCreateProjectModal}
+                                                disabled={loading || savingProject}
                                             >
-                                                Create event
+                                                Create project
                                             </button>
                                         </div>
                                     </div>
@@ -1205,7 +1205,7 @@ export default function AdminPlanningOverview() {
                                 {!loading && error ? <div className="listEmpty errorText">{error}</div> : null}
 
                                 {!loading && !error ? (
-                                    effectiveLayoutMode === "list" ? (
+                                    planningLayoutMode === "list" ? (
                                         <div className="planningListLayout">
                                             {(planningView === "week"
                                                 ? weekDays
@@ -1488,75 +1488,75 @@ export default function AdminPlanningOverview() {
                     )}
                 </div>
             ) : null}
-            {eventSaveSuccess ? (
-                <div className="planningCreateEventToast" role="status" aria-live="polite">
-                    <span className="planningCreateEventToastIcon">
+            {projectSaveSuccess ? (
+                <div className="planningCreateProjectToast" role="status" aria-live="polite">
+                    <span className="planningCreateProjectToastIcon">
                         <SuccessCheckIcon />
                     </span>
-                    <div className="planningCreateEventToastBody">
-                        <span className="planningCreateEventToastTitle">Event created</span>
-                        <span className="planningCreateEventToastMessage">{eventSaveSuccess}</span>
+                    <div className="planningCreateProjectToastBody">
+                        <span className="planningCreateProjectToastTitle">Project created</span>
+                        <span className="planningCreateProjectToastMessage">{projectSaveSuccess}</span>
                     </div>
                 </div>
             ) : null}
             <Modal
-                open={isCreateEventOpen}
-                onClose={closeCreateEventModal}
-                title="Create event"
+                open={isCreateProjectOpen}
+                onClose={closeCreateProjectModal}
+                title="Create project"
                 maxHeight={560}
                 height={560}
                 hideDefaultFooter
                 closeOnEscape={false}
                 closeOnOverlayClick={false}
             >
-                <form className="roleWizard" onSubmit={(event) => void handleCreateEvent(event)}>
-                    <div className="roleWizardTabs" role="tablist" aria-label="Event setup steps">
+                <form className="roleWizard" onSubmit={(event) => void handleCreateProject(event)}>
+                    <div className="roleWizardTabs" role="tablist" aria-label="Project setup steps">
                         <button
                             type="button"
-                            className={`roleWizardTab ${createEventStep === "details" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateEventStep("details")}
+                            className={`roleWizardTab ${createProjectStep === "details" ? "roleWizardTab--active" : ""}`}
+                            onClick={() => setCreateProjectStep("details")}
                             role="tab"
-                            aria-selected={createEventStep === "details"}
-                            disabled={savingEvent}
+                            aria-selected={createProjectStep === "details"}
+                            disabled={savingProject}
                         >
                             Details
                         </button>
                         <button
                             type="button"
-                            className={`roleWizardTab ${createEventStep === "client" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateEventStep("client")}
+                            className={`roleWizardTab ${createProjectStep === "client" ? "roleWizardTab--active" : ""}`}
+                            onClick={() => setCreateProjectStep("client")}
                             role="tab"
-                            aria-selected={createEventStep === "client"}
-                            disabled={savingEvent}
+                            aria-selected={createProjectStep === "client"}
+                            disabled={savingProject}
                         >
                             Client
                         </button>
                         <button
                             type="button"
-                            className={`roleWizardTab ${createEventStep === "notes" ? "roleWizardTab--active" : ""}`}
-                            onClick={() => setCreateEventStep("notes")}
+                            className={`roleWizardTab ${createProjectStep === "notes" ? "roleWizardTab--active" : ""}`}
+                            onClick={() => setCreateProjectStep("notes")}
                             role="tab"
-                            aria-selected={createEventStep === "notes"}
-                            disabled={savingEvent}
+                            aria-selected={createProjectStep === "notes"}
+                            disabled={savingProject}
                         >
                             Notes
                         </button>
                     </div>
 
-                    {createEventStep === "details" ? (
+                    {createProjectStep === "details" ? (
                         <div className="roleWizardPanel">
                             <label className="roleWizardField">
-                                <span className="roleWizardLabel">Event name</span>
+                                <span className="roleWizardLabel">Project name</span>
                                 <input
                                     className="modal_input"
-                                    value={eventDraft.name}
+                                    value={projectDraft.name}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, name: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
-                                        if (eventSaveSuccess) setEventSaveSuccess(null);
+                                        setProjectDraft((current) => ({ ...current, name: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
+                                        if (projectSaveSuccess) setProjectSaveSuccess(null);
                                     }}
                                     placeholder="Example: Breda city run"
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1565,10 +1565,10 @@ export default function AdminPlanningOverview() {
                                 <input
                                     className="modal_input"
                                     type="text"
-                                    value={eventDraft.startDate}
+                                    value={projectDraft.startDate}
                                     onChange={(event) => {
                                         const startDate = normalizeDateInput(event.target.value);
-                                        setEventDraft((current) => ({
+                                        setProjectDraft((current) => ({
                                             ...current,
                                             startDate,
                                             endDate: (() => {
@@ -1580,12 +1580,12 @@ export default function AdminPlanningOverview() {
                                                 return current.endDate;
                                             })(),
                                         }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
                                     inputMode="numeric"
                                     placeholder="dd/mm/yyyy"
                                     maxLength={10}
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1594,18 +1594,18 @@ export default function AdminPlanningOverview() {
                                 <input
                                     className="modal_input"
                                     type="text"
-                                    value={eventDraft.endDate}
+                                    value={projectDraft.endDate}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({
+                                        setProjectDraft((current) => ({
                                             ...current,
                                             endDate: normalizeDateInput(event.target.value),
                                         }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
                                     inputMode="numeric"
                                     placeholder="dd/mm/yyyy"
                                     maxLength={10}
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1616,12 +1616,12 @@ export default function AdminPlanningOverview() {
                                     type="text"
                                     inputMode="numeric"
                                     placeholder="HH:mm"
-                                    value={eventDraft.defaultStartTime ?? ""}
+                                    value={projectDraft.defaultStartTime ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, defaultStartTime: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, defaultStartTime: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1632,12 +1632,12 @@ export default function AdminPlanningOverview() {
                                     type="text"
                                     inputMode="numeric"
                                     placeholder="HH:mm"
-                                    value={eventDraft.defaultEndTime ?? ""}
+                                    value={projectDraft.defaultEndTime ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, defaultEndTime: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, defaultEndTime: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1645,43 +1645,43 @@ export default function AdminPlanningOverview() {
                                 <span className="roleWizardLabel">Time zone</span>
                                 <input
                                     className="modal_input"
-                                    list={EVENT_TIMEZONE_DATALIST_ID}
-                                    value={eventDraft.eventTimezone ?? ""}
+                                    list={PROJECT_TIMEZONE_DATALIST_ID}
+                                    value={projectDraft.projectTimezone ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, eventTimezone: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, projectTimezone: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
                                     placeholder="Europe/Amsterdam"
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
-                                <datalist id={EVENT_TIMEZONE_DATALIST_ID}>
+                                <datalist id={PROJECT_TIMEZONE_DATALIST_ID}>
                                     {timeZoneOptions.map((option) => (
                                         <option key={option.value} value={option.value} label={option.label} />
                                     ))}
                                 </datalist>
                                 <span className="roleWizardMeta">
-                                    {hasValidEventTimezone
-                                        ? formatTimeZoneLabel(normalizedEventTimezone)
+                                    {hasValidProjectTimezone
+                                        ? formatTimeZoneLabel(normalizedProjectTimezone)
                                         : "Use a valid IANA time zone like Europe/Amsterdam."}
                                 </span>
                             </label>
 
-                            {renderEventSummaryCard("Current event setup", eventDraft, selectedClient)}
+                            {renderProjectSummaryCard("Current project setup", projectDraft, selectedClient)}
                         </div>
                     ) : null}
 
-                    {createEventStep === "client" ? (
+                    {createProjectStep === "client" ? (
                         <div className="roleWizardPanel">
                             <label className="roleWizardField">
                                 <span className="roleWizardLabel">Client/company</span>
                                 <select
                                     className="modal_input"
-                                    value={eventDraft.clientCompanyId ?? ""}
+                                    value={projectDraft.clientCompanyId ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, clientCompanyId: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, clientCompanyId: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
-                                    disabled={savingEvent || loadingClients}
+                                    disabled={savingProject || loadingClients}
                                 >
                                     <option value="">No client/company</option>
                                     {clients.map((client) => (
@@ -1696,13 +1696,13 @@ export default function AdminPlanningOverview() {
                                 <span className="roleWizardLabel">Location</span>
                                 <input
                                     className="modal_input"
-                                    value={eventDraft.location ?? ""}
+                                    value={projectDraft.location ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, location: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, location: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
                                     placeholder="Optional"
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
@@ -1710,55 +1710,55 @@ export default function AdminPlanningOverview() {
                                 <div className="roleWizardMeta">Loading client companies...</div>
                             ) : null}
                             {!loadingClients && !clientError && clients.length === 0 ? (
-                                <div className="roleWizardMeta">No saved client companies yet. You can still create the event without one.</div>
+                                <div className="roleWizardMeta">No saved client companies yet. You can still create the project without one.</div>
                             ) : null}
 
-                            {renderEventSummaryCard("Current event setup", eventDraft, selectedClient)}
+                            {renderProjectSummaryCard("Current project setup", projectDraft, selectedClient)}
                         </div>
                     ) : null}
 
-                    {createEventStep === "notes" ? (
+                    {createProjectStep === "notes" ? (
                         <div className="roleWizardPanel">
                             <label className="roleWizardField">
                                 <span className="roleWizardLabel">Internal description</span>
                                 <textarea
                                     className="modal_input planningWizardTextarea"
-                                    value={eventDraft.internalDescription ?? ""}
+                                    value={projectDraft.internalDescription ?? ""}
                                     onChange={(event) => {
-                                        setEventDraft((current) => ({ ...current, internalDescription: event.target.value }));
-                                        if (eventSaveError) setEventSaveError(null);
+                                        setProjectDraft((current) => ({ ...current, internalDescription: event.target.value }));
+                                        if (projectSaveError) setProjectSaveError(null);
                                     }}
                                     placeholder="Optional notes for planning"
-                                    disabled={savingEvent}
+                                    disabled={savingProject}
                                 />
                             </label>
 
-                            {renderEventSummaryCard("Ready to create", eventDraft, selectedClient)}
+                            {renderProjectSummaryCard("Ready to create", projectDraft, selectedClient)}
                         </div>
                     ) : null}
 
                     {clientError ? (
                         <div className="roleWizardAlert roleWizardAlert--error">{clientError}</div>
                     ) : null}
-                    {eventSaveError ? (
-                        <div className="roleWizardAlert roleWizardAlert--error">{eventSaveError}</div>
+                    {projectSaveError ? (
+                        <div className="roleWizardAlert roleWizardAlert--error">{projectSaveError}</div>
                     ) : null}
 
                     <div className="roleWizardActions planningWizardActions">
                         <button
                             type="button"
                             className="buttonSecondary planningWizardCancel"
-                            onClick={closeCreateEventModal}
-                            disabled={savingEvent}
+                            onClick={closeCreateProjectModal}
+                            disabled={savingProject}
                         >
                             Cancel
                         </button>
                         <button
                             type="submit"
                             className="roleWizardPrimary"
-                            disabled={!canSubmitCreateEvent || savingEvent}
+                            disabled={!canSubmitCreateProject || savingProject}
                         >
-                            {savingEvent ? "Creating..." : "Create event"}
+                            {savingProject ? "Creating..." : "Create project"}
                         </button>
                     </div>
                 </form>
@@ -1778,7 +1778,7 @@ export default function AdminPlanningOverview() {
                             <div key={row.key} className="planningShiftSelectedRow">
                                 <div className="planningShiftSelectedRowMain">
                                     <div className="planningShiftSelectedRowTitle">{row.title}</div>
-                                    <div className="planningShiftSelectedRowMeta">{row.eventName}</div>
+                                    <div className="planningShiftSelectedRowMeta">{row.projectName}</div>
                                 </div>
                                 <div className="planningShiftSelectedRowMeta">{row.meta.day}</div>
                                 <div className="planningShiftSelectedRowMeta">{row.timeLabel}</div>

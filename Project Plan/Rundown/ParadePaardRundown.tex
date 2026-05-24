@@ -261,9 +261,9 @@ The Workflow settings tab controls company-wide operational behavior. It shows t
 
 \subsection{Management Planning Overview Page}
 
-The Planning Overview page is the planning workspace for operational scheduling. It now gives the planner two main tabs: Shifts and Projects. The page opens on the Shifts tab by default. The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, the Shifts and Projects tab control, a search field, and a Create project button.
+The Planning Overview page is the planning workspace for operational scheduling. It now gives the planner two main tabs: Shifts and Projects, and it opens on the Shifts tab by default. The top of the page shows the current period, previous and next controls, a Calendar view or List view selector, a Today button, a Weekly or Monthly selector, the Shifts and Projects tab control, a search field, and a Create project button.
 
-The week or month selector still controls the visible date range, but the main tab choice now controls how the planner reads the data. The Shifts tab keeps the calendar-style planning view. The Projects tab switches into a day-grouped project list so the planner can scan project coverage in a simpler list format without using a separate layout selector.
+The week or month selector controls the visible date range, the Calendar view or List view selector controls the layout, and the Shifts or Projects tabs control which kind of planning entries are shown. That means the planner can combine both controls: calendar shifts, calendar projects, list shifts, or list projects.
 
 In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. The shift cards show the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when a shift is empty, partially staffed, or staffed.
 
@@ -518,6 +518,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 25: Restored the separate Calendar and List selector on the Planning Overview so it works independently from the Shifts and Projects tabs.
     \item 2026 05 25: Added Shifts and Projects tabs to the Planning Overview, defaulted the page to Shifts, and made the Projects tab use the list-style view.
     \item 2026 05 25: Fixed the Planning Overview page so newly created projects without shifts no longer cause a white screen, and updated the page description.
     \item 2026 05 23: Added the Payroll Finance management page for internal shift billing, employer cost, client revenue, and margin review.

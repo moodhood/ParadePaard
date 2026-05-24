@@ -62,7 +62,7 @@ vi.mock("../services/user-service/UserServices", () => ({
 }));
 
 describe("AdminPlanningOverview", () => {
-    it("shows shift and project tabs while defaulting to shifts without a separate layout selector", () => {
+    it("shows shift and project tabs while defaulting to shifts and keeping the layout selector", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <AdminPlanningOverview />
@@ -73,7 +73,7 @@ describe("AdminPlanningOverview", () => {
         expect(html).toContain(">Projects<");
         expect(html).toContain("planningModeToggleButton--active");
         expect(html).toContain("Weekly or monthly view for projects and shifts.");
-        expect(html).not.toContain("Calendar view");
-        expect(html).not.toContain("List view");
+        expect(html).toContain("Calendar view");
+        expect(html).toContain("List view");
     });
 });
