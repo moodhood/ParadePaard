@@ -25,6 +25,7 @@ export type PlanningShiftDTO = {
     assignedCount?: number | null;
     checkedInCount?: number | null;
     staffingStatus?: "OPEN" | "PARTIALLY_FILLED" | "FILLED" | string | null;
+    clientBillingRatePerHour?: number | null;
     allocations: PlanningResourceAllocationDTO[];
 };
 
@@ -34,12 +35,12 @@ export type PlanningDayDTO = {
     shifts: PlanningShiftDTO[];
 };
 
-export type PlanningEventDTO = {
-    eventId: string;
-    eventName: string;
+export type PlanningProjectDTO = {
+    projectId: string;
+    projectName: string;
     startDate: string;
     endDate: string;
-    eventTimezone?: string | null;
+    projectTimezone?: string | null;
     clientCompanyId?: string | null;
     clientCompanyName?: string | null;
     internalDescription?: string | null;
@@ -57,21 +58,45 @@ export type PlanningEventDTO = {
     days: PlanningDayDTO[];
 };
 
+export type PlanningEventDTO = PlanningProjectDTO;
+
 export type PlanningOverviewQuery = {
     companyId?: string;
+    projectId?: string;
     eventId?: string;
     startDate?: string;
     endDate?: string;
     includeAllocationDetails?: boolean;
 };
 
+function normalizePlanningOverview(projects: PlanningProjectDTO[]): PlanningProjectDTO[] {
+    return projects.map((project) => ({
+        ...project,
+        days: Array.isArray(project.days)
+            ? project.days.map((day) => ({
+                ...day,
+                allocations: Array.isArray(day.allocations) ? day.allocations : [],
+                shifts: Array.isArray(day.shifts)
+                    ? day.shifts.map((shift) => ({
+                        ...shift,
+                        allocations: Array.isArray(shift.allocations) ? shift.allocations : [],
+                    }))
+                    : [],
+            }))
+            : [],
+    }));
+}
+
 export default async function GetPlanningOverview(
     API_BASE_URL: string,
     query: PlanningOverviewQuery = {}
-): Promise<PlanningEventDTO[]> {
+): Promise<PlanningProjectDTO[]> {
     try {
-        const res = await axios.get<PlanningEventDTO[]>(`${API_BASE_URL}/api/planning/view`, {
-            params: query,
+        const res = await axios.get<PlanningProjectDTO[]>(`${API_BASE_URL}/api/planning/view`, {
+            params: {
+                ...query,
+                projectId: query.projectId ?? query.eventId,
+            },
             withCredentials: true,
         });
 
@@ -79,7 +104,7 @@ export default async function GetPlanningOverview(
             throw new Error("Failed to fetch planning overview with status: " + res.status);
         }
 
-        return res.data;
+        return normalizePlanningOverview(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
         if (axios.isAxiosError(err)) {
             throw new Error(err.response?.data?.message || "Failed to fetch planning overview");

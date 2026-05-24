@@ -261,13 +261,13 @@ The Workflow settings tab controls company-wide operational behavior. It shows t
 
 \subsection{Management Planning Overview Page}
 
-The Planning Overview page is the calendar view for operational planning. It lets the planner look at shifts across a week or a month (the Events view is hidden for now). The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, a Shifts indicator, a search field, and a Create event button.
+The Planning Overview page is the calendar view for operational planning. It lets the planner look at shifts across a week or a month (the Projects view is hidden for now). The top of the page shows the current period, previous and next controls, a Today button, a Weekly or Monthly selector, a Shifts indicator, a search field, and a Create project button.
 
 The header also includes a Calendar view or List view selector next to the period navigation. Calendar view shows the week or month grid. List view shows the same shifts grouped by day in a scrollable list, which is useful when the calendar grid feels too dense.
 
 In weekly view, the page lays out days of the week. In monthly view, it shows a calendar grid. The shift cards show the title, a supporting subtitle, time information, client tag, and staffing ratio. Staffing is shown as required, scheduled, and checked in, and the visual tone changes when a shift is empty, partially staffed, or staffed.
 
-The search field sits next to the Events and Shifts toggle. The planner can search by assigned user, client, or event. The calendar then only shows matching event or shift cards within the current week or month.
+The search field sits next to the Projects and Shifts toggle. The planner can search by assigned user, client, or project. The calendar then only shows matching project or shift cards within the current week or month.
 
 Shift cards are selectable. Clicking a shift selects it. Holding Shift while clicking other shift cards adds or removes shifts from the current selection. Selected shifts show a clear highlighted state so the planner can see what is selected even after a menu is closed.
 
@@ -277,7 +277,9 @@ Plan someone in opens a small planning panel in the same pop up. The panel start
 
 The planning calendar now stretches to the available browser height. This lets the day cells fill the screen so the white day columns continue down to the bottom of the planning area instead of ending early with empty background below them.
 
-Creating an event happens through a multi-step modal. In the Details step, the planner enters event name, start date, end date, default start time, default end time, and time zone. In the Client step, the planner selects the client/company and location. In the Notes step, the planner enters internal notes and reviews the event summary. The frontend validates the event name, dates, times, and time zone before creating the event. After creation, the overview reloads and focuses the relevant period.
+Creating a project happens through a multi-step modal. In the Details step, the planner enters the project name, start date, end date, default start time, default end time, and time zone. In the Client step, the planner selects the client/company and location. In the Notes step, the planner enters internal notes and reviews the project summary. The frontend validates the project name, dates, times, and time zone before creating the project. After creation, the overview reloads and focuses the relevant period.
+
+If the planner creates a new project before adding any shifts, the page still stays usable. The new project can load without showing any shift rows yet, and the overview no longer crashes or turns into a white screen just because the project does not have planning days or shift data yet.
 
 \subsection{Management Planning Clients Page}
 
@@ -516,6 +518,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 25: Fixed the Planning Overview page so newly created projects without shifts no longer cause a white screen, and updated the page description.
     \item 2026 05 23: Added the Payroll Finance management page for internal shift billing, employer cost, client revenue, and margin review.
     \item 2026 05 23: Simplified the horeca payroll calculator so users enter employee and contract details while the app derives tax, pension, holiday allowance, and employer contribution values automatically.
     \item 2026 05 23: Replaced the horeca example payroll table with a payroll calculator, removed the company tax settings tab, and removed the separate CAO templates management area.
