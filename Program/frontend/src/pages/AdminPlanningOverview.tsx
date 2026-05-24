@@ -487,8 +487,7 @@ export default function AdminPlanningOverview() {
     const [selectedDate, setSelectedDate] = useState<string>(today);
     const [expandedDay, setExpandedDay] = useState<string>(today);
     const [planningView, setPlanningView] = useState<PlanningView>("week");
-    const [planningLayoutMode, setPlanningLayoutMode] = useState<PlanningLayoutMode>("calendar");
-    const [plannerMode] = useState<PlannerMode>("shifts");
+    const [plannerMode, setPlannerMode] = useState<PlannerMode>("shifts");
     const [planningSearchQuery, setPlanningSearchQuery] = useState("");
     const [isCreateEventOpen, setIsCreateEventOpen] = useState(false);
     const [isViewSelectedOpen, setIsViewSelectedOpen] = useState(false);
@@ -503,6 +502,7 @@ export default function AdminPlanningOverview() {
         internalDescription: "",
     });
     const visibleRange = useMemo(() => getVisibleDateRange(selectedDate, planningView), [planningView, selectedDate]);
+    const effectiveLayoutMode = plannerMode === "projects" ? "list" : "calendar";
 
     const [selectedShiftKeys, setSelectedShiftKeys] = useState<Set<string>>(() => new Set());
     const [popover, setPopover] = useState<PlanningPopoverState>({
@@ -1151,7 +1151,32 @@ export default function AdminPlanningOverview() {
 
                                         <div className="planningCardHeaderActions">
                                             <div className="planningModeToggle" aria-label="Planning mode">
-                                                <span className="planningModeLabel">Shifts</span>
+                                                <button
+                                                    type="button"
+                                                    className={[
+                                                        "planningModeButton",
+                                                        "planningModeToggleButton",
+                                                        plannerMode === "shifts" ? "planningModeButton--active planningModeToggleButton--active" : "",
+                                                    ].filter(Boolean).join(" ")}
+                                                    onClick={() => setPlannerMode("shifts")}
+                                                    disabled={loading}
+                                                    aria-pressed={plannerMode === "shifts"}
+                                                >
+                                                    Shifts
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={[
+                                                        "planningModeButton",
+                                                        "planningModeToggleButton",
+                                                        plannerMode === "projects" ? "planningModeButton--active planningModeToggleButton--active" : "",
+                                                    ].filter(Boolean).join(" ")}
+                                                    onClick={() => setPlannerMode("projects")}
+                                                    disabled={loading}
+                                                    aria-pressed={plannerMode === "projects"}
+                                                >
+                                                    Projects
+                                                </button>
                                             </div>
 
                                             <input
@@ -1180,14 +1205,14 @@ export default function AdminPlanningOverview() {
                                 {!loading && error ? <div className="listEmpty errorText">{error}</div> : null}
 
                                 {!loading && !error ? (
-                                    planningLayoutMode === "list" ? (
+                                    effectiveLayoutMode === "list" ? (
                                         <div className="planningListLayout">
                                             {(planningView === "week"
                                                 ? weekDays
                                                 : monthDays.filter((day) => day.startsWith(activeMonthKey))
                                             ).map((day) => {
-                                                const dayEntries = plannerMode === "events"
-                                                    ? eventEntriesByDay.get(day) ?? []
+                                                const dayEntries = plannerMode === "projects"
+                                                    ? projectEntriesByDay.get(day) ?? []
                                                     : shiftEntriesByDay.get(day) ?? [];
                                                 const isToday = day === today;
 
@@ -1203,13 +1228,15 @@ export default function AdminPlanningOverview() {
                                                             </div>
                                                             <span className="planningDayCount">
                                                                 {dayEntries.length > 0
-                                                                    ? `${dayEntries.length} ${plannerMode === "events" ? "events" : "shifts"}`
+                                                                    ? `${dayEntries.length} ${plannerMode === "projects" ? "projects" : "shifts"}`
                                                                     : ""}
                                                             </span>
                                                         </div>
                                                         <div className="planningListDayItems">
                                                             {dayEntries.length === 0 ? (
-                                                                <div className="planningListDayEmpty">No shifts</div>
+                                                                <div className="planningListDayEmpty">
+                                                                    {plannerMode === "projects" ? "No projects" : "No shifts"}
+                                                                </div>
                                                             ) : (
                                                                 dayEntries.map((entry) => renderPlannerEntry(day, entry))
                                                             )}
@@ -1222,8 +1249,8 @@ export default function AdminPlanningOverview() {
                                         <div className="planningWeekLayout">
                                             <div className="planningWeekGrid">
                                                 {weekDays.map((day) => {
-                                                    const dayEntries = plannerMode === "events"
-                                                        ? eventEntriesByDay.get(day) ?? []
+                                                    const dayEntries = plannerMode === "projects"
+                                                        ? projectEntriesByDay.get(day) ?? []
                                                         : shiftEntriesByDay.get(day) ?? [];
                                                     const isSelected = day === expandedDay;
                                                     const isToday = day === today;
@@ -1245,7 +1272,7 @@ export default function AdminPlanningOverview() {
                                                                 </div>
                                                                 <span className="planningDayCount">
                                                                     {dayEntries.length > 0
-                                                                        ? `${dayEntries.length} ${plannerMode === "events" ? "events" : "shifts"}`
+                                                                        ? `${dayEntries.length} ${plannerMode === "projects" ? "projects" : "shifts"}`
                                                                         : ""}
                                                                 </span>
                                                             </button>
@@ -1282,8 +1309,8 @@ export default function AdminPlanningOverview() {
                                         <div className="planningMonthLayout">
                                             <div className="planningMonthGrid">
                                                 {monthDays.map((day) => {
-                                                    const dayEntries = plannerMode === "events"
-                                                        ? eventEntriesByDay.get(day) ?? []
+                                                    const dayEntries = plannerMode === "projects"
+                                                        ? projectEntriesByDay.get(day) ?? []
                                                         : shiftEntriesByDay.get(day) ?? [];
                                                     const isToday = day === today;
                                                     const isSelected = day === selectedDate;
@@ -1313,7 +1340,7 @@ export default function AdminPlanningOverview() {
                                                                 </div>
                                                                 <span className="planningDayCount">
                                                                     {dayEntries.length > 0
-                                                                        ? `${dayEntries.length} ${plannerMode === "events" ? "events" : "shifts"}`
+                                                                        ? `${dayEntries.length} ${plannerMode === "projects" ? "projects" : "shifts"}`
                                                                         : ""}
                                                                 </span>
                                                             </button>
