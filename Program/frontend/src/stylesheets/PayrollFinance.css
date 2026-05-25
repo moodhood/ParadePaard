@@ -56,6 +56,67 @@
     gap: 12px;
 }
 
+.financeRunList,
+.financeFlowList {
+    display: grid;
+    gap: 10px;
+}
+
+.financeRunCard {
+    display: grid;
+    grid-template-columns: minmax(180px, 1.5fr) minmax(160px, 1fr) minmax(170px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    background: #fff;
+}
+
+.financeRunCard div,
+.financeFlowList div {
+    display: grid;
+    gap: 4px;
+}
+
+.financeRunCard strong {
+    color: #0f172a;
+    font-size: 14px;
+}
+
+.financeRunCard span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.financeFlowList {
+    counter-reset: finance-flow;
+}
+
+.financeFlowList div {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    color: #475569;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.5;
+}
+
+.financeFlowList div::before {
+    counter-increment: finance-flow;
+    content: counter(finance-flow);
+    display: inline-grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: #e0edff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 900;
+}
+
 .financeSummaryCard,
 .financeRateGrid > div {
     display: grid;
@@ -289,5 +350,9 @@
     .financeSidePanel {
         position: static;
         max-height: none;
+    }
+
+    .financeRunCard {
+        grid-template-columns: 1fr;
     }
 }

@@ -7,7 +7,6 @@ import {
     calculateFinanceSummary,
     calculateShiftFinanceRecord,
     type FinanceSettings,
-    type ShiftFinanceRecord,
 } from "../utils/payrollFinance";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/PayrollFinance.css";
@@ -36,6 +35,8 @@ const financeSettings: FinanceSettings = {
     lockAfterPayrollApproval: true,
 };
 
+const companyTaxReservePercentage = 2.5;
+
 const initialFinanceRows = [
     calculateShiftFinanceRecord({
         id: "finance-bar-employee",
@@ -63,6 +64,7 @@ const initialFinanceRows = [
         isBillingRateOverridden: true,
         billingRateOverrideReason: "Evening event rate agreed with client.",
         otherEmployerCosts: 0,
+        isLocked: true,
         financeSettings,
         createdAt: "2026-01-18T10:00:00",
         updatedAt: "2026-01-18T10:00:00",
@@ -91,6 +93,7 @@ const initialFinanceRows = [
         clientBillingRatePerHour: 26,
         billingRateSource: "Job preset default",
         otherEmployerCosts: 0,
+        isLocked: true,
         financeSettings,
         createdAt: "2026-01-18T10:00:00",
         updatedAt: "2026-01-18T10:00:00",
@@ -148,6 +151,7 @@ const initialFinanceRows = [
         clientBillingRatePerHour: null,
         billingRateSource: "Missing billing rate",
         otherEmployerCosts: 0,
+        isLocked: true,
         financeSettings,
         createdAt: "2026-01-22T10:00:00",
         updatedAt: "2026-01-22T10:00:00",
@@ -162,53 +166,45 @@ function pct(value: number): string {
     return `${numberFormatter.format(value)}%`;
 }
 
-function statusLabel(status: ShiftFinanceRecord["marginStatus"]): string {
-    if (status === "missing_rate") return "Missing rate";
-    if (status === "negative_margin") return "Negative margin";
-    if (status === "low_margin") return "Low margin";
-    if (status === "incomplete") return "Incomplete";
-    return "Healthy";
+function round2(value: number): number {
+    return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
 export default function PayrollFinance() {
-    const [records, setRecords] = useState<ShiftFinanceRecord[]>(initialFinanceRows);
-    const [selectedRecordId, setSelectedRecordId] = useState(initialFinanceRows[0]?.id ?? "");
-    const [selectedRows, setSelectedRows] = useState<string[]>([initialFinanceRows[0]?.id ?? ""]);
-    const [bulkRate, setBulkRate] = useState("30.00");
-    const [overrideReason, setOverrideReason] = useState("Manual finance review");
+    const records = initialFinanceRows;
+    const [selectedRunId, setSelectedRunId] = useState("payroll-2026-01");
     const summary = useMemo(() => calculateFinanceSummary(records), [records]);
-    const selectedRecord = records.find((record) => record.id === selectedRecordId) ?? records[0];
-
-    const updateRecordRate = (recordId: string, nextRate: number | null, reason = "Inline billing rate edit") => {
-        setRecords((current) =>
-            current.map((record) => {
-                if (record.id !== recordId) return record;
-                return calculateShiftFinanceRecord({
-                    ...record,
-                    clientBillingRatePerHour: nextRate,
-                    billingRateSource: nextRate == null ? "Missing billing rate" : "Manual override",
-                    isBillingRateOverridden: true,
-                    billingRateOverrideReason: reason,
-                    otherEmployerCosts: 0,
-                    pensionApplicable: record.employeePensionDeduction > 0 || record.employerPension > 0,
-                    financeSettings,
-                    updatedAt: new Date().toISOString(),
-                });
-            })
-        );
-    };
-
-    const applyBulkRate = () => {
-        const parsed = Number(bulkRate);
-        if (!Number.isFinite(parsed) || parsed < 0) return;
-        selectedRows.forEach((recordId) => updateRecordRate(recordId, parsed, overrideReason));
-    };
-
-    const toggleSelected = (recordId: string) => {
-        setSelectedRows((current) =>
-            current.includes(recordId) ? current.filter((id) => id !== recordId) : [...current, recordId]
-        );
-    };
+    const companyTaxReserve = round2(summary.totalClientRevenue * (companyTaxReservePercentage / 100));
+    const marginAfterCompanyTaxReserve = round2(summary.totalMarginBeforeOverhead - companyTaxReserve);
+    const approvedRuns = useMemo(
+        () => [
+            {
+                id: "payroll-2026-01",
+                name: "January 2026 horeca payroll",
+                period: "January 2026",
+                approvedAt: "2026-01-31 14:20",
+                approvedBy: "Finance lead",
+                approvalStatus: "Approved after payroll run",
+                lockStatus: "Finance values locked",
+                records,
+                summary,
+                companyTaxReserve,
+                marginAfterCompanyTaxReserve,
+                adjustmentLog: [
+                    {
+                        label: "Billing rate override",
+                        text: "Ava Jansen changed from job preset default to event rate before payroll approval.",
+                    },
+                    {
+                        label: "Post approval changes",
+                        text: "No post-approval unlocks or financial adjustments have been recorded.",
+                    },
+                ],
+            },
+        ],
+        [companyTaxReserve, marginAfterCompanyTaxReserve, records, summary]
+    );
+    const selectedRun = approvedRuns.find((run) => run.id === selectedRunId) ?? approvedRuns[0];
 
     const summaryCards = [
         ["Total client revenue", money(summary.totalClientRevenue)],
@@ -221,6 +217,21 @@ export default function PayrollFinance() {
         ["Average margin percentage", pct(summary.averageMarginPercentage)],
         ["Number of shifts missing billing rates", String(summary.missingBillingRateCount)],
         ["Number of shifts with negative margin", String(summary.negativeMarginCount)],
+    ];
+    const financeFlowSteps = [
+        "Project is created by the employer or planning team.",
+        "A shift is created and employees are assigned.",
+        "A finance-permitted user sets the client billing rate from the client, project, job preset, shift, or employee assignment.",
+        "The approved payroll run locks wage, tax, pension, contribution, and billing values.",
+        "Payroll Finance shows client revenue, payroll obligations, company tax reserve, and margin after approval.",
+    ];
+    const financeSettingsRows = [
+        ["Minimum margin percentage", pct(financeSettings.minimumMarginPercentage)],
+        ["Sickness risk reserve", pct(financeSettings.sicknessRiskPercentage)],
+        ["Insurance reserve", pct(financeSettings.insuranceReservePercentage)],
+        ["Administration cost per hour", money(financeSettings.administrationCostPerHour)],
+        ["Company tax reserve", `${pct(companyTaxReservePercentage)} internal reserve`],
+        ["Finance lock", financeSettings.lockAfterPayrollApproval ? "Lock after payroll approval" : "Manual lock"],
     ];
 
     return (
@@ -258,163 +269,49 @@ export default function PayrollFinance() {
                                             ))}
                                         </div>
                                         <div className="financeFlowText">
-                                            The employee is paid from wage, CAO, tax, pension, and payroll rules. The horeca
-                                            client is billed separately from the shift billing rate. This page compares client
-                                            revenue against employer cost and cash-flow payments.
+                                            This page starts after payroll approval. It summarizes locked finance values from
+                                            approved payroll runs, including client revenue, employer costs, payroll payments,
+                                            pension payments, company tax reserve, and margin.
                                         </div>
                                     </div>
                                 </Card>
 
-                                <Card title="Shift billing rates" className="payrollFinanceCard">
+                                <Card title="Approved payroll runs" className="payrollFinanceCard">
                                     <div className="payrollFinanceCardBody">
-                                        <div className="financeRateGrid">
-                                            <div>
-                                                <strong>Billing rate priority</strong>
-                                                <p>
-                                                    Custom employee shift rate, special day override, custom shift rate, job
-                                                    preset default, then client default.
-                                                </p>
-                                            </div>
-                                            <div>
-                                                <strong>Internal finance settings</strong>
-                                                <p>
-                                                    Client billing rate, margin target, sickness reserve, insurance reserve,
-                                                    administration cost, and overhead are internal business values.
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <div className="financeBulkActions">
-                                            <label>
-                                                <span>Bulk update billing rates</span>
-                                                <input
-                                                    value={bulkRate}
-                                                    onChange={(event) => setBulkRate(event.target.value)}
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                />
-                                            </label>
-                                            <label>
-                                                <span>Manual override reason</span>
-                                                <input value={overrideReason} onChange={(event) => setOverrideReason(event.target.value)} />
-                                            </label>
-                                            <button type="button" className="button" onClick={applyBulkRate}>
-                                                Apply manual override with reason
-                                            </button>
-                                            <button type="button" className="button buttonSecondary">
-                                                Set default rate from job preset
-                                            </button>
-                                            <button type="button" className="button buttonSecondary">
-                                                Set default rate from client
-                                            </button>
-                                            <button type="button" className="button buttonSecondary">
-                                                Copy previous rate from same client and job
-                                            </button>
-                                            <button type="button" className="button buttonSecondary">
-                                                Apply weekend or holiday surcharge
-                                            </button>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card title="Finance history per shift" className="payrollFinanceCard">
-                                    <div className="payrollFinanceCardBody">
-                                        <div className="financeFilters">
-                                            {[
-                                                "Date range",
-                                                "Client",
-                                                "Location",
-                                                "Employee",
-                                                "Job preset",
-                                                "Function group",
-                                                "Contract type",
-                                                "Margin status",
-                                                "Paid or unpaid invoice status",
-                                                "Payroll period",
-                                            ].map((label) => (
-                                                <label key={label}>
-                                                    <span>{label}</span>
-                                                    <input placeholder="All" />
-                                                </label>
+                                        <div className="financeRunList">
+                                            {approvedRuns.map((run) => (
+                                                <article className="financeRunCard" key={run.id}>
+                                                    <div>
+                                                        <strong>{run.name}</strong>
+                                                        <span>{run.period}</span>
+                                                    </div>
+                                                    <div>
+                                                        <span>{run.approvalStatus}</span>
+                                                        <strong>{run.approvedAt}</strong>
+                                                    </div>
+                                                    <div>
+                                                        <span>{run.lockStatus}</span>
+                                                        <strong>Approved by {run.approvedBy}</strong>
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="button buttonSecondary"
+                                                        onClick={() => setSelectedRunId(run.id)}
+                                                    >
+                                                        Open run breakdown
+                                                    </button>
+                                                </article>
                                             ))}
                                         </div>
-                                        <div className="tableScroll">
-                                            <table className="financeTable">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Select</th>
-                                                        <th>Shift</th>
-                                                        <th>Employee</th>
-                                                        <th>Client</th>
-                                                        <th>Hours</th>
-                                                        <th>Employee cost</th>
-                                                        <th>Client billing rate per hour</th>
-                                                        <th>Client revenue</th>
-                                                        <th>Margin before overhead</th>
-                                                        <th>Status</th>
-                                                        <th>Breakdown</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {records.map((record) => (
-                                                        <tr key={record.id}>
-                                                            <td>
-                                                                <input
-                                                                    type="checkbox"
-                                                                    checked={selectedRows.includes(record.id)}
-                                                                    onChange={() => toggleSelected(record.id)}
-                                                                    aria-label={`Select ${record.employeeName}`}
-                                                                />
-                                                            </td>
-                                                            <td>
-                                                                <strong>{record.shiftDate}</strong>
-                                                                <span>{record.location}</span>
-                                                            </td>
-                                                            <td>
-                                                                <strong>{record.employeeName}</strong>
-                                                                <span>{record.jobPresetName}</span>
-                                                            </td>
-                                                            <td>{record.clientName}</td>
-                                                            <td>{numberFormatter.format(record.workedHours)}</td>
-                                                            <td>{money(record.totalEmployerCost)}</td>
-                                                            <td>
-                                                                <input
-                                                                    className="financeRateInput"
-                                                                    type="number"
-                                                                    min="0"
-                                                                    step="0.01"
-                                                                    aria-label={`Client billing rate per hour for ${record.employeeName}`}
-                                                                    value={record.clientBillingRatePerHour ?? ""}
-                                                                    onChange={(event) =>
-                                                                        updateRecordRate(
-                                                                            record.id,
-                                                                            event.target.value === "" ? null : Number(event.target.value)
-                                                                        )
-                                                                    }
-                                                                    disabled={record.isLocked}
-                                                                />
-                                                                <span>{record.billingRateSource}</span>
-                                                            </td>
-                                                            <td>{money(record.clientRevenue)}</td>
-                                                            <td>{money(record.marginBeforeOverhead)}</td>
-                                                            <td>
-                                                                <span className={`financeStatus financeStatus--${record.marginStatus}`}>
-                                                                    {statusLabel(record.marginStatus)}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <button
-                                                                    type="button"
-                                                                    className="button buttonSecondary"
-                                                                    onClick={() => setSelectedRecordId(record.id)}
-                                                                >
-                                                                    View breakdown
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                    </div>
+                                </Card>
+
+                                <Card title="Revenue summary" className="payrollFinanceCard">
+                                    <div className="payrollFinanceCardBody">
+                                        <div className="financeFlowList">
+                                            {financeFlowSteps.map((step) => (
+                                                <div key={step}>{step}</div>
+                                            ))}
                                         </div>
                                     </div>
                                 </Card>
@@ -422,28 +319,28 @@ export default function PayrollFinance() {
                                 <div className="financeSectionGrid">
                                     {[
                                         [
-                                            "Client invoice calculation",
-                                            "Client revenue equals worked hours times the client billing rate per hour. Missing billing rates block revenue calculation.",
+                                            "Payroll obligations",
+                                            `Net wages paid to employees are ${money(summary.totalNetWagesPaid)}. Gross wage, employee tax withholding, and employee pension stay tied to approved payslips.`,
                                         ],
                                         [
-                                            "Employee cost breakdown",
-                                            "Total employer cost includes gross wage, holiday allowance, vacation reservation, employer contributions, employer pension, sickness reserve, insurance reserve, and administration cost.",
+                                            "Tax and contribution obligations",
+                                            `Belastingdienst payment is ${money(summary.totalPayableToBelastingdienst)}. Pension fund payment is ${money(summary.totalPayableToPensionFund)}. Company tax reserve is ${money(companyTaxReserve)}.`,
                                         ],
                                         [
-                                            "Employer tax and contribution breakdown",
-                                            "Employer AWf, Aof, Whk, Wko, and Zvw are shown separately and also grouped into the Belastingdienst payment.",
-                                        ],
-                                        [
-                                            "Pension cost breakdown",
-                                            "Employee pension is withheld from gross wage. Employer pension is an extra employer cost. Both are paid to the pension fund.",
+                                            "Margin summary",
+                                            `Margin before overhead is ${money(summary.totalMarginBeforeOverhead)}. Margin after the internal company tax reserve is ${money(marginAfterCompanyTaxReserve)}.`,
                                         ],
                                         [
                                             "Margin calculation",
-                                            "Margin before overhead equals client revenue minus total employer cost. Margin percentage is margin divided by client revenue.",
+                                            "Margin before overhead equals client revenue minus total employer cost. Company tax reserve is an internal finance setting and is not a CAO or Belastingdienst source value.",
+                                        ],
+                                        [
+                                            "Adjustment audit log",
+                                            "Approved payroll finance is locked. If a finance user unlocks and changes a value after approval, the old value, new value, user, time, reason, and affected shift are recorded here.",
                                         ],
                                         [
                                             "Finance settings",
-                                            "Configure minimum margin, sickness risk, insurance reserve, administration cost, overhead, rounding, included cost categories, and finance lock behavior.",
+                                            "Configure margin target, sickness risk, insurance reserve, administration cost, company tax reserve, rounding, included cost categories, and finance lock behavior.",
                                         ],
                                     ].map(([title, text]) => (
                                         <Card title={title} className="payrollFinanceCard" key={title}>
@@ -455,53 +352,52 @@ export default function PayrollFinance() {
                                 </div>
                             </div>
 
-                            {selectedRecord ? (
+                            {selectedRun ? (
                                 <aside className="financeSidePanel">
                                     <div className="financeSidePanelHeader">
-                                        <h2>{selectedRecord.employeeName}</h2>
-                                        <span className={`financeStatus financeStatus--${selectedRecord.marginStatus}`}>
-                                            {statusLabel(selectedRecord.marginStatus)}
+                                        <h2>{selectedRun.name}</h2>
+                                        <span className="financeStatus financeStatus--healthy">
+                                            Finance values locked
                                         </span>
                                     </div>
                                     <div className="financeBreakdownRows">
-                                        <h3>Employee wage breakdown</h3>
-                                        <div><span>Worked hours</span><strong>{numberFormatter.format(selectedRecord.workedHours)}</strong></div>
-                                        <div><span>Employee hourly wage</span><strong>{money(selectedRecord.employeeHourlyWage)}</strong></div>
-                                        <div><span>Employee gross wage</span><strong>{money(selectedRecord.employeeGrossWage)}</strong></div>
-                                        <div><span>Holiday allowance cost</span><strong>{money(selectedRecord.holidayAllowanceCost)}</strong></div>
-                                        <div><span>Vacation buildup cost</span><strong>{money(selectedRecord.vacationReservationCost)}</strong></div>
-                                        <h3>Employee deductions</h3>
-                                        <div><span>Employee payroll tax withheld</span><strong>{money(selectedRecord.employeePayrollTaxWithheld)}</strong></div>
-                                        <div><span>Employee pension deduction</span><strong>{money(selectedRecord.employeePensionDeduction)}</strong></div>
-                                        <div><span>Net wage paid to employee</span><strong>{money(selectedRecord.netWagePaid)}</strong></div>
-                                        <h3>Employer contributions</h3>
-                                        <div><span>Employer AWf</span><strong>{money(selectedRecord.employerAwf)}</strong></div>
-                                        <div><span>Employer Aof</span><strong>{money(selectedRecord.employerAof)}</strong></div>
-                                        <div><span>Employer Whk</span><strong>{money(selectedRecord.employerWhk)}</strong></div>
-                                        <div><span>Employer Wko</span><strong>{money(selectedRecord.employerWko)}</strong></div>
-                                        <div><span>Employer Zvw</span><strong>{money(selectedRecord.employerZvw)}</strong></div>
-                                        <div><span>Employer pension</span><strong>{money(selectedRecord.employerPension)}</strong></div>
+                                        <h3>Revenue summary</h3>
+                                        <div><span>Client revenue</span><strong>{money(selectedRun.summary.totalClientRevenue)}</strong></div>
+                                        <div><span>Total employer cost</span><strong>{money(selectedRun.summary.totalEmployerCosts)}</strong></div>
+                                        <div><span>Margin before overhead</span><strong>{money(selectedRun.summary.totalMarginBeforeOverhead)}</strong></div>
+                                        <div><span>Company tax reserve</span><strong>{money(selectedRun.companyTaxReserve)}</strong></div>
+                                        <div><span>Margin after reserve</span><strong>{money(selectedRun.marginAfterCompanyTaxReserve)}</strong></div>
                                         <h3>Belastingdienst payment</h3>
-                                        <div><span>Total payable to Belastingdienst</span><strong>{money(selectedRecord.totalPayableToBelastingdienst)}</strong></div>
+                                        <div><span>Payroll tax and employer contributions</span><strong>{money(selectedRun.summary.totalPayableToBelastingdienst)}</strong></div>
                                         <h3>Pension payment</h3>
-                                        <div><span>Total payable to pension fund</span><strong>{money(selectedRecord.totalPayableToPensionFund)}</strong></div>
-                                        <h3>Client invoice calculation</h3>
-                                        <div><span>Client billing rate per hour</span><strong>{selectedRecord.clientBillingRatePerHour == null ? "Missing" : money(selectedRecord.clientBillingRatePerHour)}</strong></div>
-                                        <div><span>Client revenue</span><strong>{money(selectedRecord.clientRevenue)}</strong></div>
-                                        <h3>Margin calculation</h3>
-                                        <div><span>Total employer cost</span><strong>{money(selectedRecord.totalEmployerCost)}</strong></div>
-                                        <div><span>Margin before overhead</span><strong>{money(selectedRecord.marginBeforeOverhead)}</strong></div>
-                                        <div><span>Margin percentage</span><strong>{pct(selectedRecord.marginPercentage)}</strong></div>
+                                        <div><span>Employee and employer pension</span><strong>{money(selectedRun.summary.totalPayableToPensionFund)}</strong></div>
+                                        <h3>Employee shift assignments</h3>
+                                        {selectedRun.records.map((record) => (
+                                            <div key={record.id}>
+                                                <span>{record.employeeName} · {record.jobPresetName} · {numberFormatter.format(record.workedHours)} hours</span>
+                                                <strong>{money(record.clientRevenue)} / {money(record.totalEmployerCost)}</strong>
+                                            </div>
+                                        ))}
+                                        <h3>Finance settings</h3>
+                                        {financeSettingsRows.map(([label, value]) => (
+                                            <div key={label}><span>{label}</span><strong>{value}</strong></div>
+                                        ))}
+                                        <h3>Adjustment audit log</h3>
+                                        {selectedRun.adjustmentLog.map((entry) => (
+                                            <p key={entry.label}>
+                                                <strong>{entry.label}:</strong> {entry.text}
+                                            </p>
+                                        ))}
                                         <h3>Source notes</h3>
                                         <p>
                                             Payroll source values come from the horeca CAO, wage table, Belastingdienst
                                             documents, and pension fund rules. Billing rates, reserves, overhead, and margin
                                             targets are internal finance settings.
                                         </p>
-                                        {selectedRecord.warnings.length > 0 ? (
+                                        {selectedRun.records.flatMap((record) => record.warnings).length > 0 ? (
                                             <div className="financeWarningList">
-                                                {selectedRecord.warnings.map((warning) => (
-                                                    <span key={warning}>{warning}</span>
+                                                {selectedRun.records.flatMap((record) => record.warnings).map((warning, index) => (
+                                                    <span key={`${warning}-${index}`}>{warning}</span>
                                                 ))}
                                             </div>
                                         ) : null}

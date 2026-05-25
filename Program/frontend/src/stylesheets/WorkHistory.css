@@ -93,6 +93,61 @@
     margin-bottom: 12px;
 }
 
+.workHistoryColumnChooser {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.workHistoryColumnChooser > div:first-child {
+    display: grid;
+    gap: 4px;
+}
+
+.workHistoryColumnChooser strong {
+    color: #111827;
+    font-size: 14px;
+}
+
+.workHistoryColumnChooser span {
+    color: #64748b;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.workHistoryColumnOptions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.workHistoryColumnOptions label {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 32px;
+    padding: 6px 10px;
+    border: 1px solid #dbe4f0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.workHistoryColumnOptions input {
+    margin: 0;
+}
+
+.workHistoryColumnOption--finance {
+    border-color: #bfdbfe !important;
+    background: #eff6ff !important;
+}
+
 .workHistoryFilterGrid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -236,6 +291,26 @@
 
 .workHistoryCellMain--link {
     color: #1d4ed8;
+}
+
+.workHistoryCellSub {
+    margin-top: 3px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.workHistoryStatusPill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    padding: 4px 8px;
+    border: 1px solid #dbe4f0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #334155;
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
 }
 
 .workHistoryTable tfoot td {

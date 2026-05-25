@@ -97,7 +97,7 @@ describe("permissionPolicy", () => {
 
         expect(items).toContain("Company settings");
         expect(items).toContain("Horeca Payroll and Contract Rules");
-        expect(items).toContain("Payroll Finance");
+        expect(items).not.toContain("Payroll Finance");
         expect(items).not.toContain("CAO templates");
     });
 
@@ -119,5 +119,17 @@ describe("permissionPolicy", () => {
             ])
         );
         expect(canAccessManagement(["CAN_VIEW_PAYROLL_FINANCE"])).toBe(true);
+    });
+
+    it("requires explicit finance permission before showing payroll finance", () => {
+        expect(getManagementNavItems(["CAN_ACCESS_ADMIN_DASHBOARD"])).not.toEqual(
+            expect.arrayContaining([expect.objectContaining({ label: "Payroll Finance" })])
+        );
+        expect(getManagementNavItems(["CAN_MANAGE_COMPANY"])).not.toEqual(
+            expect.arrayContaining([expect.objectContaining({ label: "Payroll Finance" })])
+        );
+        expect(getManagementNavItems(["CAN_MANAGE_PAYROLL_FINANCE"])).toEqual(
+            expect.arrayContaining([expect.objectContaining({ label: "Payroll Finance" })])
+        );
     });
 });

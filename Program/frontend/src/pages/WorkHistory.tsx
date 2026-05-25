@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
@@ -11,6 +11,13 @@ import "../stylesheets/WorkHistory.css";
 import { getIsoWeek, sumHours } from "../utils/hoursSummary";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
+import { PAYROLL_FINANCE_PERMISSIONS, hasAnyPermission } from "../utils/permissionPolicy";
+import {
+    getDefaultVisibleWorkHistoryColumns,
+    getWorkHistoryColumns,
+    getWorkHistoryFinanceStatus,
+    type WorkHistoryColumnKey,
+} from "../utils/workHistoryColumns";
 
 type FilterState = {
     search: string;
@@ -49,6 +56,11 @@ const parseNumber = (value: string) => {
 
 const getDatePart = (value: string) => value.split("T")[0].split(" ")[0];
 const DEFAULT_PAGE_SIZE = 50;
+const currencyFormatter = new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+});
 
 export interface Timesheet {
     timesheetId: string;
@@ -60,11 +72,16 @@ export interface Timesheet {
     function: string;
     hoursWorked: number;
     travelExpenses?: number;
-    eventName?: string | null;
+    projectName?: string | null;
     shiftName?: string | null;
     shiftDate?: string | null;
     travelKilometers?: number | null;
     travelRate?: number | null;
+    clientBillingRatePerHour?: number | null;
+    billingRateSource?: string | null;
+    billingRateOverrideReason?: string | null;
+    financeReviewNeeded?: boolean | null;
+    financeLocked?: boolean | null;
 }
 
 export default function WorkHistory() {
@@ -81,13 +98,21 @@ export default function WorkHistory() {
     const [totalPages, setTotalPages] = useState(0);
     const canViewAllTimesheets = permissions.includes("CAN_VIEW_ALL_TIMESHEETS");
     const canManageTimesheets = permissions.includes("CAN_MANAGE_TIMESHEETS");
+    const canViewFinanceColumns = hasAnyPermission(permissions, PAYROLL_FINANCE_PERMISSIONS);
     const showAllTimesheets = canViewAllTimesheets;
-    const getEmployeeName = (timesheet: Timesheet) => {
+    const availableColumns = useMemo(
+        () => getWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns }),
+        [canViewFinanceColumns, showAllTimesheets]
+    );
+    const [visibleColumns, setVisibleColumns] = useState<WorkHistoryColumnKey[]>(() =>
+        getDefaultVisibleWorkHistoryColumns({ showAllTimesheets: false, canViewFinanceColumns: false })
+    );
+    const getEmployeeName = useCallback((timesheet: Timesheet) => {
         if (!timesheet.userId) {
             return timesheet.name ?? "-";
         }
         return displayNames[timesheet.userId] ?? timesheet.name ?? timesheet.userId;
-    };
+    }, [displayNames]);
 
     const userOptions = useMemo(() => {
         if (!showAllTimesheets) return [];
@@ -99,7 +124,7 @@ export default function WorkHistory() {
         return [...map.entries()]
             .map(([id, name]) => ({ id, name }))
             .sort((a, b) => a.name.localeCompare(b.name));
-    }, [displayNames, showAllTimesheets, timesheets]);
+    }, [getEmployeeName, showAllTimesheets, timesheets]);
 
     const functionOptions = useMemo(() => {
         const values = new Set<string>();
@@ -130,7 +155,7 @@ export default function WorkHistory() {
 
             if (term) {
                 const haystack = [getEmployeeName(t), t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
-                    .concat([t.eventName ?? "", t.shiftName ?? ""])
+                    .concat([t.projectName ?? "", t.shiftName ?? ""])
                     .join(" ")
                     .toLowerCase();
                 if (!haystack.includes(term)) return false;
@@ -161,7 +186,7 @@ export default function WorkHistory() {
         });
 
         return [...filtered].sort((a, b) => (b.dateOfIssue ?? "").localeCompare(a.dateOfIssue ?? ""));
-    }, [displayNames, filters, showAllTimesheets, timesheets]);
+    }, [filters, getEmployeeName, showAllTimesheets, timesheets]);
 
     const totalHours = useMemo(() => sumHours(filteredTimesheets), [filteredTimesheets]);
 
@@ -201,6 +226,15 @@ export default function WorkHistory() {
             setFilters((prev) => (prev.userId === "all" ? prev : { ...prev, userId: "all" }));
         }
     }, [showAllTimesheets]);
+
+    useEffect(() => {
+        const availableKeys = availableColumns.map((column) => column.key);
+        const defaultKeys = getDefaultVisibleWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns });
+        setVisibleColumns((current) => {
+            const cleaned = current.filter((key) => availableKeys.includes(key));
+            return cleaned.length > 0 ? cleaned : defaultKeys;
+        });
+    }, [availableColumns, canViewFinanceColumns, showAllTimesheets]);
 
     useEffect(() => {
         let cancelled = false;
@@ -245,7 +279,52 @@ export default function WorkHistory() {
         navigate(`/work-history/${timesheetId}`);
     };
 
-    const columnCount = showAllTimesheets ? 5 : 4;
+    const toggleColumn = (columnKey: WorkHistoryColumnKey) => {
+        setVisibleColumns((current) => {
+            if (current.includes(columnKey)) {
+                return current.filter((key) => key !== columnKey);
+            }
+            return [...current, columnKey];
+        });
+    };
+
+    const renderCell = (timesheet: Timesheet, columnKey: WorkHistoryColumnKey) => {
+        switch (columnKey) {
+            case "date":
+                return formatDate(timesheet.dateOfIssue);
+            case "employee":
+                return getEmployeeName(timesheet);
+            case "shift":
+                return (
+                    <>
+                        <div className="workHistoryCellMain workHistoryCellMain--link">
+                            {timesheet.shiftName ?? timesheet.function}
+                        </div>
+                        <div className="workHistoryCellSub">{timesheet.projectName ?? timesheet.function}</div>
+                    </>
+                );
+            case "hours":
+                return Number(timesheet.hoursWorked ?? 0).toFixed(1);
+            case "travel":
+                return Number(timesheet.travelExpenses ?? 0).toFixed(2);
+            case "financeReadiness":
+                return <span className="workHistoryStatusPill">{getWorkHistoryFinanceStatus(timesheet)}</span>;
+            case "billingRateSource":
+                return timesheet.billingRateSource ?? "Not set";
+            case "clientBillingRatePerHour":
+                return timesheet.clientBillingRatePerHour == null
+                    ? "Missing"
+                    : currencyFormatter.format(timesheet.clientBillingRatePerHour);
+            case "billingOverrideReason":
+                return timesheet.billingRateOverrideReason?.trim() || "No override";
+            case "financeLockStatus":
+                return timesheet.financeLocked ? "Locked after payroll approval" : "Open for finance review";
+            default:
+                return "";
+        }
+    };
+
+    const columnCount = Math.max(visibleColumns.length, 1);
 
     return (
         <>
@@ -283,8 +362,8 @@ export default function WorkHistory() {
                                                         type="search"
                                                         placeholder={
                                                             showAllTimesheets
-                                                                ? "Name, function, event, shift, or employee ID"
-                                                                : "Function, event, shift, or date"
+                                                                ? "Name, function, project, shift, or employee ID"
+                                                                : "Function, project, shift, or date"
                                                         }
                                                         value={filters.search}
                                                         onChange={(e) => updateFilter("search", e.target.value)}
@@ -430,15 +509,50 @@ export default function WorkHistory() {
                                                 </button>
                                             </div>
                                         </div>
+                                        <div className="workHistoryColumnChooser" aria-label="Choose work history columns">
+                                            <div>
+                                                <strong>Columns</strong>
+                                                <span>
+                                                    Finance columns are only available to users with payroll finance permission.
+                                                </span>
+                                            </div>
+                                            <div className="workHistoryColumnOptions">
+                                                {availableColumns.map((column) => (
+                                                    <label
+                                                        key={column.key}
+                                                        className={column.financeOnly ? "workHistoryColumnOption--finance" : ""}
+                                                    >
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={visibleColumns.includes(column.key)}
+                                                            onChange={() => toggleColumn(column.key)}
+                                                        />
+                                                        <span>{column.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
                                         <div className="workHistoryTableWrap">
                                             <table className="workHistoryTable">
                                                 <thead>
                                                     <tr>
-                                                        <th>Date</th>
-                                                        {showAllTimesheets ? <th>Employee</th> : null}
-                                                        <th>Shift</th>
-                                                        <th className="workHistoryHoursCol">Hours Worked</th>
-                                                        <th className="workHistoryHoursCol">Travel</th>
+                                                        {visibleColumns.map((columnKey) => {
+                                                            const column = availableColumns.find((item) => item.key === columnKey);
+                                                            return column ? (
+                                                                <th
+                                                                    key={column.key}
+                                                                    className={
+                                                                        column.key === "hours" ||
+                                                                        column.key === "travel" ||
+                                                                        column.key === "clientBillingRatePerHour"
+                                                                            ? "workHistoryHoursCol"
+                                                                            : undefined
+                                                                    }
+                                                                >
+                                                                    {column.label}
+                                                                </th>
+                                                            ) : null;
+                                                        })}
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -463,20 +577,20 @@ export default function WorkHistory() {
                                                                     }
                                                                 }}
                                                             >
-                                                                <td>{formatDate(t.dateOfIssue)}</td>
-                                                                {showAllTimesheets ? <td>{getEmployeeName(t)}</td> : null}
-                                                                <td>
-                                                                    <div className="workHistoryCellMain workHistoryCellMain--link">
-                                                                        {t.shiftName ?? t.function}
-                                                                    </div>
-                                                                    <div style={{ fontSize: 12, color: "#6b7280" }}>
-                                                                        {t.eventName ?? t.function}
-                                                                    </div>
-                                                                </td>
-                                                                <td className="workHistoryHoursCol">{t.hoursWorked.toFixed(1)}</td>
-                                                                <td className="workHistoryHoursCol">
-                                                                    {Number(t.travelExpenses ?? 0).toFixed(2)}
-                                                                </td>
+                                                                {visibleColumns.map((columnKey) => (
+                                                                    <td
+                                                                        key={columnKey}
+                                                                        className={
+                                                                            columnKey === "hours" ||
+                                                                            columnKey === "travel" ||
+                                                                            columnKey === "clientBillingRatePerHour"
+                                                                                ? "workHistoryHoursCol"
+                                                                                : undefined
+                                                                        }
+                                                                    >
+                                                                        {renderCell(t, columnKey)}
+                                                                    </td>
+                                                                ))}
                                                             </tr>
                                                         ))
                                                     )}

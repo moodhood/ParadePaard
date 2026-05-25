@@ -16,7 +16,7 @@ vi.mock("../components/PrimaryNav", () => ({
 }));
 
 describe("PayrollFinance", () => {
-    it("renders the required payroll finance sections and employee-hidden notice", () => {
+    it("renders the approved payroll finance sections and employee-hidden notice", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <PayrollFinance />
@@ -25,23 +25,25 @@ describe("PayrollFinance", () => {
 
         [
             "Finance overview",
-            "Shift billing rates",
-            "Client invoice calculation",
-            "Employee cost breakdown",
-            "Employer tax and contribution breakdown",
-            "Pension cost breakdown",
+            "Approved payroll runs",
+            "Revenue summary",
+            "Payroll obligations",
+            "Tax and contribution obligations",
+            "Margin summary",
             "Margin calculation",
-            "Finance history per shift",
+            "Adjustment audit log",
             "Finance settings",
         ].forEach((sectionTitle) => {
             expect(html).toContain(sectionTitle);
         });
 
+        expect(html).not.toContain("Shift billing rates");
+        expect(html).not.toContain("Finance history per shift");
         expect(html).toContain("Client billing rates and payroll margin are internal business values.");
         expect(html).toContain("not visible to employees");
     });
 
-    it("shows finance summary cards, filters, editable billing rates, and shift rows", () => {
+    it("shows locked approved run summaries and drilldown actions instead of inline rate editing", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <PayrollFinance />
@@ -52,10 +54,10 @@ describe("PayrollFinance", () => {
         expect(html).toContain("Total employer costs");
         expect(html).toContain("Total payable to Belastingdienst");
         expect(html).toContain("Number of shifts missing billing rates");
-        expect(html).toContain("Date range");
-        expect(html).toContain("Client billing rate per hour");
-        expect(html).toContain("Bulk update billing rates");
+        expect(html).toContain("Approved after payroll run");
+        expect(html).toContain("Finance values locked");
+        expect(html).toContain("Open run breakdown");
+        expect(html).not.toContain("Bulk update billing rates");
         expect(html).toContain("Margin before overhead");
-        expect(html).toContain("View breakdown");
     });
 });
