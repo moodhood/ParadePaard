@@ -27,6 +27,8 @@ const permissionLabelOverrides: Record<string, string> = {
     CAN_MANAGE_CONTRACTS: "Manage contracts",
     CAN_REVIEW_CONTRACTS: "Review signed contracts",
     CAN_FINALIZE_CONTRACT: "Finalize contracts",
+    CAN_VIEW_PAYROLL_FINANCE: "View payroll finance",
+    CAN_MANAGE_PAYROLL_FINANCE: "Manage payroll finance",
 };
 
 const SECTION_DEFINITIONS: PermissionSectionDefinition[] = [
@@ -80,6 +82,10 @@ const SECTION_DEFINITIONS: PermissionSectionDefinition[] = [
             "CAN_REVIEW_PAYSLIPS",
             "CAN_MANAGE_PAYSLIPS",
         ],
+    },
+    {
+        title: "Payroll finance",
+        permissions: ["CAN_VIEW_PAYROLL_FINANCE", "CAN_MANAGE_PAYROLL_FINANCE"],
     },
     {
         title: "Company settings",

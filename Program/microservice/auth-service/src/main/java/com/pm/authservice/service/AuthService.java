@@ -89,7 +89,11 @@ public class AuthService {
             "CAN_MANAGE_TIMESHEETS",
             "CAN_VIEW_ALL_PAYSLIPS",
             "CAN_REVIEW_PAYSLIPS",
-            "CAN_MANAGE_PAYSLIPS"
+            "CAN_MANAGE_PAYSLIPS",
+            "CAN_MANAGE_MESSAGES",
+            "CAN_MANAGE_PLANNING",
+            "CAN_VIEW_PAYROLL_FINANCE",
+            "CAN_MANAGE_PAYROLL_FINANCE"
     );
     private static final List<String> DEFAULT_USER_PERMISSIONS = List.of(
             "CAN_COMPLETE_ONBOARDING",

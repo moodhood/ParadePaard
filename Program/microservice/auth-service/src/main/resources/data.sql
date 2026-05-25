@@ -456,6 +456,12 @@ SELECT gen_random_uuid(), 'CAN_MANAGE_MESSAGES'
 INSERT INTO permissions (id, name)
 SELECT gen_random_uuid(), 'CAN_MANAGE_PLANNING'
     WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_PLANNING');
+INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_VIEW_PAYROLL_FINANCE'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_VIEW_PAYROLL_FINANCE');
+INSERT INTO permissions (id, name)
+SELECT gen_random_uuid(), 'CAN_MANAGE_PAYROLL_FINANCE'
+    WHERE NOT EXISTS (SELECT 1 FROM permissions WHERE name = 'CAN_MANAGE_PAYROLL_FINANCE');
 
 -- assign permissions to ADMIN role
 INSERT INTO role_permissions (role_id, permission_id)
@@ -495,7 +501,9 @@ FROM roles r
     'CAN_REVIEW_PAYSLIPS',
     'CAN_MANAGE_PAYSLIPS',
     'CAN_MANAGE_MESSAGES',
-    'CAN_MANAGE_PLANNING'
+    'CAN_MANAGE_PLANNING',
+    'CAN_VIEW_PAYROLL_FINANCE',
+    'CAN_MANAGE_PAYROLL_FINANCE'
 )
 WHERE r.name = 'ADMIN'
   AND NOT EXISTS (

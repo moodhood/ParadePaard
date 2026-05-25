@@ -50,4 +50,17 @@ describe("permissionSections", () => {
             "CAN_VIEW_ALL_CONTRACTS",
         ]);
     });
+
+    it("groups payroll finance permissions separately from payslips", () => {
+        const sections = buildPermissionSections([
+            "CAN_VIEW_ALL_PAYSLIPS",
+            "CAN_VIEW_PAYROLL_FINANCE",
+            "CAN_MANAGE_PAYROLL_FINANCE",
+        ]);
+
+        expect(sections.map((section) => section.title)).toEqual(["Payslips", "Payroll finance"]);
+        expect(sections[1]?.permissions).toEqual(["CAN_MANAGE_PAYROLL_FINANCE", "CAN_VIEW_PAYROLL_FINANCE"]);
+        expect(formatPermission("CAN_VIEW_PAYROLL_FINANCE")).toBe("View payroll finance");
+        expect(formatPermission("CAN_MANAGE_PAYROLL_FINANCE")).toBe("Manage payroll finance");
+    });
 });
