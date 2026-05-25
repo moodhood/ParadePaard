@@ -10,6 +10,7 @@
   margin: 0 0 24px;
   padding-top: var(--nav-gap);
   padding-right: 24px;
+  padding-left: calc(var(--sidebar-collapsed-width, 76px) + 24px);
   box-sizing: border-box;
   max-width: none;
 }
@@ -56,6 +57,7 @@
     margin: 0 0 16px;
     padding-top: var(--nav-gap);
     padding-right: 16px;
+    padding-left: calc(var(--sidebar-collapsed-width, 76px) + 16px);
   }
 
   .pageShellContent {
@@ -64,5 +66,11 @@
 
   .pageShell--centered {
     padding: var(--nav-gap) 16px 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .pageShell {
+    padding-left: 16px;
   }
 }
