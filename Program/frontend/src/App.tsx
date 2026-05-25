@@ -3,7 +3,7 @@ import Login from "./pages/Login";
 import Application from "./pages/Application";
 import Dashboard from "./pages/Dashboard";
 import Management from "./pages/Management";
-import WorkHistory from "./pages/WorkHistory";
+import WorkHistory, { ManagementWorkHistory } from "./pages/WorkHistory";
 import WorkHistoryShiftDetail from "./pages/WorkHistoryShiftDetail";
 import TravelClaims from "./pages/TravelClaims";
 import Messages from "./pages/Messages";
@@ -141,6 +141,26 @@ export default function App() {
                     <RequireActiveUser>
                         <RequirePermission anyOf={MANAGEMENT_PERMISSIONS}>
                             <Management />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/work-history"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_VIEW_ALL_TIMESHEETS">
+                            <ManagementWorkHistory />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/work-history/:timesheetId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_VIEW_ALL_TIMESHEETS">
+                            <WorkHistoryShiftDetail />
                         </RequirePermission>
                     </RequireActiveUser>
                 }

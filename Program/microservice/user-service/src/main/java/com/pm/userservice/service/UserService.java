@@ -11,6 +11,7 @@ import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.PayrollTaxTemplateDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
+import com.pm.userservice.dto.WorkHistoryColumnsPreferenceDTO;
 import com.pm.userservice.exception.UserNotFoundException;
 import com.pm.userservice.mapper.UserMapper;
 import com.pm.userservice.model.CaoTemplate;
@@ -41,6 +42,8 @@ public class UserService {
     private static final Set<String> TIMESHEET_LOGGING_MODES = Set.of("AUTO_ON_SHIFT_END", "ADMIN_FINALIZE");
     private static final Set<String> TRAVEL_CLAIM_MODES = Set.of("AUTO_APPROVE", "REQUIRES_APPROVAL");
     private static final TypeReference<List<PayrollTaxTemplateDTO>> PAYROLL_TEMPLATE_LIST_TYPE =
+            new TypeReference<>() {};
+    private static final TypeReference<List<String>> STRING_LIST_TYPE =
             new TypeReference<>() {};
 
     private final UserRepository userRepository;
@@ -403,6 +406,31 @@ public class UserService {
         return toUserResponseDTO(updated, payoutFrequency);
     }
 
+    @Transactional(readOnly = true)
+    public WorkHistoryColumnsPreferenceDTO getWorkHistoryColumnsPreference(UUID userId) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + userId + " not found"));
+        return new WorkHistoryColumnsPreferenceDTO(readStringList(user.getWorkHistoryColumnsJson()));
+    }
+
+    @Transactional
+    public WorkHistoryColumnsPreferenceDTO updateWorkHistoryColumnsPreference(
+            UUID userId,
+            WorkHistoryColumnsPreferenceDTO preference
+    ) {
+        User user = userRepository.findByUserId(userId)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + userId + " not found"));
+        List<String> columns = preference == null || preference.columns() == null ? List.of() : preference.columns();
+        List<String> cleaned = columns.stream()
+                .filter(value -> value != null && !value.isBlank())
+                .map(String::trim)
+                .distinct()
+                .toList();
+        user.setWorkHistoryColumnsJson(writeJsonSafely(cleaned));
+        userRepository.save(user);
+        return new WorkHistoryColumnsPreferenceDTO(cleaned);
+    }
+
     private UserResponseDTO toUserResponseDTO(User user, Integer payoutFrequencyMinutes) {
         UserResponseDTO dto = UserMapper.toDTO(user, payoutFrequencyMinutes);
         if (dto == null || user == null) return dto;
@@ -433,6 +461,15 @@ public class UserService {
             return objectMapper.readValue(json, OnboardingReviewContractSetupDraftDTO.class);
         } catch (Exception ignored) {
             return null;
+        }
+    }
+
+    private List<String> readStringList(String json) {
+        if (json == null || json.isBlank()) return List.of();
+        try {
+            return objectMapper.readValue(json, STRING_LIST_TYPE);
+        } catch (Exception ignored) {
+            return List.of();
         }
     }
 

@@ -125,6 +125,9 @@ public class User {
     @Column(name = "cao_variable_overrides_json", columnDefinition = "TEXT")
     private String caoVariableOverridesJson;
 
+    @Column(name = "work_history_columns_json", columnDefinition = "TEXT")
+    private String workHistoryColumnsJson;
+
     public UUID getUserId() {
         return userId;
     }
@@ -497,4 +500,6 @@ public class User {
     public void setAssignedCaoId(UUID assignedCaoId) { this.assignedCaoId = assignedCaoId; }
     public String getCaoVariableOverridesJson() { return caoVariableOverridesJson; }
     public void setCaoVariableOverridesJson(String caoVariableOverridesJson) { this.caoVariableOverridesJson = caoVariableOverridesJson; }
+    public String getWorkHistoryColumnsJson() { return workHistoryColumnsJson; }
+    public void setWorkHistoryColumnsJson(String workHistoryColumnsJson) { this.workHistoryColumnsJson = workHistoryColumnsJson; }
 }

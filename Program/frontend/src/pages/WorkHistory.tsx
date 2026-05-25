@@ -7,55 +7,76 @@ import Card from "../components/common/Card";
 import PaginationControls from "../components/common/PaginationControls";
 import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
+import {
+    getMyWorkHistoryColumnsPreference,
+    updateMyWorkHistoryColumnsPreference,
+} from "../services/user-service/WorkHistoryPreferences";
 import "../stylesheets/WorkHistory.css";
-import { getIsoWeek, sumHours } from "../utils/hoursSummary";
+import { sumHours } from "../utils/hoursSummary";
 import { formatDate } from "../utils/dateFormat";
-import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
+import { normalizeDateInput } from "../utils/dateInput";
 import { PAYROLL_FINANCE_PERMISSIONS, hasAnyPermission } from "../utils/permissionPolicy";
+import { applyWorkHistoryFilters, type WorkHistoryFilterField, type WorkHistoryFilterRow } from "../utils/workHistoryFilters";
 import {
     getDefaultVisibleWorkHistoryColumns,
     getWorkHistoryColumns,
     getWorkHistoryFinanceStatus,
+    sanitizeVisibleWorkHistoryColumns,
     type WorkHistoryColumnKey,
 } from "../utils/workHistoryColumns";
 
-type FilterState = {
-    search: string;
-    userId: string;
-    functionName: string;
-    dateFrom: string;
-    dateTo: string;
-    weekYear: string;
-    weekNumber: string;
-    minHours: string;
-    maxHours: string;
-    minTravel: string;
-    maxTravel: string;
-};
-
-const createFilters = (): FilterState => ({
-    search: "",
-    userId: "all",
-    functionName: "all",
-    dateFrom: "",
-    dateTo: "",
-    weekYear: "",
-    weekNumber: "",
-    minHours: "",
-    maxHours: "",
-    minTravel: "",
-    maxTravel: "",
+const DEFAULT_PAGE_SIZE = 50;
+type WorkHistoryScope = "mine" | "management";
+const createFilterRow = (field: WorkHistoryFilterField = "search"): WorkHistoryFilterRow => ({
+    id: crypto.randomUUID(),
+    field,
+    value: "",
 });
 
-const parseNumber = (value: string) => {
-    const trimmed = value.trim();
-    if (!trimmed) return null;
-    const num = Number(trimmed);
-    return Number.isFinite(num) ? num : null;
+const FILTER_LABELS: Record<WorkHistoryFilterField, string> = {
+    search: "Search",
+    employee: "Employee",
+    function: "Function",
+    project: "Project",
+    shift: "Shift",
+    dateFrom: "Date from",
+    dateTo: "Date to",
+    weekYear: "Week year",
+    weekNumber: "Week number",
+    minHours: "Min hours",
+    maxHours: "Max hours",
+    minTravel: "Min travel",
+    maxTravel: "Max travel",
+    financeReadiness: "Finance readiness",
 };
 
-const getDatePart = (value: string) => value.split("T")[0].split(" ")[0];
-const DEFAULT_PAGE_SIZE = 50;
+const getFilterInputMode = (field: WorkHistoryFilterField) => {
+    if (field === "dateFrom" || field === "dateTo" || field === "weekYear" || field === "weekNumber") return "numeric";
+    if (field === "minHours" || field === "maxHours" || field === "minTravel" || field === "maxTravel") return "decimal";
+    return "text";
+};
+
+const getFilterPlaceholder = (field: WorkHistoryFilterField) => {
+    switch (field) {
+        case "dateFrom":
+        case "dateTo":
+            return "dd/mm/yyyy";
+        case "weekYear":
+            return "2026";
+        case "weekNumber":
+            return "1-53";
+        case "minHours":
+        case "maxHours":
+            return "Hours";
+        case "minTravel":
+        case "maxTravel":
+            return "Travel amount";
+        case "financeReadiness":
+            return "Billing rate set";
+        default:
+            return "Type to filter";
+    }
+};
 const currencyFormatter = new Intl.NumberFormat("nl-NL", {
     style: "currency",
     currency: "EUR",
@@ -85,21 +106,29 @@ export interface Timesheet {
 }
 
 export default function WorkHistory() {
+    return <WorkHistoryPage scope="mine" />;
+}
+
+export function ManagementWorkHistory() {
+    return <WorkHistoryPage scope="management" />;
+}
+
+function WorkHistoryPage({ scope }: { scope: WorkHistoryScope }) {
     const navigate = useNavigate();
     const { permissions } = useAuth();
     const [timesheets, setTimesheets] = useState<Timesheet[]>([]);
     const [displayNames, setDisplayNames] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
-    const [filters, setFilters] = useState<FilterState>(() => createFilters());
+    const [filters, setFilters] = useState<WorkHistoryFilterRow[]>(() => [createFilterRow()]);
     const [page, setPage] = useState(0);
     const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
     const [totalTimesheets, setTotalTimesheets] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const canViewAllTimesheets = permissions.includes("CAN_VIEW_ALL_TIMESHEETS");
+    const isManagementScope = scope === "management";
     const canManageTimesheets = permissions.includes("CAN_MANAGE_TIMESHEETS");
     const canViewFinanceColumns = hasAnyPermission(permissions, PAYROLL_FINANCE_PERMISSIONS);
-    const showAllTimesheets = canViewAllTimesheets;
+    const showAllTimesheets = isManagementScope;
     const availableColumns = useMemo(
         () => getWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns }),
         [canViewFinanceColumns, showAllTimesheets]
@@ -134,57 +163,35 @@ export default function WorkHistory() {
         return [...values].sort((a, b) => a.localeCompare(b));
     }, [timesheets]);
 
+    const filterOptions = useMemo(() => {
+        const fields: WorkHistoryFilterField[] = [
+            "search",
+            "function",
+            "project",
+            "shift",
+            "dateFrom",
+            "dateTo",
+            "weekYear",
+            "weekNumber",
+            "minHours",
+            "maxHours",
+            "minTravel",
+            "maxTravel",
+        ];
+        if (showAllTimesheets) {
+            fields.splice(1, 0, "employee");
+        }
+        if (canViewFinanceColumns) {
+            fields.push("financeReadiness");
+        }
+        return fields;
+    }, [canViewFinanceColumns, showAllTimesheets]);
+
     const filteredTimesheets = useMemo(() => {
-        const term = filters.search.trim().toLowerCase();
-        const minHours = parseNumber(filters.minHours);
-        const maxHours = parseNumber(filters.maxHours);
-        const minTravel = parseNumber(filters.minTravel);
-        const maxTravel = parseNumber(filters.maxTravel);
-        const weekYear = parseNumber(filters.weekYear);
-        const weekNumber = parseNumber(filters.weekNumber);
-        const dateFrom = parseDisplayDate(filters.dateFrom);
-        const dateTo = parseDisplayDate(filters.dateTo);
-
-        const filtered = timesheets.filter((t) => {
-            if (showAllTimesheets && filters.userId !== "all" && t.userId !== filters.userId) {
-                return false;
-            }
-            if (filters.functionName !== "all" && t.function !== filters.functionName) {
-                return false;
-            }
-
-            if (term) {
-                const haystack = [getEmployeeName(t), t.function ?? "", t.userId ?? "", t.dateOfIssue ?? ""]
-                    .concat([t.projectName ?? "", t.shiftName ?? ""])
-                    .join(" ")
-                    .toLowerCase();
-                if (!haystack.includes(term)) return false;
-            }
-
-            const datePart = getDatePart(t.dateOfIssue ?? "");
-            if (dateFrom && datePart < dateFrom) return false;
-            if (dateTo && datePart > dateTo) return false;
-
-            if (weekYear !== null || weekNumber !== null) {
-                const week =
-                    t.weekNumber != null && t.weekBasedYear != null
-                        ? { weekNumber: t.weekNumber, weekBasedYear: t.weekBasedYear }
-                        : getIsoWeek(new Date(`${datePart}T00:00:00Z`));
-                if (weekYear !== null && week.weekBasedYear !== weekYear) return false;
-                if (weekNumber !== null && week.weekNumber !== weekNumber) return false;
-            }
-
-            const hours = Number(t.hoursWorked ?? 0);
-            const travel = Number(t.travelExpenses ?? 0);
-
-            if (minHours !== null && hours < minHours) return false;
-            if (maxHours !== null && hours > maxHours) return false;
-            if (minTravel !== null && travel < minTravel) return false;
-            if (maxTravel !== null && travel > maxTravel) return false;
-
-            return true;
+        const filtered = applyWorkHistoryFilters(timesheets, filters, {
+            getEmployeeName,
+            includeEmployeeFilters: showAllTimesheets,
         });
-
         return [...filtered].sort((a, b) => (b.dateOfIssue ?? "").localeCompare(a.dateOfIssue ?? ""));
     }, [filters, getEmployeeName, showAllTimesheets, timesheets]);
 
@@ -222,19 +229,39 @@ export default function WorkHistory() {
     }, [page, pageSize, showAllTimesheets]);
 
     useEffect(() => {
-        if (!showAllTimesheets) {
-            setFilters((prev) => (prev.userId === "all" ? prev : { ...prev, userId: "all" }));
-        }
-    }, [showAllTimesheets]);
-
-    useEffect(() => {
-        const availableKeys = availableColumns.map((column) => column.key);
         const defaultKeys = getDefaultVisibleWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns });
         setVisibleColumns((current) => {
-            const cleaned = current.filter((key) => availableKeys.includes(key));
-            return cleaned.length > 0 ? cleaned : defaultKeys;
+            return sanitizeVisibleWorkHistoryColumns(current, availableColumns, defaultKeys);
         });
     }, [availableColumns, canViewFinanceColumns, showAllTimesheets]);
+
+    useEffect(() => {
+        if (!isManagementScope) return;
+
+        let cancelled = false;
+        const defaultKeys = getDefaultVisibleWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns });
+
+        getMyWorkHistoryColumnsPreference()
+            .then((preference) => {
+                if (cancelled) return;
+                setVisibleColumns(
+                    sanitizeVisibleWorkHistoryColumns(
+                        preference.columns as WorkHistoryColumnKey[],
+                        availableColumns,
+                        defaultKeys
+                    )
+                );
+            })
+            .catch(() => {
+                if (!cancelled) {
+                    setVisibleColumns(defaultKeys);
+                }
+            });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [availableColumns, canViewFinanceColumns, isManagementScope, showAllTimesheets]);
 
     useEffect(() => {
         let cancelled = false;
@@ -264,27 +291,50 @@ export default function WorkHistory() {
         };
     }, [timesheets]);
 
-    const updateFilter = (field: keyof FilterState, value: string) => {
-        setFilters((prev) => ({
-            ...prev,
-            [field]: value,
-        }));
+    const updateFilter = (id: string, patch: Partial<WorkHistoryFilterRow>) => {
+        setFilters((prev) =>
+            prev.map((filter) => {
+                if (filter.id !== id) return filter;
+                const nextField = patch.field ?? filter.field;
+                let nextValue = patch.value ?? filter.value;
+                if (nextField === "dateFrom" || nextField === "dateTo") {
+                    nextValue = normalizeDateInput(nextValue);
+                }
+                return { ...filter, ...patch, field: nextField, value: nextValue };
+            })
+        );
+    };
+
+    const addFilter = () => {
+        setFilters((prev) => [...prev, createFilterRow()]);
+    };
+
+    const removeFilter = (id: string) => {
+        setFilters((prev) => {
+            const next = prev.filter((filter) => filter.id !== id);
+            return next.length > 0 ? next : [createFilterRow()];
+        });
     };
 
     const resetFilters = () => {
-        setFilters(createFilters());
+        setFilters([createFilterRow()]);
     };
 
     const openShiftDetail = (timesheetId: string) => {
-        navigate(`/work-history/${timesheetId}`);
+        navigate(isManagementScope ? `/management/work-history/${timesheetId}` : `/work-history/${timesheetId}`);
     };
 
     const toggleColumn = (columnKey: WorkHistoryColumnKey) => {
         setVisibleColumns((current) => {
-            if (current.includes(columnKey)) {
-                return current.filter((key) => key !== columnKey);
+            const next = current.includes(columnKey)
+                ? current.filter((key) => key !== columnKey)
+                : [...current, columnKey];
+            const defaultKeys = getDefaultVisibleWorkHistoryColumns({ showAllTimesheets, canViewFinanceColumns });
+            const cleaned = sanitizeVisibleWorkHistoryColumns(next, availableColumns, defaultKeys);
+            if (isManagementScope) {
+                void updateMyWorkHistoryColumnsPreference(cleaned);
             }
-            return [...current, columnKey];
+            return cleaned;
         });
     };
 
@@ -337,8 +387,8 @@ export default function WorkHistory() {
                             className="workHistoryHeader"
                             style={{ flexDirection: "row", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}
                         >
-                            <h1 className="workHistoryTitle">Work History</h1>
-                            {canManageTimesheets ? (
+                            <h1 className="workHistoryTitle">{isManagementScope ? "Work History" : "My Work History"}</h1>
+                            {isManagementScope && canManageTimesheets ? (
                                 <Link className="button" to="/management/travel-claims">
                                     Open travel claims
                                 </Link>
@@ -353,144 +403,81 @@ export default function WorkHistory() {
                                 <div className="workHistoryError">{errorMsg}</div>
                             ) : (
                                 <div style={{ display: "grid", gap: 20 }}>
-                                    <Card title="Timesheets" className="workHistoryCard">
+                                    <Card title={isManagementScope ? "Timesheets" : "My timesheets"} className="workHistoryCard">
                                         <div className="workHistoryFilterPanel">
-                                            <div className="workHistoryFilterGrid">
-                                                <label className="workHistoryFilterField">
-                                                    <span>Search</span>
-                                                    <input
-                                                        type="search"
-                                                        placeholder={
-                                                            showAllTimesheets
-                                                                ? "Name, function, project, shift, or employee ID"
-                                                                : "Function, project, shift, or date"
-                                                        }
-                                                        value={filters.search}
-                                                        onChange={(e) => updateFilter("search", e.target.value)}
-                                                    />
-                                                </label>
-
-                                                {showAllTimesheets ? (
-                                                    <label className="workHistoryFilterField">
-                                                        <span>Employee</span>
-                                                        <select
-                                                            value={filters.userId}
-                                                            onChange={(e) => updateFilter("userId", e.target.value)}
+                                            <div className="workHistoryDynamicFilters">
+                                                {filters.map((filter) => (
+                                                    <div className="workHistoryFilterRow" key={filter.id}>
+                                                        <label className="workHistoryFilterField workHistoryFilterField--field">
+                                                            <span>Filter on</span>
+                                                            <select
+                                                                value={filter.field}
+                                                                onChange={(e) =>
+                                                                    updateFilter(filter.id, {
+                                                                        field: e.target.value as WorkHistoryFilterField,
+                                                                        value: "",
+                                                                    })
+                                                                }
+                                                            >
+                                                                {filterOptions.map((field) => (
+                                                                    <option key={field} value={field}>
+                                                                        {FILTER_LABELS[field]}
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                        </label>
+                                                        <label className="workHistoryFilterField">
+                                                            <span>{FILTER_LABELS[filter.field]}</span>
+                                                            {filter.field === "employee" ? (
+                                                                <select
+                                                                    value={filter.value}
+                                                                    onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                                                                >
+                                                                    <option value="">Any employee</option>
+                                                                    {userOptions.map((user) => (
+                                                                        <option key={user.id} value={user.name}>
+                                                                            {user.name}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : filter.field === "function" ? (
+                                                                <select
+                                                                    value={filter.value}
+                                                                    onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                                                                >
+                                                                    <option value="">Any function</option>
+                                                                    {functionOptions.map((value) => (
+                                                                        <option key={value} value={value}>
+                                                                            {value}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : (
+                                                                <input
+                                                                    type={filter.field === "search" ? "search" : "text"}
+                                                                    inputMode={getFilterInputMode(filter.field)}
+                                                                    value={filter.value}
+                                                                    onChange={(e) => updateFilter(filter.id, { value: e.target.value })}
+                                                                    placeholder={getFilterPlaceholder(filter.field)}
+                                                                    maxLength={
+                                                                        filter.field === "dateFrom" || filter.field === "dateTo"
+                                                                            ? 10
+                                                                            : undefined
+                                                                    }
+                                                                />
+                                                            )}
+                                                        </label>
+                                                        <button
+                                                            type="button"
+                                                            className="workHistoryIconButton"
+                                                            onClick={() => removeFilter(filter.id)}
+                                                            aria-label="Remove filter"
+                                                            title="Remove filter"
                                                         >
-                                                            <option value="all">All employees</option>
-                                                            {userOptions.map((user) => (
-                                                                <option key={user.id} value={user.id}>
-                                                                    {user.name}
-                                                                </option>
-                                                            ))}
-                                                        </select>
-                                                    </label>
-                                                ) : null}
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Function</span>
-                                                    <select
-                                                        value={filters.functionName}
-                                                        onChange={(e) => updateFilter("functionName", e.target.value)}
-                                                    >
-                                                        <option value="all">All functions</option>
-                                                        {functionOptions.map((value) => (
-                                                            <option key={value} value={value}>
-                                                                {value}
-                                                            </option>
-                                                        ))}
-                                                    </select>
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Date from</span>
-                                                    <input
-                                                        type="text"
-                                                        value={filters.dateFrom}
-                                                        onChange={(e) => updateFilter("dateFrom", normalizeDateInput(e.target.value))}
-                                                        inputMode="numeric"
-                                                        placeholder="dd/mm/yyyy"
-                                                        maxLength={10}
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Date to</span>
-                                                    <input
-                                                        type="text"
-                                                        value={filters.dateTo}
-                                                        onChange={(e) => updateFilter("dateTo", normalizeDateInput(e.target.value))}
-                                                        inputMode="numeric"
-                                                        placeholder="dd/mm/yyyy"
-                                                        maxLength={10}
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Week year</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="numeric"
-                                                        value={filters.weekYear}
-                                                        onChange={(e) => updateFilter("weekYear", e.target.value)}
-                                                        placeholder="2026"
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Week number</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="numeric"
-                                                        value={filters.weekNumber}
-                                                        onChange={(e) => updateFilter("weekNumber", e.target.value)}
-                                                        placeholder="1-53"
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Min hours</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        value={filters.minHours}
-                                                        onChange={(e) => updateFilter("minHours", e.target.value)}
-                                                        placeholder="0"
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Max hours</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        value={filters.maxHours}
-                                                        onChange={(e) => updateFilter("maxHours", e.target.value)}
-                                                        placeholder="60"
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Min travel</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        value={filters.minTravel}
-                                                        onChange={(e) => updateFilter("minTravel", e.target.value)}
-                                                        placeholder="0"
-                                                    />
-                                                </label>
-
-                                                <label className="workHistoryFilterField">
-                                                    <span>Max travel</span>
-                                                    <input
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        value={filters.maxTravel}
-                                                        onChange={(e) => updateFilter("maxTravel", e.target.value)}
-                                                        placeholder="100"
-                                                    />
-                                                </label>
+                                                            -
+                                                        </button>
+                                                    </div>
+                                                ))}
                                             </div>
                                             <div className="workHistoryFilterActions">
                                                 <div className="workHistoryFilterMeta">
@@ -503,35 +490,44 @@ export default function WorkHistory() {
                                                 <button
                                                     type="button"
                                                     className="workHistoryButtonSecondary"
+                                                    onClick={addFilter}
+                                                >
+                                                    Add filter
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="workHistoryButtonSecondary"
                                                     onClick={resetFilters}
                                                 >
                                                     Reset filters
                                                 </button>
                                             </div>
                                         </div>
-                                        <div className="workHistoryColumnChooser" aria-label="Choose work history columns">
-                                            <div>
-                                                <strong>Columns</strong>
-                                                <span>
-                                                    Finance columns are only available to users with payroll finance permission.
-                                                </span>
+                                        {isManagementScope ? (
+                                            <div className="workHistoryColumnChooser" aria-label="Choose work history columns">
+                                                <div>
+                                                    <strong>Columns</strong>
+                                                    <span>
+                                                        Finance columns are only available to users with payroll finance permission.
+                                                    </span>
+                                                </div>
+                                                <div className="workHistoryColumnOptions">
+                                                    {availableColumns.map((column) => (
+                                                        <label
+                                                            key={column.key}
+                                                            className={column.financeOnly ? "workHistoryColumnOption--finance" : ""}
+                                                        >
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={visibleColumns.includes(column.key)}
+                                                                onChange={() => toggleColumn(column.key)}
+                                                            />
+                                                            <span>{column.label}</span>
+                                                        </label>
+                                                    ))}
+                                                </div>
                                             </div>
-                                            <div className="workHistoryColumnOptions">
-                                                {availableColumns.map((column) => (
-                                                    <label
-                                                        key={column.key}
-                                                        className={column.financeOnly ? "workHistoryColumnOption--finance" : ""}
-                                                    >
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={visibleColumns.includes(column.key)}
-                                                            onChange={() => toggleColumn(column.key)}
-                                                        />
-                                                        <span>{column.label}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
+                                        ) : null}
                                         <div className="workHistoryTableWrap">
                                             <table className="workHistoryTable">
                                                 <thead>

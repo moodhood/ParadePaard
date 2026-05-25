@@ -59,6 +59,16 @@ export function getDefaultVisibleWorkHistoryColumns(options: WorkHistoryColumnOp
         .map((column) => column.key);
 }
 
+export function sanitizeVisibleWorkHistoryColumns(
+    selected: readonly WorkHistoryColumnKey[] | null | undefined,
+    availableColumns: readonly WorkHistoryColumn[],
+    fallbackColumns: readonly WorkHistoryColumnKey[]
+): WorkHistoryColumnKey[] {
+    const available = new Set(availableColumns.map((column) => column.key));
+    const cleaned = (selected ?? []).filter((key) => available.has(key));
+    return cleaned.length > 0 ? cleaned : [...fallbackColumns];
+}
+
 export function getWorkHistoryFinanceStatus(preview: WorkHistoryFinancePreview): string {
     if (preview.financeReviewNeeded) return "Finance review needed";
     if (preview.clientBillingRatePerHour == null) return "Billing rate missing";

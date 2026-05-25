@@ -40,6 +40,10 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
         description: "Review submitted travel claims and approve or reject expenses.",
         meta: "Expense review",
     },
+    "Work history": {
+        description: "View all worked shifts, filter the history, and choose saved table columns.",
+        meta: "Company history",
+    },
     "All payslips": {
         description: "Inspect company payslips by employee, date, week, and status.",
         meta: "Company payroll",

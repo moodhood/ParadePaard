@@ -1,19 +1,25 @@
 package com.pm.userservice;
 
 import com.pm.userservice.controller.UserController;
+import com.pm.userservice.dto.WorkHistoryColumnsPreferenceDTO;
 import com.pm.userservice.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
 import java.lang.reflect.Method;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -54,5 +60,45 @@ class UserControllerTest {
         ResponseEntity<byte[]> missing = controller.getUserIdDocumentImage(missingUserId, null);
 
         assertThat(missing.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void workHistoryColumnPreferenceReadsTheCurrentUsersSavedColumns() {
+        UUID userId = UUID.randomUUID();
+        JwtAuthenticationToken authentication = authenticationFor(userId);
+        WorkHistoryColumnsPreferenceDTO preference = new WorkHistoryColumnsPreferenceDTO(List.of("date", "employee"));
+        when(userService.getWorkHistoryColumnsPreference(userId)).thenReturn(preference);
+
+        ResponseEntity<WorkHistoryColumnsPreferenceDTO> response =
+                controller.getMyWorkHistoryColumnsPreference(authentication);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isEqualTo(preference);
+    }
+
+    @Test
+    void workHistoryColumnPreferenceSavesTheCurrentUsersColumns() {
+        UUID userId = UUID.randomUUID();
+        JwtAuthenticationToken authentication = authenticationFor(userId);
+        WorkHistoryColumnsPreferenceDTO request = new WorkHistoryColumnsPreferenceDTO(List.of("date", "hours"));
+        WorkHistoryColumnsPreferenceDTO saved = new WorkHistoryColumnsPreferenceDTO(List.of("date", "hours"));
+        when(userService.updateWorkHistoryColumnsPreference(userId, request)).thenReturn(saved);
+
+        ResponseEntity<WorkHistoryColumnsPreferenceDTO> response =
+                controller.updateMyWorkHistoryColumnsPreference(authentication, request);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getBody()).isEqualTo(saved);
+        verify(userService).updateWorkHistoryColumnsPreference(userId, request);
+    }
+
+    private static JwtAuthenticationToken authenticationFor(UUID userId) {
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "none")
+                .claim("userId", userId.toString())
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(60))
+                .build();
+        return new JwtAuthenticationToken(jwt);
     }
 }

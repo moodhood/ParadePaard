@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
@@ -33,6 +33,7 @@ function formatTimeRange(start?: string | null, end?: string | null): string {
 export default function WorkHistoryShiftDetail() {
     const { timesheetId } = useParams<{ timesheetId: string }>();
     const navigate = useNavigate();
+    const location = useLocation();
     const { permissions, permissionsLoading } = useAuth();
     const [timesheet, setTimesheet] = useState<TimesheetRow | null>(null);
     const [assignment, setAssignment] = useState<EmployeePlanningAssignmentDTO | null>(null);
@@ -117,8 +118,8 @@ export default function WorkHistoryShiftDetail() {
     }, [permissions, permissionsLoading, timesheetId]);
 
     const backTarget = useMemo(() => {
-        return "/work-history";
-    }, []);
+        return location.pathname.startsWith("/management/work-history") ? "/management/work-history" : "/work-history";
+    }, [location.pathname]);
 
     const openProof = async () => {
         if (!timesheet?.sourceScheduleEntryId) return;

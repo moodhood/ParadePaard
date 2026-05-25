@@ -9,6 +9,7 @@ import com.pm.userservice.dto.UpdateCompanyRequestDTO;
 import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
+import com.pm.userservice.dto.WorkHistoryColumnsPreferenceDTO;
 import com.pm.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -349,6 +350,31 @@ public class UserController {
         }
         UserResponseDTO updated = userService.updateCompanyPayoutFrequency(userId, companyId, minutes);
         return ResponseEntity.ok(updated);
+    }
+
+    @GetMapping("/me/preferences/work-history-columns")
+    @Operation(summary = "Return current user's saved work history column preference")
+    public ResponseEntity<WorkHistoryColumnsPreferenceDTO> getMyWorkHistoryColumnsPreference(Authentication authentication) {
+        try {
+            UUID userId = requireUserId(authentication);
+            return ResponseEntity.ok(userService.getWorkHistoryColumnsPreference(userId));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(401).build();
+        }
+    }
+
+    @PutMapping("/me/preferences/work-history-columns")
+    @Operation(summary = "Update current user's saved work history column preference")
+    public ResponseEntity<WorkHistoryColumnsPreferenceDTO> updateMyWorkHistoryColumnsPreference(
+            Authentication authentication,
+            @RequestBody WorkHistoryColumnsPreferenceDTO body
+    ) {
+        try {
+            UUID userId = requireUserId(authentication);
+            return ResponseEntity.ok(userService.updateWorkHistoryColumnsPreference(userId, body));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(401).build();
+        }
     }
 
     @GetMapping

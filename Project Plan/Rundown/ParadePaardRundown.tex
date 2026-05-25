@@ -108,7 +108,7 @@ The page includes loading, empty, error, and sending states. After a message is 
 
 The Management Dashboard is the entry page for permission-based company work. It does not assume the user has broad access. Instead, it reads the user's permissions and shows only the management areas the user can open from this dashboard.
 
-A user with user-view access sees user management. A user with application-review access sees Applications. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace and the Horeca Payroll and Contract Rules card when the user also has company-management access. A planning manager sees planning and clients. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings and horeca payroll rule management. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
+A user with user-view access sees user management. A user with application-review access sees Applications. A user with onboarding access sees employee onboarding. A user with onboarding-review access sees the onboarding review queue. A user with contract access sees the contract workspace and the Horeca Payroll and Contract Rules card when the user also has company-management access. A planning manager sees planning and clients. A user with \code{CAN_VIEW_ALL_TIMESHEETS} sees the management Work history page. A timesheet manager sees travel claims. A payroll user with all-payslip or review permissions sees payslip pages. A company or role manager sees company settings and horeca payroll rule management. If a user has only one narrow management permission, the dashboard stays narrow and only points to that work.
 
 Messages are still available to admins with \code{CAN_MANAGE_MESSAGES} through the shared inbox interface, but the Management dashboard does not show a Messages card.
 
@@ -317,19 +317,33 @@ The travel claim card uses a dedicated stacked form layout with a file-picker co
 
 This page connects planning to expense reimbursement. The shift is first planned and accepted, then after completion it can produce a travel claim that later appears in review and work history.
 
-\subsection{Work History Page}
+\subsection{My Work History Page}
 
-The Work History page shows logged timesheets. Employees normally see their own timesheets. Users with \code{CAN_VIEW_ALL_TIMESHEETS} can see all employees' timesheets. If the user can manage timesheets, the page header includes a button to open Travel Claims.
+The My Work History page at \code{/work-history} shows the signed-in user's own logged timesheets. It is a personal history page, so it does not switch into an all-employee view even when the user also has management permissions.
 
-The main content is a Timesheets card with a filter panel, column chooser, table, total bar, and pagination. The filter panel is rich enough to support both personal and all-company scopes. The user can search by function, project, shift, date, name, or employee ID depending on scope. They can filter by employee in all-timesheets view, by function, by date range, by week year and week number, by minimum and maximum hours, and by minimum and maximum travel amount. The Reset filters button clears the filter state.
+The main content is a My timesheets card with a filter panel, table, total bar, and pagination. The filter panel uses flexible filter rows. The user chooses what to filter on, enters the value, and can add more filters with the Add filter button. The personal page can filter by search text, function, project, shift, date range, week year, week number, hours, travel amount, and finance readiness when the user's permissions allow those labels. The Reset filters button clears the filter state.
 
-The column chooser lets the user decide which columns are visible. Normal users can choose operational columns such as date, employee, shift, hours, travel, and a neutral finance readiness label. Users with payroll finance permission also get finance-only columns such as billing rate source, client billing rate per hour, billing override reason, and finance lock status. These finance-only columns are not available to employees or ordinary planning users, so internal rates and margin-related information stay hidden from people without finance permission.
+The My Work History page uses the default personal columns and does not show a column picker. This keeps the personal history page simple and focused on the user's own shifts, hours, travel, and visible finance readiness labels.
 
-The table shows the selected columns. Each row is clickable and keyboard-accessible. Opening a row sends the user to the worked shift detail page. At the bottom, the page shows total hours for the currently visible filtered data and pagination controls for page number and page size.
+The table rows are clickable and keyboard-accessible. Opening a row sends the user to the worked shift detail page. At the bottom, the page shows total hours for the currently visible filtered data and pagination controls for page number and page size.
+
+\subsection{Management Work History Page}
+
+The Management Work History page at \code{/management/work-history} shows all logged company timesheets. It is only available to users with \code{CAN_VIEW_ALL_TIMESHEETS}. The Management Dashboard shows a Work history card only for users with that permission.
+
+The page has the same work-history table pattern as the personal page, but it is designed for company review. It includes the employee column, can filter by employee, and has a Travel Claims shortcut in the header when the user also has timesheet-management permission.
+
+The filter panel is built from flexible rows. A manager chooses a field in the Filter on dropdown, enters the value, and can add more filters. This means the manager can combine filters such as employee, function, date from, minimum hours, project, shift, week number, travel amount, or finance readiness instead of using one fixed set of always-visible fields.
+
+The management page includes a scrollable column chooser. A manager can choose operational columns such as date, employee, shift, hours, travel, and finance readiness. Users with payroll finance permission also get finance-only columns such as billing rate source, client billing rate per hour, billing override reason, and finance lock status. These finance-only columns are not available to users without finance permission.
+
+The selected management columns are saved to the signed-in user's account. When that user returns to the management Work History page, the same column selection is restored. If a saved column is no longer available to the user, the page falls back to valid default columns.
 
 \subsection{Worked Shift Detail Page}
 
-The Worked Shift page explains one logged timesheet in detail. The Shift overview card shows employee, date, time, shift, event, function, hours worked, break, timesheet state, and logged-at time. If the timesheet is linked to a planning assignment, the page loads that assignment too, so the displayed event and shift context can be richer than the timesheet alone.
+The Worked Shift page explains one logged timesheet in detail. The Shift overview card shows employee, date, time, shift, project, function, hours worked, break, timesheet state, and logged-at time. If the timesheet is linked to a planning assignment, the page loads that assignment too, so the displayed project and shift context can be richer than the timesheet alone.
+
+When a user opens a worked shift from My Work History, the Back control returns to \code{/work-history}. When a user opens it from Management Work History, the Back control returns to \code{/management/work-history}. This keeps personal history and management history separate while using the same detail page.
 
 The Travel expenses card shows the travel amount stored on the timesheet, submission status, kilometers, rate, submitted-at time, reviewed-at time, claim amount, and review note. If the claim includes proof, the page shows a View proof button. Users with all-timesheet or manage-timesheet permissions use management proof access, while employees use their own assignment proof access.
 
@@ -436,7 +450,7 @@ The assignment then moves to the employee side. On the dashboard or My Planning 
 
 After a shift is accepted and worked, the frontend represents the outcome through timesheet and planning states. Company workflow settings determine whether timesheets are expected to be finalized manually by management or logged automatically after the shift ends. The employee sees the result as Scheduled, Pending log, or Logged.
 
-Logged timesheets appear on the Work History page. Employees see their own history, while authorized users can see all employees. A timesheet can be opened into a worked-shift detail page, where the user sees the event, shift, function, hours, break, logged time, and travel expense context.
+Logged timesheets appear on the My Work History page for the signed-in employee. Managers with \code{CAN_VIEW_ALL_TIMESHEETS} use the separate Management Work History page to see all employees. A timesheet can be opened into a worked-shift detail page, where the user sees the project, shift, function, hours, break, logged time, and travel expense context.
 
 The result of this workflow is a worked-hours record that can inform dashboards, management user details, travel claim review, and payroll.
 
@@ -474,7 +488,7 @@ Navigation is split between the top navbar and the primary navigation. The top n
 
 The user search in the navbar is a fast path to employee detail pages for authorized users. A user types part of a name, preferred name, or email, and the dropdown shows up to eight matches. Selecting a result opens that employee's Management User Detail page. The company menu opens Company Settings and is hidden from users without company or role-management permissions.
 
-The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, Messages, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, applications, onboarding, onboarding review, contracts, planning, clients, travel claims, payslip review, all payslips, and company settings. On desktop pages, the left navigation rail now stays fixed in place below the top navbar while the page content scrolls. This means the sidebar no longer shifts when the user reaches the bottom of a long page. The Messages icon can also show a small unread-count badge in its top-right corner, such as 1 or 2, when new company messages are waiting.
+The primary navigation is permission-aware. Everyone gets Dashboard, My planning, Work history, Messages, and Account when those personal pages are available. Payslips appears only for users with own-payslip or all-payslip permission. Management appears only when the user has at least one management permission. Own-contract permissions, including the permission to sign a personal employment contract, do not count as management access. Inside Management, cards point only to the areas the user can access: users, applications, onboarding, onboarding review, contracts, planning, clients, work history, travel claims, payslip review, all payslips, and company settings. On desktop pages, the left navigation rail now stays fixed in place below the top navbar while the page content scrolls. This means the sidebar no longer shifts when the user reaches the bottom of a long page. The Messages icon can also show a small unread-count badge in its top-right corner, such as 1 or 2, when new company messages are waiting.
 
 Access checks make the navigation rules enforceable. The root route is guarded and forwards users to the right first page: dashboard for active sessions, onboarding for pending setup, or login for signed-out visitors. Active pages require an active signed-in user. Onboarding is reserved for pending setup users. Permission-based pages require the matching permission. Old \code{/admin/...} URLs remain only as compatibility redirects into the new \code{/management/...} routes.
 \section{Important Shared Components}
@@ -516,6 +530,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 26: Split Work History into a personal My Work History page and a permission-protected Management Work History page with flexible filters and saved management columns.
     \item 2026 05 25: Added an unread-count badge to the Messages icon in the primary navigation.
     \item 2026 05 25: Fixed the desktop primary navigation sidebar so it stays in a fixed position while long pages scroll.
     \item 2026 05 25: Simplified Payroll Finance to an accurate overview-only page, removed the fake approved payroll run details, and cleaned startup seed data so the app starts with only the Sanne admin login.
