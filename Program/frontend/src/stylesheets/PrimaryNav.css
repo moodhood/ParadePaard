@@ -92,6 +92,26 @@
   margin: 0 12px;
 }
 
+.primaryNavBadge {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 0 0 2px #f2f2f2;
+}
+
 .primaryNav .primaryNavLink--active,
 .primaryNav [aria-current="page"] {
   color: #1a1a1a;
@@ -191,6 +211,11 @@
 
   .primaryNavLink .nav_quick_icon {
     margin: 0;
+  }
+
+  .primaryNavBadge {
+    top: 4px;
+    right: 6px;
   }
 
   .primaryNavLink .nav_quick_text {

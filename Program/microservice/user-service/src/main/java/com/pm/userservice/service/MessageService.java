@@ -48,6 +48,14 @@ public class MessageService {
     }
 
     @Transactional
+    public int getMyUnreadCount(UUID userId) {
+        User user = getUser(userId);
+        return conversationRepository.findByUser_UserIdAndCompanyId(user.getUserId(), user.getCompanyId())
+                .map(conversation -> valueOrZero(conversation.getUnreadByUserCount()))
+                .orElse(0);
+    }
+
+    @Transactional
     public MessageConversationDTO sendUserMessage(UUID userId, MessageSendRequestDTO request) {
         User user = getUser(userId);
         MessageConversation conversation = getOrCreateConversation(user);

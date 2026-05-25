@@ -21,6 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MessageServiceTest {
@@ -106,6 +108,24 @@ class MessageServiceTest {
         assertThatThrownBy(() -> messageService.sendAdminMessage(adminId, otherConversationId, reply))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Conversation not found");
+    }
+
+    @Test
+    void unreadCountCanBeReadWithoutMarkingMessagesAsRead() {
+        UUID companyId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        User normalUser = user(userId, companyId, "Ava", "Jansen", "ava@example.com");
+        MessageConversation conversation = conversation(normalUser, companyId);
+        conversation.setUnreadByUserCount(2);
+
+        when(userRepository.findByUserId(userId)).thenReturn(Optional.of(normalUser));
+        when(conversationRepository.findByUser_UserIdAndCompanyId(userId, companyId))
+                .thenReturn(Optional.of(conversation));
+
+        int unreadCount = messageService.getMyUnreadCount(userId);
+
+        assertThat(unreadCount).isEqualTo(2);
+        verify(conversationRepository, never()).save(any(MessageConversation.class));
     }
 
     private static User user(UUID userId, UUID companyId, String firstNames, String lastName, String email) {

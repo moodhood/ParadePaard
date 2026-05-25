@@ -1,9 +1,24 @@
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { UserServices, type MessageRealtimeEventDTO } from "../services/user-service/UserServices";
 import { canAccessManagement, canViewPayslips } from "../utils/permissionPolicy";
 import "../stylesheets/PrimaryNav.css";
 
-export default function PrimaryNav() {
+type PrimaryNavProps = {
+    messageUnreadCount?: number | null;
+};
+
+function normalizeUnreadCount(value?: number | null) {
+    if (typeof value !== "number" || !Number.isFinite(value)) return 0;
+    return Math.max(0, Math.floor(value));
+}
+
+function formatUnreadCount(value: number) {
+    return value > 99 ? "99+" : String(value);
+}
+
+export default function PrimaryNav({ messageUnreadCount: providedMessageUnreadCount }: PrimaryNavProps = {}) {
     const location = useLocation();
     const path = location.pathname;
     const currentPath = `${location.pathname}${location.search}`;
@@ -19,6 +34,61 @@ export default function PrimaryNav() {
     const { permissions } = useAuth();
     const showManagement = canAccessManagement(permissions);
     const showPayslips = canViewPayslips(permissions);
+    const [loadedMessageUnreadCount, setLoadedMessageUnreadCount] = useState(0);
+    const sseBaseUrl = useMemo(() => {
+        return (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004").replace(/\/$/, "");
+    }, []);
+
+    useEffect(() => {
+        if (providedMessageUnreadCount !== undefined) return;
+        let cancelled = false;
+
+        const loadUnreadCount = async () => {
+            try {
+                const unreadCount = await UserServices.getMyMessageUnreadCount();
+                if (!cancelled) setLoadedMessageUnreadCount(normalizeUnreadCount(unreadCount));
+            } catch {
+                if (!cancelled) setLoadedMessageUnreadCount(0);
+            }
+        };
+
+        void loadUnreadCount();
+
+        if (typeof EventSource === "undefined") {
+            const interval = window.setInterval(() => void loadUnreadCount(), 4000);
+            return () => {
+                cancelled = true;
+                window.clearInterval(interval);
+            };
+        }
+
+        const source = new EventSource(`${sseBaseUrl}/api/messages/me/stream`, { withCredentials: true });
+        source.onmessage = (evt: MessageEvent<string>) => {
+            let data: MessageRealtimeEventDTO | null = null;
+            try {
+                data = JSON.parse(evt.data) as MessageRealtimeEventDTO;
+            } catch {
+                return;
+            }
+
+            if (data?.unreadByUserCount !== undefined) {
+                setLoadedMessageUnreadCount(normalizeUnreadCount(data.unreadByUserCount));
+            }
+        };
+
+        source.addEventListener("error", () => {
+            // EventSource reconnects automatically; keep the last known count.
+        });
+
+        return () => {
+            cancelled = true;
+            source.close();
+        };
+    }, [providedMessageUnreadCount, sseBaseUrl]);
+
+    const messageUnreadCount = normalizeUnreadCount(providedMessageUnreadCount ?? loadedMessageUnreadCount);
+    const messageUnreadLabel = messageUnreadCount > 0 ? formatUnreadCount(messageUnreadCount) : "";
+    const messagesAriaLabel = messageUnreadCount > 0 ? `Messages, ${messageUnreadLabel} unread` : "Messages";
 
     const isDashboardActive = path === "/dashboard";
     const isManagementActive = path.startsWith("/management");
@@ -172,7 +242,7 @@ export default function PrimaryNav() {
                     className={linkClass(isMessagesActive)}
                     to="/messages"
                     aria-current={isMessagesActive ? "page" : undefined}
-                    aria-label="Messages"
+                    aria-label={messagesAriaLabel}
                     title="Messages"
                 >
                     <svg
@@ -189,6 +259,11 @@ export default function PrimaryNav() {
                     >
                         <path d="M21 15a4 4 0 0 1-4 4H7l-4 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z" />
                     </svg>
+                    {messageUnreadCount > 0 ? (
+                        <span className="primaryNavBadge" aria-hidden="true">
+                            {messageUnreadLabel}
+                        </span>
+                    ) : null}
                     <span className="nav_quick_text">Messages</span>
                 </Link>
 

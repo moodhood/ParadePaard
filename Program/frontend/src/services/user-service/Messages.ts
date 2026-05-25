@@ -24,6 +24,10 @@ export type MessageSendRequestDTO = {
     body: string;
 };
 
+export type MessageUnreadCountDTO = {
+    unreadByUserCount?: number | null;
+};
+
 export type MessageRealtimeEventDTO = {
     conversationId?: string | null;
     userDisplayName?: string | null;
@@ -50,6 +54,17 @@ export async function GetMyMessageConversation(API_BASE_URL: string): Promise<Me
         return response.data;
     } catch (error) {
         throw messageError(error, "Could not load your messages");
+    }
+}
+
+export async function GetMyMessageUnreadCount(API_BASE_URL: string): Promise<MessageUnreadCountDTO> {
+    try {
+        const response = await axios.get<MessageUnreadCountDTO>(`${API_BASE_URL}/api/messages/me/unread-count`, {
+            withCredentials: true,
+        });
+        return response.data;
+    } catch (error) {
+        throw messageError(error, "Could not load your unread messages");
     }
 }
 

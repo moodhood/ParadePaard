@@ -25,6 +25,7 @@ import {
     GetAdminMessageConversation,
     GetAdminMessageConversations,
     GetMyMessageConversation,
+    GetMyMessageUnreadCount,
     SendAdminMessage,
     SendMyMessage,
     type MessageConversationDTO,
@@ -263,6 +264,10 @@ export const UserServices = {
     },
     getMyMessageConversation: async (): Promise<MessageConversationDTO> => {
         return await GetMyMessageConversation(API_BASE_URL);
+    },
+    getMyMessageUnreadCount: async (): Promise<number> => {
+        const unread = await GetMyMessageUnreadCount(API_BASE_URL);
+        return unread.unreadByUserCount ?? 0;
     },
     sendMyMessage: async (payload: MessageSendRequestDTO): Promise<MessageConversationDTO> => {
         return await SendMyMessage(API_BASE_URL, payload);

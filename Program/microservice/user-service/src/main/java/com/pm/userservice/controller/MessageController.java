@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -39,6 +40,12 @@ public class MessageController {
     @Operation(summary = "Get the signed-in user's one company conversation")
     public ResponseEntity<MessageConversationDTO> getMyConversation(Authentication authentication) {
         return ResponseEntity.ok(messageService.getMyConversation(requireUserId(authentication)));
+    }
+
+    @GetMapping("/me/unread-count")
+    @Operation(summary = "Get the signed-in user's unread company message count")
+    public ResponseEntity<Map<String, Integer>> getMyUnreadCount(Authentication authentication) {
+        return ResponseEntity.ok(Map.of("unreadByUserCount", messageService.getMyUnreadCount(requireUserId(authentication))));
     }
 
     @PostMapping("/me")
