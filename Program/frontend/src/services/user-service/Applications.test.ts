@@ -12,6 +12,25 @@ vi.mock("axios", () => ({
 }));
 
 describe("application services", () => {
+    it("submits application multipart data without overriding the content type header", async () => {
+        vi.mocked(axios.post).mockResolvedValue({
+            data: { status: "APPLICATION_SUBMITTED" },
+            status: 200,
+        });
+
+        await SubmitApplication("http://localhost:4004", applicationPayload());
+
+        expect(axios.post).toHaveBeenCalledWith(
+            "http://localhost:4004/api/applications",
+            expect.any(FormData),
+            expect.objectContaining({
+                withCredentials: true,
+            })
+        );
+
+        expect(vi.mocked(axios.post).mock.calls[0][2]).not.toHaveProperty("headers");
+    });
+
     it("throws the backend message when application submission fails", async () => {
         vi.mocked(axios.post).mockRejectedValue({
             isAxiosError: true,

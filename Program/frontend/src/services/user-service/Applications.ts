@@ -25,7 +25,6 @@ export async function SubmitApplication(
             `${API_BASE_URL}/api/applications`,
             formData,
             {
-                headers: { "Content-Type": "multipart/form-data" },
                 withCredentials: true,
             }
         );

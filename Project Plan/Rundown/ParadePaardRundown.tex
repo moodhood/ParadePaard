@@ -59,6 +59,8 @@ The Note section gives the applicant one open text area for extra information. T
 
 The user can fill in the required fields, choose a contract preference such as on-call, fixed hours, temporary event work, or no preference, add one optional note for the reviewer, attach a CV if they want, and submit the application. The submit action goes through the public application gateway route, so a visitor can apply from \code{/apply} without signing in. Before submitting, the user must confirm that ParadePaard may contact them about the application and that the information is accurate.
 
+The application submit request now lets the browser manage the multipart upload headers itself. That keeps the CV upload and application data formatted correctly so the form can submit reliably through the gateway.
+
 The page intentionally does not ask for sensitive onboarding information such as bank details, BSN or tax ID, identity document numbers, or ID images. After submission, the page shows an ``Application submitted'' confirmation and explains that sensitive onboarding information is only requested later if the application continues. If the applicant enters an email address that is already used by an existing application or user account, the application is not submitted and the form shows an email-already-exists error. If submission fails for another reason, the form shows an error message so the applicant can try again.
 
 \subsection{Employee Onboarding Page}
@@ -530,6 +532,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 26: Fixed the public application submit request so the browser can send the multipart upload with the correct boundary through the gateway.
     \item 2026 05 26: Split Work History into a personal My Work History page and a permission-protected Management Work History page with flexible filters and saved management columns.
     \item 2026 05 25: Added an unread-count badge to the Messages icon in the primary navigation.
     \item 2026 05 25: Fixed the desktop primary navigation sidebar so it stays in a fixed position while long pages scroll.
