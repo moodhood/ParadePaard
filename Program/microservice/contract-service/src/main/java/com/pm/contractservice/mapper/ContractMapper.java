@@ -71,7 +71,10 @@ public class ContractMapper {
         if (contractRequestDTO.getEndDate() != null && !contractRequestDTO.getEndDate().isBlank()) {
             contract.setEndDate(LocalDate.parse(contractRequestDTO.getEndDate()));
         }
-        contract.setContractType(ContractType.valueOf(contractRequestDTO.getContractType()));
+        contract.setContractType(ContractType.fromRequestValue(
+                contractRequestDTO.getContractType(),
+                contractRequestDTO.getFunctionName()
+        ));
         contract.setGrossHourlyWage(contractRequestDTO.getGrossHourlyWage());
         contract.setTravelAllowance(contractRequestDTO.getTravelAllowance());
         contract.setPaymentFrequency(PaymentFrequency.fromNullable(contractRequestDTO.getPaymentFrequency()));

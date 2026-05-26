@@ -108,7 +108,10 @@ public class ContractService {
         contract.setFunctionName(contractRequestDTO.getFunctionName());
         contract.setStartDate(LocalDate.parse(contractRequestDTO.getStartDate()));
         contract.setEndDate(parseNullableDate(contractRequestDTO.getEndDate()));
-        contract.setContractType(ContractType.valueOf(contractRequestDTO.getContractType()));
+        contract.setContractType(ContractType.fromRequestValue(
+                contractRequestDTO.getContractType(),
+                contractRequestDTO.getFunctionName()
+        ));
         contract.setGrossHourlyWage(contractRequestDTO.getGrossHourlyWage());
         contract.setTravelAllowance(contractRequestDTO.getTravelAllowance());
         contract.setPaymentFrequency(PaymentFrequency.fromNullable(contractRequestDTO.getPaymentFrequency()));
