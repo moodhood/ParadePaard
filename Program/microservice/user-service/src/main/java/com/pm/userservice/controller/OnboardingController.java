@@ -45,19 +45,26 @@ public class OnboardingController {
 
     @PostMapping(value = "/setup/id-document-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING') or @onboardingPermission.canComplete(authentication)")
-    public ResponseEntity<Void> uploadIdDocumentImage(@RequestPart("front") MultipartFile front,
-                                                      @RequestPart("back") MultipartFile back,
+    public ResponseEntity<Void> uploadIdDocumentImage(
+            @RequestPart(value = "front", required = false) MultipartFile front,
+            @RequestPart(value = "back", required = false) MultipartFile back,
+            @RequestPart(value = "file", required = false) MultipartFile file,
                                                       Authentication authentication) throws IOException {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
+        MultipartFile frontImage = front != null ? front : file;
+        MultipartFile backImage = back != null ? back : file;
+        if (frontImage == null || backImage == null) {
+            return ResponseEntity.badRequest().build();
+        }
         UUID userId = UUID.fromString(authentication.getName());
         onboardingService.updateIdDocumentImages(
                 userId,
-                front.getBytes(),
-                front.getContentType(),
-                back.getBytes(),
-                back.getContentType()
+                frontImage.getBytes(),
+                frontImage.getContentType(),
+                backImage.getBytes(),
+                backImage.getContentType()
         );
         return ResponseEntity.ok().build();
     }

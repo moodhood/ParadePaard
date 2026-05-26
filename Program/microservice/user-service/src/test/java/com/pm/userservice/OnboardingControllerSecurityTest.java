@@ -74,4 +74,31 @@ class OnboardingControllerSecurityTest {
                         .header("Authorization", "Bearer token"))
                 .andExpect(status().isOk());
     }
+
+    @Test
+    void idDocumentUploadAcceptsLegacySingleFileMultipartRequests() throws Exception {
+        UUID userId = UUID.randomUUID();
+        Jwt jwt = Jwt.withTokenValue("token")
+                .header("alg", "HS256")
+                .subject("applicant@example.com")
+                .claim("userId", userId.toString())
+                .claim("permissions", List.of())
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plusSeconds(900))
+                .build();
+        when(jwtDecoder.decode("token")).thenReturn(jwt);
+        when(onboardingPermission.canComplete(any(Authentication.class))).thenReturn(true);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "id.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[] {1, 2, 3}
+        );
+
+        mockMvc.perform(multipart("/user/setup/id-document-image")
+                        .file(file)
+                        .header("Authorization", "Bearer token"))
+                .andExpect(status().isOk());
+    }
 }
