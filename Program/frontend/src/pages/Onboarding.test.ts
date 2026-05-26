@@ -17,28 +17,46 @@ describe("Onboarding address layout", () => {
         expect(onboardingPage).toContain("Payroll and tax");
         expect(onboardingPage).toContain("ID verification");
         expect(onboardingPage).toContain("Emergency contact");
-        expect(onboardingPage).not.toContain("Pension participant");
-        expect(onboardingPage).not.toContain("Special Zvw contribution");
+        expect(onboardingPage).toContain("Front of ID");
+        expect(onboardingPage).toContain("Back of ID");
     });
 
     it("submits setup, uploads the ID image, and moves into profile review waiting state", () => {
         const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
 
         expect(onboardingPage).toContain("UserServices.completeSetup");
-        expect(onboardingPage).toContain("UserServices.uploadIdDocumentImage");
+        expect(onboardingPage).toContain("UserServices.uploadIdDocumentImages");
         expect(onboardingPage).toContain('setStatus("PENDING_PROFILE_REVIEW")');
         expect(onboardingPage).toContain("awaiting internal review");
     });
 
-    it("uploads the ID image before completing setup so refreshes cannot strand retry", () => {
+    it("uploads both ID images before completing setup so refreshes cannot strand retry", () => {
         const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
-        const uploadIndex = onboardingPage.indexOf("await UserServices.uploadIdDocumentImage");
+        const uploadIndex = onboardingPage.indexOf("await UserServices.uploadIdDocumentImages");
         const setupIndex = onboardingPage.indexOf("await UserServices.completeSetup");
 
         expect(uploadIndex).toBeGreaterThan(-1);
         expect(setupIndex).toBeGreaterThan(-1);
         expect(uploadIndex).toBeLessThan(setupIndex);
         expect(onboardingPage).toContain("setStep(4)");
+    });
+
+    it("renders separate front and back file pickers for ID verification", () => {
+        const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
+
+        expect(onboardingPage).toContain("ID document front");
+        expect(onboardingPage).toContain("ID document back");
+        expect(onboardingPage).toContain("Front of ID");
+        expect(onboardingPage).toContain("Back of ID");
+    });
+
+    it("lays out the ID upload fields in two columns on desktop and one column on mobile", () => {
+        const onboardingCss = readFileSync(new URL("../stylesheets/Onboarding.css", import.meta.url), "utf8");
+
+        expect(onboardingCss).toContain(".onboardingDocumentUploadGrid");
+        expect(onboardingCss).toContain("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);");
+        expect(onboardingCss).toContain("@media (max-width: 640px)");
+        expect(onboardingCss).toContain(".onboardingDocumentUploadGrid {\n        grid-template-columns: 1fr;\n    }");
     });
 
     it("scopes onboarding error styles to the onboarding card", () => {

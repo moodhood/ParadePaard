@@ -1,6 +1,6 @@
 import axios from "axios";
 import ApproveLeaveRequest from "./ApproveLeaveRequest";
-import CompleteSetup, { UploadIdDocumentImage, type UserSetupRequest } from "./CompleteSetup";
+import CompleteSetup, { UploadIdDocumentImages, type UserSetupRequest } from "./CompleteSetup";
 import CreateLeaveRequest from "./CreateLeaveRequest";
 import GetLeaveRequests from "./GetLeaveRequests";
 import GetLeaveRequestsByStatus from "./GetLeaveRequestsByStatus";
@@ -82,7 +82,7 @@ import UpdateOnboardingReview, { type OnboardingReviewUpdateRequest } from "./Up
 import GetPlanningOverview, {
     type PlanningOverviewQuery,
     type PlanningDayDTO,
-    type PlanningEventDTO,
+    type PlanningProjectDTO,
     type PlanningResourceAllocationDTO,
     type PlanningShiftDTO,
 } from "./GetPlanningOverview";
@@ -109,25 +109,25 @@ import GetPlanningClients, {
 import GetPlanningClientsPage from "./GetPlanningClientsPage";
 import UpdatePlanningClient from "./UpdatePlanningClient";
 import type { PaginatedResponse } from "./Pagination";
-import FinalizePlanningEvent, {
+import FinalizePlanningProject, {
     type FinalizePlanningRequestDTO,
     type FinalizePlanningResponseDTO,
-} from "./FinalizePlanningEvent";
+} from "./FinalizePlanningProject";
 import {
     CreatePlanningAssignment,
-    CreatePlanningEvent,
+    CreatePlanningProject,
     CreatePlanningShift,
     DeletePlanningAssignment,
-    DeletePlanningEvent,
+    DeletePlanningProject,
     DeletePlanningShift,
     type PlanningAssignmentMutationResponseDTO,
     type PlanningAssignmentSaveDTO,
-    type PlanningEventMutationResponseDTO,
-    type PlanningEventSaveDTO,
+    type PlanningProjectMutationResponseDTO,
+    type PlanningProjectSaveDTO,
     type PlanningShiftMutationResponseDTO,
     type PlanningShiftSaveDTO,
     UpdatePlanningAssignment,
-    UpdatePlanningEvent,
+    UpdatePlanningProject,
     UpdatePlanningShift,
 } from "./ManagePlanningCrud";
 import type {
@@ -184,7 +184,7 @@ export type {
     MessageEntryDTO,
     MessageSendRequestDTO,
     MessageRealtimeEventDTO,
-    PlanningEventDTO,
+    PlanningProjectDTO,
     PlanningDayDTO,
     PlanningShiftDTO,
     PlanningResourceAllocationDTO,
@@ -194,10 +194,10 @@ export type {
     PlanningClientCompanyContactSaveDTO,
     FinalizePlanningRequestDTO,
     FinalizePlanningResponseDTO,
-    PlanningEventSaveDTO,
+    PlanningProjectSaveDTO,
     PlanningShiftSaveDTO,
     PlanningAssignmentSaveDTO,
-    PlanningEventMutationResponseDTO,
+    PlanningProjectMutationResponseDTO,
     PlanningShiftMutationResponseDTO,
     PlanningAssignmentMutationResponseDTO,
     PaginatedResponse,
@@ -357,10 +357,10 @@ export const UserServices = {
     },
     getPlanningOverview: async (
         companyId?: string,
-        eventId?: string,
-        range?: Omit<PlanningOverviewQuery, "companyId" | "eventId">
-    ): Promise<PlanningEventDTO[]> => {
-        return await GetPlanningOverview(API_BASE_URL, { companyId, eventId, ...range });
+        projectId?: string,
+        range?: Omit<PlanningOverviewQuery, "companyId" | "projectId">
+    ): Promise<PlanningProjectDTO[]> => {
+        return await GetPlanningOverview(API_BASE_URL, { companyId, projectId, ...range });
     },
     getMyPlanning: async (scope = "all"): Promise<EmployeePlanningAssignmentDTO[]> => {
         return await GetMyPlanning(API_BASE_URL, scope);
@@ -410,17 +410,17 @@ export const UserServices = {
     ): Promise<PlanningClientCompanyDTO> => {
         return await UpdatePlanningClient(API_BASE_URL, clientCompanyId, payload);
     },
-    createPlanningEvent: async (payload: PlanningEventSaveDTO): Promise<PlanningEventMutationResponseDTO> => {
-        return await CreatePlanningEvent(API_BASE_URL, payload);
+    createPlanningProject: async (payload: PlanningProjectSaveDTO): Promise<PlanningProjectMutationResponseDTO> => {
+        return await CreatePlanningProject(API_BASE_URL, payload);
     },
-    updatePlanningEvent: async (eventId: string, payload: PlanningEventSaveDTO): Promise<PlanningEventMutationResponseDTO> => {
-        return await UpdatePlanningEvent(API_BASE_URL, eventId, payload);
+    updatePlanningProject: async (projectId: string, payload: PlanningProjectSaveDTO): Promise<PlanningProjectMutationResponseDTO> => {
+        return await UpdatePlanningProject(API_BASE_URL, projectId, payload);
     },
-    deletePlanningEvent: async (eventId: string): Promise<void> => {
-        return await DeletePlanningEvent(API_BASE_URL, eventId);
+    deletePlanningProject: async (projectId: string): Promise<void> => {
+        return await DeletePlanningProject(API_BASE_URL, projectId);
     },
-    createPlanningShift: async (eventId: string, payload: PlanningShiftSaveDTO): Promise<PlanningShiftMutationResponseDTO> => {
-        return await CreatePlanningShift(API_BASE_URL, eventId, payload);
+    createPlanningShift: async (projectId: string, payload: PlanningShiftSaveDTO): Promise<PlanningShiftMutationResponseDTO> => {
+        return await CreatePlanningShift(API_BASE_URL, projectId, payload);
     },
     updatePlanningShift: async (shiftId: string, payload: PlanningShiftSaveDTO): Promise<PlanningShiftMutationResponseDTO> => {
         return await UpdatePlanningShift(API_BASE_URL, shiftId, payload);
@@ -443,8 +443,8 @@ export const UserServices = {
     deletePlanningAssignment: async (scheduleEntryId: string): Promise<void> => {
         return await DeletePlanningAssignment(API_BASE_URL, scheduleEntryId);
     },
-    finalizePlanningEvent: async (payload: FinalizePlanningRequestDTO): Promise<FinalizePlanningResponseDTO> => {
-        return await FinalizePlanningEvent(API_BASE_URL, payload);
+    finalizePlanningProject: async (payload: FinalizePlanningRequestDTO): Promise<FinalizePlanningResponseDTO> => {
+        return await FinalizePlanningProject(API_BASE_URL, payload);
     },
     createTimesheet: async (payload: CreateTimesheetRequestDTO): Promise<CreateTimesheetResponseDTO> => {
         return await CreateTimesheet(API_BASE_URL, payload);
@@ -500,8 +500,11 @@ export const UserServices = {
     completeSetup: async (payload: UserSetupRequest): Promise<void> => {
         return await CompleteSetup(API_BASE_URL, payload);
     },
+    uploadIdDocumentImages: async (front: File, back: File): Promise<void> => {
+        return await UploadIdDocumentImages(API_BASE_URL, front, back);
+    },
     uploadIdDocumentImage: async (file: File): Promise<void> => {
-        return await UploadIdDocumentImage(API_BASE_URL, file);
+        return await UploadIdDocumentImages(API_BASE_URL, file, file);
     },
     leaveRequests: {
         list: async (status?: LeaveStatus): Promise<LeaveRequestDTO[]> => {

@@ -55,15 +55,22 @@ class OnboardingControllerSecurityTest {
         when(jwtDecoder.decode("token")).thenReturn(jwt);
         when(onboardingPermission.canComplete(any(Authentication.class))).thenReturn(true);
 
-        MockMultipartFile file = new MockMultipartFile(
-                "file",
-                "id.png",
+        MockMultipartFile front = new MockMultipartFile(
+                "front",
+                "id-front.png",
                 MediaType.IMAGE_PNG_VALUE,
                 new byte[] {1, 2, 3}
         );
+        MockMultipartFile back = new MockMultipartFile(
+                "back",
+                "id-back.png",
+                MediaType.IMAGE_PNG_VALUE,
+                new byte[] {4, 5, 6}
+        );
 
         mockMvc.perform(multipart("/user/setup/id-document-image")
-                        .file(file)
+                        .file(front)
+                        .file(back)
                         .header("Authorization", "Bearer token"))
                 .andExpect(status().isOk());
     }

@@ -77,6 +77,11 @@ public class User {
     private byte[] idDocumentImage;
 
     private String idDocumentImageContentType;
+
+    @Column(name = "id_document_back_image")
+    private byte[] idDocumentBackImage;
+
+    private String idDocumentBackImageContentType;
     private String emergencyContactName;
     private String emergencyContactRelationship;
     private String emergencyContactPhone;
@@ -382,6 +387,22 @@ public class User {
 
     public void setIdDocumentImageContentType(String idDocumentImageContentType) {
         this.idDocumentImageContentType = idDocumentImageContentType;
+    }
+
+    public byte[] getIdDocumentBackImage() {
+        return idDocumentBackImage;
+    }
+
+    public void setIdDocumentBackImage(byte[] idDocumentBackImage) {
+        this.idDocumentBackImage = idDocumentBackImage;
+    }
+
+    public String getIdDocumentBackImageContentType() {
+        return idDocumentBackImageContentType;
+    }
+
+    public void setIdDocumentBackImageContentType(String idDocumentBackImageContentType) {
+        this.idDocumentBackImageContentType = idDocumentBackImageContentType;
     }
 
     public String getEmergencyContactName() {

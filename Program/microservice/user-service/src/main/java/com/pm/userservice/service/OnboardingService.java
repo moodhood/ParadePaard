@@ -139,11 +139,17 @@ public class OnboardingService {
     }
 
     @Transactional
-    public void updateIdDocumentImage(UUID userId, byte[] bytes, String contentType) {
+    public void updateIdDocumentImages(UUID userId,
+                                       byte[] frontBytes,
+                                       String frontContentType,
+                                       byte[] backBytes,
+                                       String backContentType) {
         User user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new UserNotFoundException("User " + userId + " not found"));
-        user.setIdDocumentImage(bytes);
-        user.setIdDocumentImageContentType(contentType);
+        user.setIdDocumentImage(frontBytes);
+        user.setIdDocumentImageContentType(frontContentType);
+        user.setIdDocumentBackImage(backBytes);
+        user.setIdDocumentBackImageContentType(backContentType);
         userRepository.save(user);
     }
 

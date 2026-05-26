@@ -45,13 +45,20 @@ public class OnboardingController {
 
     @PostMapping(value = "/setup/id-document-image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasAuthority('CAN_COMPLETE_ONBOARDING') or @onboardingPermission.canComplete(authentication)")
-    public ResponseEntity<Void> uploadIdDocumentImage(@RequestPart("file") MultipartFile file,
+    public ResponseEntity<Void> uploadIdDocumentImage(@RequestPart("front") MultipartFile front,
+                                                      @RequestPart("back") MultipartFile back,
                                                       Authentication authentication) throws IOException {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
         UUID userId = UUID.fromString(authentication.getName());
-        onboardingService.updateIdDocumentImage(userId, file.getBytes(), file.getContentType());
+        onboardingService.updateIdDocumentImages(
+                userId,
+                front.getBytes(),
+                front.getContentType(),
+                back.getBytes(),
+                back.getContentType()
+        );
         return ResponseEntity.ok().build();
     }
 }

@@ -73,21 +73,24 @@ class OnboardingServiceSetupTest {
     }
 
     @Test
-    void updateIdDocumentImageStoresBytesAndContentType() {
+    void updateIdDocumentImagesStoresBytesAndContentTypes() {
         UUID userId = UUID.randomUUID();
         User user = new User();
         user.setUserId(userId);
         when(userRepository.findByUserId(userId)).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        byte[] imageBytes = "image-bytes".getBytes(StandardCharsets.UTF_8);
+        byte[] frontBytes = "front-image-bytes".getBytes(StandardCharsets.UTF_8);
+        byte[] backBytes = "back-image-bytes".getBytes(StandardCharsets.UTF_8);
 
-        service.updateIdDocumentImage(userId, imageBytes, "image/png");
+        service.updateIdDocumentImages(userId, frontBytes, "image/png", backBytes, "image/jpeg");
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         User savedUser = captor.getValue();
-        assertThat(savedUser.getIdDocumentImage()).isEqualTo(imageBytes);
+        assertThat(savedUser.getIdDocumentImage()).isEqualTo(frontBytes);
         assertThat(savedUser.getIdDocumentImageContentType()).isEqualTo("image/png");
+        assertThat(savedUser.getIdDocumentBackImage()).isEqualTo(backBytes);
+        assertThat(savedUser.getIdDocumentBackImageContentType()).isEqualTo("image/jpeg");
     }
 
     private static UserSetupRequestDTO setupRequest() {

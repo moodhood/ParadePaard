@@ -41,9 +41,10 @@ export default async function CompleteSetup(API_BASE_URL: string, payload: UserS
     }
 }
 
-export async function UploadIdDocumentImage(API_BASE_URL: string, file: File): Promise<void> {
+export async function UploadIdDocumentImages(API_BASE_URL: string, front: File, back: File): Promise<void> {
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("front", front);
+    formData.append("back", back);
     const response = await axios.post(
         `${API_BASE_URL}/api/user/setup/id-document-image`,
         formData,

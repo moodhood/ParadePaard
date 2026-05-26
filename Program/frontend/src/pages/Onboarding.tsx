@@ -63,7 +63,8 @@ export default function Onboarding() {
     const [idIssueDate, setIdIssueDate] = useState("");
     const [idExpirationDate, setIdExpirationDate] = useState("");
     const [idIssuingCountry, setIdIssuingCountry] = useState("");
-    const [idDocumentImage, setIdDocumentImage] = useState<File | null>(null);
+    const [idDocumentFrontImage, setIdDocumentFrontImage] = useState<File | null>(null);
+    const [idDocumentBackImage, setIdDocumentBackImage] = useState<File | null>(null);
 
     const [emergencyContactName, setEmergencyContactName] = useState("");
     const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
@@ -82,7 +83,8 @@ export default function Onboarding() {
         }
         if (step === 4) {
             return [idDocumentType, idDocumentNumber, idIssueDate, idExpirationDate, idIssuingCountry].every(hasValue)
-                && idDocumentImage !== null;
+                && idDocumentFrontImage !== null
+                && idDocumentBackImage !== null;
         }
         return [emergencyContactName, emergencyContactRelationship, emergencyContactPhone].every(hasValue);
     }, [
@@ -100,7 +102,8 @@ export default function Onboarding() {
         idIssueDate,
         idExpirationDate,
         idIssuingCountry,
-        idDocumentImage,
+        idDocumentFrontImage,
+        idDocumentBackImage,
         emergencyContactName,
         emergencyContactRelationship,
         emergencyContactPhone,
@@ -123,14 +126,14 @@ export default function Onboarding() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg(null);
-        if (!canContinue || !idDocumentImage) {
+        if (!canContinue || !idDocumentFrontImage || !idDocumentBackImage) {
             setErrorMsg("Please complete the required fields.");
             return;
         }
         setLoading(true);
         try {
             try {
-                await UserServices.uploadIdDocumentImage(idDocumentImage);
+                await UserServices.uploadIdDocumentImages(idDocumentFrontImage, idDocumentBackImage);
             } catch (err: unknown) {
                 const message = err instanceof Error ? err.message : "ID document image upload failed";
                 setStep(4);
@@ -373,20 +376,41 @@ export default function Onboarding() {
                                     required
                                 />
                             </label>
-                            <div className="onboardingFileField">
-                                <span className="onboardingFileLabel">ID document image</span>
-                                <label className="onboardingFilePicker">
-                                    <input
-                                        type="file"
-                                        accept="image/*"
-                                        onChange={(e) => setIdDocumentImage(e.target.files?.[0] ?? null)}
-                                        required
-                                    />
-                                    <span className="onboardingFileButton">Choose image</span>
-                                    <span className="onboardingFileName">{idDocumentImage?.name ?? "No file selected"}</span>
-                                </label>
+                            <div className="onboardingDocumentUploadGrid">
+                                <div className="onboardingFileField">
+                                    <span className="onboardingFileLabel">Front of ID</span>
+                                    <label className="onboardingFilePicker">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setIdDocumentFrontImage(e.target.files?.[0] ?? null)}
+                                            required
+                                        />
+                                        <span className="onboardingFileButton">Choose image</span>
+                                        <span className="onboardingFileName">
+                                            {idDocumentFrontImage?.name ?? "No file selected"}
+                                        </span>
+                                    </label>
+                                    <p className="hint">ID document front.</p>
+                                </div>
+                                <div className="onboardingFileField">
+                                    <span className="onboardingFileLabel">Back of ID</span>
+                                    <label className="onboardingFilePicker">
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setIdDocumentBackImage(e.target.files?.[0] ?? null)}
+                                            required
+                                        />
+                                        <span className="onboardingFileButton">Choose image</span>
+                                        <span className="onboardingFileName">
+                                            {idDocumentBackImage?.name ?? "No file selected"}
+                                        </span>
+                                    </label>
+                                    <p className="hint">ID document back.</p>
+                                </div>
                             </div>
-                            <p className="hint">Upload a clear image of the ID document used for verification.</p>
+                            <p className="hint">Upload a clear image of both sides of the ID document used for verification.</p>
                         </section>
                     )}
 

@@ -131,6 +131,13 @@
     font-weight: 600;
 }
 
+.onboardingDocumentUploadGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    margin-top: 4px;
+}
+
 .onboardingFilePicker {
     display: flex;
     flex-direction: row;
@@ -224,6 +231,10 @@
     }
 
     .inline-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .onboardingDocumentUploadGrid {
         grid-template-columns: 1fr;
     }
 

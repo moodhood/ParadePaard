@@ -126,6 +126,12 @@ class UserStatusConstraintSqlTest {
             try (ResultSet columns = connection.getMetaData().getColumns(null, null, "job_applications", "motivation")) {
                 assertThat(columns.next()).isFalse();
             }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "users", "id_document_back_image")) {
+                assertThat(columns.next()).isTrue();
+            }
+            try (ResultSet columns = connection.getMetaData().getColumns(null, null, "users", "id_document_back_image_content_type")) {
+                assertThat(columns.next()).isTrue();
+            }
         }
     }
 
