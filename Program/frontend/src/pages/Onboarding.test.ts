@@ -56,6 +56,7 @@ describe("Onboarding address layout", () => {
         expect(onboardingCss).toContain(".onboardingDocumentUploadGrid");
         expect(onboardingCss).toContain("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);");
         expect(onboardingCss).toContain(".onboardingFilePicker");
+        expect(onboardingCss).toContain(".step-panel .onboardingFilePicker");
         expect(onboardingCss).toContain("flex-direction: column;");
         expect(onboardingCss).toContain("align-items: center;");
         expect(onboardingCss).toContain("align-self: center;");
