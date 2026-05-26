@@ -44,10 +44,10 @@ describe("Onboarding address layout", () => {
     it("renders separate front and back file pickers for ID verification", () => {
         const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
 
-        expect(onboardingPage).toContain("ID document front");
-        expect(onboardingPage).toContain("ID document back");
         expect(onboardingPage).toContain("Front of ID");
         expect(onboardingPage).toContain("Back of ID");
+        expect(onboardingPage).not.toContain("ID document front.");
+        expect(onboardingPage).not.toContain("ID document back.");
     });
 
     it("lays out the ID upload fields in two columns on desktop and one column on mobile", () => {

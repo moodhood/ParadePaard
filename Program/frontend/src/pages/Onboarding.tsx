@@ -391,7 +391,6 @@ export default function Onboarding() {
                                             {idDocumentFrontImage?.name ?? "No file selected"}
                                         </span>
                                     </label>
-                                    <p className="hint">ID document front.</p>
                                 </div>
                                 <div className="onboardingFileField">
                                     <span className="onboardingFileLabel">Back of ID</span>
@@ -407,7 +406,6 @@ export default function Onboarding() {
                                             {idDocumentBackImage?.name ?? "No file selected"}
                                         </span>
                                     </label>
-                                    <p className="hint">ID document back.</p>
                                 </div>
                             </div>
                             <p className="hint">Upload a clear image of both sides of the ID document used for verification.</p>

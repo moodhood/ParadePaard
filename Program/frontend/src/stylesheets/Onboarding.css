@@ -125,7 +125,7 @@
 .onboardingFileField {
     display: flex;
     flex-direction: column;
-    gap: 7px;
+    gap: 5px;
     color: #374151;
     font-size: 14px;
     font-weight: 600;
@@ -134,21 +134,21 @@
 .onboardingDocumentUploadGrid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 16px;
-    margin-top: 4px;
+    gap: 12px;
+    margin-top: 2px;
 }
 
 .onboardingFilePicker {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
     flex-wrap: wrap;
-    min-height: 46px;
+    min-height: 42px;
     border: 1px dashed #a8b3c7;
     border-radius: 8px;
     background: #f8fafc;
-    padding: 10px;
+    padding: 8px 10px;
 }
 
 .onboardingFilePicker input {
@@ -167,13 +167,14 @@
     color: #fff;
     cursor: pointer;
     font-weight: 700;
-    padding: 10px 14px;
+    padding: 8px 12px;
 }
 
 .onboardingFileName {
     min-width: 0;
     color: #4b5563;
     font-weight: 500;
+    line-height: 1.35;
     overflow-wrap: anywhere;
 }
 
