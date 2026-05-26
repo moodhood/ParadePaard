@@ -106,6 +106,8 @@ The page shows the message history in chronological order. Messages from the sig
 
 While the user stays on the page, the thread updates live. New company replies appear automatically without the user needing to manually refresh the page.
 
+The live message stream now stays separate from the data loading used by the rest of the app. A user can leave Messages open for incoming replies without causing Account, Dashboard, or management user pages to fail while the stream waits for updates.
+
 The page includes loading, empty, error, and sending states. After a message is sent, the conversation updates immediately so the user can continue in the same thread later.
 
 \subsection{Management Dashboard}
@@ -160,6 +162,8 @@ When an admin clicks a messenger name, the whole message box changes into that u
 Admins can type a reply in the selected thread and send it as the company. The frontend does not ask the admin to choose which individual admin account should receive the message. The backend still records which admin sent the reply, but the normal user sees the reply as a Company message.
 
 While an admin keeps the shared inbox open, new incoming user messages and new admin replies appear automatically. This keeps the inbox list and open conversation thread in sync across multiple admins without a manual page refresh.
+
+The shared inbox live stream now stays separate from the data loading used by other management pages. Admins can leave the inbox open for new messages without making employee lists, user profiles, or account screens run out of available data connections.
 
 The page includes loading, empty, error, and sending states. The first version is a practical shared inbox and does not include separate subjects, attachments, assignments, or realtime typing indicators.
 \subsection{Management Applications Page}
@@ -534,6 +538,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 26: Updated the Messages and Management Messages descriptions after fixing the live message stream so open inboxes no longer block other user and account pages.
     \item 2026 05 26: Reduced always-on navbar user loading by making employee search load on demand and deduplicating shared frontend read requests.
     \item 2026 05 26: Let the onboarding ID upload boxes accept PDF files as well as images and changed the picker button text to Choose file.
     \item 2026 05 26: Added Dutch-style placeholder examples to the public application name fields so applicants can see how to enter full first names, preferred name, prefix, and surname.
