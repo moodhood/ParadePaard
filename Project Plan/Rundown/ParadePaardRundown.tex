@@ -69,7 +69,7 @@ The employee onboarding page is the first private self-service page for an accep
 
 The Address section collects street, house number, optional suffix, postal code, city, and country. The house number and suffix fields sit next to each other as separate input cells with clear spacing between them, so the user can tell where one value ends and the other begins.
 
-The Bank details section collects the IBAN and the bank account holder name. The Payroll and tax section collects the BSN, optional nationality, loonheffingskorting choice, pension participation choice, special Zvw contribution choice, and optional payroll notes.
+The Bank details section collects the IBAN and the bank account holder name. The Payroll and tax section collects the BSN, optional nationality, one loonheffingskorting choice, and optional payroll notes. The step no longer asks the applicant to choose pension participation or the special Zvw contribution during setup.
 
 The ID verification section collects the document type, document number, issue date, expiration date, issuing country, and a required ID document image upload. The image upload uses the same styled file picker pattern as the CV upload on the public application form, showing a clear Choose image action and the currently selected filename. The Emergency contact section collects the emergency contact name, relationship, phone number, and optional email address.
 
@@ -532,6 +532,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 26: Removed the pension participant and special Zvw contribution options from the onboarding setup step.
     \item 2026 05 26: Fixed the public application submit request so the browser can send the multipart upload with the correct boundary through the gateway.
     \item 2026 05 26: Split Work History into a personal My Work History page and a permission-protected Management Work History page with flexible filters and saved management columns.
     \item 2026 05 25: Added an unread-count badge to the Messages icon in the primary navigation.

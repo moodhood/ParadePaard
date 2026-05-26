@@ -17,6 +17,8 @@ describe("Onboarding address layout", () => {
         expect(onboardingPage).toContain("Payroll and tax");
         expect(onboardingPage).toContain("ID verification");
         expect(onboardingPage).toContain("Emergency contact");
+        expect(onboardingPage).not.toContain("Pension participant");
+        expect(onboardingPage).not.toContain("Special Zvw contribution");
     });
 
     it("submits setup, uploads the ID image, and moves into profile review waiting state", () => {

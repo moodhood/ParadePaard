@@ -55,8 +55,6 @@ export default function Onboarding() {
 
     const [bsn, setBsn] = useState("");
     const [applyLoonheffingskorting, setApplyLoonheffingskorting] = useState(false);
-    const [pensionParticipant, setPensionParticipant] = useState(false);
-    const [specialZvwContribution, setSpecialZvwContribution] = useState(false);
     const [payrollNotes, setPayrollNotes] = useState("");
     const [nationality, setNationality] = useState("");
 
@@ -151,8 +149,6 @@ export default function Onboarding() {
                 bankAccountHolderName,
                 bsn,
                 applyLoonheffingskorting,
-                pensionParticipant,
-                specialZvwContribution,
                 payrollNotes: payrollNotes.trim() || null,
                 nationality: nationality.trim() || null,
                 idDocumentType,
@@ -308,22 +304,6 @@ export default function Onboarding() {
                                         onChange={(e) => setApplyLoonheffingskorting(e.target.checked)}
                                     />
                                     Apply loonheffingskorting
-                                </label>
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={pensionParticipant}
-                                        onChange={(e) => setPensionParticipant(e.target.checked)}
-                                    />
-                                    Pension participant
-                                </label>
-                                <label>
-                                    <input
-                                        type="checkbox"
-                                        checked={specialZvwContribution}
-                                        onChange={(e) => setSpecialZvwContribution(e.target.checked)}
-                                    />
-                                    Special Zvw contribution
                                 </label>
                             </div>
                             <label>
