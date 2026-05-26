@@ -400,11 +400,11 @@ export default function Onboarding() {
                                     <label className="onboardingFilePicker">
                                         <input
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/*,.pdf,application/pdf"
                                             onChange={(e) => setIdDocumentFrontImage(e.target.files?.[0] ?? null)}
                                             required
                                         />
-                                        <span className="onboardingFileButton">Choose image</span>
+                                        <span className="onboardingFileButton">Choose file</span>
                                         <span className="onboardingFileName">
                                             {idDocumentFrontImage?.name ?? "No file selected"}
                                         </span>
@@ -415,11 +415,11 @@ export default function Onboarding() {
                                     <label className="onboardingFilePicker">
                                         <input
                                             type="file"
-                                            accept="image/*"
+                                            accept="image/*,.pdf,application/pdf"
                                             onChange={(e) => setIdDocumentBackImage(e.target.files?.[0] ?? null)}
                                             required
                                         />
-                                        <span className="onboardingFileButton">Choose image</span>
+                                        <span className="onboardingFileButton">Choose file</span>
                                         <span className="onboardingFileName">
                                             {idDocumentBackImage?.name ?? "No file selected"}
                                         </span>

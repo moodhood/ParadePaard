@@ -46,6 +46,8 @@ describe("Onboarding address layout", () => {
 
         expect(onboardingPage).toContain("Front of ID");
         expect(onboardingPage).toContain("Back of ID");
+        expect(onboardingPage).toContain('accept="image/*,.pdf,application/pdf"');
+        expect(onboardingPage).toContain("Choose file");
         expect(onboardingPage).not.toContain("ID document front.");
         expect(onboardingPage).not.toContain("ID document back.");
     });
