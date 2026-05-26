@@ -50,6 +50,22 @@ describe("Onboarding address layout", () => {
         expect(onboardingPage).not.toContain("ID document back.");
     });
 
+    it("auto-formats ID issue and expiration dates as dd/mm/yyyy before submitting ISO dates", () => {
+        const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
+
+        expect(onboardingPage).toContain("normalizeDateInput");
+        expect(onboardingPage).toContain("parseDisplayDate");
+        expect(onboardingPage).toContain('type="text"');
+        expect(onboardingPage).toContain('placeholder="dd/mm/yyyy"');
+        expect(onboardingPage).toContain('pattern="\\d{2}/\\d{2}/\\d{4}"');
+        expect(onboardingPage).toContain("setIdIssueDate(normalizeDateInput(e.target.value))");
+        expect(onboardingPage).toContain("setIdExpirationDate(normalizeDateInput(e.target.value))");
+        expect(onboardingPage).toContain("const parsedIdIssueDate = parseDisplayDate(idIssueDate);");
+        expect(onboardingPage).toContain("const parsedIdExpirationDate = parseDisplayDate(idExpirationDate);");
+        expect(onboardingPage).toContain("idIssueDate: parsedIdIssueDate");
+        expect(onboardingPage).toContain("idExpirationDate: parsedIdExpirationDate");
+    });
+
     it("lays out the ID upload fields in two columns on desktop and one column on mobile", () => {
         const onboardingCss = readFileSync(new URL("../stylesheets/Onboarding.css", import.meta.url), "utf8");
 

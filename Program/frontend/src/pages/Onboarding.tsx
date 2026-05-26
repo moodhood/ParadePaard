@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
+import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
 import "../stylesheets/Onboarding.css";
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -83,6 +84,8 @@ export default function Onboarding() {
         }
         if (step === 4) {
             return [idDocumentType, idDocumentNumber, idIssueDate, idExpirationDate, idIssuingCountry].every(hasValue)
+                && parseDisplayDate(idIssueDate) !== null
+                && parseDisplayDate(idExpirationDate) !== null
                 && idDocumentFrontImage !== null
                 && idDocumentBackImage !== null;
         }
@@ -130,6 +133,13 @@ export default function Onboarding() {
             setErrorMsg("Please complete the required fields.");
             return;
         }
+        const parsedIdIssueDate = parseDisplayDate(idIssueDate);
+        const parsedIdExpirationDate = parseDisplayDate(idExpirationDate);
+        if (!parsedIdIssueDate || !parsedIdExpirationDate) {
+            setStep(4);
+            setErrorMsg("Please enter ID dates as dd/mm/yyyy.");
+            return;
+        }
         setLoading(true);
         try {
             try {
@@ -156,8 +166,8 @@ export default function Onboarding() {
                 nationality: nationality.trim() || null,
                 idDocumentType,
                 idDocumentNumber,
-                idIssueDate,
-                idExpirationDate,
+                idIssueDate: parsedIdIssueDate,
+                idExpirationDate: parsedIdExpirationDate,
                 idIssuingCountry,
                 emergencyContactName,
                 emergencyContactRelationship,
@@ -351,18 +361,26 @@ export default function Onboarding() {
                                 <label>
                                     Issue date
                                     <input
-                                        type="date"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="\d{2}/\d{2}/\d{4}"
+                                        placeholder="dd/mm/yyyy"
+                                        title="Use dd/mm/yyyy"
                                         value={idIssueDate}
-                                        onChange={(e) => setIdIssueDate(e.target.value)}
+                                        onChange={(e) => setIdIssueDate(normalizeDateInput(e.target.value))}
                                         required
                                     />
                                 </label>
                                 <label>
                                     Expiration date
                                     <input
-                                        type="date"
+                                        type="text"
+                                        inputMode="numeric"
+                                        pattern="\d{2}/\d{2}/\d{4}"
+                                        placeholder="dd/mm/yyyy"
+                                        title="Use dd/mm/yyyy"
                                         value={idExpirationDate}
-                                        onChange={(e) => setIdExpirationDate(e.target.value)}
+                                        onChange={(e) => setIdExpirationDate(normalizeDateInput(e.target.value))}
                                         required
                                     />
                                 </label>
