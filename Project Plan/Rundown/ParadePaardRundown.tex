@@ -214,6 +214,8 @@ The Contract setup section includes a Job preset dropdown. Selecting a preset fi
 
 The contract setup choices for Full time, Part time, and Zero hours now create the stored contract type correctly when the admin creates or sends a contract. This means the review form can use the horeca wording that managers see on screen while the contract record is saved as the correct fixed-hours or on-call contract type.
 
+Accepted application users and their onboarding review data are kept when the services restart. This means an admin can accept an application, wait for the employee to finish setup, and then continue the Onboarding Review page without the employee disappearing or the page showing a no-user-found error because of startup seed data.
+
 At the bottom, a Final review decision section lets the admin choose Ready to send contract, Needs changes, or Reject onboarding, enter an admin note, and run actions to save the review, request changes, create a contract draft, or create and send the contract. Saving the review updates the employee status so Needs changes moves the person to Changes requested, and Ready to send contract moves the person to Contract review. Saving the review also stores which review sections were checked and the contract setup draft fields so the onboarding review can be reopened later and continued from the same state. After Create and send contract sends the email, the employee status changes to Awaiting signature. The Create and send contract action is only available when all review section checkboxes are marked complete. If required fields are missing, the page blocks sending and shows a clear message listing what still needs to be completed.
 \subsection{Management Contracts Page}
 
@@ -222,6 +224,8 @@ The Management Contracts page is the contract workspace for users with contract 
 The page shows contract rows with employee name, function, contract status, start date, end date, and an action. A status filter lets the user switch between all contracts, contracts needing review, draft or sent contracts, finalized contracts, and rejected or expired contracts. Contract statuses are displayed in readable labels instead of raw database values. The Contracts page is only part of the management workspace. Employee self-service permissions for viewing or signing a person's own contract do not show this page or the Management navigation.
 
 The user can refresh the contract list and open the related employee profile from any contract row. The employee profile contains the active contract card, PDF download, send or resend email, finalize, and reject actions when the user's permissions allow those actions. Contract PDF generation now has the correct service connection in Docker, so downloading a contract from the profile can fetch the employee profile data needed to build the PDF. Stored contract PDFs no longer prevent the active contract card from loading, so managers can still see the current contract details and actions after a PDF has already been generated.
+
+Contract rows are kept when the contract service restarts. Management users can return to the Contracts page after a rebuild or restart and still see draft, sent, signed, finalized, and rejected contracts that were already created.
 \subsection{Account Layout}
 
 The Account page is a layout wrapper for personal account pages and company settings. It shows the shared navbar, a back button, a page title, side navigation, and the active account content. The personal account side navigation contains Personal info, Bank details, and Employment details. Users with company or role-management permissions can also open Company settings.
@@ -540,6 +544,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 26: Stopped service startup seed data from deleting accepted onboarding users, auth accounts, role links, and contracts after a rebuild or restart.
     \item 2026 05 26: Fixed onboarding review contract creation so Full time, Part time, and Zero hours choices save as valid contract types.
     \item 2026 05 26: Updated the Messages and Management Messages descriptions after fixing the live message stream so open inboxes no longer block other user and account pages.
     \item 2026 05 26: Reduced always-on navbar user loading by making employee search load on demand and deduplicating shared frontend read requests.

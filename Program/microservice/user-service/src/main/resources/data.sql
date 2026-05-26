@@ -184,15 +184,6 @@ ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_email_key;
 ALTER TABLE IF EXISTS users DROP CONSTRAINT IF EXISTS users_company_email_key;
 ALTER TABLE IF EXISTS users ADD CONSTRAINT users_company_email_key UNIQUE (company_id, email);
 
-DELETE FROM message_entries;
-DELETE FROM message_conversations;
-DELETE FROM leave_requests;
-DELETE FROM users
-WHERE user_id <> '7b962433-6bde-4642-a011-5b56bf4f18e1';
-
-DELETE FROM companies
-WHERE id <> CAST('00000000-0000-0000-0000-000000000001' AS UUID);
-
 INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
 SELECT '7b962433-6bde-4642-a011-5b56bf4f18e1',
        'sanne.admin@example.com',

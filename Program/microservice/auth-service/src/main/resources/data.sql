@@ -16,9 +16,6 @@ WHERE NOT EXISTS (
        OR name = 'Default Company'
 );
 
-DROP TABLE IF EXISTS user_roles;
-DROP TABLE IF EXISTS auth_user_roles;
-
 CREATE TABLE IF NOT EXISTS "users" (
     id UUID PRIMARY KEY,
     first_name VARCHAR(255) NOT NULL,
@@ -109,20 +106,6 @@ CREATE TABLE IF NOT EXISTS auth_user_roles (
     CONSTRAINT fk_auth_user_roles_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
 
-DELETE FROM role_permissions rp
-USING roles r
-WHERE rp.role_id = r.id
-  AND r.company_id <> '00000000-0000-0000-0000-000000000001'::uuid;
-
-DELETE FROM roles
-WHERE company_id <> '00000000-0000-0000-0000-000000000001'::uuid;
-
-DELETE FROM "users"
-WHERE id <> '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid;
-
-DELETE FROM companies
-WHERE id <> '00000000-0000-0000-0000-000000000001'::uuid;
-
 INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id, must_change_password, disabled)
 VALUES (
     '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid,
@@ -199,6 +182,7 @@ FROM (VALUES
 ) AS seed(permission_name)
 WHERE NOT EXISTS (SELECT 1 FROM permissions p WHERE p.name = seed.permission_name);
 
+-- assign permissions to ADMIN role
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
@@ -248,20 +232,7 @@ WHERE r.name = 'ADMIN'
       WHERE rp.role_id = r.id AND rp.permission_id = p.id
   );
 
-DELETE FROM role_permissions rp
-USING roles r, permissions p
-WHERE rp.role_id = r.id
-  AND rp.permission_id = p.id
-  AND r.name = 'USER'
-  AND p.name NOT IN (
-    'CAN_COMPLETE_ONBOARDING',
-    'CAN_VIEW_OWN_CONTRACTS',
-    'CAN_SIGN_OWN_CONTRACTS',
-    'CAN_VIEW_PAYSLIPS',
-    'CAN_REPORT_PAYSLIP_ERRORS',
-    'CAN_VIEW_OWN_TIMESHEETS'
-);
-
+-- assign permissions to USER role
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r

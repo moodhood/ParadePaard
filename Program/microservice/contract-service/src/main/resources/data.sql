@@ -136,5 +136,3 @@ WHERE c.function_id IS NULL
   AND lower(c.function_name) = lower(f.name);
 ALTER TABLE IF EXISTS contracts ALTER COLUMN function_name SET NOT NULL;
 
-DELETE FROM contracts;
-DELETE FROM functions WHERE lower(name) IN ('developer', 'tester', 'designer');
