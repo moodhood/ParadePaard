@@ -682,8 +682,8 @@ export default function HorecaPayrollRules() {
                                                     }
                                                 />
                                             </label>
-                                            <label className="rulesField">
-                                                <span>Hourly wage</span>
+                                            <div className="rulesField rulesFieldFull">
+                                                <span>Gross hourly wage *</span>
                                                 <input
                                                     className="uiSelect"
                                                     type="number"
@@ -695,13 +695,11 @@ export default function HorecaPayrollRules() {
                                                             ...prev,
                                                             hourlyWage: Number(event.target.value),
                                                             isManualWageOverride: true,
-                                                        }))
-                                                    }
+                                                    }))
+                                                }
                                                 />
                                                 {sourceButton("loontabel-2026-01-01", "1")}
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Manual wage override reason</span>
+                                                <span className="ruleValueNote">Manual wage override reason</span>
                                                 <input
                                                     className="uiSelect"
                                                     value={contractDraft.manualWageOverrideReason}
@@ -713,7 +711,7 @@ export default function HorecaPayrollRules() {
                                                     }
                                                     placeholder="Required when wage is overridden"
                                                 />
-                                            </label>
+                                            </div>
                                             <label className="rulesField">
                                                 <span>Payroll period</span>
                                                 <select

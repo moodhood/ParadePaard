@@ -61,9 +61,10 @@ describe("HorecaPayrollRules", () => {
 
         expect(html).toContain("Hourly wage");
         expect(html).toContain("Source: Loontabel per 1 januari 2026, page 1");
+        expect(html).toContain("Gross hourly wage *");
+        expect(html).toContain("Manual wage override reason");
         expect(html).toContain("Holiday allowance");
         expect(html).toContain("Source: Horeca cao 2025 2026, page 32");
-        expect(html).toContain("Commercial value");
     });
 
     it("renders a payroll calculator form instead of a fixed example table", () => {
