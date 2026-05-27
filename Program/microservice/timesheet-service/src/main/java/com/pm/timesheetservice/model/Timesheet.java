@@ -33,8 +33,8 @@ public class Timesheet {
     @Column(unique = true)
     private UUID sourceScheduleEntryId;
     private UUID sourceShiftId;
-    private UUID sourceEventId;
-    private String eventName;
+    private UUID sourceProjectId;
+    private String projectName;
     private String shiftName;
     private LocalDate shiftDate;
     private LocalDateTime shiftStartTime;
@@ -133,20 +133,20 @@ public class Timesheet {
         this.sourceShiftId = sourceShiftId;
     }
 
-    public UUID getSourceEventId() {
-        return sourceEventId;
+    public UUID getSourceProjectId() {
+        return sourceProjectId;
     }
 
-    public void setSourceEventId(UUID sourceEventId) {
-        this.sourceEventId = sourceEventId;
+    public void setSourceProjectId(UUID sourceProjectId) {
+        this.sourceProjectId = sourceProjectId;
     }
 
-    public String getEventName() {
-        return eventName;
+    public String getProjectName() {
+        return projectName;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     public String getShiftName() {

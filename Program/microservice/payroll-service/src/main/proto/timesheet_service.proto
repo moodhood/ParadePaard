@@ -61,7 +61,7 @@ message PlannedTimesheetRecord {
   string function = 4;
   string hoursWorked = 5;
   string travelExpenses = 6;
-  string sourceEventId = 7;
+  string sourceProjectId = 7;
   string sourceShiftId = 8;
   string sourceScheduleEntryId = 9;
 }

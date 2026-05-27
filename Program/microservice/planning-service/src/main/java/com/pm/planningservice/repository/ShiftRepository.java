@@ -11,12 +11,12 @@ import java.util.UUID;
 
 @Repository
 public interface ShiftRepository extends JpaRepository<Shift, UUID> {
-    List<Shift> findByEventId(UUID eventId);
+    List<Shift> findByProjectId(UUID projectId);
 
-    List<Shift> findByEventIdIn(Collection<UUID> eventIds);
+    List<Shift> findByProjectIdIn(Collection<UUID> projectIds);
 
-    List<Shift> findByEventIdInAndStartTimeLessThanAndEndTimeGreaterThan(
-            Collection<UUID> eventIds,
+    List<Shift> findByProjectIdInAndStartTimeLessThanAndEndTimeGreaterThan(
+            Collection<UUID> projectIds,
             LocalDateTime endExclusive,
             LocalDateTime startInclusive);
 

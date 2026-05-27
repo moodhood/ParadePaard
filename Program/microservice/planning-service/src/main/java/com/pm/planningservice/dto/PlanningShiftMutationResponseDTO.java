@@ -4,7 +4,7 @@ import java.util.UUID;
 
 public class PlanningShiftMutationResponseDTO {
     private UUID shiftId;
-    private UUID eventId;
+    private UUID projectId;
 
     public UUID getShiftId() {
         return shiftId;
@@ -14,11 +14,11 @@ public class PlanningShiftMutationResponseDTO {
         this.shiftId = shiftId;
     }
 
-    public UUID getEventId() {
-        return eventId;
+    public UUID getProjectId() {
+        return projectId;
     }
 
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
     }
 }

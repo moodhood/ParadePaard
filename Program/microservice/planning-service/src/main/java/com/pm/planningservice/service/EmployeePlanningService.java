@@ -3,13 +3,13 @@ package com.pm.planningservice.service;
 import com.pm.planningservice.dto.EmployeePlanningAssignmentDTO;
 import com.pm.planningservice.dto.TravelClaimSummaryDTO;
 import com.pm.planningservice.integration.UserDirectoryClient;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.model.TravelClaim;
 import com.pm.planningservice.model.TravelClaimStatus;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import com.pm.planningservice.repository.TravelClaimRepository;
@@ -34,7 +34,7 @@ public class EmployeePlanningService {
 
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final ShiftRepository shiftRepository;
-    private final EventRepository eventRepository;
+    private final ProjectRepository projectRepository;
     private final TravelClaimRepository travelClaimRepository;
     private final PlanningTimesheetExportService planningTimesheetExportService;
     private final UserDirectoryClient userDirectoryClient;
@@ -42,14 +42,14 @@ public class EmployeePlanningService {
     public EmployeePlanningService(
             ScheduleEntryRepository scheduleEntryRepository,
             ShiftRepository shiftRepository,
-            EventRepository eventRepository,
+            ProjectRepository projectRepository,
             TravelClaimRepository travelClaimRepository,
             PlanningTimesheetExportService planningTimesheetExportService,
             UserDirectoryClient userDirectoryClient
     ) {
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.shiftRepository = shiftRepository;
-        this.eventRepository = eventRepository;
+        this.projectRepository = projectRepository;
         this.travelClaimRepository = travelClaimRepository;
         this.planningTimesheetExportService = planningTimesheetExportService;
         this.userDirectoryClient = userDirectoryClient;
@@ -89,8 +89,8 @@ public class EmployeePlanningService {
         }
         ScheduleEntry entry = requireOwnedEntry(companyId, userId, scheduleEntryId);
         Shift shift = requireShift(entry.getShiftId(), companyId);
-        Event event = requireEvent(shift.getEventId(), companyId);
-        if (PlanningTimeZoneSupport.hasShiftEnded(shift, event)) {
+        Project project = requireProject(shift.getProjectId(), companyId);
+        if (PlanningTimeZoneSupport.hasShiftEnded(shift, project)) {
             throw new IllegalArgumentException("Past shifts can no longer be accepted or declined");
         }
         entry.setStatus(status);
@@ -112,8 +112,8 @@ public class EmployeePlanningService {
             throw new IllegalArgumentException("Travel claims are only available for accepted shifts");
         }
         Shift shift = requireShift(entry.getShiftId(), companyId);
-        Event event = requireEvent(shift.getEventId(), companyId);
-        if (!PlanningTimeZoneSupport.hasShiftEnded(shift, event)) {
+        Project project = requireProject(shift.getProjectId(), companyId);
+        if (!PlanningTimeZoneSupport.hasShiftEnded(shift, project)) {
             throw new IllegalArgumentException("Travel claims can only be submitted after the shift has ended");
         }
 
@@ -225,8 +225,8 @@ public class EmployeePlanningService {
         if (shift == null) {
             return false;
         }
-        Event event = eventRepository.findById(shift.getEventId()).orElse(null);
-        return event != null && companyId.equals(event.getCompanyId());
+        Project project = projectRepository.findById(shift.getProjectId()).orElse(null);
+        return project != null && companyId.equals(project.getCompanyId());
     }
 
     private boolean matchesScope(EmployeePlanningAssignmentDTO dto, String scope) {
@@ -255,9 +255,9 @@ public class EmployeePlanningService {
     private Shift requireShift(UUID shiftId, UUID companyId) {
         Shift shift = shiftRepository.findById(shiftId)
                 .orElseThrow(() -> new IllegalArgumentException("Shift not found"));
-        Event event = eventRepository.findById(shift.getEventId())
-                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
-        if (!companyId.equals(event.getCompanyId())) {
+        Project project = projectRepository.findById(shift.getProjectId())
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+        if (!companyId.equals(project.getCompanyId())) {
             throw new IllegalArgumentException("Shift not found");
         }
         return shift;
@@ -266,8 +266,8 @@ public class EmployeePlanningService {
     private EmployeePlanningAssignmentDTO mapAssignment(ScheduleEntry entry) {
         Shift shift = shiftRepository.findById(entry.getShiftId())
                 .orElseThrow(() -> new IllegalArgumentException("Shift not found"));
-        Event event = eventRepository.findById(shift.getEventId())
-                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
+        Project project = projectRepository.findById(shift.getProjectId())
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
         TravelClaim claim = travelClaimRepository.findByScheduleEntryId(entry.getScheduleEntryId()).orElse(null);
         String displayName = userDirectoryClient.getDisplayNamesByUserIds(Set.of(entry.getUserId())).get(entry.getUserId());
 
@@ -275,15 +275,15 @@ public class EmployeePlanningService {
         dto.setScheduleEntryId(entry.getScheduleEntryId());
         dto.setUserId(entry.getUserId());
         dto.setUserDisplayName(displayName);
-        dto.setEventId(event.getEventId());
-        dto.setEventName(event.getName());
+        dto.setProjectId(project.getProjectId());
+        dto.setProjectName(project.getName());
         dto.setClientCompanyName(null);
-        dto.setEventStartDate(event.getStartDate());
-        dto.setEventEndDate(event.getEndDate());
-        dto.setInternalDescription(event.getInternalDescription());
-        dto.setExternalDescription(event.getExternalDescription());
-        dto.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(event.getEventTimezone()));
-        dto.setEventLocation(event.getLocation());
+        dto.setProjectStartDate(project.getStartDate());
+        dto.setProjectEndDate(project.getEndDate());
+        dto.setInternalDescription(project.getInternalDescription());
+        dto.setExternalDescription(project.getExternalDescription());
+        dto.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(project.getProjectTimezone()));
+        dto.setProjectLocation(project.getLocation());
         dto.setShiftId(shift.getShiftId());
         dto.setShiftName(shift.getName() == null || shift.getName().isBlank() ? shift.getFunctionName() : shift.getName());
         dto.setShiftDate(shift.getStartTime().toLocalDate());
@@ -291,22 +291,22 @@ public class EmployeePlanningService {
         dto.setEndTime(shift.getEndTime());
         dto.setBreakMinutes(shift.getBreakMinutes() == null ? 0 : shift.getBreakMinutes());
         dto.setFunctionName(shift.getFunctionName());
-        dto.setShiftLocation(shift.getLocation() == null || shift.getLocation().isBlank() ? event.getLocation() : shift.getLocation());
+        dto.setShiftLocation(shift.getLocation() == null || shift.getLocation().isBlank() ? project.getLocation() : shift.getLocation());
         dto.setStatus(entry.getStatus().name());
-        dto.setIsPast(PlanningTimeZoneSupport.hasShiftEnded(shift, event));
+        dto.setIsPast(PlanningTimeZoneSupport.hasShiftEnded(shift, project));
         dto.setTimesheetExported(Boolean.TRUE.equals(entry.getTimesheetExported()));
         dto.setTimesheetExportedAt(entry.getTimesheetExportedAt());
         dto.setTravelClaim(mapTravelClaim(claim));
         return dto;
     }
 
-    private Event requireEvent(UUID eventId, UUID companyId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
-        if (!companyId.equals(event.getCompanyId())) {
-            throw new IllegalArgumentException("Event not found");
+    private Project requireProject(UUID projectId, UUID companyId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+        if (!companyId.equals(project.getCompanyId())) {
+            throw new IllegalArgumentException("Project not found");
         }
-        return event;
+        return project;
     }
 
     private TravelClaimSummaryDTO mapTravelClaim(TravelClaim claim) {

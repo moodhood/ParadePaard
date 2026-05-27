@@ -47,10 +47,10 @@ message Timesheet {
   string functionName = 3;
   string hoursWorked = 4;
   string travelExpenses = 5;
-  string sourceEventId = 6;
+  string sourceProjectId = 6;
   string sourceShiftId = 7;
   string sourceScheduleEntryId = 8;
-  string eventName = 9;
+  string projectName = 9;
   string shiftName = 10;
   string shiftDate = 11;
   string shiftStartTime = 12;
@@ -72,10 +72,10 @@ message PlannedTimesheetRecord {
   string function = 4;
   string hoursWorked = 5;
   string travelExpenses = 6;
-  string sourceEventId = 7;
+  string sourceProjectId = 7;
   string sourceShiftId = 8;
   string sourceScheduleEntryId = 9;
-  string eventName = 10;
+  string projectName = 10;
   string shiftName = 11;
   string shiftDate = 12;
   string shiftStartTime = 13;

@@ -1,17 +1,17 @@
 import type {
-    PlanningEventDTO,
+    PlanningProjectDTO,
     PlanningResourceAllocationDTO,
 } from "../services/user-service/UserServices";
 
 export type PlanningRangeMode = "all" | "upcoming" | "thisWeek" | "thisMonth" | "thisYear" | "custom";
-export type PlanningGroupKey = "none" | "day" | "week" | "month" | "year" | "event" | "employee" | "function" | "status";
+export type PlanningGroupKey = "none" | "day" | "week" | "month" | "year" | "project" | "employee" | "function" | "status";
 export type PlanningStatusFilter = "ALL" | "ASSIGNED" | "CONFIRMED" | "CANCELLED" | "UNASSIGNED";
 
 export type PlanningExplorerFilters = {
     rangeMode: PlanningRangeMode;
     startDate: string;
     endDate: string;
-    eventId: string;
+    projectId: string;
     employeeId: string;
     status: PlanningStatusFilter;
 };
@@ -20,10 +20,10 @@ export type PlanningExplorerRow = {
     rowId: string;
     shiftId: string;
     allocationId: string | null;
-    eventId: string;
-    eventName: string;
-    eventStartDate: string;
-    eventEndDate: string;
+    projectId: string;
+    projectName: string;
+    projectStartDate: string;
+    projectEndDate: string;
     shiftDate: string;
     startTime: string;
     endTime: string;
@@ -146,11 +146,11 @@ function getGroupInfo(row: PlanningExplorerRow, key: PlanningGroupKey): GroupInf
                 sortValue: year,
             };
         }
-        case "event":
+        case "project":
             return {
-                value: row.eventId,
-                label: row.eventName,
-                sortValue: `${row.eventStartDate}-${row.eventName.toLowerCase()}`,
+                value: row.projectId,
+                label: row.projectName,
+                sortValue: `${row.projectStartDate}-${row.projectName.toLowerCase()}`,
             };
         case "employee":
             return {
@@ -198,7 +198,7 @@ function sortRows(rows: PlanningExplorerRow[]): PlanningExplorerRow[] {
         return (
             left.shiftDate.localeCompare(right.shiftDate) ||
             left.startTime.localeCompare(right.startTime) ||
-            left.eventName.localeCompare(right.eventName) ||
+            left.projectName.localeCompare(right.projectName) ||
             left.functionName.localeCompare(right.functionName) ||
             (left.employeeName ?? "").localeCompare(right.employeeName ?? "")
         );
@@ -294,24 +294,24 @@ function matchesRange(date: string, bounds: { start: string; end: string } | nul
     return true;
 }
 
-export function flattenPlanningEvents(
-    events: PlanningEventDTO[],
+export function flattenPlanningProjects(
+    projects: PlanningProjectDTO[],
     resolveDisplayName?: (allocation: PlanningResourceAllocationDTO) => string
 ): PlanningExplorerRow[] {
     const rows: PlanningExplorerRow[] = [];
 
-    for (const event of events) {
-        for (const day of event.days) {
+    for (const project of projects) {
+        for (const day of project.days) {
             for (const shift of day.shifts) {
                 if (shift.allocations.length === 0) {
                     rows.push({
                         rowId: `${shift.shiftId}::unassigned`,
                         shiftId: shift.shiftId,
                         allocationId: null,
-                        eventId: event.eventId,
-                        eventName: event.eventName,
-                        eventStartDate: event.startDate,
-                        eventEndDate: event.endDate,
+                        projectId: project.projectId,
+                        projectName: project.projectName,
+                        projectStartDate: project.startDate,
+                        projectEndDate: project.endDate,
                         shiftDate: day.day,
                         startTime: shift.startTime,
                         endTime: shift.endTime,
@@ -319,8 +319,8 @@ export function flattenPlanningEvents(
                         employeeId: null,
                         employeeName: null,
                         status: "UNASSIGNED",
-                        finalized: Boolean(event.finalized),
-                        finalizedAt: event.finalizedAt ?? null,
+                        finalized: Boolean(project.finalized),
+                        finalizedAt: project.finalizedAt ?? null,
                     });
                     continue;
                 }
@@ -330,10 +330,10 @@ export function flattenPlanningEvents(
                         rowId: allocation.scheduleEntryId,
                         shiftId: shift.shiftId,
                         allocationId: allocation.scheduleEntryId,
-                        eventId: event.eventId,
-                        eventName: event.eventName,
-                        eventStartDate: event.startDate,
-                        eventEndDate: event.endDate,
+                        projectId: project.projectId,
+                        projectName: project.projectName,
+                        projectStartDate: project.startDate,
+                        projectEndDate: project.endDate,
                         shiftDate: day.day,
                         startTime: allocation.startTime || shift.startTime,
                         endTime: allocation.endTime || shift.endTime,
@@ -343,8 +343,8 @@ export function flattenPlanningEvents(
                             ? resolveDisplayName(allocation)
                             : allocation.userDisplayName?.trim() || allocation.userId,
                         status: normalizeStatus(allocation.status),
-                        finalized: Boolean(event.finalized),
-                        finalizedAt: event.finalizedAt ?? null,
+                        finalized: Boolean(project.finalized),
+                        finalizedAt: project.finalizedAt ?? null,
                     });
                 }
             }
@@ -362,7 +362,7 @@ export function applyPlanningFilters(
 
     return rows.filter((row) => {
         if (!matchesRange(row.shiftDate, bounds)) return false;
-        if (filters.eventId && row.eventId !== filters.eventId) return false;
+        if (filters.projectId && row.projectId !== filters.projectId) return false;
         if (filters.employeeId && row.employeeId !== filters.employeeId) return false;
         if (filters.status !== "ALL" && normalizeStatus(row.status) !== filters.status) return false;
         return true;

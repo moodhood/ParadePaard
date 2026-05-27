@@ -1,11 +1,12 @@
 package com.pm.planningservice.service;
 
 import com.pm.planningservice.dto.EmployeePlanningAssignmentDTO;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.integration.UserDirectoryClient;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import com.pm.planningservice.repository.TravelClaimRepository;
@@ -19,10 +20,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,7 +40,7 @@ class EmployeePlanningServiceTest {
     private ShiftRepository shiftRepository;
 
     @Mock
-    private EventRepository eventRepository;
+    private ProjectRepository projectRepository;
 
     @Mock
     private TravelClaimRepository travelClaimRepository;
@@ -44,26 +48,30 @@ class EmployeePlanningServiceTest {
     @Mock
     private PlanningTimesheetExportService planningTimesheetExportService;
 
+    @Mock
+    private UserDirectoryClient userDirectoryClient;
+
     @InjectMocks
     private EmployeePlanningService employeePlanningService;
 
     @Test
-    void getMyAssignmentsComputesPastStatusUsingEventTimezone() {
+    void getMyAssignmentsComputesPastStatusUsingProjectTimezone() {
         UUID companyId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
         UUID shiftId = UUID.randomUUID();
         UUID scheduleEntryId = UUID.randomUUID();
 
         TimeWindow timeWindow = createShiftWindowWithTimezoneDifference();
-        Event event = createEvent(companyId, eventId, timeWindow.zoneId().getId());
-        Shift shift = createShift(eventId, shiftId, timeWindow.startTime(), timeWindow.endTime());
+        Project project = createProject(companyId, projectId, timeWindow.zoneId().getId());
+        Shift shift = createShift(projectId, shiftId, timeWindow.startTime(), timeWindow.endTime());
         ScheduleEntry entry = createEntry(scheduleEntryId, shiftId, userId, ScheduleEntryStatus.ASSIGNED);
 
         when(scheduleEntryRepository.findByUserId(userId)).thenReturn(List.of(entry));
         when(shiftRepository.findById(shiftId)).thenReturn(Optional.of(shift));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
         when(travelClaimRepository.findByScheduleEntryId(scheduleEntryId)).thenReturn(Optional.empty());
+        when(userDirectoryClient.getDisplayNamesByUserIds(any())).thenReturn(Map.of(userId, "Test User"));
 
         List<EmployeePlanningAssignmentDTO> assignments = employeePlanningService.getMyAssignments(companyId, userId, "all");
 
@@ -72,23 +80,24 @@ class EmployeePlanningServiceTest {
     }
 
     @Test
-    void respondToAssignmentAllowsFutureShiftInEventTimezone() {
+    void respondToAssignmentAllowsFutureShiftInProjectTimezone() {
         UUID companyId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
-        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
         UUID shiftId = UUID.randomUUID();
         UUID scheduleEntryId = UUID.randomUUID();
 
         TimeWindow timeWindow = createShiftWindowWithTimezoneDifference();
-        Event event = createEvent(companyId, eventId, timeWindow.zoneId().getId());
-        Shift shift = createShift(eventId, shiftId, timeWindow.startTime(), timeWindow.endTime());
+        Project project = createProject(companyId, projectId, timeWindow.zoneId().getId());
+        Shift shift = createShift(projectId, shiftId, timeWindow.startTime(), timeWindow.endTime());
         ScheduleEntry entry = createEntry(scheduleEntryId, shiftId, userId, ScheduleEntryStatus.ASSIGNED);
 
         when(scheduleEntryRepository.findById(scheduleEntryId)).thenReturn(Optional.of(entry));
         when(shiftRepository.findById(shiftId)).thenReturn(Optional.of(shift));
-        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(projectRepository.findById(projectId)).thenReturn(Optional.of(project));
         when(scheduleEntryRepository.save(entry)).thenReturn(entry);
         when(travelClaimRepository.findByScheduleEntryId(scheduleEntryId)).thenReturn(Optional.empty());
+        when(userDirectoryClient.getDisplayNamesByUserIds(any())).thenReturn(Map.of(userId, "Test User"));
 
         EmployeePlanningAssignmentDTO response = employeePlanningService.respondToAssignment(
                 companyId,
@@ -101,22 +110,22 @@ class EmployeePlanningServiceTest {
         verify(scheduleEntryRepository).save(entry);
     }
 
-    private Event createEvent(UUID companyId, UUID eventId, String eventTimezone) {
-        Event event = new Event();
-        event.setEventId(eventId);
-        event.setCompanyId(companyId);
-        event.setName("Test event");
-        event.setStartDate(LocalDate.now());
-        event.setEndDate(LocalDate.now());
-        event.setEventTimezone(eventTimezone);
-        event.setFinalized(false);
-        return event;
+    private Project createProject(UUID companyId, UUID projectId, String projectTimezone) {
+        Project project = new Project();
+        project.setProjectId(projectId);
+        project.setCompanyId(companyId);
+        project.setName("Test project");
+        project.setStartDate(LocalDate.now());
+        project.setEndDate(LocalDate.now());
+        project.setProjectTimezone(projectTimezone);
+        project.setFinalized(false);
+        return project;
     }
 
-    private Shift createShift(UUID eventId, UUID shiftId, LocalDateTime startTime, LocalDateTime endTime) {
+    private Shift createShift(UUID projectId, UUID shiftId, LocalDateTime startTime, LocalDateTime endTime) {
         Shift shift = new Shift();
         shift.setShiftId(shiftId);
-        shift.setEventId(eventId);
+        shift.setProjectId(projectId);
         shift.setFunctionName("Bar");
         shift.setStartTime(startTime);
         shift.setEndTime(endTime);

@@ -16,8 +16,8 @@ public class TimesheetRequestDTO {
     private BigDecimal travelExpenses;
     private String sourceScheduleEntryId;
     private String sourceShiftId;
-    private String sourceEventId;
-    private String eventName;
+    private String sourceProjectId;
+    private String projectName;
     private String shiftName;
     private String shiftDate;
     private String shiftStartTime;
@@ -90,20 +90,20 @@ public class TimesheetRequestDTO {
         this.sourceShiftId = sourceShiftId;
     }
 
-    public String getSourceEventId() {
-        return sourceEventId;
+    public String getSourceProjectId() {
+        return sourceProjectId;
     }
 
-    public void setSourceEventId(String sourceEventId) {
-        this.sourceEventId = sourceEventId;
+    public void setSourceProjectId(String sourceProjectId) {
+        this.sourceProjectId = sourceProjectId;
     }
 
-    public String getEventName() {
-        return eventName;
+    public String getProjectName() {
+        return projectName;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     public String getShiftName() {

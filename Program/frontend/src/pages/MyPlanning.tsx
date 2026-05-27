@@ -95,12 +95,12 @@ export function MyPlanningView({
                                             return (
                                                 <article key={item.scheduleEntryId} className="userPlanningRequestCard userPlanningPanelCard">
                                                     <div className="userPlanningRequestMain">
-                                                        <div className="userPlanningRequestTitle">{item.eventName}</div>
+                                                        <div className="userPlanningRequestTitle">{item.projectName}</div>
                                                         <div className="userPlanningRequestMeta">
                                                             {formatDate(item.shiftDate)} - {timeLabel(item.startTime, item.endTime)}
                                                         </div>
                                                         <div className="userPlanningRequestMeta">
-                                                            {item.functionName} - {item.shiftLocation ?? item.eventLocation ?? "Location follows after acceptance"}
+                                                            {item.functionName} - {item.shiftLocation ?? item.projectLocation ?? "Location follows after acceptance"}
                                                         </div>
                                                         {isExpiredRequest ? (
                                                             <div className="userPlanningRequestMeta">
@@ -142,7 +142,7 @@ export function MyPlanningView({
                                     ) : (
                                         <div className="listContainer userPlanningAcceptedTable">
                                             <div className="listHeaderGrid userPlanningAcceptedGrid">
-                                                <div>Event</div>
+                                                <div>Project</div>
                                                 <div>Day</div>
                                                 <div>Time</div>
                                                 <div>Location</div>
@@ -157,12 +157,12 @@ export function MyPlanningView({
                                                         onClick={() => onOpenShift(item.scheduleEntryId)}
                                                     >
                                                         <div>
-                                                            <div className="cellMain">{item.eventName}</div>
+                                                            <div className="cellMain">{item.projectName}</div>
                                                             <div className="cellSub">{item.shiftName ?? item.functionName}</div>
                                                         </div>
                                                         <div className="cellSub">{formatDate(item.shiftDate)}</div>
                                                         <div className="cellSub userPlanningTimeCell">{timeLabel(item.startTime, item.endTime)}</div>
-                                                        <div className="cellSub">{item.shiftLocation ?? item.eventLocation ?? "-"}</div>
+                                                        <div className="cellSub">{item.shiftLocation ?? item.projectLocation ?? "-"}</div>
                                                         <div className="cellSub">
                                                             <span
                                                                 className={[

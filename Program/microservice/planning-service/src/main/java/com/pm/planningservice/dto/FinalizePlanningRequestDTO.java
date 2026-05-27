@@ -8,7 +8,7 @@ public class FinalizePlanningRequestDTO {
     @NotNull
     private UUID companyId;
 
-    private UUID eventId;
+    private UUID projectId;
     private Integer isoWeek;
     private Integer weekBasedYear;
 
@@ -20,12 +20,12 @@ public class FinalizePlanningRequestDTO {
         this.companyId = companyId;
     }
 
-    public UUID getEventId() {
-        return eventId;
+    public UUID getProjectId() {
+        return projectId;
     }
 
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
     }
 
     public Integer getIsoWeek() {

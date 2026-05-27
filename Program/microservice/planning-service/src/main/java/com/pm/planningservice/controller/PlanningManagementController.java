@@ -2,8 +2,8 @@ package com.pm.planningservice.controller;
 
 import com.pm.planningservice.dto.PlanningAssignmentMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningAssignmentSaveRequestDTO;
-import com.pm.planningservice.dto.PlanningEventMutationResponseDTO;
-import com.pm.planningservice.dto.PlanningEventSaveRequestDTO;
+import com.pm.planningservice.dto.PlanningProjectMutationResponseDTO;
+import com.pm.planningservice.dto.PlanningProjectSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningShiftMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningShiftSaveRequestDTO;
 import com.pm.planningservice.security.PlanningAuthentication;
@@ -32,60 +32,60 @@ public class PlanningManagementController {
         this.planningManagementService = planningManagementService;
     }
 
-    @PostMapping("/events")
+    @PostMapping("/projects")
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
-    public ResponseEntity<?> createEvent(
+    public ResponseEntity<?> createProject(
             Authentication authentication,
-            @Valid @RequestBody PlanningEventSaveRequestDTO request
+            @Valid @RequestBody PlanningProjectSaveRequestDTO request
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
             UUID userId = PlanningAuthentication.requireUserId(authentication);
-            PlanningEventMutationResponseDTO response = planningManagementService.createEvent(companyId, userId, request);
+            PlanningProjectMutationResponseDTO response = planningManagementService.createProject(companyId, userId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
     }
 
-    @PutMapping("/events/{eventId}")
+    @PutMapping("/projects/{projectId}")
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
-    public ResponseEntity<?> updateEvent(
+    public ResponseEntity<?> updateProject(
             Authentication authentication,
-            @PathVariable UUID eventId,
-            @Valid @RequestBody PlanningEventSaveRequestDTO request
+            @PathVariable UUID projectId,
+            @Valid @RequestBody PlanningProjectSaveRequestDTO request
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
-            PlanningEventMutationResponseDTO response = planningManagementService.updateEvent(companyId, eventId, request);
+            PlanningProjectMutationResponseDTO response = planningManagementService.updateProject(companyId, projectId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
     }
 
-    @DeleteMapping("/events/{eventId}")
+    @DeleteMapping("/projects/{projectId}")
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
-    public ResponseEntity<?> deleteEvent(Authentication authentication, @PathVariable UUID eventId) {
+    public ResponseEntity<?> deleteProject(Authentication authentication, @PathVariable UUID projectId) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
-            planningManagementService.deleteEvent(companyId, eventId);
+            planningManagementService.deleteProject(companyId, projectId);
             return ResponseEntity.noContent().build();
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }
     }
 
-    @PostMapping("/events/{eventId}/shifts")
+    @PostMapping("/projects/{projectId}/shifts")
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
     public ResponseEntity<?> createShift(
             Authentication authentication,
-            @PathVariable UUID eventId,
+            @PathVariable UUID projectId,
             @Valid @RequestBody PlanningShiftSaveRequestDTO request
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
-            PlanningShiftMutationResponseDTO response = planningManagementService.createShift(companyId, eventId, request);
+            PlanningShiftMutationResponseDTO response = planningManagementService.createShift(companyId, projectId, request);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));

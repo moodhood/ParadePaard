@@ -135,13 +135,13 @@ export default function MyPlanningShiftDetail() {
                     ) : item ? (
                         <div className="shiftDetailStack">
                             {error ? <p className="errorText">{error}</p> : null}
-                            <Card title={item.eventName} className="shiftDetailCard">
+                            <Card title={item.projectName} className="shiftDetailCard">
                                 <div className="generalInfoRows">
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Date</div><div className="generalInfoValue">{formatDate(item.shiftDate)}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Time</div><div className="generalInfoValue">{item.startTime.slice(11, 16)} - {item.endTime.slice(11, 16)}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Shift</div><div className="generalInfoValue">{item.shiftName ?? item.functionName}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Function</div><div className="generalInfoValue">{item.functionName}</div></div>
-                                    <div className="generalInfoRow"><div className="generalInfoLabel">Location</div><div className="generalInfoValue">{item.shiftLocation ?? item.eventLocation ?? "-"}</div></div>
+                                    <div className="generalInfoRow"><div className="generalInfoLabel">Location</div><div className="generalInfoValue">{item.shiftLocation ?? item.projectLocation ?? "-"}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Break</div><div className="generalInfoValue">{item.breakMinutes ?? 0} min</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Timesheet</div><div className="generalInfoValue">{item.timesheetExported ? "Logged" : "Not logged yet"}</div></div>
                                     <div className="generalInfoRow"><div className="generalInfoLabel">Internal notes</div><div className="generalInfoValue">{item.internalDescription || "-"}</div></div>

@@ -2,11 +2,11 @@ package com.pm.planningservice.service;
 
 import com.pm.planningservice.dto.FinalizePlanningRequestDTO;
 import com.pm.planningservice.dto.FinalizePlanningResponseDTO;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.stereotype.Service;
@@ -29,17 +29,17 @@ public class PlanningFinalizationService {
             ScheduleEntryStatus.CONFIRMED
     );
 
-    private final EventRepository eventRepository;
+    private final ProjectRepository projectRepository;
     private final ShiftRepository shiftRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final PlanningTimesheetExportService planningTimesheetExportService;
 
     public PlanningFinalizationService(
-            EventRepository eventRepository,
+            ProjectRepository projectRepository,
             ShiftRepository shiftRepository,
             ScheduleEntryRepository scheduleEntryRepository,
             PlanningTimesheetExportService planningTimesheetExportService) {
-        this.eventRepository = eventRepository;
+        this.projectRepository = projectRepository;
         this.shiftRepository = shiftRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.planningTimesheetExportService = planningTimesheetExportService;
@@ -52,29 +52,29 @@ public class PlanningFinalizationService {
             throw new IllegalArgumentException("This company uses automatic timesheet logging");
         }
 
-        TimeWindow weekWindow = request.getEventId() == null
+        TimeWindow weekWindow = request.getProjectId() == null
                 ? toIsoWeekWindow(request.getIsoWeek(), request.getWeekBasedYear())
                 : null;
-        List<Event> candidateEvents = request.getEventId() != null
-                ? resolveSingleEvent(request.getCompanyId(), request.getEventId())
-                : resolveEventsByIsoWeek(request.getCompanyId(), weekWindow);
+        List<Project> candidateProjects = request.getProjectId() != null
+                ? resolveSingleProject(request.getCompanyId(), request.getProjectId())
+                : resolveProjectsByIsoWeek(request.getCompanyId(), weekWindow);
 
-        List<Event> targetEvents = candidateEvents.stream()
-                .filter(event -> !Boolean.TRUE.equals(event.getFinalized()))
+        List<Project> targetProjects = candidateProjects.stream()
+                .filter(project -> !Boolean.TRUE.equals(project.getFinalized()))
                 .toList();
-        if (targetEvents.isEmpty()) {
+        if (targetProjects.isEmpty()) {
             FinalizePlanningResponseDTO empty = new FinalizePlanningResponseDTO();
             empty.setCreatedTimesheets(0);
             return empty;
         }
 
-        List<UUID> eventIds = targetEvents.stream().map(Event::getEventId).toList();
-        Set<UUID> eventIdSet = Set.copyOf(eventIds);
-        List<Shift> shifts = request.getEventId() != null
-                ? shiftRepository.findByEventIdIn(eventIds)
+        List<UUID> projectIds = targetProjects.stream().map(Project::getProjectId).toList();
+        Set<UUID> projectIdSet = Set.copyOf(projectIds);
+        List<Shift> shifts = request.getProjectId() != null
+                ? shiftRepository.findByProjectIdIn(projectIds)
                 : shiftRepository.findByStartTimeGreaterThanEqualAndStartTimeLessThan(weekWindow.start(), weekWindow.end())
                 .stream()
-                .filter(shift -> eventIdSet.contains(shift.getEventId()))
+                .filter(shift -> projectIdSet.contains(shift.getProjectId()))
                 .toList();
         shifts = shifts.stream()
                 .sorted(Comparator.comparing(Shift::getStartTime))
@@ -97,41 +97,41 @@ public class PlanningFinalizationService {
                 planningTimesheetExportService.exportScheduleEntries(request.getCompanyId(), entries);
 
         LocalDateTime now = LocalDateTime.now();
-        targetEvents.forEach(event -> {
-            event.setFinalized(true);
-            event.setFinalizedAt(now);
-            event.setStatus("COMPLETED");
-            event.setUpdatedAt(now);
+        targetProjects.forEach(project -> {
+            project.setFinalized(true);
+            project.setFinalizedAt(now);
+            project.setStatus("COMPLETED");
+            project.setUpdatedAt(now);
         });
-        eventRepository.saveAll(targetEvents);
+        projectRepository.saveAll(targetProjects);
 
         FinalizePlanningResponseDTO response = new FinalizePlanningResponseDTO();
         response.setCreatedTimesheets(exportResult.createdCount());
-        response.setFinalizedEventIds(targetEvents.stream().map(Event::getEventId).toList());
+        response.setFinalizedProjectIds(targetProjects.stream().map(Project::getProjectId).toList());
         response.setWarnings(exportResult.warnings());
         return response;
     }
 
-    private List<Event> resolveSingleEvent(UUID companyId, UUID eventId) {
-        return eventRepository.findByEventIdAndCompanyId(eventId, companyId)
+    private List<Project> resolveSingleProject(UUID companyId, UUID projectId) {
+        return projectRepository.findByProjectIdAndCompanyId(projectId, companyId)
                 .map(List::of)
                 .orElse(List.of());
     }
 
-    private List<Event> resolveEventsByIsoWeek(UUID companyId, TimeWindow weekWindow) {
+    private List<Project> resolveProjectsByIsoWeek(UUID companyId, TimeWindow weekWindow) {
         List<Shift> weekShifts = shiftRepository.findByStartTimeGreaterThanEqualAndStartTimeLessThan(
                 weekWindow.start(),
                 weekWindow.end()
         );
-        Set<UUID> weekEventIds = weekShifts.stream()
-                .map(Shift::getEventId)
+        Set<UUID> weekProjectIds = weekShifts.stream()
+                .map(Shift::getProjectId)
                 .collect(Collectors.toSet());
-        if (weekEventIds.isEmpty()) {
+        if (weekProjectIds.isEmpty()) {
             return List.of();
         }
 
-        return eventRepository.findByEventIdIn(weekEventIds).stream()
-                .filter(event -> companyId.equals(event.getCompanyId()))
+        return projectRepository.findByProjectIdIn(weekProjectIds).stream()
+                .filter(project -> companyId.equals(project.getCompanyId()))
                 .toList();
     }
 
@@ -143,19 +143,19 @@ public class PlanningFinalizationService {
     }
 
     private void validateRequest(FinalizePlanningRequestDTO request) {
-        boolean hasEvent = request.getEventId() != null;
+        boolean hasProject = request.getProjectId() != null;
         boolean hasWeek = request.getIsoWeek() != null || request.getWeekBasedYear() != null;
 
-        if (hasEvent && hasWeek) {
-            throw new IllegalArgumentException("Provide either eventId or isoWeek/weekBasedYear, not both");
+        if (hasProject && hasWeek) {
+            throw new IllegalArgumentException("Provide either projectId or isoWeek/weekBasedYear, not both");
         }
-        if (!hasEvent && !hasWeek) {
-            throw new IllegalArgumentException("Provide eventId or isoWeek/weekBasedYear");
+        if (!hasProject && !hasWeek) {
+            throw new IllegalArgumentException("Provide projectId or isoWeek/weekBasedYear");
         }
-        if (!hasEvent && (request.getIsoWeek() == null || request.getWeekBasedYear() == null)) {
+        if (!hasProject && (request.getIsoWeek() == null || request.getWeekBasedYear() == null)) {
             throw new IllegalArgumentException("Both isoWeek and weekBasedYear are required for week finalization");
         }
-        if (!hasEvent && (request.getIsoWeek() < 1 || request.getIsoWeek() > 53)) {
+        if (!hasProject && (request.getIsoWeek() < 1 || request.getIsoWeek() > 53)) {
             throw new IllegalArgumentException("isoWeek must be between 1 and 53");
         }
     }

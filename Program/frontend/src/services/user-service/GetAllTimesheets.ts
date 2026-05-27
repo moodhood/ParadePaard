@@ -12,8 +12,8 @@ export type TimesheetRow = {
     travelExpenses?: number;
     sourceScheduleEntryId?: string | null;
     sourceShiftId?: string | null;
-    sourceEventId?: string | null;
-    eventName?: string | null;
+    sourceProjectId?: string | null;
+    projectName?: string | null;
     shiftName?: string | null;
     shiftDate?: string | null;
     shiftStartTime?: string | null;

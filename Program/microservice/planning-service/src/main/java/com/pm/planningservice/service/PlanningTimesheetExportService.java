@@ -4,13 +4,13 @@ import com.pm.planningservice.integration.CompanySettingsClient;
 import com.pm.planningservice.integration.CompanySettingsDTO;
 import com.pm.planningservice.integration.TimesheetGrpcClient;
 import com.pm.planningservice.integration.UserDirectoryClient;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.model.TravelClaim;
 import com.pm.planningservice.model.TravelClaimStatus;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import com.pm.planningservice.repository.TravelClaimRepository;
@@ -34,7 +34,7 @@ public class PlanningTimesheetExportService {
     private static final BigDecimal DEFAULT_TRAVEL_RATE = new BigDecimal("0.23");
 
     private final ShiftRepository shiftRepository;
-    private final EventRepository eventRepository;
+    private final ProjectRepository projectRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final TravelClaimRepository travelClaimRepository;
     private final TimesheetGrpcClient timesheetGrpcClient;
@@ -43,7 +43,7 @@ public class PlanningTimesheetExportService {
 
     public PlanningTimesheetExportService(
             ShiftRepository shiftRepository,
-            EventRepository eventRepository,
+            ProjectRepository projectRepository,
             ScheduleEntryRepository scheduleEntryRepository,
             TravelClaimRepository travelClaimRepository,
             TimesheetGrpcClient timesheetGrpcClient,
@@ -51,7 +51,7 @@ public class PlanningTimesheetExportService {
             UserDirectoryClient userDirectoryClient
     ) {
         this.shiftRepository = shiftRepository;
-        this.eventRepository = eventRepository;
+        this.projectRepository = projectRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.travelClaimRepository = travelClaimRepository;
         this.timesheetGrpcClient = timesheetGrpcClient;
@@ -94,11 +94,11 @@ public class PlanningTimesheetExportService {
                 ).stream()
                 .collect(Collectors.toMap(Shift::getShiftId, shift -> shift));
 
-        Map<UUID, Event> eventById = eventRepository.findByEventIdIn(
-                        shiftById.values().stream().map(Shift::getEventId).distinct().toList()
+        Map<UUID, Project> projectById = projectRepository.findByProjectIdIn(
+                        shiftById.values().stream().map(Shift::getProjectId).distinct().toList()
                 ).stream()
-                .filter(event -> companyId.equals(event.getCompanyId()))
-                .collect(Collectors.toMap(Event::getEventId, event -> event));
+                .filter(project -> companyId.equals(project.getCompanyId()))
+                .collect(Collectors.toMap(Project::getProjectId, project -> project));
 
         Map<UUID, TravelClaim> claimByScheduleEntryId = travelClaimRepository.findByScheduleEntryIdIn(
                         entries.stream().map(ScheduleEntry::getScheduleEntryId).toList()
@@ -116,9 +116,9 @@ public class PlanningTimesheetExportService {
                 warnings.add("Skipped scheduleEntryId=" + entry.getScheduleEntryId() + " reason=Shift not found");
                 continue;
             }
-            Event event = eventById.get(shift.getEventId());
-            if (event == null) {
-                warnings.add("Skipped scheduleEntryId=" + entry.getScheduleEntryId() + " reason=Event not found");
+            Project project = projectById.get(shift.getProjectId());
+            if (project == null) {
+                warnings.add("Skipped scheduleEntryId=" + entry.getScheduleEntryId() + " reason=Project not found");
                 continue;
             }
 
@@ -130,11 +130,11 @@ public class PlanningTimesheetExportService {
                     .setUserId(entry.getUserId().toString())
                     .setDateOfIssue(shift.getStartTime().toLocalDate().toString())
                     .setName(resolveEmployeeName(entry.getUserId(), userDisplayNamesById))
-                    .setEventName(event.getName())
+                    .setProjectName(project.getName())
                     .setFunction(shift.getFunctionName())
                     .setHoursWorked(calculateWorkedHours(shift).toPlainString())
                     .setTravelExpenses(includeTravel ? claim.getTotalAmount().toPlainString() : "0.00")
-                    .setSourceEventId(event.getEventId().toString())
+                    .setSourceProjectId(project.getProjectId().toString())
                     .setSourceShiftId(shift.getShiftId().toString())
                     .setSourceScheduleEntryId(entry.getScheduleEntryId().toString())
                     .setShiftName(resolveShiftName(shift))

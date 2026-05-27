@@ -35,7 +35,7 @@ public class PlanningViewController {
     public ResponseEntity<List<PlanningViewResponseDTO>> getPlanningView(
             Authentication authentication,
             @RequestParam(required = false) UUID companyId,
-            @RequestParam(required = false) UUID eventId,
+            @RequestParam(required = false) UUID projectId,
             @RequestParam(required = false) LocalDate startDate,
             @RequestParam(required = false) LocalDate endDate,
             @RequestParam(defaultValue = "true") boolean includeAllocationDetails) {
@@ -45,7 +45,7 @@ public class PlanningViewController {
         }
         return ResponseEntity.ok(planningViewService.getPlanningHierarchy(
                 companyIdFromToken,
-                eventId,
+                projectId,
                 startDate,
                 endDate,
                 includeAllocationDetails

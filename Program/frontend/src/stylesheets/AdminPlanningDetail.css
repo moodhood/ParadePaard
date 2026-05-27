@@ -18,11 +18,11 @@
   min-height: 320px;
 }
 
-.planningDetailEventCard {
+.planningDetailProjectCard {
   min-height: 680px;
 }
 
-.planningDetailEventCard > .uiCardBody {
+.planningDetailProjectCard > .uiCardBody {
   display: flex;
   flex: 1 1 auto;
 }
@@ -73,34 +73,34 @@
   font-weight: 800;
 }
 
-.planningDetailEventTitle {
+.planningDetailProjectTitle {
   display: inline-block;
 }
 
-.planningDetailEventCard--empty > .uiCardHeader {
+.planningDetailProjectCard--empty > .uiCardHeader {
   background: var(--planning-status-empty-strong);
   color: #ffffff;
 }
 
-.planningDetailEventCard--partial > .uiCardHeader {
+.planningDetailProjectCard--partial > .uiCardHeader {
   background: var(--planning-status-partial-strong);
   color: #ffffff;
 }
 
-.planningDetailEventCard--staffed > .uiCardHeader {
+.planningDetailProjectCard--staffed > .uiCardHeader {
   background: var(--planning-status-staffed-strong);
   color: #ffffff;
 }
 
-.planningDetailEventCard > .uiCardHeader .uiCardTitle {
+.planningDetailProjectCard > .uiCardHeader .uiCardTitle {
   color: inherit;
 }
 
-.planningDetailEventCard > .uiCardHeader .uiCardRight {
+.planningDetailProjectCard > .uiCardHeader .uiCardRight {
   color: inherit;
 }
 
-.planningDetailEventCard > .uiCardHeader .planningDetailShiftRequirement--summary {
+.planningDetailProjectCard > .uiCardHeader .planningDetailShiftRequirement--summary {
   background: rgba(255, 255, 255, 0.18);
   color: #ffffff;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18);

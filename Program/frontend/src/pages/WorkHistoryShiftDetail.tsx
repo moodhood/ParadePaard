@@ -181,9 +181,9 @@ export default function WorkHistoryShiftDetail() {
                                                 </span>
                                             </div>
                                             <div className="workHistoryDetailItem">
-                                                <span className="workHistoryDetailLabel">Event</span>
+                                                <span className="workHistoryDetailLabel">Project</span>
                                                 <span className="workHistoryDetailValue">
-                                                    {assignment?.eventName ?? timesheet.eventName ?? "-"}
+                                                    {assignment?.projectName ?? timesheet.projectName ?? "-"}
                                                 </span>
                                             </div>
                                             <div className="workHistoryDetailItem">

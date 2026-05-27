@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class PlanningViewResponseDTO {
-    private UUID eventId;
-    private String eventName;
+    private UUID projectId;
+    private String projectName;
     private LocalDate startDate;
     private LocalDate endDate;
     private UUID clientCompanyId;
@@ -18,7 +18,7 @@ public class PlanningViewResponseDTO {
     private String externalDescription;
     private LocalTime defaultStartTime;
     private LocalTime defaultEndTime;
-    private String eventTimezone;
+    private String projectTimezone;
     private String location;
     private String status;
     private UUID createdByUserId;
@@ -29,20 +29,20 @@ public class PlanningViewResponseDTO {
     private Integer peopleNeededTotal;
     private List<PlanningDayDTO> days = new ArrayList<>();
 
-    public UUID getEventId() {
-        return eventId;
+    public UUID getProjectId() {
+        return projectId;
     }
 
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
     }
 
-    public String getEventName() {
-        return eventName;
+    public String getProjectName() {
+        return projectName;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     public LocalDate getStartDate() {
@@ -109,12 +109,12 @@ public class PlanningViewResponseDTO {
         this.defaultEndTime = defaultEndTime;
     }
 
-    public String getEventTimezone() {
-        return eventTimezone;
+    public String getProjectTimezone() {
+        return projectTimezone;
     }
 
-    public void setEventTimezone(String eventTimezone) {
-        this.eventTimezone = eventTimezone;
+    public void setProjectTimezone(String projectTimezone) {
+        this.projectTimezone = projectTimezone;
     }
 
     public String getLocation() {

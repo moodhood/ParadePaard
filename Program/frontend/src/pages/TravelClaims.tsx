@@ -112,7 +112,7 @@ export default function TravelClaims() {
                                                 <div key={claim.scheduleEntryId} className="requestListRow">
                                                     <div className="requestMainLine">
                                                         <span className="reqDateRange">{claim.userDisplayName ?? claim.userId}</span>
-                                                        <span className="reqTotalHours">{claim.eventName}</span>
+                                                        <span className="reqTotalHours">{claim.projectName}</span>
                                                         <span className="reqTotalHours">{claim.travelClaim?.kilometers ?? 0} km</span>
                                                         <span className="reqTotalHours">
                                                             {formatMoney(claim.travelClaim?.totalAmount ?? 0)}
@@ -120,7 +120,7 @@ export default function TravelClaims() {
                                                     </div>
                                                     <div className="requestNoteLine">
                                                         {formatDate(claim.shiftDate)} | {claim.shiftName ?? claim.functionName} |{" "}
-                                                        {claim.shiftLocation ?? claim.eventLocation ?? "-"}
+                                                        {claim.shiftLocation ?? claim.projectLocation ?? "-"}
                                                     </div>
                                                     <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
                                                         {claim.travelClaim?.hasProof ? (

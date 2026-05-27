@@ -13,7 +13,7 @@ import {
     type CreateContractRequestDTO,
     type EmployeeTaxProfileDTO,
     type FunctionResponseDTO,
-    type PlanningEventDTO,
+    type PlanningProjectDTO,
     type TimesheetRow,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
@@ -34,7 +34,7 @@ import {
     timeframeLabel,
     type Timeframe,
 } from "../utils/hoursSummary";
-import { flattenPlanningEvents, type PlanningExplorerRow } from "../utils/planningExplorer";
+import { flattenPlanningProjects, type PlanningExplorerRow } from "../utils/planningExplorer";
 import { getAllocationStatusLabel, getAllocationStatusTone } from "../utils/planningSummary";
 
 const normalizeRoleName = (value: string) => value.trim().toUpperCase();
@@ -214,7 +214,7 @@ function sortPlanningRowsAsc(rows: PlanningExplorerRow[]): PlanningExplorerRow[]
         return (
             left.shiftDate.localeCompare(right.shiftDate) ||
             left.startTime.localeCompare(right.startTime) ||
-            left.eventName.localeCompare(right.eventName)
+            left.projectName.localeCompare(right.projectName)
         );
     });
 }
@@ -224,7 +224,7 @@ function sortPlanningRowsDesc(rows: PlanningExplorerRow[]): PlanningExplorerRow[
         return (
             right.shiftDate.localeCompare(left.shiftDate) ||
             right.startTime.localeCompare(left.startTime) ||
-            left.eventName.localeCompare(right.eventName)
+            left.projectName.localeCompare(right.projectName)
         );
     });
 }
@@ -255,7 +255,7 @@ export default function AdminUserDetails() {
     const [timeframe, setTimeframe] = useState<Timeframe>({ kind: "all" });
     const [timeframeInitialized, setTimeframeInitialized] = useState(false);
 
-    const [planningEvents, setPlanningEvents] = useState<PlanningEventDTO[]>([]);
+    const [planningProjects, setPlanningProjects] = useState<PlanningProjectDTO[]>([]);
     const [planningLoading, setPlanningLoading] = useState(false);
     const [planningError, setPlanningError] = useState<string | null>(null);
     const [currentContract, setCurrentContract] = useState<ContractResponseDTO | null>(null);
@@ -384,7 +384,7 @@ export default function AdminUserDetails() {
             setPlanningError(null);
             const company = await UserServices.getMyCompany();
             const data = await UserServices.getPlanningOverview(company.companyId);
-            setPlanningEvents(data);
+            setPlanningProjects(data);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to load planning.";
             setPlanningError(message);
@@ -652,8 +652,8 @@ export default function AdminUserDetails() {
 
     const planningRows = useMemo(() => {
         if (!userId) return [];
-        return flattenPlanningEvents(planningEvents).filter((row) => row.employeeId === userId);
-    }, [planningEvents, userId]);
+        return flattenPlanningProjects(planningProjects).filter((row) => row.employeeId === userId);
+    }, [planningProjects, userId]);
 
     const activePlanningRows = useMemo(() => {
         return sortPlanningRowsAsc(
@@ -1024,7 +1024,7 @@ export default function AdminUserDetails() {
     }, [showRolePicker]);
 
     const getAdminShiftPath = (row: PlanningExplorerRow) => {
-        return `/management/planning/events/${encodeURIComponent(row.eventId)}?shift=${encodeURIComponent(row.shiftId)}`;
+        return `/management/planning/projects/${encodeURIComponent(row.projectId)}?shift=${encodeURIComponent(row.shiftId)}`;
     };
 
     const renderPlanningList = (rows: PlanningExplorerRow[], emptyMessage: string, linkToShift = false) => {
@@ -1039,7 +1039,7 @@ export default function AdminUserDetails() {
                     const itemContent = (
                         <>
                             <div className="adminUserPlanningItemMain">
-                                <div className="adminUserPlanningItemTitle">{row.eventName}</div>
+                                <div className="adminUserPlanningItemTitle">{row.projectName}</div>
                                 <div className="adminUserPlanningItemMeta">
                                     {formatDate(row.shiftDate)} · {formatPlanningTimeRange(row)}
                                 </div>
@@ -1062,7 +1062,7 @@ export default function AdminUserDetails() {
                                 key={row.rowId}
                                 className="adminUserPlanningItem adminUserPlanningItem--link"
                                 to={getAdminShiftPath(row)}
-                                aria-label={`Open ${row.eventName} shift on ${formatDate(row.shiftDate)}`}
+                                aria-label={`Open ${row.projectName} shift on ${formatDate(row.shiftDate)}`}
                             >
                                 {itemContent}
                             </Link>

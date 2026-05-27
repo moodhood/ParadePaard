@@ -13,9 +13,9 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "shifts", indexes = {
-        @Index(name = "idx_shift_event", columnList = "event_id"),
+        @Index(name = "idx_shift_project", columnList = "project_id"),
         @Index(name = "idx_shift_start_time", columnList = "start_time"),
-        @Index(name = "idx_shift_event_start_end", columnList = "event_id,start_time,end_time")
+        @Index(name = "idx_shift_project_start_end", columnList = "project_id,start_time,end_time")
 })
 public class Shift {
     @Id
@@ -23,8 +23,8 @@ public class Shift {
     @Column(nullable = false)
     private UUID shiftId;
 
-    @Column(nullable = false)
-    private UUID eventId;
+    @Column(name = "project_id", nullable = false)
+    private UUID projectId;
 
     @Column(nullable = false)
     private LocalDateTime startTime;
@@ -53,12 +53,12 @@ public class Shift {
         this.shiftId = shiftId;
     }
 
-    public UUID getEventId() {
-        return eventId;
+    public UUID getProjectId() {
+        return projectId;
     }
 
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
     }
 
     public LocalDateTime getStartTime() {

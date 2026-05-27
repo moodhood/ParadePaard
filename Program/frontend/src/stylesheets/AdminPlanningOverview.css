@@ -287,7 +287,7 @@
   padding: 1px;
 }
 
-.planningCreateEventToast {
+.planningCreateProjectToast {
   position: fixed;
   top: 24px;
   right: 24px;
@@ -307,33 +307,33 @@
   animation: planningToastFade 3.2s ease forwards;
 }
 
-.planningCreateEventToastIcon {
+.planningCreateProjectToastIcon {
   width: 22px;
   height: 22px;
   color: #56d364;
   flex: 0 0 auto;
 }
 
-.planningCreateEventToastIcon svg {
+.planningCreateProjectToastIcon svg {
   display: block;
   width: 100%;
   height: 100%;
 }
 
-.planningCreateEventToastBody {
+.planningCreateProjectToastBody {
   display: flex;
   flex-direction: column;
   gap: 2px;
   min-width: 0;
 }
 
-.planningCreateEventToastTitle {
+.planningCreateProjectToastTitle {
   font-size: 14px;
   font-weight: 800;
   color: #f0fff4;
 }
 
-.planningCreateEventToastMessage {
+.planningCreateProjectToastMessage {
   font-size: 12px;
   color: rgba(234,255,241,0.82);
 }
@@ -1152,7 +1152,7 @@
 }
 
 @media (max-width: 640px) {
-  .planningCreateEventToast {
+  .planningCreateProjectToast {
     top: 16px;
     right: 16px;
     left: 16px;

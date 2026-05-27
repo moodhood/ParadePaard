@@ -12,8 +12,8 @@ function assignment(
 ): EmployeePlanningAssignmentDTO {
     return {
         scheduleEntryId,
-        eventId: `event-${scheduleEntryId}`,
-        eventName: `Event ${scheduleEntryId}`,
+        projectId: `project-${scheduleEntryId}`,
+        projectName: `Project ${scheduleEntryId}`,
         shiftId: `shift-${scheduleEntryId}`,
         shiftDate: isPast ? "2026-05-01" : "2026-05-20",
         startTime: isPast ? "2026-05-01T09:00:00" : "2026-05-20T09:00:00",

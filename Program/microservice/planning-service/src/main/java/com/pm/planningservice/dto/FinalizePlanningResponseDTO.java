@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public class FinalizePlanningResponseDTO {
     private Integer createdTimesheets;
-    private List<UUID> finalizedEventIds = new ArrayList<>();
+    private List<UUID> finalizedProjectIds = new ArrayList<>();
     private List<String> warnings = new ArrayList<>();
 
     public Integer getCreatedTimesheets() {
@@ -17,12 +17,12 @@ public class FinalizePlanningResponseDTO {
         this.createdTimesheets = createdTimesheets;
     }
 
-    public List<UUID> getFinalizedEventIds() {
-        return finalizedEventIds;
+    public List<UUID> getFinalizedProjectIds() {
+        return finalizedProjectIds;
     }
 
-    public void setFinalizedEventIds(List<UUID> finalizedEventIds) {
-        this.finalizedEventIds = finalizedEventIds;
+    public void setFinalizedProjectIds(List<UUID> finalizedProjectIds) {
+        this.finalizedProjectIds = finalizedProjectIds;
     }
 
     public List<String> getWarnings() {

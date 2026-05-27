@@ -435,14 +435,7 @@ ${note}` : title;
                             ) : null}
 
                             {!payslipLoading && !payslipError && payslips.length === 0 ? (
-                                <div className="payslipRowGrid">
-                                    <div className="pdCell">No payslips yet</div>
-                                    <div className="pdCell"></div>
-                                    <div className="pdCell"></div>
-                                    <div className="pdCell"></div>
-                                    <div className="pdCell"></div>
-                                    <div className="pdCell"></div>
-                                </div>
+                                <p className="requestListEmpty">No payslips yet</p>
                             ) : null}
 
                             {!payslipLoading && !payslipError
@@ -522,12 +515,12 @@ ${note}` : title;
                                                             className="userPlanningRequestCard userPlanningRequestCard--pending"
                                                         >
                                                             <div className="userPlanningRequestMain">
-                                                                <div className="userPlanningRequestTitle">{row.eventName}</div>
+                                                                <div className="userPlanningRequestTitle">{row.projectName}</div>
                                                                 <div className="userPlanningRequestMeta">
                                                                     {formatDate(row.shiftDate)} at {row.startTime.slice(11, 16)} - {row.endTime.slice(11, 16)}
                                                                 </div>
                                                                 <div className="userPlanningRequestMeta">
-                                                                    {row.functionName} - {row.shiftLocation ?? row.eventLocation ?? "Location after acceptance"}
+                                                                    {row.functionName} - {row.shiftLocation ?? row.projectLocation ?? "Location after acceptance"}
                                                                 </div>
                                                             </div>
                                                             <div className="userPlanningRequestActions">
@@ -563,7 +556,7 @@ ${note}` : title;
                                 <section className="planningGroupSection userPlanningGroup userPlanningGroup--flush">
                                     <div className="listContainer planningAllocationList">
                                         <div className="listHeaderGrid userPlanningGrid">
-                                            <div>Event</div>
+                                            <div>Project</div>
                                             <div>Day</div>
                                             <div>Time</div>
                                             <div>Function</div>
@@ -578,7 +571,7 @@ ${note}` : title;
                                                     onClick={() => navigate(`/my-planning/${row.scheduleEntryId}`)}
                                                 >
                                                     <div>
-                                                        <div className="cellMain">{row.eventName}</div>
+                                                        <div className="cellMain">{row.projectName}</div>
                                                         <div className="cellSub">{row.shiftName ?? row.functionName}</div>
                                                     </div>
                                                     <div className="cellSub">{formatDate(row.shiftDate)}</div>

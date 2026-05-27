@@ -2,12 +2,12 @@ package com.pm.planningservice.service;
 
 import com.pm.planningservice.dto.PlanningAssignmentMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningAssignmentSaveRequestDTO;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.repository.ClientCompanyRepository;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class PlanningManagementServiceTest {
     private ClientCompanyRepository clientCompanyRepository;
 
     @Mock
-    private EventRepository eventRepository;
+    private ProjectRepository projectRepository;
 
     @Mock
     private ShiftRepository shiftRepository;
@@ -49,23 +49,24 @@ class PlanningManagementServiceTest {
     void createAssignmentResetsExistingEntryToPendingStatus() {
         UUID companyId = UUID.randomUUID();
         UUID shiftId = UUID.randomUUID();
-        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         UUID scheduleEntryId = UUID.randomUUID();
 
         Shift shift = new Shift();
         shift.setShiftId(shiftId);
-        shift.setEventId(eventId);
+        shift.setProjectId(projectId);
         shift.setStartTime(LocalDateTime.of(2026, 5, 1, 9, 0));
         shift.setEndTime(LocalDateTime.of(2026, 5, 1, 17, 0));
         shift.setFunctionName("BAR");
 
-        Event event = new Event();
-        event.setEventId(eventId);
-        event.setCompanyId(companyId);
-        event.setStartDate(LocalDate.of(2026, 5, 1));
-        event.setEndDate(LocalDate.of(2026, 5, 1));
-        event.setFinalized(false);
+        Project project = new Project();
+        project.setProjectId(projectId);
+        project.setCompanyId(companyId);
+        project.setName("Test project");
+        project.setStartDate(LocalDate.of(2026, 5, 1));
+        project.setEndDate(LocalDate.of(2026, 5, 1));
+        project.setFinalized(false);
 
         ScheduleEntry existingEntry = new ScheduleEntry();
         existingEntry.setScheduleEntryId(scheduleEntryId);
@@ -80,7 +81,7 @@ class PlanningManagementServiceTest {
         request.setStatus(ScheduleEntryStatus.ASSIGNED);
 
         when(shiftRepository.findById(shiftId)).thenReturn(Optional.of(shift));
-        when(eventRepository.findByEventIdAndCompanyId(eventId, companyId)).thenReturn(Optional.of(event));
+        when(projectRepository.findByProjectIdAndCompanyId(projectId, companyId)).thenReturn(Optional.of(project));
         when(scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId)).thenReturn(Optional.of(existingEntry));
         when(scheduleEntryRepository.save(existingEntry)).thenReturn(existingEntry);
 
@@ -99,23 +100,24 @@ class PlanningManagementServiceTest {
     void createAssignmentCreatesNewEntryWhenNoExistingAssignmentExists() {
         UUID companyId = UUID.randomUUID();
         UUID shiftId = UUID.randomUUID();
-        UUID eventId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();
         UUID scheduleEntryId = UUID.randomUUID();
 
         Shift shift = new Shift();
         shift.setShiftId(shiftId);
-        shift.setEventId(eventId);
+        shift.setProjectId(projectId);
         shift.setStartTime(LocalDateTime.of(2026, 5, 1, 9, 0));
         shift.setEndTime(LocalDateTime.of(2026, 5, 1, 17, 0));
         shift.setFunctionName("BAR");
 
-        Event event = new Event();
-        event.setEventId(eventId);
-        event.setCompanyId(companyId);
-        event.setStartDate(LocalDate.of(2026, 5, 1));
-        event.setEndDate(LocalDate.of(2026, 5, 1));
-        event.setFinalized(false);
+        Project project = new Project();
+        project.setProjectId(projectId);
+        project.setCompanyId(companyId);
+        project.setName("Test project");
+        project.setStartDate(LocalDate.of(2026, 5, 1));
+        project.setEndDate(LocalDate.of(2026, 5, 1));
+        project.setFinalized(false);
 
         ScheduleEntry savedEntry = new ScheduleEntry();
         savedEntry.setScheduleEntryId(scheduleEntryId);
@@ -129,7 +131,7 @@ class PlanningManagementServiceTest {
         request.setStatus(ScheduleEntryStatus.ASSIGNED);
 
         when(shiftRepository.findById(shiftId)).thenReturn(Optional.of(shift));
-        when(eventRepository.findByEventIdAndCompanyId(eventId, companyId)).thenReturn(Optional.of(event));
+        when(projectRepository.findByProjectIdAndCompanyId(projectId, companyId)).thenReturn(Optional.of(project));
         when(scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId)).thenReturn(Optional.empty());
         when(scheduleEntryRepository.save(any(ScheduleEntry.class))).thenReturn(savedEntry);
 

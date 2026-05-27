@@ -5,12 +5,12 @@ import com.pm.planningservice.dto.PlanningResourceAllocationDTO;
 import com.pm.planningservice.dto.PlanningShiftDTO;
 import com.pm.planningservice.dto.PlanningViewResponseDTO;
 import com.pm.planningservice.integration.UserDirectoryClient;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.repository.ClientCompanyRepository;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.stereotype.Service;
@@ -29,19 +29,19 @@ import java.util.stream.Collectors;
 @Service
 public class PlanningViewService {
     private final ClientCompanyRepository clientCompanyRepository;
-    private final EventRepository eventRepository;
+    private final ProjectRepository projectRepository;
     private final ShiftRepository shiftRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
     private final UserDirectoryClient userDirectoryClient;
 
     public PlanningViewService(
             ClientCompanyRepository clientCompanyRepository,
-            EventRepository eventRepository,
+            ProjectRepository projectRepository,
             ShiftRepository shiftRepository,
             ScheduleEntryRepository scheduleEntryRepository,
             UserDirectoryClient userDirectoryClient) {
         this.clientCompanyRepository = clientCompanyRepository;
-        this.eventRepository = eventRepository;
+        this.projectRepository = projectRepository;
         this.shiftRepository = shiftRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
         this.userDirectoryClient = userDirectoryClient;
@@ -49,22 +49,22 @@ public class PlanningViewService {
 
     public List<PlanningViewResponseDTO> getPlanningHierarchy(
             UUID companyId,
-            UUID eventFilterId,
+            UUID projectFilterId,
             LocalDate startDate,
             LocalDate endDate,
             boolean includeAllocationDetails) {
-        List<Event> events = resolveEvents(companyId, eventFilterId, startDate, endDate);
-        if (events.isEmpty()) {
+        List<Project> projects = resolveProjects(companyId, projectFilterId, startDate, endDate);
+        if (projects.isEmpty()) {
             return List.of();
         }
 
-        List<UUID> eventIds = events.stream()
-                .map(Event::getEventId)
+        List<UUID> projectIds = projects.stream()
+                .map(Project::getProjectId)
                 .toList();
-        List<Shift> shifts = resolveShifts(eventIds, eventFilterId, startDate, endDate);
-        Map<UUID, List<Shift>> shiftsByEventId = shifts.stream()
+        List<Shift> shifts = resolveShifts(projectIds, projectFilterId, startDate, endDate);
+        Map<UUID, List<Shift>> shiftsByProjectId = shifts.stream()
                 .sorted(Comparator.comparing(Shift::getStartTime))
-                .collect(Collectors.groupingBy(Shift::getEventId));
+                .collect(Collectors.groupingBy(Shift::getProjectId));
 
         List<UUID> shiftIds = shifts.stream()
                 .map(Shift::getShiftId)
@@ -88,12 +88,12 @@ public class PlanningViewService {
         Map<UUID, String> userDisplayNames = includeAllocationDetails
                 ? userDirectoryClient.getDisplayNamesByUserIds(userIds)
                 : Map.of();
-        Map<UUID, String> clientCompanyNames = loadClientCompanyNames(companyId, events);
+        Map<UUID, String> clientCompanyNames = loadClientCompanyNames(companyId, projects);
 
-        return events.stream()
-                .map(event -> mapEventHierarchy(
-                        event,
-                        shiftsByEventId,
+        return projects.stream()
+                .map(project -> mapProjectHierarchy(
+                        project,
+                        shiftsByProjectId,
                         entriesByShiftId,
                         assignmentCountsByShiftId,
                         userDisplayNames,
@@ -103,36 +103,36 @@ public class PlanningViewService {
                 .toList();
     }
 
-    private List<Event> resolveEvents(UUID companyId, UUID eventFilterId, LocalDate startDate, LocalDate endDate) {
-        if (eventFilterId == null) {
+    private List<Project> resolveProjects(UUID companyId, UUID projectFilterId, LocalDate startDate, LocalDate endDate) {
+        if (projectFilterId == null) {
             if (hasValidDateRange(startDate, endDate)) {
-                return eventRepository.findByCompanyIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(
+                return projectRepository.findByCompanyIdAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByStartDateAsc(
                         companyId,
                         endDate,
                         startDate
                 );
             }
-            return eventRepository.findByCompanyIdOrderByStartDateAsc(companyId);
+            return projectRepository.findByCompanyIdOrderByStartDateAsc(companyId);
         }
-        return eventRepository.findByEventIdAndCompanyId(eventFilterId, companyId)
+        return projectRepository.findByProjectIdAndCompanyId(projectFilterId, companyId)
                 .map(List::of)
                 .orElse(List.of());
     }
 
-    private List<Shift> resolveShifts(List<UUID> eventIds, UUID eventFilterId, LocalDate startDate, LocalDate endDate) {
-        if (eventIds.isEmpty()) {
+    private List<Shift> resolveShifts(List<UUID> projectIds, UUID projectFilterId, LocalDate startDate, LocalDate endDate) {
+        if (projectIds.isEmpty()) {
             return List.of();
         }
-        if (eventFilterId == null && hasValidDateRange(startDate, endDate)) {
+        if (projectFilterId == null && hasValidDateRange(startDate, endDate)) {
             LocalDateTime startInclusive = startDate.atStartOfDay();
             LocalDateTime endExclusive = endDate.plusDays(1).atStartOfDay();
-            return shiftRepository.findByEventIdInAndStartTimeLessThanAndEndTimeGreaterThan(
-                    eventIds,
+            return shiftRepository.findByProjectIdInAndStartTimeLessThanAndEndTimeGreaterThan(
+                    projectIds,
                     endExclusive,
                     startInclusive
             );
         }
-        return shiftRepository.findByEventIdIn(eventIds);
+        return shiftRepository.findByProjectIdIn(projectIds);
     }
 
     private boolean hasValidDateRange(LocalDate startDate, LocalDate endDate) {
@@ -189,38 +189,38 @@ public class PlanningViewService {
         return count == null ? 0 : Math.toIntExact(count);
     }
 
-    private PlanningViewResponseDTO mapEventHierarchy(
-            Event event,
-            Map<UUID, List<Shift>> shiftsByEventId,
+    private PlanningViewResponseDTO mapProjectHierarchy(
+            Project project,
+            Map<UUID, List<Shift>> shiftsByProjectId,
             Map<UUID, List<ScheduleEntry>> entriesByShiftId,
             Map<UUID, ShiftAssignmentCounts> assignmentCountsByShiftId,
             Map<UUID, String> userDisplayNames,
             Map<UUID, String> clientCompanyNames,
             boolean includeAllocationDetails) {
         PlanningViewResponseDTO response = new PlanningViewResponseDTO();
-        response.setEventId(event.getEventId());
-        response.setEventName(event.getName());
-        response.setStartDate(event.getStartDate());
-        response.setEndDate(event.getEndDate());
-        response.setClientCompanyId(event.getClientCompanyId());
-        response.setClientCompanyName(resolveClientCompanyName(event.getClientCompanyId(), clientCompanyNames));
-        response.setInternalDescription(event.getInternalDescription());
-        response.setExternalDescription(event.getExternalDescription());
-        response.setDefaultStartTime(event.getDefaultStartTime());
-        response.setDefaultEndTime(event.getDefaultEndTime());
-        response.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(event.getEventTimezone()));
-        response.setLocation(event.getLocation());
-        response.setStatus(event.getStatus());
-        response.setCreatedByUserId(event.getCreatedByUserId());
-        response.setCreatedAt(event.getCreatedAt());
-        response.setUpdatedAt(event.getUpdatedAt());
-        response.setFinalized(event.getFinalized());
-        response.setFinalizedAt(event.getFinalizedAt());
+        response.setProjectId(project.getProjectId());
+        response.setProjectName(project.getName());
+        response.setStartDate(project.getStartDate());
+        response.setEndDate(project.getEndDate());
+        response.setClientCompanyId(project.getClientCompanyId());
+        response.setClientCompanyName(resolveClientCompanyName(project.getClientCompanyId(), clientCompanyNames));
+        response.setInternalDescription(project.getInternalDescription());
+        response.setExternalDescription(project.getExternalDescription());
+        response.setDefaultStartTime(project.getDefaultStartTime());
+        response.setDefaultEndTime(project.getDefaultEndTime());
+        response.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(project.getProjectTimezone()));
+        response.setLocation(project.getLocation());
+        response.setStatus(project.getStatus());
+        response.setCreatedByUserId(project.getCreatedByUserId());
+        response.setCreatedAt(project.getCreatedAt());
+        response.setUpdatedAt(project.getUpdatedAt());
+        response.setFinalized(project.getFinalized());
+        response.setFinalizedAt(project.getFinalizedAt());
 
         Map<LocalDate, List<PlanningShiftDTO>> shiftsByDay = new LinkedHashMap<>();
-        List<Shift> eventShifts = shiftsByEventId.getOrDefault(event.getEventId(), List.of());
+        List<Shift> projectShifts = shiftsByProjectId.getOrDefault(project.getProjectId(), List.of());
         int peopleNeededTotal = 0;
-        for (Shift shift : eventShifts) {
+        for (Shift shift : projectShifts) {
             List<ScheduleEntry> shiftEntries = entriesByShiftId.getOrDefault(shift.getShiftId(), List.of());
             LocalDate day = shift.getStartTime().toLocalDate();
             int peopleNeeded = resolvePeopleNeeded(shift.getPeopleNeeded());
@@ -295,9 +295,9 @@ public class PlanningViewService {
         return dto;
     }
 
-    private Map<UUID, String> loadClientCompanyNames(UUID companyId, List<Event> events) {
-        Set<UUID> clientCompanyIds = events.stream()
-                .map(Event::getClientCompanyId)
+    private Map<UUID, String> loadClientCompanyNames(UUID companyId, List<Project> projects) {
+        Set<UUID> clientCompanyIds = projects.stream()
+                .map(Project::getClientCompanyId)
                 .filter(id -> id != null)
                 .collect(Collectors.toSet());
         if (clientCompanyIds.isEmpty()) {

@@ -47,10 +47,10 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
                         .setFunctionName(tsEntity.getFunction())
                         .setHoursWorked(tsEntity.getHoursWorked().toString())
                         .setTravelExpenses(tsEntity.getTravelExpenses().toString())
-                        .setSourceEventId(asString(tsEntity.getSourceEventId()))
+                        .setSourceProjectId(asString(tsEntity.getSourceProjectId()))
                         .setSourceShiftId(asString(tsEntity.getSourceShiftId()))
                         .setSourceScheduleEntryId(asString(tsEntity.getSourceScheduleEntryId()))
-                        .setEventName(asText(tsEntity.getEventName()))
+                        .setProjectName(asText(tsEntity.getProjectName()))
                         .setShiftName(asText(tsEntity.getShiftName()))
                         .setShiftDate(asText(tsEntity.getShiftDate() == null ? null : tsEntity.getShiftDate().toString()))
                         .setShiftStartTime(asText(tsEntity.getShiftStartTime() == null ? null : tsEntity.getShiftStartTime().toString()))
@@ -186,11 +186,11 @@ public class TimesheetServiceGrpcService extends timesheet.TimesheetServiceGrpc.
                     timesheetEntity.setWeekNumber(date.get(WeekFields.ISO.weekOfWeekBasedYear()));
                     timesheetEntity.setWeekBasedYear(date.get(WeekFields.ISO.weekBasedYear()));
                     timesheetEntity.setName(record.getName());
-                    timesheetEntity.setEventName(record.getEventName().isBlank() ? record.getName() : record.getEventName());
+                    timesheetEntity.setProjectName(record.getProjectName().isBlank() ? record.getName() : record.getProjectName());
                     timesheetEntity.setFunction(record.getFunction());
                     timesheetEntity.setHoursWorked(hoursWorked);
                     timesheetEntity.setTravelExpenses(travelExpenses);
-                    timesheetEntity.setSourceEventId(record.getSourceEventId().isBlank() ? null : UUID.fromString(record.getSourceEventId()));
+                    timesheetEntity.setSourceProjectId(record.getSourceProjectId().isBlank() ? null : UUID.fromString(record.getSourceProjectId()));
                     timesheetEntity.setSourceShiftId(record.getSourceShiftId().isBlank() ? null : UUID.fromString(record.getSourceShiftId()));
                     timesheetEntity.setSourceScheduleEntryId(sourceScheduleEntryId);
                     timesheetEntity.setShiftName(record.getShiftName().isBlank() ? null : record.getShiftName());

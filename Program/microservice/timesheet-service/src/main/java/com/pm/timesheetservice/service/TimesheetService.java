@@ -83,9 +83,9 @@ public class TimesheetService {
                 ? null : UUID.fromString(timesheetRequestDTO.getSourceScheduleEntryId()));
         timesheet.setSourceShiftId(timesheetRequestDTO.getSourceShiftId() == null || timesheetRequestDTO.getSourceShiftId().isBlank()
                 ? null : UUID.fromString(timesheetRequestDTO.getSourceShiftId()));
-        timesheet.setSourceEventId(timesheetRequestDTO.getSourceEventId() == null || timesheetRequestDTO.getSourceEventId().isBlank()
-                ? null : UUID.fromString(timesheetRequestDTO.getSourceEventId()));
-        timesheet.setEventName(timesheetRequestDTO.getEventName());
+        timesheet.setSourceProjectId(timesheetRequestDTO.getSourceProjectId() == null || timesheetRequestDTO.getSourceProjectId().isBlank()
+                ? null : UUID.fromString(timesheetRequestDTO.getSourceProjectId()));
+        timesheet.setProjectName(timesheetRequestDTO.getProjectName());
         timesheet.setShiftName(timesheetRequestDTO.getShiftName());
         timesheet.setShiftDate(timesheetRequestDTO.getShiftDate() == null || timesheetRequestDTO.getShiftDate().isBlank()
                 ? null : LocalDate.parse(timesheetRequestDTO.getShiftDate()));

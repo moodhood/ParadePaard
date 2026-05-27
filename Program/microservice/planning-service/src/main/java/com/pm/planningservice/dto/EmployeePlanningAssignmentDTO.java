@@ -8,15 +8,15 @@ public class EmployeePlanningAssignmentDTO {
     private UUID scheduleEntryId;
     private UUID userId;
     private String userDisplayName;
-    private UUID eventId;
-    private String eventName;
+    private UUID projectId;
+    private String projectName;
     private String clientCompanyName;
-    private LocalDate eventStartDate;
-    private LocalDate eventEndDate;
+    private LocalDate projectStartDate;
+    private LocalDate projectEndDate;
     private String internalDescription;
     private String externalDescription;
-    private String eventTimezone;
-    private String eventLocation;
+    private String projectTimezone;
+    private String projectLocation;
     private UUID shiftId;
     private String shiftName;
     private LocalDate shiftDate;
@@ -55,20 +55,20 @@ public class EmployeePlanningAssignmentDTO {
         this.userDisplayName = userDisplayName;
     }
 
-    public UUID getEventId() {
-        return eventId;
+    public UUID getProjectId() {
+        return projectId;
     }
 
-    public void setEventId(UUID eventId) {
-        this.eventId = eventId;
+    public void setProjectId(UUID projectId) {
+        this.projectId = projectId;
     }
 
-    public String getEventName() {
-        return eventName;
+    public String getProjectName() {
+        return projectName;
     }
 
-    public void setEventName(String eventName) {
-        this.eventName = eventName;
+    public void setProjectName(String projectName) {
+        this.projectName = projectName;
     }
 
     public String getClientCompanyName() {
@@ -79,20 +79,20 @@ public class EmployeePlanningAssignmentDTO {
         this.clientCompanyName = clientCompanyName;
     }
 
-    public LocalDate getEventStartDate() {
-        return eventStartDate;
+    public LocalDate getProjectStartDate() {
+        return projectStartDate;
     }
 
-    public void setEventStartDate(LocalDate eventStartDate) {
-        this.eventStartDate = eventStartDate;
+    public void setProjectStartDate(LocalDate projectStartDate) {
+        this.projectStartDate = projectStartDate;
     }
 
-    public LocalDate getEventEndDate() {
-        return eventEndDate;
+    public LocalDate getProjectEndDate() {
+        return projectEndDate;
     }
 
-    public void setEventEndDate(LocalDate eventEndDate) {
-        this.eventEndDate = eventEndDate;
+    public void setProjectEndDate(LocalDate projectEndDate) {
+        this.projectEndDate = projectEndDate;
     }
 
     public String getInternalDescription() {
@@ -111,20 +111,20 @@ public class EmployeePlanningAssignmentDTO {
         this.externalDescription = externalDescription;
     }
 
-    public String getEventTimezone() {
-        return eventTimezone;
+    public String getProjectTimezone() {
+        return projectTimezone;
     }
 
-    public void setEventTimezone(String eventTimezone) {
-        this.eventTimezone = eventTimezone;
+    public void setProjectTimezone(String projectTimezone) {
+        this.projectTimezone = projectTimezone;
     }
 
-    public String getEventLocation() {
-        return eventLocation;
+    public String getProjectLocation() {
+        return projectLocation;
     }
 
-    public void setEventLocation(String eventLocation) {
-        this.eventLocation = eventLocation;
+    public void setProjectLocation(String projectLocation) {
+        this.projectLocation = projectLocation;
     }
 
     public UUID getShiftId() {

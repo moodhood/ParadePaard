@@ -7,18 +7,18 @@ import com.pm.planningservice.dto.PlanningClientCompanyContactDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyContactSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningClientCompanySaveRequestDTO;
 import com.pm.planningservice.dto.PagedResponseDTO;
-import com.pm.planningservice.dto.PlanningEventMutationResponseDTO;
-import com.pm.planningservice.dto.PlanningEventSaveRequestDTO;
+import com.pm.planningservice.dto.PlanningProjectMutationResponseDTO;
+import com.pm.planningservice.dto.PlanningProjectSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningShiftMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningShiftSaveRequestDTO;
 import com.pm.planningservice.model.ClientCompany;
 import com.pm.planningservice.model.ClientCompanyContact;
-import com.pm.planningservice.model.Event;
+import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.repository.ClientCompanyRepository;
-import com.pm.planningservice.repository.EventRepository;
+import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import org.springframework.stereotype.Service;
@@ -35,22 +35,22 @@ import java.util.UUID;
 
 @Service
 public class PlanningManagementService {
-    private static final String DEFAULT_EVENT_STATUS = "DRAFT";
+    private static final String DEFAULT_PROJECT_STATUS = "DRAFT";
     private static final int MAX_CLIENT_PROFILE_PICTURE_LENGTH = 800_000;
 
     private final ClientCompanyRepository clientCompanyRepository;
-    private final EventRepository eventRepository;
+    private final ProjectRepository projectRepository;
     private final ShiftRepository shiftRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
 
     public PlanningManagementService(
             ClientCompanyRepository clientCompanyRepository,
-            EventRepository eventRepository,
+            ProjectRepository projectRepository,
             ShiftRepository shiftRepository,
             ScheduleEntryRepository scheduleEntryRepository
     ) {
         this.clientCompanyRepository = clientCompanyRepository;
-        this.eventRepository = eventRepository;
+        this.projectRepository = projectRepository;
         this.shiftRepository = shiftRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
     }
@@ -117,81 +117,81 @@ public class PlanningManagementService {
     }
 
     @Transactional
-    public PlanningEventMutationResponseDTO createEvent(UUID companyId, UUID userId, PlanningEventSaveRequestDTO request) {
-        validateEventRequest(companyId, request);
+    public PlanningProjectMutationResponseDTO createProject(UUID companyId, UUID userId, PlanningProjectSaveRequestDTO request) {
+        validateProjectRequest(companyId, request);
 
-        Event event = new Event();
-        event.setCompanyId(companyId);
-        event.setClientCompanyId(resolveClientCompanyId(companyId, request.getClientCompanyId()));
-        event.setName(normalizeRequiredText(request.getName(), "Event name is required"));
-        event.setStartDate(request.getStartDate());
-        event.setEndDate(request.getEndDate());
-        event.setInternalDescription(normalizeOptionalText(request.getInternalDescription()));
-        event.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
-        event.setDefaultStartTime(request.getDefaultStartTime());
-        event.setDefaultEndTime(request.getDefaultEndTime());
-        event.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone()));
-        event.setLocation(normalizeOptionalText(request.getLocation()));
-        event.setStatus(normalizeEventStatus(request.getStatus()));
-        event.setCreatedByUserId(userId);
-        event.setCreatedAt(LocalDateTime.now());
-        event.setUpdatedAt(LocalDateTime.now());
-        event.setFinalized(false);
-        event.setFinalizedAt(null);
+        Project project = new Project();
+        project.setCompanyId(companyId);
+        project.setClientCompanyId(resolveClientCompanyId(companyId, request.getClientCompanyId()));
+        project.setName(normalizeRequiredText(request.getName(), "Project name is required"));
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setInternalDescription(normalizeOptionalText(request.getInternalDescription()));
+        project.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
+        project.setDefaultStartTime(request.getDefaultStartTime());
+        project.setDefaultEndTime(request.getDefaultEndTime());
+        project.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone()));
+        project.setLocation(normalizeOptionalText(request.getLocation()));
+        project.setStatus(normalizeProjectStatus(request.getStatus()));
+        project.setCreatedByUserId(userId);
+        project.setCreatedAt(LocalDateTime.now());
+        project.setUpdatedAt(LocalDateTime.now());
+        project.setFinalized(false);
+        project.setFinalizedAt(null);
 
-        Event saved = eventRepository.save(event);
-        PlanningEventMutationResponseDTO response = new PlanningEventMutationResponseDTO();
-        response.setEventId(saved.getEventId());
+        Project saved = projectRepository.save(project);
+        PlanningProjectMutationResponseDTO response = new PlanningProjectMutationResponseDTO();
+        response.setProjectId(saved.getProjectId());
         return response;
     }
 
     @Transactional
-    public PlanningEventMutationResponseDTO updateEvent(UUID companyId, UUID eventId, PlanningEventSaveRequestDTO request) {
-        validateEventRequest(companyId, request);
+    public PlanningProjectMutationResponseDTO updateProject(UUID companyId, UUID projectId, PlanningProjectSaveRequestDTO request) {
+        validateProjectRequest(companyId, request);
 
-        Event event = requireEditableEvent(companyId, eventId);
-        List<Shift> existingShifts = shiftRepository.findByEventId(eventId);
+        Project project = requireEditableProject(companyId, projectId);
+        List<Shift> existingShifts = shiftRepository.findByProjectId(projectId);
         boolean hasOutOfRangeShift = existingShifts.stream()
-                .anyMatch(shift -> !isWithinEventRange(shift.getStartTime(), shift.getEndTime(), request.getStartDate(), request.getEndDate()));
+                .anyMatch(shift -> !isWithinProjectRange(shift.getStartTime(), shift.getEndTime(), request.getStartDate(), request.getEndDate()));
         if (hasOutOfRangeShift) {
-            throw new IllegalArgumentException("Existing shifts fall outside the new event date range");
+            throw new IllegalArgumentException("Existing shifts fall outside the new project date range");
         }
 
-        event.setClientCompanyId(resolveClientCompanyId(companyId, request.getClientCompanyId()));
-        event.setName(normalizeRequiredText(request.getName(), "Event name is required"));
-        event.setStartDate(request.getStartDate());
-        event.setEndDate(request.getEndDate());
-        event.setInternalDescription(normalizeOptionalText(request.getInternalDescription()));
-        event.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
-        event.setDefaultStartTime(request.getDefaultStartTime());
-        event.setDefaultEndTime(request.getDefaultEndTime());
-        event.setEventTimezone(PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone()));
-        event.setLocation(normalizeOptionalText(request.getLocation()));
-        event.setStatus(normalizeEventStatus(request.getStatus()));
-        event.setUpdatedAt(LocalDateTime.now());
-        eventRepository.save(event);
+        project.setClientCompanyId(resolveClientCompanyId(companyId, request.getClientCompanyId()));
+        project.setName(normalizeRequiredText(request.getName(), "Project name is required"));
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setInternalDescription(normalizeOptionalText(request.getInternalDescription()));
+        project.setExternalDescription(normalizeOptionalText(request.getExternalDescription()));
+        project.setDefaultStartTime(request.getDefaultStartTime());
+        project.setDefaultEndTime(request.getDefaultEndTime());
+        project.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone()));
+        project.setLocation(normalizeOptionalText(request.getLocation()));
+        project.setStatus(normalizeProjectStatus(request.getStatus()));
+        project.setUpdatedAt(LocalDateTime.now());
+        projectRepository.save(project);
 
-        PlanningEventMutationResponseDTO response = new PlanningEventMutationResponseDTO();
-        response.setEventId(event.getEventId());
+        PlanningProjectMutationResponseDTO response = new PlanningProjectMutationResponseDTO();
+        response.setProjectId(project.getProjectId());
         return response;
     }
 
     @Transactional
-    public void deleteEvent(UUID companyId, UUID eventId) {
-        Event event = requireEditableEvent(companyId, eventId);
-        List<Shift> shifts = shiftRepository.findByEventId(eventId);
+    public void deleteProject(UUID companyId, UUID projectId) {
+        Project project = requireEditableProject(companyId, projectId);
+        List<Shift> shifts = shiftRepository.findByProjectId(projectId);
         deleteShiftChildren(shifts);
         shiftRepository.deleteAll(shifts);
-        eventRepository.delete(event);
+        projectRepository.delete(project);
     }
 
     @Transactional
-    public PlanningShiftMutationResponseDTO createShift(UUID companyId, UUID eventId, PlanningShiftSaveRequestDTO request) {
-        Event event = requireEditableEvent(companyId, eventId);
-        validateShift(event, request);
+    public PlanningShiftMutationResponseDTO createShift(UUID companyId, UUID projectId, PlanningShiftSaveRequestDTO request) {
+        Project project = requireEditableProject(companyId, projectId);
+        validateShift(project, request);
 
         Shift shift = new Shift();
-        shift.setEventId(event.getEventId());
+        shift.setProjectId(project.getProjectId());
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
         shift.setName(normalizeOptionalText(request.getName()));
@@ -203,15 +203,15 @@ public class PlanningManagementService {
         Shift saved = shiftRepository.save(shift);
         PlanningShiftMutationResponseDTO response = new PlanningShiftMutationResponseDTO();
         response.setShiftId(saved.getShiftId());
-        response.setEventId(event.getEventId());
+        response.setProjectId(project.getProjectId());
         return response;
     }
 
     @Transactional
     public PlanningShiftMutationResponseDTO updateShift(UUID companyId, UUID shiftId, PlanningShiftSaveRequestDTO request) {
         Shift shift = requireShift(shiftId);
-        Event event = requireEditableEvent(companyId, shift.getEventId());
-        validateShift(event, request);
+        Project project = requireEditableProject(companyId, shift.getProjectId());
+        validateShift(project, request);
 
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
@@ -224,14 +224,14 @@ public class PlanningManagementService {
 
         PlanningShiftMutationResponseDTO response = new PlanningShiftMutationResponseDTO();
         response.setShiftId(shift.getShiftId());
-        response.setEventId(event.getEventId());
+        response.setProjectId(project.getProjectId());
         return response;
     }
 
     @Transactional
     public void deleteShift(UUID companyId, UUID shiftId) {
         Shift shift = requireShift(shiftId);
-        requireEditableEvent(companyId, shift.getEventId());
+        requireEditableProject(companyId, shift.getProjectId());
         deleteShiftChildren(List.of(shift));
         shiftRepository.delete(shift);
     }
@@ -243,7 +243,7 @@ public class PlanningManagementService {
             PlanningAssignmentSaveRequestDTO request
     ) {
         Shift shift = requireShift(shiftId);
-        requireEditableEvent(companyId, shift.getEventId());
+        requireEditableProject(companyId, shift.getProjectId());
         UUID userId = Objects.requireNonNull(request.getUserId(), "User id is required");
         ScheduleEntryStatus requestedStatus = resolveStatus(request.getStatus());
         ScheduleEntry existingEntry = scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId).orElse(null);
@@ -281,7 +281,7 @@ public class PlanningManagementService {
     ) {
         ScheduleEntry scheduleEntry = requireScheduleEntry(scheduleEntryId);
         Shift shift = requireShift(scheduleEntry.getShiftId());
-        requireEditableEvent(companyId, shift.getEventId());
+        requireEditableProject(companyId, shift.getProjectId());
         ensureAssignmentAbsent(shift.getShiftId(), request.getUserId(), scheduleEntry.getScheduleEntryId());
 
         scheduleEntry.setUserId(request.getUserId());
@@ -300,17 +300,17 @@ public class PlanningManagementService {
     public void deleteAssignment(UUID companyId, UUID scheduleEntryId) {
         ScheduleEntry scheduleEntry = requireScheduleEntry(scheduleEntryId);
         Shift shift = requireShift(scheduleEntry.getShiftId());
-        requireEditableEvent(companyId, shift.getEventId());
+        requireEditableProject(companyId, shift.getProjectId());
         scheduleEntryRepository.delete(scheduleEntry);
     }
 
-    private Event requireEditableEvent(UUID companyId, UUID eventId) {
-        Event event = eventRepository.findByEventIdAndCompanyId(eventId, companyId)
-                .orElseThrow(() -> new IllegalArgumentException("Planning event not found"));
-        if (Boolean.TRUE.equals(event.getFinalized())) {
-            throw new IllegalArgumentException("Finalized events can no longer be changed");
+    private Project requireEditableProject(UUID companyId, UUID projectId) {
+        Project project = projectRepository.findByProjectIdAndCompanyId(projectId, companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Planning project not found"));
+        if (Boolean.TRUE.equals(project.getFinalized())) {
+            throw new IllegalArgumentException("Finalized projects can no longer be changed");
         }
-        return event;
+        return project;
     }
 
     private Shift requireShift(UUID shiftId) {
@@ -323,21 +323,21 @@ public class PlanningManagementService {
                 .orElseThrow(() -> new IllegalArgumentException("Assignment not found"));
     }
 
-    private void validateEventRequest(UUID companyId, PlanningEventSaveRequestDTO request) {
-        validateEventDates(request.getStartDate(), request.getEndDate());
+    private void validateProjectRequest(UUID companyId, PlanningProjectSaveRequestDTO request) {
+        validateProjectDates(request.getStartDate(), request.getEndDate());
         validateDefaultTimes(request.getDefaultStartTime(), request.getDefaultEndTime());
-        PlanningTimeZoneSupport.normalizeEventTimezone(request.getEventTimezone());
+        PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone());
         if (request.getClientCompanyId() != null) {
             resolveClientCompanyId(companyId, request.getClientCompanyId());
         }
     }
 
-    private void validateEventDates(LocalDate startDate, LocalDate endDate) {
+    private void validateProjectDates(LocalDate startDate, LocalDate endDate) {
         if (startDate == null || endDate == null) {
-            throw new IllegalArgumentException("Event start and end dates are required");
+            throw new IllegalArgumentException("Project start and end dates are required");
         }
         if (endDate.isBefore(startDate)) {
-            throw new IllegalArgumentException("Event end date cannot be before the start date");
+            throw new IllegalArgumentException("Project end date cannot be before the start date");
         }
     }
 
@@ -349,11 +349,11 @@ public class PlanningManagementService {
             throw new IllegalArgumentException("Default start and end time must both be provided");
         }
         if (!defaultEndTime.isAfter(defaultStartTime)) {
-            throw new IllegalArgumentException("Default event end time must be after the start time");
+            throw new IllegalArgumentException("Default project end time must be after the start time");
         }
     }
 
-    private void validateShift(Event event, PlanningShiftSaveRequestDTO request) {
+    private void validateShift(Project project, PlanningShiftSaveRequestDTO request) {
         LocalDateTime startTime = request.getStartTime();
         LocalDateTime endTime = request.getEndTime();
         if (startTime == null || endTime == null) {
@@ -371,12 +371,12 @@ public class PlanningManagementService {
         if (resolvePeopleNeeded(request.getPeopleNeeded()) < 1) {
             throw new IllegalArgumentException("At least one person is required per shift");
         }
-        if (!isWithinEventRange(startTime, endTime, event.getStartDate(), event.getEndDate())) {
-            throw new IllegalArgumentException("Shift must stay within the selected event date range");
+        if (!isWithinProjectRange(startTime, endTime, project.getStartDate(), project.getEndDate())) {
+            throw new IllegalArgumentException("Shift must stay within the selected project date range");
         }
     }
 
-    private boolean isWithinEventRange(
+    private boolean isWithinProjectRange(
             LocalDateTime startTime,
             LocalDateTime endTime,
             LocalDate startDate,
@@ -499,9 +499,9 @@ public class PlanningManagementService {
         return normalized;
     }
 
-    private String normalizeEventStatus(String value) {
+    private String normalizeProjectStatus(String value) {
         if (value == null || value.trim().isEmpty()) {
-            return DEFAULT_EVENT_STATUS;
+            return DEFAULT_PROJECT_STATUS;
         }
         return value.trim().toUpperCase();
     }

@@ -10,7 +10,7 @@ type SearchableEntry = {
 };
 
 describe("planningSearch", () => {
-    it("filters planning entries by event, client, and assigned user text", () => {
+    it("filters planning entries by project, client, and assigned user text", () => {
         const entries: SearchableEntry[] = [
             {
                 id: "gala-host",

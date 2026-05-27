@@ -59,8 +59,8 @@ describe("MyPlanning", () => {
     it("renders a scheduled response card with accept and decline actions when scheduled shifts exist", () => {
         const scheduledItem: EmployeePlanningAssignmentDTO = {
             scheduleEntryId: "schedule-1",
-            eventId: "event-1",
-            eventName: "Test Event",
+            projectId: "project-1",
+            projectName: "Test Project",
             shiftId: "shift-1",
             shiftDate: "2026-05-20",
             startTime: "2026-05-20T09:00:00Z",
@@ -86,7 +86,7 @@ describe("MyPlanning", () => {
             />
         );
 
-        expect(html).toContain("Test Event");
+        expect(html).toContain("Test Project");
         expect(html).toContain("Decline");
         expect(html).toContain("Accept");
     });

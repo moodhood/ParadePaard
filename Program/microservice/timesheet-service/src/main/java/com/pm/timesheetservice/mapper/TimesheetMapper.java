@@ -23,8 +23,8 @@ public class TimesheetMapper {
         timesheetResponseDTO.setTravelExpenses(timesheet.getTravelExpenses());
         timesheetResponseDTO.setSourceScheduleEntryId(asString(timesheet.getSourceScheduleEntryId()));
         timesheetResponseDTO.setSourceShiftId(asString(timesheet.getSourceShiftId()));
-        timesheetResponseDTO.setSourceEventId(asString(timesheet.getSourceEventId()));
-        timesheetResponseDTO.setEventName(timesheet.getEventName());
+        timesheetResponseDTO.setSourceProjectId(asString(timesheet.getSourceProjectId()));
+        timesheetResponseDTO.setProjectName(timesheet.getProjectName());
         timesheetResponseDTO.setShiftName(timesheet.getShiftName());
         timesheetResponseDTO.setShiftDate(asString(timesheet.getShiftDate()));
         timesheetResponseDTO.setShiftStartTime(asString(timesheet.getShiftStartTime()));
@@ -47,8 +47,8 @@ public class TimesheetMapper {
         timesheet.setTravelExpenses(timesheetRequestDTO.getTravelExpenses());
         timesheet.setSourceScheduleEntryId(parseUuid(timesheetRequestDTO.getSourceScheduleEntryId()));
         timesheet.setSourceShiftId(parseUuid(timesheetRequestDTO.getSourceShiftId()));
-        timesheet.setSourceEventId(parseUuid(timesheetRequestDTO.getSourceEventId()));
-        timesheet.setEventName(timesheetRequestDTO.getEventName());
+        timesheet.setSourceProjectId(parseUuid(timesheetRequestDTO.getSourceProjectId()));
+        timesheet.setProjectName(timesheetRequestDTO.getProjectName());
         timesheet.setShiftName(timesheetRequestDTO.getShiftName());
         timesheet.setShiftDate(parseDate(timesheetRequestDTO.getShiftDate()));
         timesheet.setShiftStartTime(parseDateTime(timesheetRequestDTO.getShiftStartTime()));
