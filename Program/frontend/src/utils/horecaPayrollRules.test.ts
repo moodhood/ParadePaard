@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     calculatePayrollCalculator,
     calculateMonthlyHours,
+    formatOnboardingReviewTravelAllowanceHelpText,
     getActiveHorecaJobPresets,
     getHorecaRequiredHourlyWage,
     getTravelAllowanceRatePerKilometer,
@@ -29,6 +30,12 @@ describe("horecaPayrollRules", () => {
 
     it("exposes the shared horeca travel allowance rate per kilometer", () => {
         expect(getTravelAllowanceRatePerKilometer()).toBe(0.23);
+    });
+
+    it("formats onboarding review travel allowance help text with the shared rate", () => {
+        expect(formatOnboardingReviewTravelAllowanceHelpText()).toBe(
+            "This only marks whether travel allowance applies. The current rate is EUR 0.23 net / km from the Horeca Payroll and Contract Rules page, not this review form."
+        );
     });
 
     it("finds the adult function group I plus II wage from the 2026 horeca wage table", () => {

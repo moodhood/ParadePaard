@@ -21,6 +21,7 @@ import {
 } from "../data/horecaPayrollRules";
 import {
     calculateMonthlyHours,
+    formatOnboardingReviewTravelAllowanceHelpText,
     formatSourceLabel,
     getHorecaRequiredHourlyWage,
     getPayrollVariableNumber,
@@ -1519,8 +1520,7 @@ export default function AdminOnboardingReviewDetails() {
                                                     <span>Travel allowance</span>
                                                 </label>
                                                 <div className="reviewFieldHelp reviewFieldHelpFull">
-                                                    This only marks whether travel allowance applies. The amount follows the
-                                                    Horeca Payroll and Contract Rules page, not this review form.
+                                                    {formatOnboardingReviewTravelAllowanceHelpText()}
                                                 </div>
                                             </div>
                                             <div className="reviewRuleSummary">
