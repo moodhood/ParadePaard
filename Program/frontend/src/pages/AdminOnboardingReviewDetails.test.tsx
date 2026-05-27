@@ -1,6 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
+    applyEmployeeTaxProfileDefaults,
     getContractDraftActionLabel,
     ReviewContractDownloadAction,
     saveOnboardingReviewContractDraft,
@@ -90,5 +91,43 @@ describe("AdminOnboardingReviewDetails draft action label", () => {
     it("shows update wording when a current contract exists", () => {
         expect(getContractDraftActionLabel(buildContract())).toBe("Update contract draft");
         expect(getContractDraftActionLabel(null)).toBe("Create contract draft");
+    });
+});
+
+describe("AdminOnboardingReviewDetails employee tax profile defaults", () => {
+    it("always applies the employee onboarding loonheffingskorting choice to the contract draft", () => {
+        expect(
+            applyEmployeeTaxProfileDefaults(
+                {
+                    loonheffingskorting: "YES",
+                    pensionApplicable: "YES",
+                },
+                {
+                    applyLoonheffingskorting: false,
+                    pensionParticipant: true,
+                }
+            )
+        ).toMatchObject({
+            loonheffingskorting: "NO",
+            pensionApplicable: "YES",
+        });
+    });
+
+    it("leaves pension as-is when the employee onboarding profile has no pension choice", () => {
+        expect(
+            applyEmployeeTaxProfileDefaults(
+                {
+                    loonheffingskorting: "",
+                    pensionApplicable: "NO",
+                },
+                {
+                    applyLoonheffingskorting: true,
+                    pensionParticipant: null,
+                }
+            )
+        ).toMatchObject({
+            loonheffingskorting: "YES",
+            pensionApplicable: "NO",
+        });
     });
 });

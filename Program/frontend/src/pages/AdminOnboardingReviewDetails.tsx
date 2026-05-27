@@ -302,6 +302,19 @@ export function getContractDraftActionLabel(currentContract: ContractResponseDTO
     return currentContract ? "Update contract draft" : "Create contract draft";
 }
 
+export function applyEmployeeTaxProfileDefaults(
+    draft: Pick<ContractSetupDraft, "loonheffingskorting" | "pensionApplicable">,
+    employeeTaxProfile?: UserResponseDTO["employeeTaxProfile"] | null
+): Pick<ContractSetupDraft, "loonheffingskorting" | "pensionApplicable"> {
+    return {
+        loonheffingskorting: boolChoice(employeeTaxProfile?.applyLoonheffingskorting),
+        pensionApplicable:
+            employeeTaxProfile?.pensionParticipant == null
+                ? draft.pensionApplicable
+                : boolChoice(employeeTaxProfile.pensionParticipant),
+    };
+}
+
 export async function saveOnboardingReviewContractDraft(input: {
     currentContract: ContractResponseDTO | null;
     payload: CreateContractRequestDTO;
@@ -434,7 +447,23 @@ export default function AdminOnboardingReviewDetails() {
             const serverContractDraft = sanitizeContractSetupDraft(userRes.onboardingReviewContractSetupDraft);
             if (serverContractDraft) {
                 setSelectedFunctionId(serverContractDraft.selectedFunctionId);
-                setContractDraft((prev) => ({ ...prev, ...serverContractDraft.draft }));
+                setContractDraft((prev) => ({
+                    ...prev,
+                    ...serverContractDraft.draft,
+                    ...applyEmployeeTaxProfileDefaults(
+                        {
+                            loonheffingskorting:
+                                serverContractDraft.draft.loonheffingskorting === "YES" || serverContractDraft.draft.loonheffingskorting === "NO"
+                                    ? serverContractDraft.draft.loonheffingskorting
+                                    : prev.loonheffingskorting,
+                            pensionApplicable:
+                                serverContractDraft.draft.pensionApplicable === "YES" || serverContractDraft.draft.pensionApplicable === "NO"
+                                    ? serverContractDraft.draft.pensionApplicable
+                                    : prev.pensionApplicable,
+                        },
+                        userRes.employeeTaxProfile
+                    ),
+                }));
             } else if (storedContractDraft) {
                 try {
                     const parsed = JSON.parse(storedContractDraft) as { selectedFunctionId?: string; draft?: Partial<ContractSetupDraft> };
@@ -442,7 +471,23 @@ export default function AdminOnboardingReviewDetails() {
                         setSelectedFunctionId(parsed.selectedFunctionId);
                     }
                     if (parsed?.draft && typeof parsed.draft === "object") {
-                        setContractDraft((prev) => ({ ...prev, ...(parsed.draft ?? {}) }));
+                        setContractDraft((prev) => ({
+                            ...prev,
+                            ...(parsed.draft ?? {}),
+                            ...applyEmployeeTaxProfileDefaults(
+                                {
+                                    loonheffingskorting:
+                                        parsed.draft?.loonheffingskorting === "YES" || parsed.draft?.loonheffingskorting === "NO"
+                                            ? parsed.draft.loonheffingskorting
+                                            : prev.loonheffingskorting,
+                                    pensionApplicable:
+                                        parsed.draft?.pensionApplicable === "YES" || parsed.draft?.pensionApplicable === "NO"
+                                            ? parsed.draft.pensionApplicable
+                                            : prev.pensionApplicable,
+                                },
+                                userRes.employeeTaxProfile
+                            ),
+                        }));
                     }
                 } catch {
                     // ignore corrupted stored value
@@ -450,11 +495,7 @@ export default function AdminOnboardingReviewDetails() {
             } else {
                 setContractDraft((prev) => ({
                     ...prev,
-                    loonheffingskorting: boolChoice(userRes.employeeTaxProfile?.applyLoonheffingskorting),
-                    pensionApplicable:
-                        userRes.employeeTaxProfile?.pensionParticipant == null
-                            ? prev.pensionApplicable
-                            : boolChoice(userRes.employeeTaxProfile.pensionParticipant),
+                    ...applyEmployeeTaxProfileDefaults(prev, userRes.employeeTaxProfile),
                 }));
             }
         } catch (err: unknown) {
@@ -1508,23 +1549,23 @@ export default function AdminOnboardingReviewDetails() {
                                                     <span className="reviewFieldLabel">
                                                         Loonheffingskorting <span className="reviewRequired">*</span>
                                                     </span>
-                                                    <select
+                                                    <input
                                                         className={`uiSelect ${
                                                             isMissing(contractDraft.loonheffingskorting) ? "reviewInputMissing" : ""
                                                         }`}
-                                                        value={contractDraft.loonheffingskorting}
-                                                        onChange={(event) =>
-                                                            setContractDraft((prev) => ({
-                                                                ...prev,
-                                                                loonheffingskorting: event.target.value as "" | "YES" | "NO",
-                                                            }))
+                                                        value={
+                                                            contractDraft.loonheffingskorting === "YES"
+                                                                ? "Yes"
+                                                                : contractDraft.loonheffingskorting === "NO"
+                                                                    ? "No"
+                                                                    : "Missing from onboarding"
                                                         }
-                                                        disabled={actionLoading}
-                                                    >
-                                                        <option value="">Select tax credit setting</option>
-                                                        <option value="YES">Yes</option>
-                                                        <option value="NO">No</option>
-                                                    </select>
+                                                        readOnly
+                                                        disabled
+                                                    />
+                                                    <span className="reviewFieldHelp">
+                                                        This follows the employee onboarding tax choice and cannot be changed here.
+                                                    </span>
                                                     {sourceButton("witte-maandloon-2026-01-01", "15")}
                                                 </label>
                                                 <label className="reviewField">
