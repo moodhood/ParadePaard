@@ -267,7 +267,7 @@ The Company details tab shows the company logo, company name, and company ID. Th
 
 The Roles and permissions tab is a full role-management interface. The page shows existing roles with color dots and member counts. Creating a role happens in a modal with a Details step, a Permissions step, and a Members step. Editing a role uses a similar modal, but adds a Delete tab. A role has a name, color, permission set, and assigned members. The Permissions step groups checkboxes into sections such as Role access, People, Planning, Timesheets and travel, Payslips, Company settings, and Other. Each section shows how many permissions are selected, so the user can scan the permission catalog without reading one long flat list. The member tools include user search, selected member display, add actions, and remove actions. Deleting a role requires typing the role name for confirmation. Each operation is permission-gated, so a user may be able to assign members without being able to delete a role, depending on their permissions.
 
-The Workflow settings tab controls company-wide operational behavior. It shows the payslip timing field, timesheet logging mode, and travel claim mode, but employee payment timing is now shown from the employee's contract in contract-aware screens. Timesheet logging can be set to admin finalization or automatic logging after shift end. Travel claims can require approval or be auto-approved. Contract payment frequency is selected during onboarding or contract management so payroll timing is controlled by the contract rather than by the user's account page.
+The Workflow settings tab controls company-wide operational behavior. It now shows only the timesheet logging mode and travel claim mode, because employee payment timing is already tied to the binding contract and does not need a separate company-wide payslip timing field. Timesheet logging can be set to admin finalization or automatic logging after shift end. Travel claims can require approval or be auto-approved.
 
 \subsection{Management Planning Overview Page}
 
@@ -490,7 +490,7 @@ This workflow connects worked hours, payroll review, employee dispute handling, 
 
 \subsection{Company Configuration}
 
-Company configuration starts from the navbar company menu. An authorized user opens Company settings and moves between details, roles, and workflow tabs. Company details affect how the company is displayed. Roles and permissions affect who sees management pages. Workflow settings affect future timesheet and travel-claim behavior.
+Company configuration starts from the navbar company menu. An authorized user opens Company settings and moves between details, roles, and workflow tabs. Company details affect how the company is displayed. Roles and permissions affect who sees management pages. Workflow settings affect future timesheet and travel-claim behavior, while payslip timing is controlled by the binding contract elsewhere in the app.
 
 The Roles and permissions tab now treats the built-in USER role as a protected employee self-service role. It can still be assigned to employees, but the role name, color, permission list, and delete action are locked in the role editor. This prevents normal employees from accidentally receiving management access while still keeping their own contract signing permissions available.
 
@@ -539,11 +539,12 @@ Payslip statuses drive the payroll review experience. \code{PENDING_REVIEW} is w
 
 Contract statuses drive contract-owned payroll. \code{DRAFT} is a contract being prepared. \code{SENT_TO_EMPLOYEE} means the employee can view and sign it, and management can resend the contract email if needed. \code{EMPLOYEE_SIGNED} means it is waiting for management review. \code{FINALIZED} means it can be used for payroll. \code{REJECTED} means management sent it back with a comment. \code{SIGNED} remains visible for older contract rows.
 
-Workflow settings define how future operational states are created. \code{ADMIN_FINALIZE} means timesheet logging depends on a manual management finalization step. \code{AUTO_ON_SHIFT_END} means timesheets can be created automatically after a shift ends. \code{REQUIRES_APPROVAL} means travel claims wait for review. \code{AUTO_APPROVE} means travel claims can be accepted automatically.
+Workflow settings define how future operational states are created. \code{ADMIN_FINALIZE} means timesheet logging depends on a manual management finalization step. \code{AUTO_ON_SHIFT_END} means timesheets can be created automatically after a shift ends. \code{REQUIRES_APPROVAL} means travel claims wait for review. \code{AUTO_APPROVE} means travel claims can be accepted automatically. Payslip cadence is not exposed in this workflow section because it follows the contract binding instead.
 
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 27: Removed the payslip timing field from Company settings so the workflow tab only controls timesheets and travel claims.
     \item 2026 05 27: Moved the manual wage override reason directly under the gross hourly wage field in the Horeca Payroll and Contract Rules page so the wage and reason stay visually grouped.
     \item 2026 05 27: Removed the commercial payroll billing rate field from the Horeca Payroll and Contract Rules page so the contract section only shows the operational payroll setup inputs.
     \item 2026 05 27: Added a short travel allowance explanation to the onboarding review contract setup section so the page clarifies that the amount is controlled by company policy.
