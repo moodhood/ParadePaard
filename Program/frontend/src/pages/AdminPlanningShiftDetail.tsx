@@ -1,15 +1,16 @@
 import { Navigate, useParams } from "react-router-dom";
 
 export default function AdminPlanningShiftDetail() {
-    const { projectId, shiftId } = useParams<{ projectId: string; shiftId: string }>();
+    const { projectId, eventId, shiftId } = useParams<{ projectId?: string; eventId?: string; shiftId?: string }>();
+    const resolvedProjectId = projectId ?? eventId;
 
-    if (!projectId) {
+    if (!resolvedProjectId) {
         return <Navigate to="/management/planning" replace />;
     }
 
     const target = shiftId
-        ? `/management/planning/projects/${projectId}?shift=${shiftId}`
-        : `/management/planning/projects/${projectId}`;
+        ? `/management/planning/projects/${resolvedProjectId}?shift=${shiftId}`
+        : `/management/planning/projects/${resolvedProjectId}`;
 
     return <Navigate to={target} replace />;
 }

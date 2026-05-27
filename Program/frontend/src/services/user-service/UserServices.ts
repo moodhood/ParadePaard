@@ -153,6 +153,9 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004";
 const inFlightRequests = new Map<string, Promise<unknown>>();
 
+export type PlanningEventDTO = PlanningProjectDTO;
+export type PlanningEventSaveDTO = PlanningProjectSaveDTO;
+
 async function dedupeRequest<T>(key: string, loader: () => Promise<T>): Promise<T> {
     const existing = inFlightRequests.get(key);
     if (existing) {

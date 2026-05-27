@@ -3,6 +3,7 @@ import axios from "axios";
 export type FinalizePlanningRequestDTO = {
     companyId: string;
     projectId?: string;
+    eventId?: string;
     isoWeek?: number;
     weekBasedYear?: number;
 };
@@ -14,13 +15,18 @@ export type FinalizePlanningResponseDTO = {
 };
 
 export default async function FinalizePlanningProject(
-    API_BASE_URL: string,
+    apiBaseUrl: string,
     payload: FinalizePlanningRequestDTO
 ): Promise<FinalizePlanningResponseDTO> {
     try {
         const res = await axios.post<FinalizePlanningResponseDTO>(
-            `${API_BASE_URL}/api/planning/finalization`,
-            payload,
+            `${apiBaseUrl}/api/planning/finalization`,
+            {
+                companyId: payload.companyId,
+                projectId: payload.projectId ?? payload.eventId,
+                isoWeek: payload.isoWeek,
+                weekBasedYear: payload.weekBasedYear,
+            },
             { withCredentials: true }
         );
 

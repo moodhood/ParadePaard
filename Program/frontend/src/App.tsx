@@ -61,13 +61,15 @@ function RedirectAdminPayslip() {
 }
 
 function RedirectAdminPlanningProject() {
-    const { projectId } = useParams();
-    return <Navigate to={`/management/planning/projects/${projectId ?? ""}`} replace />;
+    const { projectId, eventId } = useParams();
+    const resolvedProjectId = projectId ?? eventId;
+    return <Navigate to={`/management/planning/projects/${resolvedProjectId ?? ""}`} replace />;
 }
 
 function RedirectAdminPlanningShift() {
-    const { projectId, shiftId } = useParams();
-    return <Navigate to={`/management/planning/projects/${projectId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
+    const { projectId, eventId, shiftId } = useParams();
+    const resolvedProjectId = projectId ?? eventId;
+    return <Navigate to={`/management/planning/projects/${resolvedProjectId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -364,6 +366,8 @@ export default function App() {
                     </RequireActiveUser>
                 }
             />
+            <Route path="/management/planning/events/:eventId" element={<RedirectAdminPlanningProject />} />
+            <Route path="/management/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
             <Route
                 path="/management/horeca-payroll-rules"
                 element={
@@ -415,6 +419,8 @@ export default function App() {
             <Route path="/admin/planning" element={<Navigate to="/management/planning" replace />} />
             <Route path="/admin/planning/projects/:projectId" element={<RedirectAdminPlanningProject />} />
             <Route path="/admin/planning/projects/:projectId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
+            <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningProject />} />
+            <Route path="/admin/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
             <Route path="/admin/clients" element={<Navigate to="/management/clients" replace />} />
             <Route
                 path="/"
