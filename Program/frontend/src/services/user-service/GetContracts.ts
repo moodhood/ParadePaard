@@ -247,6 +247,25 @@ export async function CreateContract(
     }
 }
 
+export async function UpdateContract(
+    API_BASE_URL: string,
+    contractId: string,
+    payload: CreateContractRequestDTO
+): Promise<ContractResponseDTO> {
+    try {
+        const res = await axios.put<ContractResponseDTO>(`${API_BASE_URL}/api/contract/${contractId}`, payload, {
+            headers: { "Content-Type": "application/json" },
+            withCredentials: true,
+        });
+        return res.data;
+    } catch (err) {
+        if (axios.isAxiosError(err)) {
+            throw new Error(err.response?.data?.message || "Failed to update contract draft");
+        }
+        throw err;
+    }
+}
+
 export async function SignContract(
     API_BASE_URL: string,
     contractId: string,

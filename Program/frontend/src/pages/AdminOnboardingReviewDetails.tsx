@@ -298,6 +298,24 @@ export function ReviewContractDownloadAction({
     );
 }
 
+export function getContractDraftActionLabel(currentContract: ContractResponseDTO | null): string {
+    return currentContract ? "Update contract draft" : "Create contract draft";
+}
+
+export async function saveOnboardingReviewContractDraft(input: {
+    currentContract: ContractResponseDTO | null;
+    payload: CreateContractRequestDTO;
+    createContract: (payload: CreateContractRequestDTO) => Promise<ContractResponseDTO>;
+    updateContract: (contractId: string, payload: CreateContractRequestDTO) => Promise<ContractResponseDTO>;
+}): Promise<{ contract: ContractResponseDTO; mode: "created" | "updated" }> {
+    if (input.currentContract) {
+        const contract = await input.updateContract(input.currentContract.contractId, input.payload);
+        return { contract, mode: "updated" };
+    }
+    const contract = await input.createContract(input.payload);
+    return { contract, mode: "created" };
+}
+
 export default function AdminOnboardingReviewDetails() {
     const navigate = useNavigate();
     const { userId } = useParams();
@@ -367,6 +385,8 @@ export default function AdminOnboardingReviewDetails() {
         tax: false,
         contract: false,
     });
+
+    const contractDraftActionLabel = getContractDraftActionLabel(currentContract);
 
     const load = useCallback(async () => {
         if (!userId) return;
@@ -676,11 +696,16 @@ export default function AdminOnboardingReviewDetails() {
                 functions,
                 draft: contractDraft,
             });
-            const created = await UserServices.createContract(payload);
-            setCurrentContract(created);
-            setActionSuccess("Contract draft created.");
+            const result = await saveOnboardingReviewContractDraft({
+                currentContract,
+                payload,
+                createContract: UserServices.createContract,
+                updateContract: UserServices.updateContract,
+            });
+            setCurrentContract(result.contract);
+            setActionSuccess(result.mode === "updated" ? "Contract draft updated." : "Contract draft created.");
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to create contract draft.";
+            const message = err instanceof Error ? err.message : "Failed to save contract draft.";
             setActionError(message);
         } finally {
             setActionLoading(false);
@@ -718,18 +743,21 @@ export default function AdminOnboardingReviewDetails() {
             setActionError(null);
             setActionSuccess(null);
 
-            let contract = currentContract;
-            if (!contract) {
-                const payload = buildContractPayload({
-                    userId,
-                    employeeDateOfBirth: user.dateOfBirth,
-                    selectedFunctionId,
-                    functions,
-                    draft: contractDraft,
-                });
-                contract = await UserServices.createContract(payload);
-                setCurrentContract(contract);
-            }
+            const payload = buildContractPayload({
+                userId,
+                employeeDateOfBirth: user.dateOfBirth,
+                selectedFunctionId,
+                functions,
+                draft: contractDraft,
+            });
+            const draftResult = await saveOnboardingReviewContractDraft({
+                currentContract,
+                payload,
+                createContract: UserServices.createContract,
+                updateContract: UserServices.updateContract,
+            });
+            let contract = draftResult.contract;
+            setCurrentContract(contract);
 
             const sent = await UserServices.sendContract(contract.contractId);
             setCurrentContract(sent);
@@ -1769,7 +1797,7 @@ export default function AdminOnboardingReviewDetails() {
                                                     onClick={() => void handleCreateContractDraft()}
                                                     disabled={savingReview || actionLoading}
                                                 >
-                                                    {actionLoading ? "Working..." : "Create contract draft"}
+                                                    {actionLoading ? "Working..." : contractDraftActionLabel}
                                                 </button>
                                                 <button
                                                     type="button"

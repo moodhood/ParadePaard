@@ -67,6 +67,7 @@ import GetContracts, {
     RejectContract,
     SendContract,
     SignContract,
+    UpdateContract,
     type ContractResponseDTO,
     type CreateContractRequestDTO,
     type FunctionResponseDTO,
@@ -355,6 +356,9 @@ export const UserServices = {
     },
     createContract: async (payload: CreateContractRequestDTO): Promise<ContractResponseDTO> => {
         return await CreateContract(API_BASE_URL, payload);
+    },
+    updateContract: async (contractId: string, payload: CreateContractRequestDTO): Promise<ContractResponseDTO> => {
+        return await UpdateContract(API_BASE_URL, contractId, payload);
     },
     getContractPdf: async (contractId: string): Promise<Blob> => {
         return await GetContractPdf(API_BASE_URL, contractId);
