@@ -52,7 +52,6 @@ type ContractRuleDraft = {
     pensionApplicable: boolean | null;
     holidayAllowanceMode: HolidayAllowanceMode;
     vacationBuildUpApplicable: boolean;
-    payrollBillingRate: number;
     isManualWageOverride: boolean;
     manualWageOverrideReason: string;
 };
@@ -227,7 +226,6 @@ export default function HorecaPayrollRules() {
         pensionApplicable: firstPreset.pensionApplicable,
         holidayAllowanceMode: firstPreset.holidayAllowanceMode,
         vacationBuildUpApplicable: firstPreset.vacationBuildUpApplicable,
-        payrollBillingRate: 25,
         isManualWageOverride: false,
         manualWageOverrideReason: "",
     }));
@@ -444,7 +442,7 @@ export default function HorecaPayrollRules() {
                                             contract settings and horeca CAO rules to calculate gross wage, withholds employee
                                             payroll tax and employee pension, pays net wage to the employee, pays payroll tax and
                                             employer premiums to the Belastingdienst, pays pension premium to Pensioenfonds
-                                            Horeca en Catering, and invoices the horeca client with a commercial billing rate.
+                                            Horeca en Catering, and invoices the horeca client based on the contract terms.
                                         </p>
                                     </div>
                                 </Card>
@@ -733,23 +731,6 @@ export default function HorecaPayrollRules() {
                                                     <option value="BIWEEKLY">Bi-weekly</option>
                                                     <option value="FOUR_WEEKLY">Four-weekly</option>
                                                 </select>
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Commercial payroll billing rate</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={contractDraft.payrollBillingRate}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            payrollBillingRate: Number(event.target.value),
-                                                        }))
-                                                    }
-                                                />
-                                                <span className="commercialLabel">Commercial value</span>
                                             </label>
                                         </div>
                                         <div className="ruleValueGrid">
