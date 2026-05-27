@@ -118,6 +118,7 @@ export type UserResponseDTO = {
     onboardingReviewCheckedSections?: Record<string, boolean> | null;
     onboardingReviewContractSetupDraft?: OnboardingReviewContractSetupDraftDTO | null;
     hasIdDocumentImage?: boolean | null;
+    hasIdDocumentBackImage?: boolean | null;
     assignedCaoId?: string | null;
     assignedCaoName?: string | null;
 };

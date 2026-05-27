@@ -37,6 +37,7 @@ import "../stylesheets/AdminLists.css";
 import "../stylesheets/AdminOnboardingReviewDetails.css";
 
 type ReviewDecision = "READY_TO_SEND_CONTRACT" | "NEEDS_CHANGES" | "REJECT_ONBOARDING";
+type IdDocumentSide = "front" | "back";
 
 type ContractSetupDraft = {
     caoId: string;
@@ -331,9 +332,11 @@ export default function AdminOnboardingReviewDetails() {
     const [actionError, setActionError] = useState<string | null>(null);
     const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
-    const [idDocumentLoading, setIdDocumentLoading] = useState(false);
-    const [idDocumentError, setIdDocumentError] = useState<string | null>(null);
-    const [idDocumentNoFile, setIdDocumentNoFile] = useState(false);
+    const [idDocumentLoadingSide, setIdDocumentLoadingSide] = useState<IdDocumentSide | null>(null);
+    const [idDocumentFrontError, setIdDocumentFrontError] = useState<string | null>(null);
+    const [idDocumentBackError, setIdDocumentBackError] = useState<string | null>(null);
+    const [idDocumentFrontNoFile, setIdDocumentFrontNoFile] = useState(false);
+    const [idDocumentBackNoFile, setIdDocumentBackNoFile] = useState(false);
 
     const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
 
@@ -517,7 +520,8 @@ export default function AdminOnboardingReviewDetails() {
         if (isMissing(user.idIssueDate)) missing.identification.push("Issue date");
         if (isMissing(user.idExpirationDate)) missing.identification.push("Expiration date");
         if (isMissing(user.idIssuingCountry)) missing.identification.push("Issuing country");
-        if (!user.hasIdDocumentImage) missing.identification.push("Uploaded ID document");
+        if (!user.hasIdDocumentImage) missing.identification.push("Front ID document");
+        if (!user.hasIdDocumentBackImage) missing.identification.push("Back ID document");
 
         if (isMissing(user.iban)) missing.bank.push("IBAN");
         if (isMissing(user.bankAccountHolderName ?? null)) missing.bank.push("Account holder");
@@ -759,15 +763,20 @@ export default function AdminOnboardingReviewDetails() {
         }
     };
 
-    const handleOpenIdDocument = async () => {
+    const handleOpenIdDocument = async (side: IdDocumentSide) => {
         if (!userId) return;
+        const setError = side === "front" ? setIdDocumentFrontError : setIdDocumentBackError;
+        const setNoFile = side === "front" ? setIdDocumentFrontNoFile : setIdDocumentBackNoFile;
+        const label = side === "front" ? "front" : "back";
         try {
-            setIdDocumentLoading(true);
-            setIdDocumentError(null);
-            setIdDocumentNoFile(false);
-            const blob = await UserServices.getUserIdDocumentImage(userId);
+            setIdDocumentLoadingSide(side);
+            setError(null);
+            setNoFile(false);
+            const blob = side === "front"
+                ? await UserServices.getUserIdDocumentImage(userId)
+                : await UserServices.getUserIdDocumentBackImage(userId);
             if (!blob) {
-                setIdDocumentNoFile(true);
+                setNoFile(true);
                 return;
             }
             const url = URL.createObjectURL(blob);
@@ -775,7 +784,7 @@ export default function AdminOnboardingReviewDetails() {
             if (!opened) {
                 const a = document.createElement("a");
                 a.href = url;
-                a.download = `id-document-${userId}`;
+                a.download = `id-document-${label}-${userId}`;
                 a.rel = "noopener";
                 document.body.appendChild(a);
                 a.click();
@@ -783,10 +792,10 @@ export default function AdminOnboardingReviewDetails() {
             }
             window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to open ID document image.";
-            setIdDocumentError(message);
+            const message = err instanceof Error ? err.message : `Failed to open ${label} ID document image.`;
+            setError(message);
         } finally {
-            setIdDocumentLoading(false);
+            setIdDocumentLoadingSide(null);
         }
     };
 
@@ -1037,26 +1046,50 @@ export default function AdminOnboardingReviewDetails() {
                                                     </div>
                                                 ))}
                                             <div className="reviewRow">
-                                                <div className="reviewLabel">Uploaded ID document</div>
+                                                <div className="reviewLabel">Uploaded ID documents</div>
                                                 <div className="reviewValue">
-                                                        {user.hasIdDocumentImage ? (
-                                                            <button
-                                                                type="button"
-                                                                className="button buttonSecondary"
-                                                                onClick={() => void handleOpenIdDocument()}
-                                                                disabled={idDocumentLoading}
-                                                            >
-                                                                {idDocumentLoading ? "Opening..." : "Open ID document"}
-                                                            </button>
-                                                        ) : (
-                                                            <div className="reviewInlineWarn">Missing ID document</div>
-                                                        )}
-                                                        {idDocumentNoFile ? (
-                                                            <div className="reviewInlineWarn">Missing ID document</div>
-                                                        ) : null}
-                                                        {idDocumentError ? (
-                                                            <div className="reviewInlineError">{idDocumentError}</div>
-                                                        ) : null}
+                                                    <div className="reviewDocumentActions">
+                                                        <div className="reviewDocumentAction">
+                                                            {user.hasIdDocumentImage ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className="button buttonSecondary"
+                                                                    onClick={() => void handleOpenIdDocument("front")}
+                                                                    disabled={idDocumentLoadingSide !== null}
+                                                                >
+                                                                    {idDocumentLoadingSide === "front" ? "Opening..." : "Open front"}
+                                                                </button>
+                                                            ) : (
+                                                                <div className="reviewInlineWarn">Missing front</div>
+                                                            )}
+                                                            {idDocumentFrontNoFile ? (
+                                                                <div className="reviewInlineWarn">Missing front</div>
+                                                            ) : null}
+                                                            {idDocumentFrontError ? (
+                                                                <div className="reviewInlineError">{idDocumentFrontError}</div>
+                                                            ) : null}
+                                                        </div>
+                                                        <div className="reviewDocumentAction">
+                                                            {user.hasIdDocumentBackImage ? (
+                                                                <button
+                                                                    type="button"
+                                                                    className="button buttonSecondary"
+                                                                    onClick={() => void handleOpenIdDocument("back")}
+                                                                    disabled={idDocumentLoadingSide !== null}
+                                                                >
+                                                                    {idDocumentLoadingSide === "back" ? "Opening..." : "Open back"}
+                                                                </button>
+                                                            ) : (
+                                                                <div className="reviewInlineWarn">Missing back</div>
+                                                            )}
+                                                            {idDocumentBackNoFile ? (
+                                                                <div className="reviewInlineWarn">Missing back</div>
+                                                            ) : null}
+                                                            {idDocumentBackError ? (
+                                                                <div className="reviewInlineError">{idDocumentBackError}</div>
+                                                            ) : null}
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
                                             </div>

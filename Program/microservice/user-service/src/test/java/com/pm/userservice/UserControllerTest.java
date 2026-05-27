@@ -40,6 +40,17 @@ class UserControllerTest {
     }
 
     @Test
+    void idDocumentBackImageEndpointAllowsUserAndOnboardingReviewPermissions() throws Exception {
+        Method method = UserController.class.getMethod("getUserIdDocumentBackImage", UUID.class, org.springframework.security.core.Authentication.class);
+        PreAuthorize annotation = method.getAnnotation(PreAuthorize.class);
+
+        assertThat(annotation).isNotNull();
+        assertThat(annotation.value()).contains("CAN_VIEW_USERS");
+        assertThat(annotation.value()).contains("CAN_VIEW_ONBOARDING_QUEUE");
+        assertThat(annotation.value()).contains("CAN_REVIEW_ONBOARDING");
+    }
+
+    @Test
     void idDocumentImageUsesSafeContentTypeNoStoreAnd404WhenMissing() {
         UUID userId = UUID.randomUUID();
         byte[] imageBytes = "image".getBytes(StandardCharsets.UTF_8);
@@ -58,6 +69,29 @@ class UserControllerTest {
         when(userService.getIdDocumentImage(missingUserId)).thenReturn(Optional.empty());
 
         ResponseEntity<byte[]> missing = controller.getUserIdDocumentImage(missingUserId, null);
+
+        assertThat(missing.getStatusCode().value()).isEqualTo(404);
+    }
+
+    @Test
+    void idDocumentBackImageUsesSafeContentTypeNoStoreAnd404WhenMissing() {
+        UUID userId = UUID.randomUUID();
+        byte[] imageBytes = "back-image".getBytes(StandardCharsets.UTF_8);
+        when(userService.getIdDocumentBackImage(userId)).thenReturn(Optional.of(
+                new UserService.IdDocumentImage(imageBytes, "image/jpeg")
+        ));
+
+        ResponseEntity<byte[]> response = controller.getUserIdDocumentBackImage(userId, null);
+
+        assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.IMAGE_JPEG);
+        assertThat(response.getHeaders().getCacheControl()).isEqualTo(CacheControl.noStore().getHeaderValue());
+        assertThat(response.getBody()).isEqualTo(imageBytes);
+
+        UUID missingUserId = UUID.randomUUID();
+        when(userService.getIdDocumentBackImage(missingUserId)).thenReturn(Optional.empty());
+
+        ResponseEntity<byte[]> missing = controller.getUserIdDocumentBackImage(missingUserId, null);
 
         assertThat(missing.getStatusCode().value()).isEqualTo(404);
     }

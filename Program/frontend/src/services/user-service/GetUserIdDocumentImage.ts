@@ -1,11 +1,15 @@
 import axios from "axios";
 
+export type IdDocumentSide = "front" | "back";
+
 export default async function GetUserIdDocumentImage(
     API_BASE_URL: string,
-    userId: string
+    userId: string,
+    side: IdDocumentSide = "front"
 ): Promise<Blob | null> {
     try {
-        const res = await axios.get(`${API_BASE_URL}/api/users/${userId}/id-document-image`, {
+        const path = side === "back" ? "id-document-back-image" : "id-document-image";
+        const res = await axios.get(`${API_BASE_URL}/api/users/${userId}/${path}`, {
             responseType: "blob",
             withCredentials: true,
         });

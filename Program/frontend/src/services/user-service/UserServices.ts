@@ -507,6 +507,9 @@ export const UserServices = {
     getUserIdDocumentImage: async (userId: string): Promise<Blob | null> => {
         return await GetUserIdDocumentImage(API_BASE_URL, userId);
     },
+    getUserIdDocumentBackImage: async (userId: string): Promise<Blob | null> => {
+        return await GetUserIdDocumentImage(API_BASE_URL, userId, "back");
+    },
     updateMyProfilePicture: async (file: File): Promise<void> => {
         return await UpdateMyProfilePicture(API_BASE_URL, file);
     },

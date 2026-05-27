@@ -497,6 +497,15 @@ public class UserService {
         return Optional.of(new IdDocumentImage(data, user.getIdDocumentImageContentType()));
     }
 
+    @Transactional(readOnly = true)
+    public Optional<IdDocumentImage> getIdDocumentBackImage(UUID id) {
+        User user = userRepository.findByUserId(id)
+                .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+        byte[] data = user.getIdDocumentBackImage();
+        if (data == null || data.length == 0) return Optional.empty();
+        return Optional.of(new IdDocumentImage(data, user.getIdDocumentBackImageContentType()));
+    }
+
     @Transactional
     public void updateProfilePicture(UUID id, byte[] data, String contentType) {
         User user = userRepository.findByUserId(id)

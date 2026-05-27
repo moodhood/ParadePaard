@@ -42,6 +42,7 @@ public class UserResponseDTO {
     private Map<String, Boolean> onboardingReviewCheckedSections;
     private OnboardingReviewContractSetupDraftDTO onboardingReviewContractSetupDraft;
     private Boolean hasIdDocumentImage;
+    private Boolean hasIdDocumentBackImage;
     private String assignedCaoId;
     private String assignedCaoName;
 
@@ -355,6 +356,14 @@ public class UserResponseDTO {
 
     public void setHasIdDocumentImage(Boolean hasIdDocumentImage) {
         this.hasIdDocumentImage = hasIdDocumentImage;
+    }
+
+    public Boolean getHasIdDocumentBackImage() {
+        return hasIdDocumentBackImage;
+    }
+
+    public void setHasIdDocumentBackImage(Boolean hasIdDocumentBackImage) {
+        this.hasIdDocumentBackImage = hasIdDocumentBackImage;
     }
 
     public String getAssignedCaoId() { return assignedCaoId; }
