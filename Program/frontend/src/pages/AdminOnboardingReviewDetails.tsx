@@ -60,7 +60,6 @@ type ContractSetupDraft = {
     vacationBuildUpApplicable: boolean;
     isManualWageOverride: boolean;
     manualWageOverrideReason: string;
-    payrollBillingRate: string;
     awfType: "LOW" | "HIGH";
     aofType: "LOW" | "HIGH";
     whkSector: string;
@@ -136,7 +135,6 @@ function sanitizeContractSetupDraft(
     if (typeof record.vacationBuildUpApplicable === "boolean") draft.vacationBuildUpApplicable = record.vacationBuildUpApplicable;
     if (typeof record.isManualWageOverride === "boolean") draft.isManualWageOverride = record.isManualWageOverride;
     if (typeof record.manualWageOverrideReason === "string") draft.manualWageOverrideReason = record.manualWageOverrideReason;
-    if (typeof record.payrollBillingRate === "string") draft.payrollBillingRate = record.payrollBillingRate;
     if (record.awfType === "LOW" || record.awfType === "HIGH") draft.awfType = record.awfType;
     if (record.aofType === "LOW" || record.aofType === "HIGH") draft.aofType = record.aofType;
     if (typeof record.whkSector === "string") draft.whkSector = record.whkSector;
@@ -315,7 +313,6 @@ export default function AdminOnboardingReviewDetails() {
         vacationBuildUpApplicable: true,
         isManualWageOverride: false,
         manualWageOverrideReason: "",
-        payrollBillingRate: "",
         awfType: "LOW",
         aofType: "LOW",
         whkSector: "33 Horeca algemeen",
@@ -1493,20 +1490,6 @@ export default function AdminOnboardingReviewDetails() {
                                                         <option value="PAID_EACH_PERIOD">Paid each period</option>
                                                     </select>
                                                     {sourceButton("horeca-cao-2025-2026", "32")}
-                                                </label>
-                                                <label className="reviewField">
-                                                    <span className="reviewFieldLabel">Payroll billing rate</span>
-                                                    <input
-                                                        className="uiSelect"
-                                                        inputMode="decimal"
-                                                        value={contractDraft.payrollBillingRate}
-                                                        onChange={(event) =>
-                                                            setContractDraft((prev) => ({ ...prev, payrollBillingRate: event.target.value }))
-                                                        }
-                                                        placeholder="Commercial client rate"
-                                                        disabled={actionLoading}
-                                                    />
-                                                    <span className="reviewCommercialLabel">Commercial value</span>
                                                 </label>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">Manual wage override reason</span>
