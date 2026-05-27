@@ -295,25 +295,25 @@ If the planner creates a new project before adding any shifts, the page still st
 
 \subsection{Management Planning Clients Page}
 
-The Clients page is the planning address book. It stores the client companies and contacts that can be attached to events. The table shows client image or initials, client name, contact count, address, and company line. A search field lets the planner search clients and contacts, and pagination controls handle larger client lists.
+The Clients page is the planning address book. It stores the client companies and contacts that can be attached to projects. The table shows client image or initials, client name, contact count, address, and company line. A search field lets the planner search clients and contacts, and pagination controls handle larger client lists.
 
 Adding or editing a client happens in a modal. The modal contains client profile details, an optional profile picture, address, company line, contacts, notes, and a summary. Contacts can be added or removed, and each contact has first name, last name, position, email, and phone fields. Contact rows can be expanded and collapsed. The client picture upload accepts image files, with the UI expecting PNG, JPG, or WEBP and enforcing a 500 KB size limit.
 
-The page's main user flow is simple: the planner searches for a client, opens the client detail modal, updates company or contact details, and saves. Those client records can then be used when creating or editing planning events.
+The page's main user flow is simple: the planner searches for a client, opens the client detail modal, updates company or contact details, and saves. Those client records can then be used when creating or editing planning projects.
 
-\subsection{Management Planning Event Detail Page}
+\subsection{Management Planning Project Detail Page}
 
-The Event Detail page is where planning becomes concrete. The page opens one event and shows its shifts, staffing level, client information, timing, location, and notes. The main card title combines the event name and context, while the right side shows an event-level staffing requirement ratio.
+The Planning Project Detail page is where planning becomes concrete. The page opens one project and shows its shifts, staffing level, client information, timing, location, and notes. The main card title combines the project name and context, while the right side shows a project-level staffing requirement ratio.
 
-The page is available from the Management Planning Overview page by opening an event card, and it can also be accessed directly at \code{/management/planning/events/:eventId}.
+The page is available from the Management Planning Overview page by opening a project card, and it can also be accessed directly at \code{/management/planning/projects/:projectId}. Older event-based planning links still redirect into the same project detail flow, so existing shortcuts do not break.
 
-The page is split into a main shift area and a side event-details panel. The event-details panel shows client, client line, location, dates, default time, time zone, staffing summary, status, and notes. The edit button opens the event edit modal, where the planner can change event name, client, dates, times, time zone, location, internal notes, external notes, and summary. The modal also includes event deletion, with a browser confirmation before deleting.
+The page is split into a main shift area and a side project-details panel. The project-details panel shows client, client line, location, dates, default time, time zone, staffing summary, status, and notes. The edit button opens the project edit modal, where the planner can change the project name, client, dates, times, time zone, location, internal notes, external notes, and summary. The modal also includes project deletion, with a browser confirmation before deleting.
 
 The shift list is the main working area. A shift card shows the shift date, weekday, time, display name, function, staffing, duration, location, and the required/scheduled/checked-in ratio. The planner can create a shift, edit a shift, or delete a shift. The create and edit shift modals use the same core fields: start date and time, end date and time, job function, shift name, people needed, break minutes, and location.
 
 When a shift is expanded, the planner sees two columns. The Scheduled people column shows current assignments and can be filtered by All, Scheduled, Accepted, or Declined. Assignment cards show the employee, status badge, and action buttons. A declined employee can be invited again. An active assignment can be removed. The Available people column lets the planner search active employees and schedule them into the shift. If there are many available people, the page shows only the first 50 and asks the planner to search.
 
-The event can also be finalized. When the event is finalized, the frontend labels it as Finalized and disables create, edit, schedule, invite, and remove controls.
+The project can also be finalized. When the project is finalized, the frontend labels it as Finalized and disables create, edit, schedule, invite, and remove controls.
 
 \subsection{My Planning Page}
 
@@ -546,6 +546,7 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 05 28: Fixed the planning project detail links so the frontend opens the project-based planning route again, and kept older event-based links working as redirects.
     \item 2026 05 28: Fixed the Onboarding Review Create and send contract flow so valid draft contracts can be sent on existing databases without triggering a server error.
     \item 2026 05 28: Made onboarding review loonheffingskorting read-only so it always follows the employee tax choice from onboarding.
     \item 2026 05 28: Let the onboarding review page update an existing draft contract so wage and other contract setup edits can be saved without creating a second contract.

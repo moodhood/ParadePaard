@@ -8,8 +8,8 @@ import Modal from "../components/common/Modal";
 import {
     UserServices,
     type PlanningClientCompanyDTO,
-    type PlanningEventDTO,
-    type PlanningEventSaveDTO,
+    type PlanningProjectDTO,
+    type PlanningProjectSaveDTO,
     type PlanningResourceAllocationDTO,
     type PlanningShiftDTO,
     type UserResponseDTO,
@@ -139,7 +139,7 @@ function parseDateInput(value: string): string | null {
     return parseDisplayDate(value);
 }
 
-function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
+function buildInitialShiftDraft(event: PlanningProjectDTO): ShiftDraft {
     return {
         startDate: formatDateFieldInput(event.startDate),
         startTime: getDefaultTime(event.defaultStartTime, "09:00"),
@@ -153,12 +153,12 @@ function buildInitialShiftDraft(event: PlanningEventDTO): ShiftDraft {
     };
 }
 
-function buildEventDraft(event: PlanningEventDTO): PlanningEventSaveDTO {
+function buildEventDraft(event: PlanningProjectDTO): PlanningProjectSaveDTO {
     return {
-        name: event.eventName,
+        name: event.projectName,
         startDate: formatDateFieldInput(event.startDate),
         endDate: formatDateFieldInput(event.endDate),
-        eventTimezone: event.eventTimezone ?? getBrowserTimeZone(),
+        projectTimezone: event.projectTimezone ?? getBrowserTimeZone(),
         clientCompanyId: event.clientCompanyId ?? "",
         location: event.location ?? "",
         internalDescription: event.internalDescription ?? "",
@@ -169,7 +169,7 @@ function buildEventDraft(event: PlanningEventDTO): PlanningEventSaveDTO {
     };
 }
 
-function buildShiftDraftFromRecord(day: string, shift: PlanningShiftDTO, event: PlanningEventDTO): ShiftDraft {
+function buildShiftDraftFromRecord(day: string, shift: PlanningShiftDTO, event: PlanningProjectDTO): ShiftDraft {
     const startDateTime = shift.startTime.includes("T") ? shift.startTime : `${day}T${shift.startTime}`;
     const endDateTime = shift.endTime.includes("T") ? shift.endTime : `${day}T${shift.endTime}`;
     const startDate = startDateTime.split("T")[0] || event.startDate;
@@ -221,17 +221,17 @@ function getShiftRequirementTitle(shift: PlanningShiftDTO): string {
     return "Required / Scheduled / Checked in";
 }
 
-function formatEventRequirement(event: PlanningEventDTO): string {
+function formatEventRequirement(event: PlanningProjectDTO): string {
     return `${getEventRequiredCount(event)}/${getEventScheduledCount(event)}/${getEventCheckedInCount(event)}`;
 }
 
-function getEventRequirementTitle(event: PlanningEventDTO): string {
+function getEventRequirementTitle(event: PlanningProjectDTO): string {
     void event;
     return "Required / Scheduled / Checked in";
 }
 
-function formatEventHeaderTitle(event: PlanningEventDTO): string {
-    return `${event.eventName}, ${formatEventTitleDateRange(event.startDate, event.endDate)}, ${getEventLocation(event)}, ${getEventClientName(event)}`;
+function formatEventHeaderTitle(event: PlanningProjectDTO): string {
+    return `${event.projectName}, ${formatEventTitleDateRange(event.startDate, event.endDate)}, ${getEventLocation(event)}, ${getEventClientName(event)}`;
 }
 
 function getUserDisplayName(user: UserResponseDTO): string {
@@ -280,7 +280,7 @@ function getScheduledFilterEmptyMessage(filter: ScheduledFilter): string {
     }
 }
 
-function mergeShiftAllocations(event: PlanningEventDTO): PlanningEventDTO {
+function mergeShiftAllocations(event: PlanningProjectDTO): PlanningProjectDTO {
     return {
         ...event,
         days: event.days.map((day) => ({
@@ -310,7 +310,7 @@ export default function AdminPlanningEventDetail() {
     const [searchParams, setSearchParams] = useSearchParams();
     const browserTimeZone = useMemo(() => getBrowserTimeZone(), []);
     const [timeZoneOptions, setTimeZoneOptions] = useState<TimeZoneOption[]>([]);
-    const [event, setEvent] = useState<PlanningEventDTO | null>(null);
+    const [event, setEvent] = useState<PlanningProjectDTO | null>(null);
     const [clients, setClients] = useState<PlanningClientCompanyDTO[]>([]);
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
     const [loading, setLoading] = useState(true);
@@ -357,11 +357,11 @@ export default function AdminPlanningEventDetail() {
         location: "",
         peopleNeeded: "1",
     });
-    const [eventDraft, setEventDraft] = useState<PlanningEventSaveDTO>({
+    const [eventDraft, setEventDraft] = useState<PlanningProjectSaveDTO>({
         name: "",
         startDate: "",
         endDate: "",
-        eventTimezone: browserTimeZone,
+        projectTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
         internalDescription: "",
@@ -388,7 +388,7 @@ export default function AdminPlanningEventDetail() {
             setLoading(true);
             setError(null);
             const data = await UserServices.getPlanningOverview(undefined, eventId);
-            const selectedEvent = data.find((candidate) => candidate.eventId === eventId) ?? null;
+            const selectedEvent = data.find((candidate) => candidate.projectId === eventId) ?? null;
 
             if (!selectedEvent) {
                 setEvent(null);
@@ -462,7 +462,7 @@ export default function AdminPlanningEventDetail() {
         () => clients.find((client) => client.clientCompanyId === (eventDraft.clientCompanyId ?? "")) ?? null,
         [clients, eventDraft.clientCompanyId]
     );
-    const normalizedEventTimezone = eventDraft.eventTimezone?.trim() || "";
+    const normalizedEventTimezone = eventDraft.projectTimezone?.trim() || "";
     const hasValidEventTimezone = isSupportedTimeZone(normalizedEventTimezone);
     const usersById = useMemo(() => Object.fromEntries(users.map((user) => [user.userId, user] as const)), [users]);
     const expandedShiftRecord = useMemo(
@@ -674,11 +674,11 @@ export default function AdminPlanningEventDetail() {
         const startDate = parseDateInput(eventDraft.startDate || "");
         const endDate = parseDateInput(eventDraft.endDate || "");
 
-        const payload: PlanningEventSaveDTO = {
+        const payload: PlanningProjectSaveDTO = {
             name: eventDraft.name?.trim() || "",
             startDate: startDate || "",
             endDate: endDate || "",
-            eventTimezone: normalizedEventTimezone,
+            projectTimezone: normalizedEventTimezone,
             clientCompanyId: eventDraft.clientCompanyId?.toString().trim() ? eventDraft.clientCompanyId : null,
             location: eventDraft.location?.toString().trim() || null,
             internalDescription: eventDraft.internalDescription?.toString().trim() || null,
@@ -715,7 +715,7 @@ export default function AdminPlanningEventDetail() {
         try {
             setSavingEvent(true);
             setEventSaveError(null);
-            await UserServices.updatePlanningEvent(event.eventId, payload);
+            await UserServices.updatePlanningProject(event.projectId, payload);
             setIsEditEventOpen(false);
             await loadEvent();
         } catch (err: unknown) {
@@ -733,14 +733,14 @@ export default function AdminPlanningEventDetail() {
         }
 
         const confirmed = window.confirm(
-            `Delete event "${event.eventName}"? This will also delete its ${shiftRecords.length} shift${shiftRecords.length === 1 ? "" : "s"}.`
+            `Delete event "${event.projectName}"? This will also delete its ${shiftRecords.length} shift${shiftRecords.length === 1 ? "" : "s"}.`
         );
         if (!confirmed) return;
 
         try {
             setDeletingEvent(true);
             setEventSaveError(null);
-            await UserServices.deletePlanningEvent(event.eventId);
+            await UserServices.deletePlanningProject(event.projectId);
             setIsEditEventOpen(false);
             navigate("/management/planning", { replace: true });
         } catch (err: unknown) {
@@ -781,7 +781,7 @@ export default function AdminPlanningEventDetail() {
         try {
             setSavingShift(true);
             setCreateShiftError(null);
-            const response = await UserServices.createPlanningShift(event.eventId, {
+            const response = await UserServices.createPlanningShift(event.projectId, {
                 startTime: shiftStartDateTime,
                 endTime: shiftEndDateTime,
                 name: shiftDraft.name.trim() || null,
@@ -950,7 +950,7 @@ export default function AdminPlanningEventDetail() {
 
                         <header className="pageHeader">
                             <h1 className="pageTitle">Event</h1>
-                            <p className="pageSubtitle">{event?.eventName ?? "Planning event details"}</p>
+                            <p className="pageSubtitle">{event?.projectName ?? "Planning event details"}</p>
                         </header>
 
                         <div className="adminDashboardCard">
@@ -1324,7 +1324,7 @@ export default function AdminPlanningEventDetail() {
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Location</span><span className="planningDetailValue">{getEventLocation(event)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Dates</span><span className="planningDetailValue">{formatDateRange(event.startDate, event.endDate)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Time</span><span className="planningDetailValue">{getEventTimeLabel(event)}</span></div>
-                                                <div className="planningDetailRow"><span className="planningDetailLabel">Time zone</span><span className="planningDetailValue">{formatTimeZoneLabel(event.eventTimezone || browserTimeZone)}</span></div>
+                                                <div className="planningDetailRow"><span className="planningDetailLabel">Time zone</span><span className="planningDetailValue">{formatTimeZoneLabel(event.projectTimezone || browserTimeZone)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Staffing</span><span className="planningDetailValue">{getEventStaffingLabel(event)}</span></div>
                                                 <div className="planningDetailRow"><span className="planningDetailLabel">Status</span><span className="planningDetailValue">{eventStatusLabel}</span></div>
                                                 <div className="planningDetailRow">
@@ -1834,9 +1834,9 @@ export default function AdminPlanningEventDetail() {
                         <input
                             className="modal_input"
                             list={EVENT_TIMEZONE_DATALIST_ID}
-                            value={eventDraft.eventTimezone ?? ""}
+                            value={eventDraft.projectTimezone ?? ""}
                             onChange={(inputEvent) => {
-                                setEventDraft((current) => ({ ...current, eventTimezone: inputEvent.target.value }));
+                                setEventDraft((current) => ({ ...current, projectTimezone: inputEvent.target.value }));
                                 if (eventSaveError) setEventSaveError(null);
                             }}
                             placeholder="Europe/Amsterdam"
@@ -1924,7 +1924,7 @@ export default function AdminPlanningEventDetail() {
                         </div>
                         <div className="planningWizardSummaryRow">
                             <span className="planningWizardSummaryItemLabel">Time zone</span>
-                            <span className="planningWizardSummaryValue">{formatTimeZoneLabel(eventDraft.eventTimezone || browserTimeZone)}</span>
+                            <span className="planningWizardSummaryValue">{formatTimeZoneLabel(eventDraft.projectTimezone || browserTimeZone)}</span>
                         </div>
                         <div className="planningWizardSummaryRow">
                             <span className="planningWizardSummaryItemLabel">Client</span>

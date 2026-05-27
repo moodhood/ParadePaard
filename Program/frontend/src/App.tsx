@@ -62,12 +62,12 @@ function RedirectAdminPayslip() {
 
 function RedirectAdminPlanningProject() {
     const { eventId } = useParams();
-    return <Navigate to={`/management/planning/events/${eventId ?? ""}`} replace />;
+    return <Navigate to={`/management/planning/projects/${eventId ?? ""}`} replace />;
 }
 
 function RedirectAdminPlanningShift() {
     const { eventId, shiftId } = useParams();
-    return <Navigate to={`/management/planning/events/${eventId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
+    return <Navigate to={`/management/planning/projects/${eventId ?? ""}/shifts/${shiftId ?? ""}`} replace />;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -345,6 +345,26 @@ export default function App() {
                 }
             />
             <Route
+                path="/management/planning/projects/:eventId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_PLANNING">
+                            <AdminPlanningProjectDetail />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/planning/projects/:eventId/shifts/:shiftId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_PLANNING">
+                            <AdminPlanningShiftDetail />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
                 path="/management/planning/events/:eventId"
                 element={
                     <RequireActiveUser>
@@ -415,6 +435,8 @@ export default function App() {
             <Route path="/admin/planning" element={<Navigate to="/management/planning" replace />} />
             <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningProject />} />
             <Route path="/admin/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
+            <Route path="/admin/planning/projects/:eventId" element={<RedirectAdminPlanningProject />} />
+            <Route path="/admin/planning/projects/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
             <Route path="/admin/clients" element={<Navigate to="/management/clients" replace />} />
             <Route
                 path="/"

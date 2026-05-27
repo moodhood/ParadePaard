@@ -8,8 +8,8 @@ export default function AdminPlanningShiftDetail() {
     }
 
     const target = shiftId
-        ? `/management/planning/events/${eventId}?shift=${shiftId}`
-        : `/management/planning/events/${eventId}`;
+        ? `/management/planning/projects/${eventId}?shift=${shiftId}`
+        : `/management/planning/projects/${eventId}`;
 
     return <Navigate to={target} replace />;
 }

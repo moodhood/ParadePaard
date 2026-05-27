@@ -1,5 +1,5 @@
 import type {
-    PlanningEventDTO,
+    PlanningProjectDTO,
     PlanningResourceAllocationDTO,
 } from "../services/user-service/UserServices";
 
@@ -295,7 +295,7 @@ function matchesRange(date: string, bounds: { start: string; end: string } | nul
 }
 
 export function flattenPlanningEvents(
-    events: PlanningEventDTO[],
+    events: PlanningProjectDTO[],
     resolveDisplayName?: (allocation: PlanningResourceAllocationDTO) => string
 ): PlanningExplorerRow[] {
     const rows: PlanningExplorerRow[] = [];
@@ -308,8 +308,8 @@ export function flattenPlanningEvents(
                         rowId: `${shift.shiftId}::unassigned`,
                         shiftId: shift.shiftId,
                         allocationId: null,
-                        eventId: event.eventId,
-                        eventName: event.eventName,
+                        eventId: event.projectId,
+                        eventName: event.projectName,
                         eventStartDate: event.startDate,
                         eventEndDate: event.endDate,
                         shiftDate: day.day,
@@ -330,8 +330,8 @@ export function flattenPlanningEvents(
                         rowId: allocation.scheduleEntryId,
                         shiftId: shift.shiftId,
                         allocationId: allocation.scheduleEntryId,
-                        eventId: event.eventId,
-                        eventName: event.eventName,
+                        eventId: event.projectId,
+                        eventName: event.projectName,
                         eventStartDate: event.startDate,
                         eventEndDate: event.endDate,
                         shiftDate: day.day,
