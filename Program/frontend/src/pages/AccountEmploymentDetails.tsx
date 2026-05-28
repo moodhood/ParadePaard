@@ -175,6 +175,8 @@ function formatFrequency(value?: string | null): string {
             return "Monthly";
         case "EVERY_5_MINUTES":
             return "Test only";
+        case "EVERY_10_MINUTES":
+            return "10 minutes (testing)";
         default:
             return value ?? "-";
     }

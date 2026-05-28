@@ -31,7 +31,7 @@ export type PayrollVariable = {
 };
 
 export type ContractType = "FULL_TIME" | "PART_TIME" | "ZERO_HOURS";
-export type PayrollPeriod = "MONTHLY" | "WEEKLY" | "BIWEEKLY" | "FOUR_WEEKLY";
+export type PayrollPeriod = "MONTHLY" | "WEEKLY" | "BIWEEKLY" | "FOUR_WEEKLY" | "EVERY_10_MINUTES";
 export type HolidayAllowanceMode = "RESERVED" | "PAID_EACH_PERIOD";
 
 export type JobPreset = {

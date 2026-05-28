@@ -7,7 +7,8 @@ public enum PaymentFrequency {
     WEEKLY,
     BIWEEKLY,
     MONTHLY,
-    EVERY_5_MINUTES;
+    EVERY_5_MINUTES,
+    EVERY_10_MINUTES;
 
     public static PaymentFrequency fromNullable(String value) {
         if (value == null || value.isBlank()) {
@@ -17,6 +18,6 @@ public enum PaymentFrequency {
     }
 
     public boolean isProductionAllowed() {
-        return this != EVERY_5_MINUTES;
+        return this != EVERY_5_MINUTES && this != EVERY_10_MINUTES;
     }
 }

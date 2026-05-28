@@ -10,7 +10,7 @@ export type ContractStatus =
     | "SIGNED"
     | string;
 
-export type PaymentFrequency = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "EVERY_5_MINUTES" | string;
+export type PaymentFrequency = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "EVERY_5_MINUTES" | "EVERY_10_MINUTES" | string;
 
 export type ContractResponseDTO = {
     contractId: string;

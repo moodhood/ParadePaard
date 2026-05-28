@@ -20,6 +20,7 @@ public class PayPeriodCalculator {
             case "BIWEEKLY" -> biweekly(anchorDate);
             case "MONTHLY" -> monthly(anchorDate);
             case "EVERY_5_MINUTES" -> new PayPeriod("EVERY_5_MINUTES", anchorDate, anchorDate, "EVERY_5_MINUTES:" + anchorDate);
+            case "EVERY_10_MINUTES" -> new PayPeriod("EVERY_10_MINUTES", anchorDate, anchorDate, "EVERY_10_MINUTES:" + anchorDate);
             default -> weekly(anchorDate);
         };
     }

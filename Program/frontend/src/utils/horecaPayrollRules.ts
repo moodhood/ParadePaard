@@ -228,7 +228,13 @@ export function normalizeContractType(value?: string | null): ContractType {
 }
 
 export function normalizePayrollPeriod(value?: string | null): PayrollPeriod {
-    if (value === "MONTHLY" || value === "WEEKLY" || value === "BIWEEKLY" || value === "FOUR_WEEKLY") return value;
+    if (
+        value === "MONTHLY" ||
+        value === "WEEKLY" ||
+        value === "BIWEEKLY" ||
+        value === "FOUR_WEEKLY" ||
+        value === "EVERY_10_MINUTES"
+    ) return value;
     return "MONTHLY";
 }
 

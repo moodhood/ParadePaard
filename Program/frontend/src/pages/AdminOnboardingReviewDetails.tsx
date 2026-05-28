@@ -119,7 +119,8 @@ function sanitizeContractSetupDraft(
         record.payrollPeriod === "MONTHLY" ||
         record.payrollPeriod === "WEEKLY" ||
         record.payrollPeriod === "BIWEEKLY" ||
-        record.payrollPeriod === "FOUR_WEEKLY"
+        record.payrollPeriod === "FOUR_WEEKLY" ||
+        record.payrollPeriod === "EVERY_10_MINUTES"
     ) {
         draft.payrollPeriod = record.payrollPeriod;
     }
@@ -1531,6 +1532,7 @@ export default function AdminOnboardingReviewDetails() {
                                                         <option value="BIWEEKLY">Bi-weekly</option>
                                                         <option value="MONTHLY">Monthly</option>
                                                         <option value="FOUR_WEEKLY">Four-weekly</option>
+                                                        <option value="EVERY_10_MINUTES">10 minutes (for testing)</option>
                                                     </select>
                                                 </label>
                                                 <label className="reviewField">

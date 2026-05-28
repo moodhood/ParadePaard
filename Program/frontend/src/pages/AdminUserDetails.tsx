@@ -11,7 +11,6 @@ import {
     UserServices,
     type ContractResponseDTO,
     type CreateContractRequestDTO,
-    type EmployeeTaxProfileDTO,
     type FunctionResponseDTO,
     type PlanningProjectDTO,
     type TimesheetRow,
@@ -170,6 +169,8 @@ function formatPaymentFrequency(value?: string | null): string {
             return "Monthly";
         case "EVERY_5_MINUTES":
             return "Test only";
+        case "EVERY_10_MINUTES":
+            return "10 minutes (testing)";
         default:
             return value ?? "-";
     }
@@ -308,17 +309,6 @@ export default function AdminUserDetails() {
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
-    const [employeeTaxProfileDraft, setEmployeeTaxProfileDraft] = useState<EmployeeTaxProfileDTO>({
-        bsn: "",
-        applyLoonheffingskorting: false,
-        pensionParticipant: false,
-        specialZvwContribution: false,
-        payrollNotes: "",
-    });
-    const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
-    const [profileSaveSuccess, setProfileSaveSuccess] = useState<string | null>(null);
-    const [profileSaving, setProfileSaving] = useState(false);
-
     const uniqueRoles = useCallback((roles: string[]) => {
         const map = new Map<string, string>();
         roles.forEach((role) => {
@@ -524,7 +514,6 @@ export default function AdminUserDetails() {
 
     const canAssignRoles = permissions.includes("CAN_ASSIGN_ROLES");
     const canRemoveRoles = permissions.includes("CAN_REMOVE_ROLES");
-    const canManageUsers = permissions.includes("CAN_MANAGE_USERS");
     const canManageContracts = permissions.includes("CAN_MANAGE_CONTRACTS");
     const canReviewContracts = permissions.includes("CAN_REVIEW_CONTRACTS");
     const canFinalizeContracts = permissions.includes("CAN_FINALIZE_CONTRACT");
@@ -557,18 +546,6 @@ export default function AdminUserDetails() {
             grossHourlyWage: String(selectedFunction.hourlyWage),
         }));
     }, [functions, selectedFunctionId]);
-
-    useEffect(() => {
-        setEmployeeTaxProfileDraft({
-            bsn: user?.employeeTaxProfile?.bsn ?? "",
-            applyLoonheffingskorting: user?.employeeTaxProfile?.applyLoonheffingskorting ?? false,
-            pensionParticipant: user?.employeeTaxProfile?.pensionParticipant ?? false,
-            specialZvwContribution: user?.employeeTaxProfile?.specialZvwContribution ?? false,
-            payrollNotes: user?.employeeTaxProfile?.payrollNotes ?? "",
-        });
-        setProfileSaveError(null);
-        setProfileSaveSuccess(null);
-    }, [user]);
 
     const sortedUserRoles = useMemo(() => {
         const list = uniqueRoles(userRoles);
@@ -772,46 +749,6 @@ export default function AdminUserDetails() {
         if (!canAssignRoles || !roleName) return;
         const nextRoles = uniqueRoles([...sortedUserRoles, roleName]);
         await updateUserRoles(nextRoles, "Role added.");
-    };
-
-    const handleSaveEmployeeTaxProfile = async () => {
-        if (!userId || !user || !canManageUsers) return;
-        try {
-            setProfileSaving(true);
-            setProfileSaveError(null);
-            setProfileSaveSuccess(null);
-            const updated = await UserServices.updateUser(userId, {
-                email: user.email,
-                preferredName: user.preferredName,
-                firstNames: user.firstNames,
-                middleNamePrefix: user.middleNamePrefix,
-                lastName: user.lastName,
-                gender: user.gender,
-                dateOfBirth: user.dateOfBirth,
-                mobileNumber: user.mobileNumber,
-                street: user.street,
-                houseNumber: user.houseNumber,
-                houseNumberSuffix: user.houseNumberSuffix,
-                postalCode: user.postalCode,
-                city: user.city,
-                country: user.country,
-                iban: user.iban,
-                employeeTaxProfile: {
-                    bsn: employeeTaxProfileDraft.bsn?.trim() || null,
-                    applyLoonheffingskorting: Boolean(employeeTaxProfileDraft.applyLoonheffingskorting),
-                    pensionParticipant: Boolean(employeeTaxProfileDraft.pensionParticipant),
-                    specialZvwContribution: Boolean(employeeTaxProfileDraft.specialZvwContribution),
-                    payrollNotes: employeeTaxProfileDraft.payrollNotes?.trim() || null,
-                },
-            });
-            setUser(updated);
-            setProfileSaveSuccess("Employee tax profile updated.");
-        } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to update employee tax profile.";
-            setProfileSaveError(message);
-        } finally {
-            setProfileSaving(false);
-        }
     };
 
     const downloadContractPdf = async () => {
@@ -1113,6 +1050,14 @@ export default function AdminUserDetails() {
             ["Company ID", formatValue(user?.companyId)],
         ] as const;
 
+        const profileTaxRows = [
+            ["BSN", formatValue(user?.employeeTaxProfile?.bsn)],
+            ["Apply loonheffingskorting", formatValue(user?.employeeTaxProfile?.applyLoonheffingskorting)],
+            ["Pension participant", formatValue(user?.employeeTaxProfile?.pensionParticipant)],
+            ["Special employee Zvw contribution", formatValue(user?.employeeTaxProfile?.specialZvwContribution)],
+            ["Payroll notes", formatValue(user?.employeeTaxProfile?.payrollNotes)],
+        ] as const;
+
         const profileContractRows = [
             ["Contract position", currentContract?.functionName ?? "-"],
             [
@@ -1253,7 +1198,79 @@ export default function AdminUserDetails() {
                                 <div className="adminUserIdentityMeta">
                                     <span>{currentContract?.functionName ?? formatPosition(user.position)}</span>
                                     <span>{formatLocation(user)}</span>
-                                    <span>{sortedUserRoles.length} role{sortedUserRoles.length === 1 ? "" : "s"}</span>
+                                </div>
+                                <div className="adminUserIdentityRoles">
+                                    {rolesLoading ? <span className="profile_role_hint">Loading roles...</span> : null}
+                                    {rolesError ? <span className="profile_role_error">{rolesError}</span> : null}
+                                    {roleOptionsError ? <span className="profile_role_error">{roleOptionsError}</span> : null}
+                                    {permissionsError ? <span className="profile_role_error">{permissionsError}</span> : null}
+                                    <div className="profile_role_list">
+                                        {sortedUserRoles.length === 0 ? (
+                                            <span className="profile_role_empty">No roles assigned.</span>
+                                        ) : (
+                                            sortedUserRoles.map((role) => {
+                                                const match = roleOptions.find((option) => {
+                                                    return normalizeRoleName(option.name) === normalizeRoleName(role);
+                                                });
+                                                const color = match?.color ?? "#9ca3af";
+                                                return (
+                                                    <div key={role} className="profile_role_item">
+                                                        <button
+                                                            type="button"
+                                                            className="profile_role_dot_button"
+                                                            style={{ backgroundColor: color }}
+                                                            onClick={() => void handleRemoveRole(role)}
+                                                            disabled={!canRemoveRoles || roleSaving}
+                                                            aria-label={`Remove role ${role}`}
+                                                        >
+                                                            <span className="profile_role_dot_cross" aria-hidden="true">
+                                                                x
+                                                            </span>
+                                                        </button>
+                                                        <span className="profile_role_name">{role}</span>
+                                                    </div>
+                                                );
+                                            })
+                                        )}
+                                        {canAssignRoles ? (
+                                            <div className="profile_role_add_wrap" ref={rolePickerRef}>
+                                                <button
+                                                    type="button"
+                                                    className="profile_role_add_icon"
+                                                    onClick={() => setShowRolePicker((open) => !open)}
+                                                    disabled={roleSaving || roleOptionsLoading || availableRoles.length === 0}
+                                                    aria-label="Add role"
+                                                >
+                                                    +
+                                                </button>
+                                                {showRolePicker && availableRoles.length > 0 ? (
+                                                    <div className="profile_role_menu" role="listbox" aria-label="Available roles">
+                                                        {availableRoles.map((role) => (
+                                                            <button
+                                                                key={role}
+                                                                type="button"
+                                                                className="profile_role_menu_item"
+                                                                onClick={() => {
+                                                                    void handleAddRole(role);
+                                                                    setShowRolePicker(false);
+                                                                }}
+                                                                role="option"
+                                                            >
+                                                                {role}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+                                                ) : null}
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    {!permissionsLoading && !canAssignRoles && !canRemoveRoles ? (
+                                        <div className="profile_role_hint">
+                                            You do not have permission to manage roles.
+                                        </div>
+                                    ) : null}
+                                    {roleSaveError ? <div className="profile_role_error">{roleSaveError}</div> : null}
+                                    {roleSaveSuccess ? <div className="profile_role_hint">{roleSaveSuccess}</div> : null}
                                 </div>
                                 {profilePictureError ? (
                                     <div className="profile_avatar_error adminUserIdentityError">
@@ -1581,195 +1598,13 @@ export default function AdminUserDetails() {
                             </Card>
 
                             <Card title="Employee tax profile" className="adminUserDetailsPanel">
-                                <div className="payslipDetailFields">
-                                    <div className="payslipDetailField">
-                                        <label className="payslipDetailFieldLabel" htmlFor="admin-user-bsn">
-                                            BSN
-                                        </label>
-                                        <input
-                                            id="admin-user-bsn"
-                                            className="uiSelect"
-                                            type="text"
-                                            value={employeeTaxProfileDraft.bsn ?? ""}
-                                            onChange={(event) => {
-                                                setEmployeeTaxProfileDraft((prev) => ({ ...prev, bsn: event.target.value }));
-                                                setProfileSaveError(null);
-                                                setProfileSaveSuccess(null);
-                                            }}
-                                            disabled={!canManageUsers || profileSaving}
-                                        />
-                                    </div>
-                                    <div className="payslipDetailField">
-                                        <label className="payslipDetailFieldLabel adminUserDetailsCheckbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(employeeTaxProfileDraft.applyLoonheffingskorting)}
-                                                onChange={(event) => {
-                                                    setEmployeeTaxProfileDraft((prev) => ({
-                                                        ...prev,
-                                                        applyLoonheffingskorting: event.target.checked,
-                                                    }));
-                                                    setProfileSaveError(null);
-                                                    setProfileSaveSuccess(null);
-                                                }}
-                                                disabled={!canManageUsers || profileSaving}
-                                            />
-                                            <span>Apply loonheffingskorting</span>
-                                        </label>
-                                    </div>
-                                    <div className="payslipDetailField">
-                                        <label className="payslipDetailFieldLabel adminUserDetailsCheckbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(employeeTaxProfileDraft.pensionParticipant)}
-                                                onChange={(event) => {
-                                                    setEmployeeTaxProfileDraft((prev) => ({
-                                                        ...prev,
-                                                        pensionParticipant: event.target.checked,
-                                                    }));
-                                                    setProfileSaveError(null);
-                                                    setProfileSaveSuccess(null);
-                                                }}
-                                                disabled={!canManageUsers || profileSaving}
-                                            />
-                                            <span>Pension participant</span>
-                                        </label>
-                                    </div>
-                                    <div className="payslipDetailField">
-                                        <label className="payslipDetailFieldLabel adminUserDetailsCheckbox">
-                                            <input
-                                                type="checkbox"
-                                                checked={Boolean(employeeTaxProfileDraft.specialZvwContribution)}
-                                                onChange={(event) => {
-                                                    setEmployeeTaxProfileDraft((prev) => ({
-                                                        ...prev,
-                                                        specialZvwContribution: event.target.checked,
-                                                    }));
-                                                    setProfileSaveError(null);
-                                                    setProfileSaveSuccess(null);
-                                                }}
-                                                disabled={!canManageUsers || profileSaving}
-                                            />
-                                            <span>Special employee Zvw contribution</span>
-                                        </label>
-                                    </div>
-                                    <div className="payslipDetailField payslipDetailField--wide">
-                                        <label className="payslipDetailFieldLabel" htmlFor="admin-user-payroll-notes">
-                                            Payroll notes
-                                        </label>
-                                        <textarea
-                                            id="admin-user-payroll-notes"
-                                            className="uiSelect"
-                                            rows={4}
-                                            value={employeeTaxProfileDraft.payrollNotes ?? ""}
-                                            onChange={(event) => {
-                                                setEmployeeTaxProfileDraft((prev) => ({
-                                                    ...prev,
-                                                    payrollNotes: event.target.value,
-                                                }));
-                                                setProfileSaveError(null);
-                                                setProfileSaveSuccess(null);
-                                            }}
-                                            disabled={!canManageUsers || profileSaving}
-                                        />
-                                    </div>
-                                </div>
-                                {!canManageUsers ? (
-                                    <p className="helperText">Managing payroll flags requires the manage users permission.</p>
-                                ) : null}
-                                {profileSaveError ? <p className="errorText">{profileSaveError}</p> : null}
-                                {profileSaveSuccess ? <p className="helperText">{profileSaveSuccess}</p> : null}
-                                {canManageUsers ? (
-                                    <div className="cardFooter">
-                                        <button
-                                            className="button"
-                                            type="button"
-                                            onClick={() => void handleSaveEmployeeTaxProfile()}
-                                            disabled={profileSaving}
-                                        >
-                                            {profileSaving ? "Saving..." : "Save tax profile"}
-                                        </button>
-                                    </div>
-                                ) : null}
-                            </Card>
-
-                            <Card title="Roles & access" className="adminUserDetailsPanel adminUserDetailsPanel--wide">
-                                <div className="adminUserRolesCard">
-                                    <div className="profile_role_section">
-                                        <div className="profile_role_header">Assigned roles</div>
-                                        {rolesLoading ? <div className="profile_role_hint">Loading roles...</div> : null}
-                                        {rolesError ? <div className="profile_role_error">{rolesError}</div> : null}
-                                        {roleOptionsError ? <div className="profile_role_error">{roleOptionsError}</div> : null}
-                                        {permissionsError ? <div className="profile_role_error">{permissionsError}</div> : null}
-                                        <div className="profile_role_list">
-                                            {sortedUserRoles.length === 0 ? (
-                                                <div className="profile_role_empty">No roles assigned.</div>
-                                            ) : (
-                                                sortedUserRoles.map((role) => {
-                                                    const match = roleOptions.find((option) => {
-                                                        return normalizeRoleName(option.name) === normalizeRoleName(role);
-                                                    });
-                                                    const color = match?.color ?? "#9ca3af";
-                                                    return (
-                                                        <div key={role} className="profile_role_item">
-                                                            <button
-                                                                type="button"
-                                                                className="profile_role_dot_button"
-                                                                style={{ backgroundColor: color }}
-                                                                onClick={() => void handleRemoveRole(role)}
-                                                                disabled={!canRemoveRoles || roleSaving}
-                                                                aria-label={`Remove role ${role}`}
-                                                            >
-                                                                <span className="profile_role_dot_cross" aria-hidden="true">
-                                                                    x
-                                                                </span>
-                                                            </button>
-                                                            <span className="profile_role_name">{role}</span>
-                                                        </div>
-                                                    );
-                                                })
-                                            )}
-
-                                            {canAssignRoles ? (
-                                                <div className="profile_role_add_wrap" ref={rolePickerRef}>
-                                                    <button
-                                                        type="button"
-                                                        className="profile_role_add_icon"
-                                                        onClick={() => setShowRolePicker((open) => !open)}
-                                                        disabled={roleSaving || roleOptionsLoading || availableRoles.length === 0}
-                                                        aria-label="Add role"
-                                                    >
-                                                        +
-                                                    </button>
-                                                    {showRolePicker && availableRoles.length > 0 ? (
-                                                        <div className="profile_role_menu" role="listbox" aria-label="Available roles">
-                                                            {availableRoles.map((role) => (
-                                                                <button
-                                                                    key={role}
-                                                                    type="button"
-                                                                    className="profile_role_menu_item"
-                                                                    onClick={() => {
-                                                                        void handleAddRole(role);
-                                                                        setShowRolePicker(false);
-                                                                    }}
-                                                                    role="option"
-                                                                >
-                                                                    {role}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    ) : null}
-                                                </div>
-                                            ) : null}
+                                <div className="generalInfoRows">
+                                    {profileTaxRows.map(([label, value]) => (
+                                        <div key={label} className="profile_info_row">
+                                            <span className="profile_info_label">{label}</span>
+                                            <span className="profile_info_value">{value}</span>
                                         </div>
-                                        {!permissionsLoading && !canAssignRoles && !canRemoveRoles ? (
-                                            <div className="profile_role_hint">
-                                                You do not have permission to manage roles.
-                                            </div>
-                                        ) : null}
-                                        {roleSaveError ? <div className="profile_role_error">{roleSaveError}</div> : null}
-                                        {roleSaveSuccess ? <div className="profile_role_hint">{roleSaveSuccess}</div> : null}
-                                    </div>
+                                    ))}
                                 </div>
                             </Card>
 

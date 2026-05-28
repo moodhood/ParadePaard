@@ -137,6 +137,17 @@
     text-align: left;
 }
 
+.adminUserIdentityRoles {
+    margin-top: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.adminUserIdentityRoles .profile_role_list {
+    margin: 0;
+}
+
 .adminUserIdentityMetrics {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
