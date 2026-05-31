@@ -2,100 +2,126 @@
 
 ## Main instruction
 
+When Codex changes the frontend UI in this project, Codex must not only look at the single element that was changed.
+
+Codex must also review the full surrounding UI and general page presentation so the result fits the rest of the product.
+
+This means Codex must check the whole visible experience, not just the direct feature request.
+
+## UI review requirement
+
+For every frontend UI change, Codex must inspect and think through all of the following:
+
+1. General layout
+   - page structure
+   - section order
+   - content grouping
+   - container widths
+   - alignment
+   - balance between left, center, and right areas
+   - how the page looks as a whole
+
+2. Spacing and sizing
+   - padding
+   - margins
+   - gaps between sections
+   - gaps between fields
+   - button height
+   - input height
+   - card spacing
+   - row spacing
+   - whitespace density
+
+3. Visual style
+   - colors
+   - background colors
+   - text colors
+   - border colors
+   - shadows
+   - corner radius
+   - dividers
+   - contrast
+   - whether the styling matches the rest of the app
+
+4. Typography
+   - font size
+   - font weight
+   - line height
+   - heading hierarchy
+   - label clarity
+   - helper text
+   - error text
+   - readability
+
+5. Component consistency
+   - buttons
+   - inputs
+   - selects
+   - textareas
+   - cards
+   - tables
+   - badges
+   - navigation items
+   - modals
+   - empty states
+   - loading states
+   - error states
+
+6. Interaction states
+   - hover
+   - active
+   - focus
+   - disabled
+   - selected
+   - validation states
+   - whether these states are clear and visually consistent
+
+7. Navigation and flow
+   - page entry points
+   - back buttons
+   - action placement
+   - primary versus secondary actions
+   - whether the user flow feels logical
+   - whether the page is easy to scan and use
+
+8. Responsiveness
+   - desktop layout
+   - tablet layout
+   - mobile layout
+   - wrapping behavior
+   - overflow issues
+   - whether spacing and hierarchy still look correct on smaller screens
+
+9. Surrounding pages
+   - whether the changed page still matches neighboring pages
+   - whether the UI still feels like part of the same application
+   - whether one improved part now makes another nearby part look inconsistent
+
+## Expected behavior
+
+Codex must not treat a UI request as a tiny isolated patch.
+
+If one UI element is changed, Codex must also check whether nearby layout, spacing, styling, hierarchy, and consistency need adjustment.
+
+Codex should aim for a polished result across the full screen, not only a technically correct local fix.
+
+## Rundown requirement
+
 Every time Codex makes a change in this project, Codex must also update the project rundown file:
 
 C:\Saved Files\Code\ParadePaard\Project Plan\Rundown\ParadePaardRundown.tex
 
-The rundown file must always stay up to date with the actual frontend project.
+Codex must describe the visible frontend result from the user point of view.
 
-## What Codex must update
-
-After making any code change, Codex must inspect what changed and update the rundown LaTeX file with a clear description of the frontend changes.
-
-The update should explain what was changed from the user point of view.
-
-Focus on pages, components, forms, buttons, navigation, layout, visible behavior, and user flows.
-
-Do not explain backend logic unless it directly affects the frontend behavior.
-
-## Rundown style
-
-Write in simple and clear language.
-
-Keep the rundown organized by page or feature.
-
-For every page, explain:
-
-1. What the page is for
-2. What information is shown
-3. What the user can do on the page
-4. Any special behavior or important functions
-
-Example structure:
-
-Account Page
-
-The Account Page lets a user view and manage their personal account information. It contains personal details, bank details, and employment details. The page is meant to give the user one place where they can check and update important information related to their profile.
-
-Personal Details
-
-This section shows the user their name, email address, phone number, date of birth, and other basic profile information.
-
-Bank Details
-
-This section shows the user their bank account information, such as IBAN, account holder name, and bank country.
-
-Employment Details
-
-This section shows information about the user their job, contract, start date, pay type, hourly wage, and employment status.
-
-## Change log requirement
-
-Every time Codex updates the project, Codex must also add a short change log entry in the LaTeX rundown file.
-
-The change log must include the current date and a short sentence describing what changed.
-
-Use this format:
-
-\section*{Change Log}
-
-\begin{itemize}
-    \item 2026 05 06: Updated the Account Page description after changes to personal details, bank details, and employment details.
-\end{itemize}
-
-If the Change Log section already exists, add the newest entry at the top of the list.
-
-If the Change Log section does not exist, create it near the end of the document.
-
-## Date format
-
-Use this date format:
+If the Change Log section already exists, Codex must add a new entry at the top using the date format:
 
 YYYY MM DD
 
-Example:
-
-2026 05 06
-
 ## Git requirement
 
-After Codex finishes all requested changes and updates the rundown file, Codex must commit and push the changes to GitHub.
+After finishing the requested work and updating the rundown file, Codex must push the changes to GitHub.
 
-Codex must use an appropriate commit message that summarizes the actual work completed.
-
-Good commit message examples:
-
-Update account page and project rundown
-
-Add employee onboarding UI and update rundown
-
-Refine event scheduling page and update documentation
-
-Fix contract form layout and update rundown
-
-## Git steps Codex should run
-
-Codex should run these commands after finishing the work:
+Codex must run these commands:
 
 ```bash
 git status
@@ -103,3 +129,5 @@ git add .
 git commit -m "Appropriate commit message here"
 git push
 ```
+
+The commit message must clearly describe the actual work that was completed.
