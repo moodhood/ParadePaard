@@ -70,6 +70,8 @@ type ContractSetupDraft = {
 };
 
 type ChecklistSectionKey = "personal" | "address" | "identification" | "bank" | "emergency" | "tax" | "contract";
+type PayrollPeriodOption = { value: PayrollPeriod; label: string };
+type ContractTypeRuleDraft = Pick<ContractSetupDraft, "contractType" | "hoursPerWeek" | "payrollPeriod" | "paymentFrequency">;
 
 const CHECKLIST_SECTION_KEYS: ChecklistSectionKey[] = [
     "personal",
@@ -80,6 +82,36 @@ const CHECKLIST_SECTION_KEYS: ChecklistSectionKey[] = [
     "tax",
     "contract",
 ];
+
+const STANDARD_PAYROLL_PERIOD_OPTIONS: PayrollPeriodOption[] = [
+    { value: "WEEKLY", label: "Weekly" },
+    { value: "BIWEEKLY", label: "Bi-weekly" },
+    { value: "MONTHLY", label: "Monthly" },
+    { value: "FOUR_WEEKLY", label: "Four-weekly" },
+];
+
+export function getPayrollPeriodOptionsForContractType(contractType?: string | null): PayrollPeriodOption[] {
+    if (contractType === "ZERO_HOURS") {
+        return [...STANDARD_PAYROLL_PERIOD_OPTIONS, { value: "EVERY_10_MINUTES", label: "10 minutes (for testing)" }];
+    }
+    return STANDARD_PAYROLL_PERIOD_OPTIONS;
+}
+
+export function normalizeContractDraftForContractType<T extends ContractTypeRuleDraft>(draft: T): T {
+    const normalizedHoursPerWeek =
+        draft.contractType === "FULL_TIME" ? "38" : draft.contractType === "ZERO_HOURS" ? "0" : (draft.hoursPerWeek ?? "");
+    const normalizedPayrollPeriod =
+        draft.contractType !== "ZERO_HOURS" && draft.payrollPeriod === "EVERY_10_MINUTES" ? "MONTHLY" : (draft.payrollPeriod ?? "");
+    const normalizedPaymentFrequency =
+        draft.paymentFrequency === draft.payrollPeriod ? normalizedPayrollPeriod : (draft.paymentFrequency ?? "");
+
+    return {
+        ...draft,
+        hoursPerWeek: normalizedHoursPerWeek,
+        payrollPeriod: normalizedPayrollPeriod as T["payrollPeriod"],
+        paymentFrequency: normalizedPaymentFrequency,
+    };
+}
 
 function sanitizeCheckedSections(value: unknown): Partial<Record<ChecklistSectionKey, boolean>> | null {
     if (value == null || typeof value !== "object") return null;
@@ -448,23 +480,25 @@ export default function AdminOnboardingReviewDetails() {
             const serverContractDraft = sanitizeContractSetupDraft(userRes.onboardingReviewContractSetupDraft);
             if (serverContractDraft) {
                 setSelectedFunctionId(serverContractDraft.selectedFunctionId);
-                setContractDraft((prev) => ({
-                    ...prev,
-                    ...serverContractDraft.draft,
-                    ...applyEmployeeTaxProfileDefaults(
-                        {
-                            loonheffingskorting:
-                                serverContractDraft.draft.loonheffingskorting === "YES" || serverContractDraft.draft.loonheffingskorting === "NO"
-                                    ? serverContractDraft.draft.loonheffingskorting
-                                    : prev.loonheffingskorting,
-                            pensionApplicable:
-                                serverContractDraft.draft.pensionApplicable === "YES" || serverContractDraft.draft.pensionApplicable === "NO"
-                                    ? serverContractDraft.draft.pensionApplicable
-                                    : prev.pensionApplicable,
-                        },
-                        userRes.employeeTaxProfile
-                    ),
-                }));
+                setContractDraft((prev) =>
+                    normalizeContractDraftForContractType({
+                        ...prev,
+                        ...serverContractDraft.draft,
+                        ...applyEmployeeTaxProfileDefaults(
+                            {
+                                loonheffingskorting:
+                                    serverContractDraft.draft.loonheffingskorting === "YES" || serverContractDraft.draft.loonheffingskorting === "NO"
+                                        ? serverContractDraft.draft.loonheffingskorting
+                                        : prev.loonheffingskorting,
+                                pensionApplicable:
+                                    serverContractDraft.draft.pensionApplicable === "YES" || serverContractDraft.draft.pensionApplicable === "NO"
+                                        ? serverContractDraft.draft.pensionApplicable
+                                        : prev.pensionApplicable,
+                            },
+                            userRes.employeeTaxProfile
+                        ),
+                    })
+                );
             } else if (storedContractDraft) {
                 try {
                     const parsed = JSON.parse(storedContractDraft) as { selectedFunctionId?: string; draft?: Partial<ContractSetupDraft> };
@@ -472,23 +506,25 @@ export default function AdminOnboardingReviewDetails() {
                         setSelectedFunctionId(parsed.selectedFunctionId);
                     }
                     if (parsed?.draft && typeof parsed.draft === "object") {
-                        setContractDraft((prev) => ({
-                            ...prev,
-                            ...(parsed.draft ?? {}),
-                            ...applyEmployeeTaxProfileDefaults(
-                                {
-                                    loonheffingskorting:
-                                        parsed.draft?.loonheffingskorting === "YES" || parsed.draft?.loonheffingskorting === "NO"
-                                            ? parsed.draft.loonheffingskorting
-                                            : prev.loonheffingskorting,
-                                    pensionApplicable:
-                                        parsed.draft?.pensionApplicable === "YES" || parsed.draft?.pensionApplicable === "NO"
-                                            ? parsed.draft.pensionApplicable
-                                            : prev.pensionApplicable,
-                                },
-                                userRes.employeeTaxProfile
-                            ),
-                        }));
+                        setContractDraft((prev) =>
+                            normalizeContractDraftForContractType({
+                                ...prev,
+                                ...(parsed.draft ?? {}),
+                                ...applyEmployeeTaxProfileDefaults(
+                                    {
+                                        loonheffingskorting:
+                                            parsed.draft?.loonheffingskorting === "YES" || parsed.draft?.loonheffingskorting === "NO"
+                                                ? parsed.draft.loonheffingskorting
+                                                : prev.loonheffingskorting,
+                                        pensionApplicable:
+                                            parsed.draft?.pensionApplicable === "YES" || parsed.draft?.pensionApplicable === "NO"
+                                                ? parsed.draft.pensionApplicable
+                                                : prev.pensionApplicable,
+                                    },
+                                    userRes.employeeTaxProfile
+                                ),
+                            })
+                        );
                     }
                 } catch {
                     // ignore corrupted stored value
@@ -951,26 +987,28 @@ export default function AdminOnboardingReviewDetails() {
             return;
         }
         setSelectedFunctionId("");
-        setContractDraft((prev) => ({
-            ...prev,
-            caoId: HORECA_CAO_OPTIONS[0].id,
-            jobPresetId: preset.id,
-            jobTitle: preset.jobTitle,
-            jobFunction: preset.jobFunction,
-            functionGroup: preset.functionGroup,
-            functionName: preset.jobTitle,
-            contractType: preset.defaultContractType,
-            grossHourlyWage: preset.defaultHourlyWage.toFixed(2),
-            grossMonthlyWage: preset.defaultMonthlyWage.toFixed(2),
-            hoursPerWeek: String(preset.defaultContractType === "FULL_TIME" ? 38 : preset.defaultHoursPerWeek),
-            payrollPeriod: preset.defaultPayrollPeriod,
-            paymentFrequency: preset.defaultPayrollPeriod,
-            pensionApplicable: boolChoice(preset.pensionApplicable),
-            holidayAllowanceMode: preset.holidayAllowanceMode,
-            vacationBuildUpApplicable: preset.vacationBuildUpApplicable,
-            isManualWageOverride: false,
-            manualWageOverrideReason: "",
-        }));
+        setContractDraft((prev) =>
+            normalizeContractDraftForContractType({
+                ...prev,
+                caoId: HORECA_CAO_OPTIONS[0].id,
+                jobPresetId: preset.id,
+                jobTitle: preset.jobTitle,
+                jobFunction: preset.jobFunction,
+                functionGroup: preset.functionGroup,
+                functionName: preset.jobTitle,
+                contractType: preset.defaultContractType,
+                grossHourlyWage: preset.defaultHourlyWage.toFixed(2),
+                grossMonthlyWage: preset.defaultMonthlyWage.toFixed(2),
+                hoursPerWeek: String(preset.defaultHoursPerWeek),
+                payrollPeriod: preset.defaultPayrollPeriod,
+                paymentFrequency: preset.defaultPayrollPeriod,
+                pensionApplicable: boolChoice(preset.pensionApplicable),
+                holidayAllowanceMode: preset.holidayAllowanceMode,
+                vacationBuildUpApplicable: preset.vacationBuildUpApplicable,
+                isManualWageOverride: false,
+                manualWageOverrideReason: "",
+            })
+        );
     };
 
     if (!userId) {
@@ -1398,11 +1436,12 @@ export default function AdminOnboardingReviewDetails() {
                                                         className={`uiSelect ${isMissing(contractDraft.contractType) ? "reviewInputMissing" : ""}`}
                                                         value={contractDraft.contractType}
                                                         onChange={(event) =>
-                                                            setContractDraft((prev) => ({
-                                                                ...prev,
-                                                                contractType: event.target.value as ContractType,
-                                                                hoursPerWeek: event.target.value === "FULL_TIME" ? "38" : prev.hoursPerWeek,
-                                                            }))
+                                                            setContractDraft((prev) =>
+                                                                normalizeContractDraftForContractType({
+                                                                    ...prev,
+                                                                    contractType: event.target.value as ContractType,
+                                                                })
+                                                            )
                                                         }
                                                         disabled={actionLoading}
                                                     >
@@ -1465,11 +1504,21 @@ export default function AdminOnboardingReviewDetails() {
                                                                 : ""
                                                         }`}
                                                         inputMode="decimal"
-                                                        value={contractDraft.contractType === "FULL_TIME" ? "38" : contractDraft.hoursPerWeek}
+                                                        value={
+                                                            contractDraft.contractType === "FULL_TIME"
+                                                                ? "38"
+                                                                : contractDraft.contractType === "ZERO_HOURS"
+                                                                    ? "0"
+                                                                    : contractDraft.hoursPerWeek
+                                                        }
                                                         onChange={(event) =>
                                                             setContractDraft((prev) => ({ ...prev, hoursPerWeek: event.target.value }))
                                                         }
-                                                        disabled={actionLoading || contractDraft.contractType === "FULL_TIME"}
+                                                        disabled={
+                                                            actionLoading
+                                                            || contractDraft.contractType === "FULL_TIME"
+                                                            || contractDraft.contractType === "ZERO_HOURS"
+                                                        }
                                                     />
                                                     {sourceButton("horeca-cao-2025-2026", "12")}
                                                 </label>
@@ -1528,11 +1577,11 @@ export default function AdminOnboardingReviewDetails() {
                                                         disabled={actionLoading}
                                                     >
                                                         <option value="">Select a period</option>
-                                                        <option value="WEEKLY">Weekly</option>
-                                                        <option value="BIWEEKLY">Bi-weekly</option>
-                                                        <option value="MONTHLY">Monthly</option>
-                                                        <option value="FOUR_WEEKLY">Four-weekly</option>
-                                                        <option value="EVERY_10_MINUTES">10 minutes (for testing)</option>
+                                                        {getPayrollPeriodOptionsForContractType(contractDraft.contractType).map((option) => (
+                                                            <option key={option.value} value={option.value}>
+                                                                {option.label}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                 </label>
                                                 <label className="reviewField">

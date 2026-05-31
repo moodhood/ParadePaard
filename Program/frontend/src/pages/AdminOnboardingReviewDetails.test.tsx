@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import {
     applyEmployeeTaxProfileDefaults,
     getContractDraftActionLabel,
+    getPayrollPeriodOptionsForContractType,
+    normalizeContractDraftForContractType,
     ReviewContractDownloadAction,
     saveOnboardingReviewContractDraft,
 } from "./AdminOnboardingReviewDetails";
@@ -129,5 +131,45 @@ describe("AdminOnboardingReviewDetails employee tax profile defaults", () => {
             loonheffingskorting: "YES",
             pensionApplicable: "NO",
         });
+    });
+});
+
+describe("AdminOnboardingReviewDetails contract type rules", () => {
+    it("forces zero-hours contracts to keep 0 hours per week", () => {
+        expect(
+            normalizeContractDraftForContractType({
+                contractType: "ZERO_HOURS",
+                hoursPerWeek: "24",
+                payrollPeriod: "MONTHLY",
+                paymentFrequency: "MONTHLY",
+            })
+        ).toMatchObject({
+            contractType: "ZERO_HOURS",
+            hoursPerWeek: "0",
+            payrollPeriod: "MONTHLY",
+            paymentFrequency: "MONTHLY",
+        });
+    });
+
+    it("resets non-zero-hours testing payroll periods back to monthly", () => {
+        expect(
+            normalizeContractDraftForContractType({
+                contractType: "PART_TIME",
+                hoursPerWeek: "24",
+                payrollPeriod: "EVERY_10_MINUTES",
+                paymentFrequency: "EVERY_10_MINUTES",
+            })
+        ).toMatchObject({
+            contractType: "PART_TIME",
+            hoursPerWeek: "24",
+            payrollPeriod: "MONTHLY",
+            paymentFrequency: "MONTHLY",
+        });
+    });
+
+    it("shows the 10-minute testing option only for zero-hours contracts", () => {
+        expect(getPayrollPeriodOptionsForContractType("ZERO_HOURS").map((item) => item.value)).toContain("EVERY_10_MINUTES");
+        expect(getPayrollPeriodOptionsForContractType("PART_TIME").map((item) => item.value)).not.toContain("EVERY_10_MINUTES");
+        expect(getPayrollPeriodOptionsForContractType("FULL_TIME").map((item) => item.value)).not.toContain("EVERY_10_MINUTES");
     });
 });
