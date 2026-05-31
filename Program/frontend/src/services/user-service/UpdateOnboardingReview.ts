@@ -30,6 +30,9 @@ export type OnboardingReviewContractSetupDraft = {
     zvwApplicable?: boolean | null;
     paymentFrequency: string;
     travelAllowance: boolean;
+    employerAgreementChecked?: boolean | null;
+    employerTypedSignatureName?: string | null;
+    employerDrawnSignatureImage?: string | null;
 };
 
 export type OnboardingReviewUpdateRequest = {

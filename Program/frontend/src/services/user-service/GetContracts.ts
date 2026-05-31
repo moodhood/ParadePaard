@@ -291,6 +291,17 @@ export async function SendContract(API_BASE_URL: string, contractId: string): Pr
     }
 }
 
+export async function PrepareEmployerSignature(
+    API_BASE_URL: string,
+    contractId: string,
+    payload: SignContractRequestDTO
+): Promise<ContractResponseDTO> {
+    const res = await axios.post<ContractResponseDTO>(`${API_BASE_URL}/api/contract/${contractId}/employer-signature`, payload, {
+        withCredentials: true,
+    });
+    return res.data;
+}
+
 export async function FinalizeContract(
     API_BASE_URL: string,
     contractId: string,

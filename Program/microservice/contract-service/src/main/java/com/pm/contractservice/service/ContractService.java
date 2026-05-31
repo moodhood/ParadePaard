@@ -220,6 +220,16 @@ public class ContractService {
         return ContractMapper.toDTO(contractRepository.save(contract));
     }
 
+    public ContractResponseDTO prepareEmployerSignature(UUID contractId, UUID managerUserId, SignContractRequestDTO request) {
+        Contract contract = contractValidator.getExistingContract(contractId);
+        if (contract.getStatus() == ContractStatus.FINALIZED || contract.getStatus() == ContractStatus.SIGNED || contract.getStatus() == ContractStatus.EMPLOYEE_SIGNED) {
+            throw new IllegalStateException("Employer pre-sign can only be stored before employee signing is complete");
+        }
+        applyEmployerSignature(contract, managerUserId, request);
+        contract.setReviewComment(null);
+        return ContractMapper.toDTO(contractRepository.save(contract));
+    }
+
     public ContractResponseDTO signContract(UUID contractId, UUID userId) {
         return signContract(contractId, userId, new SignContractRequestDTO());
     }
@@ -249,6 +259,17 @@ public class ContractService {
         contract.setIpAddress(blankToNull(request.getIpAddress()));
         contract.setBrowserUserAgent(blankToNull(request.getBrowserUserAgent()));
         contract.setReviewComment(null);
+        if (hasEmployerPreSignature(contract)) {
+            contract.setStatus(ContractStatus.FINALIZED);
+            contract.setFinalizedAt(OffsetDateTime.now());
+            contract.setPdfData(generatePdf(contract));
+            contract = contractRepository.save(contract);
+            contractEventPublisher.publishEmployeeRegistered(
+                    contract,
+                    buildUserProfile(userServiceGrpcClient.requestUserData(contract.getUserId().toString()))
+            );
+            return ContractMapper.toDTO(contract);
+        }
         contract.setPdfData(generatePdf(contract));
         return ContractMapper.toDTO(contractRepository.save(contract));
     }
@@ -366,6 +387,11 @@ public class ContractService {
         contract.setEmployerDocumentHash(blankToNull(request.getDocumentHash()));
         contract.setEmployerIpAddress(blankToNull(request.getIpAddress()));
         contract.setEmployerBrowserUserAgent(blankToNull(request.getBrowserUserAgent()));
+    }
+
+    private static boolean hasEmployerPreSignature(Contract contract) {
+        return !isBlank(contract.getEmployerTypedSignatureName())
+                && !isBlank(contract.getEmployerAgreementCheckboxText());
     }
 
     private UserProfileDTO buildUserProfile(UserDataResponse userData) {

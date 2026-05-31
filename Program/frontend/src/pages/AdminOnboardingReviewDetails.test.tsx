@@ -2,11 +2,13 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import {
     applyEmployeeTaxProfileDefaults,
+    createAndSendOnboardingContract,
     getContractDraftActionLabel,
     getPayrollPeriodOptionsForContractType,
     normalizeContractDraftForContractType,
     ReviewContractDownloadAction,
     saveOnboardingReviewContractDraft,
+    validateEmployerPreSignRequirements,
 } from "./AdminOnboardingReviewDetails";
 import type { ContractResponseDTO, CreateContractRequestDTO } from "../services/user-service/UserServices";
 
@@ -171,5 +173,77 @@ describe("AdminOnboardingReviewDetails contract type rules", () => {
         expect(getPayrollPeriodOptionsForContractType("ZERO_HOURS").map((item) => item.value)).toContain("EVERY_10_MINUTES");
         expect(getPayrollPeriodOptionsForContractType("PART_TIME").map((item) => item.value)).not.toContain("EVERY_10_MINUTES");
         expect(getPayrollPeriodOptionsForContractType("FULL_TIME").map((item) => item.value)).not.toContain("EVERY_10_MINUTES");
+    });
+});
+
+describe("AdminOnboardingReviewDetails employer pre-sign rules", () => {
+    it("requires employer agreement confirmation and typed name before send", () => {
+        expect(
+            validateEmployerPreSignRequirements({
+                employerAgreementChecked: false,
+                employerTypedSignatureName: "",
+            })
+        ).toEqual(["Employer agreement confirmation", "Employer typed signature name"]);
+    });
+});
+
+describe("AdminOnboardingReviewDetails create and send flow", () => {
+    const payload: CreateContractRequestDTO = {
+        userId: "user-1",
+        functionId: "function-1",
+        functionName: "Bar employee",
+        contractType: "PART_TIME",
+        startDate: "2026-06-01",
+        endDate: null,
+        grossHourlyWage: 15.5,
+        paymentFrequency: "MONTHLY",
+        travelAllowance: true,
+    };
+
+    it("saves the onboarding review before saving the contract, employer pre-sign, and send flow", async () => {
+        const callOrder: string[] = [];
+        const currentContract = buildContract({ contractId: "contract-1", status: "DRAFT" });
+
+        const result = await createAndSendOnboardingContract({
+            currentContract,
+            payload,
+            reviewPayload: {
+                decision: "READY_TO_SEND_CONTRACT",
+                note: "Ready to send",
+                status: "PENDING_CONTRACT_SIGNATURE",
+            },
+            employerSignaturePayload: {
+                typedSignatureName: "Mara Manager",
+                agreementCheckboxText: "I have reviewed the signed employment contract and approve it for ParadePaard.",
+                contractVersion: "2026-05-employment-v1",
+            },
+            saveReview: async () => {
+                callOrder.push("saveReview");
+            },
+            saveContractDraft: async () => {
+                callOrder.push("saveContractDraft");
+                return { contract: currentContract, mode: "updated" as const };
+            },
+            saveEmployerSignature: async () => {
+                callOrder.push("saveEmployerSignature");
+                return currentContract;
+            },
+            sendContract: async () => {
+                callOrder.push("sendContract");
+                return buildContract({ contractId: "contract-1", status: "SENT_TO_EMPLOYEE" });
+            },
+            updateReviewAfterSend: async () => {
+                callOrder.push("updateReviewAfterSend");
+            },
+        });
+
+        expect(callOrder).toEqual([
+            "saveReview",
+            "saveContractDraft",
+            "saveEmployerSignature",
+            "sendContract",
+            "updateReviewAfterSend",
+        ]);
+        expect(result.contract.status).toBe("SENT_TO_EMPLOYEE");
     });
 });

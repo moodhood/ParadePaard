@@ -349,6 +349,15 @@
     font-weight: 600;
 }
 
+.contractSignatureCanvas {
+    width: 100%;
+    height: 150px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #fcfcfd;
+    touch-action: none;
+}
+
 .reviewFieldHelpFull {
     grid-column: 1 / -1;
     margin-top: -2px;

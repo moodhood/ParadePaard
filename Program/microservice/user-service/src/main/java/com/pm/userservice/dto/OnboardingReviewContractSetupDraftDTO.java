@@ -9,6 +9,9 @@ public class OnboardingReviewContractSetupDraftDTO {
     private String grossHourlyWage;
     private String paymentFrequency;
     private Boolean travelAllowance;
+    private Boolean employerAgreementChecked;
+    private String employerTypedSignatureName;
+    private String employerDrawnSignatureImage;
 
     public String getSelectedFunctionId() {
         return selectedFunctionId;
@@ -72,6 +75,30 @@ public class OnboardingReviewContractSetupDraftDTO {
 
     public void setTravelAllowance(Boolean travelAllowance) {
         this.travelAllowance = travelAllowance;
+    }
+
+    public Boolean getEmployerAgreementChecked() {
+        return employerAgreementChecked;
+    }
+
+    public void setEmployerAgreementChecked(Boolean employerAgreementChecked) {
+        this.employerAgreementChecked = employerAgreementChecked;
+    }
+
+    public String getEmployerTypedSignatureName() {
+        return employerTypedSignatureName;
+    }
+
+    public void setEmployerTypedSignatureName(String employerTypedSignatureName) {
+        this.employerTypedSignatureName = employerTypedSignatureName;
+    }
+
+    public String getEmployerDrawnSignatureImage() {
+        return employerDrawnSignatureImage;
+    }
+
+    public void setEmployerDrawnSignatureImage(String employerDrawnSignatureImage) {
+        this.employerDrawnSignatureImage = employerDrawnSignatureImage;
     }
 }
 

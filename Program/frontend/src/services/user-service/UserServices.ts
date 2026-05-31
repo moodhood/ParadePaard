@@ -61,6 +61,7 @@ import GetContracts, {
     GetContractPdf,
     GetContractsForUser,
     GetCurrentContract,
+    PrepareEmployerSignature,
     GetCurrentContractForUser,
     GetFunctions,
     GetMyContracts,
@@ -374,6 +375,9 @@ export const UserServices = {
     },
     finalizeContract: async (contractId: string, payload: SignContractRequestDTO): Promise<ContractResponseDTO> => {
         return await FinalizeContract(API_BASE_URL, contractId, payload);
+    },
+    prepareEmployerSignature: async (contractId: string, payload: SignContractRequestDTO): Promise<ContractResponseDTO> => {
+        return await PrepareEmployerSignature(API_BASE_URL, contractId, payload);
     },
     rejectContract: async (contractId: string, comment: string): Promise<ContractResponseDTO> => {
         return await RejectContract(API_BASE_URL, contractId, comment);

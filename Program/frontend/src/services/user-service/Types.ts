@@ -68,6 +68,9 @@ export type OnboardingReviewContractSetupDraftDTO = {
     zvwApplicable?: boolean | null;
     paymentFrequency?: string | null;
     travelAllowance?: boolean | null;
+    employerAgreementChecked?: boolean | null;
+    employerTypedSignatureName?: string | null;
+    employerDrawnSignatureImage?: string | null;
 };
 
 export type UserResponseDTO = {

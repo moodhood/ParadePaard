@@ -21,6 +21,7 @@ const contract = {
     pensionScheme: "ParadePaard pension plan",
     sicknessPolicy: "Report sickness before the shift starts.",
     confidentialityClause: "Keep company and client information confidential.",
+    employerTypedSignatureName: "Mara Manager",
 };
 
 const user = {
@@ -53,6 +54,7 @@ describe("AccountContractSign", () => {
         expect(html).toContain("This employment agreement is entered into between ParadePaard and Imre Janssen.");
         expect(html).toContain("The employee will work in the position of Runner.");
         expect(html).toContain("The gross hourly wage is");
+        expect(html).toContain("Employer signature is prepared as Mara Manager.");
         expect(html).toContain("included when applicable under the Horeca Payroll and Contract Rules");
         expect(html).not.toContain("employeeName =");
         expect(html).not.toContain("hourlyRate =");

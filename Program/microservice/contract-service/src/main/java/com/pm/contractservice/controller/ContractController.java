@@ -160,6 +160,28 @@ public class ContractController {
         return ResponseEntity.ok(contractService.sendContract(id));
     }
 
+    @PostMapping("/{id}/employer-signature")
+    @Operation(summary = "Store employer pre-signature on contract")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
+    public ResponseEntity<ContractResponseDTO> prepareEmployerSignature(
+            @PathVariable UUID id,
+            @RequestBody(required = false) SignContractRequestDTO request,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ) {
+        UUID managerUserId = authentication == null || authentication.getName() == null
+                ? null
+                : UUID.fromString(authentication.getName());
+        SignContractRequestDTO signature = request == null ? new SignContractRequestDTO() : request;
+        if (signature.getIpAddress() == null || signature.getIpAddress().isBlank()) {
+            signature.setIpAddress(clientIp(httpRequest));
+        }
+        if (signature.getBrowserUserAgent() == null || signature.getBrowserUserAgent().isBlank()) {
+            signature.setBrowserUserAgent(httpRequest.getHeader("User-Agent"));
+        }
+        return ResponseEntity.ok(contractService.prepareEmployerSignature(id, managerUserId, signature));
+    }
+
     @PostMapping("/{id}/sign")
     @Operation(summary = "Sign own contract")
     @PreAuthorize("@contractPermission.isOwner(#id, authentication)")

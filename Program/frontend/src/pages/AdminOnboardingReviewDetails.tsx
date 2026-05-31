@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
@@ -39,6 +39,8 @@ import "../stylesheets/AdminOnboardingReviewDetails.css";
 
 type ReviewDecision = "READY_TO_SEND_CONTRACT" | "NEEDS_CHANGES" | "REJECT_ONBOARDING";
 type IdDocumentSide = "front" | "back";
+const EMPLOYER_AGREEMENT_TEXT = "I have reviewed the signed employment contract and approve it for ParadePaard.";
+const CONTRACT_VERSION = "2026-05-employment-v1";
 
 type ContractSetupDraft = {
     caoId: string;
@@ -67,11 +69,39 @@ type ContractSetupDraft = {
     zvwApplicable: boolean;
     paymentFrequency: string;
     travelAllowance: boolean;
+    employerAgreementChecked: boolean;
+    employerTypedSignatureName: string;
+    employerDrawnSignatureImage: string;
 };
 
 type ChecklistSectionKey = "personal" | "address" | "identification" | "bank" | "emergency" | "tax" | "contract";
 type PayrollPeriodOption = { value: PayrollPeriod; label: string };
 type ContractTypeRuleDraft = Pick<ContractSetupDraft, "contractType" | "hoursPerWeek" | "payrollPeriod" | "paymentFrequency">;
+type EmployerPreSignValidationInput = Pick<ContractSetupDraft, "employerAgreementChecked" | "employerTypedSignatureName">;
+type CreateAndSendOnboardingContractInput = {
+    currentContract: ContractResponseDTO | null;
+    payload: CreateContractRequestDTO;
+    reviewPayload: {
+        decision: ReviewDecision;
+        note: string | null;
+        status: string;
+        checkedSections?: Record<string, boolean> | null;
+        contractSetupDraft?: Record<string, unknown> | null;
+    };
+    employerSignaturePayload: {
+        typedSignatureName: string;
+        drawnSignatureImage?: string | null;
+        agreementCheckboxText: string;
+        contractVersion: string;
+        documentHash?: string | null;
+        browserUserAgent?: string | null;
+    };
+    saveReview: () => Promise<void>;
+    saveContractDraft: () => Promise<{ contract: ContractResponseDTO; mode: "created" | "updated" }>;
+    saveEmployerSignature: (contract: ContractResponseDTO) => Promise<ContractResponseDTO>;
+    sendContract: (contractId: string) => Promise<ContractResponseDTO>;
+    updateReviewAfterSend: () => Promise<void>;
+};
 
 const CHECKLIST_SECTION_KEYS: ChecklistSectionKey[] = [
     "personal",
@@ -175,6 +205,9 @@ function sanitizeContractSetupDraft(
     if (typeof record.zvwApplicable === "boolean") draft.zvwApplicable = record.zvwApplicable;
     if (typeof record.paymentFrequency === "string") draft.paymentFrequency = record.paymentFrequency;
     if (typeof record.travelAllowance === "boolean") draft.travelAllowance = record.travelAllowance;
+    if (typeof record.employerAgreementChecked === "boolean") draft.employerAgreementChecked = record.employerAgreementChecked;
+    if (typeof record.employerTypedSignatureName === "string") draft.employerTypedSignatureName = record.employerTypedSignatureName;
+    if (typeof record.employerDrawnSignatureImage === "string") draft.employerDrawnSignatureImage = record.employerDrawnSignatureImage;
 
     if (!selectedFunctionId && Object.keys(draft).length === 0) return null;
     return { selectedFunctionId, draft };
@@ -362,9 +395,33 @@ export async function saveOnboardingReviewContractDraft(input: {
     return { contract, mode: "created" };
 }
 
+export function validateEmployerPreSignRequirements(input: EmployerPreSignValidationInput): string[] {
+    const missing: string[] = [];
+    if (!input.employerAgreementChecked) {
+        missing.push("Employer agreement confirmation");
+    }
+    if (!(input.employerTypedSignatureName ?? "").trim()) {
+        missing.push("Employer typed signature name");
+    }
+    return missing;
+}
+
+export async function createAndSendOnboardingContract(input: CreateAndSendOnboardingContractInput): Promise<{
+    contract: ContractResponseDTO;
+}> {
+    await input.saveReview();
+    const draftResult = await input.saveContractDraft();
+    const signedDraft = await input.saveEmployerSignature(draftResult.contract);
+    const sentContract = await input.sendContract(signedDraft.contractId);
+    await input.updateReviewAfterSend();
+    return { contract: sentContract };
+}
+
 export default function AdminOnboardingReviewDetails() {
     const navigate = useNavigate();
     const { userId } = useParams();
+    const employerSignatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+    const employerDrawingRef = useRef(false);
 
     const [user, setUser] = useState<UserResponseDTO | null>(null);
     const [loading, setLoading] = useState(true);
@@ -403,6 +460,9 @@ export default function AdminOnboardingReviewDetails() {
         zvwApplicable: true,
         paymentFrequency: "MONTHLY",
         travelAllowance: false,
+        employerAgreementChecked: false,
+        employerTypedSignatureName: "",
+        employerDrawnSignatureImage: "",
     });
 
     const [reviewDecision, setReviewDecision] = useState<ReviewDecision>("READY_TO_SEND_CONTRACT");
@@ -696,6 +756,32 @@ export default function AdminOnboardingReviewDetails() {
         });
     }, [checklist.missing]);
 
+    useEffect(() => {
+        const canvas = employerSignatureCanvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) return;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        if (!contractDraft.employerDrawnSignatureImage) return;
+
+        const image = new Image();
+        image.onload = () => {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        };
+        image.src = contractDraft.employerDrawnSignatureImage;
+    }, [contractDraft.employerDrawnSignatureImage]);
+
+    const buildReviewUpdatePayload = useCallback((decision: ReviewDecision, statusOverride?: string) => ({
+        decision,
+        note: reviewNote.trim() ? reviewNote.trim() : null,
+        status: statusOverride ?? statusForReviewDecision(decision),
+        checkedSections,
+        contractSetupDraft: {
+            selectedFunctionId,
+            ...contractDraft,
+        },
+    }), [checkedSections, contractDraft, reviewNote, selectedFunctionId]);
+
     const handleSaveReview = async (nextDecision?: ReviewDecision) => {
         if (!userId) return;
         const decisionToSave = nextDecision ?? reviewDecision;
@@ -707,16 +793,7 @@ export default function AdminOnboardingReviewDetails() {
             setSavingReview(true);
             setActionError(null);
             setActionSuccess(null);
-            const updated = await UserServices.updateOnboardingReview(userId, {
-                decision: decisionToSave,
-                note: reviewNote.trim() ? reviewNote.trim() : null,
-                status: statusForReviewDecision(decisionToSave),
-                checkedSections,
-                contractSetupDraft: {
-                    selectedFunctionId,
-                    ...contractDraft,
-                },
-            });
+            const updated = await UserServices.updateOnboardingReview(userId, buildReviewUpdatePayload(decisionToSave));
             setUser(updated);
             setActionSuccess("Review saved.");
         } catch (err: unknown) {
@@ -815,9 +892,17 @@ export default function AdminOnboardingReviewDetails() {
             );
             return;
         }
+        const missingEmployerFields = validateEmployerPreSignRequirements(contractDraft);
+        if (missingEmployerFields.length > 0) {
+            setActionError(
+                "Cannot send contract yet. Please complete the following employer signing fields first:\n" + missingEmployerFields.join("\n")
+            );
+            return;
+        }
 
         try {
             setActionLoading(true);
+            setSavingReview(true);
             setActionError(null);
             setActionSuccess(null);
 
@@ -828,36 +913,116 @@ export default function AdminOnboardingReviewDetails() {
                 functions,
                 draft: contractDraft,
             });
-            const draftResult = await saveOnboardingReviewContractDraft({
+            const result = await createAndSendOnboardingContract({
                 currentContract,
                 payload,
-                createContract: UserServices.createContract,
-                updateContract: UserServices.updateContract,
+                reviewPayload: buildReviewUpdatePayload("READY_TO_SEND_CONTRACT"),
+                employerSignaturePayload: {
+                    typedSignatureName: contractDraft.employerTypedSignatureName.trim(),
+                    drawnSignatureImage: contractDraft.employerDrawnSignatureImage || null,
+                    agreementCheckboxText: EMPLOYER_AGREEMENT_TEXT,
+                    contractVersion: CONTRACT_VERSION,
+                },
+                saveReview: async () => {
+                    const updated = await UserServices.updateOnboardingReview(
+                        userId,
+                        buildReviewUpdatePayload("READY_TO_SEND_CONTRACT")
+                    );
+                    setUser(updated);
+                    setReviewDecision("READY_TO_SEND_CONTRACT");
+                },
+                saveContractDraft: async () => {
+                    const draftResult = await saveOnboardingReviewContractDraft({
+                        currentContract,
+                        payload,
+                        createContract: UserServices.createContract,
+                        updateContract: UserServices.updateContract,
+                    });
+                    setCurrentContract(draftResult.contract);
+                    return draftResult;
+                },
+                saveEmployerSignature: async (contract) => {
+                    const documentHash = await buildEmployerDocumentHash(contract, contractDraft.employerTypedSignatureName);
+                    const prepared = await UserServices.prepareEmployerSignature(contract.contractId, {
+                        typedSignatureName: contractDraft.employerTypedSignatureName.trim(),
+                        drawnSignatureImage: contractDraft.employerDrawnSignatureImage || null,
+                        agreementCheckboxText: EMPLOYER_AGREEMENT_TEXT,
+                        contractVersion: CONTRACT_VERSION,
+                        documentHash,
+                        browserUserAgent: navigator.userAgent,
+                    });
+                    setCurrentContract(prepared);
+                    return prepared;
+                },
+                sendContract: async (contractId) => {
+                    const sent = await UserServices.sendContract(contractId);
+                    setCurrentContract(sent);
+                    return sent;
+                },
+                updateReviewAfterSend: async () => {
+                    const updatedUser = await UserServices.updateOnboardingReview(userId, {
+                        ...buildReviewUpdatePayload("READY_TO_SEND_CONTRACT", "PENDING_CONTRACT_SIGNATURE"),
+                        decision: "READY_TO_SEND_CONTRACT",
+                    });
+                    setUser(updatedUser);
+                    setReviewDecision("READY_TO_SEND_CONTRACT");
+                },
             });
-            let contract = draftResult.contract;
-            setCurrentContract(contract);
-
-            const sent = await UserServices.sendContract(contract.contractId);
-            setCurrentContract(sent);
+            setCurrentContract(result.contract);
             setActionSuccess("Contract email sent to employee.");
-            try {
-                const updatedUser = await UserServices.updateOnboardingReview(userId, {
-                    decision: "READY_TO_SEND_CONTRACT",
-                    note: reviewNote.trim() ? reviewNote.trim() : null,
-                    status: "PENDING_CONTRACT_SIGNATURE",
-                });
-                setUser(updatedUser);
-                setReviewDecision("READY_TO_SEND_CONTRACT");
-            } catch (err: unknown) {
-                const message = err instanceof Error ? err.message : "Contract sent, but failed to update onboarding status.";
-                setActionError(message);
-            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to create and send contract.";
             setActionError(message);
         } finally {
+            setSavingReview(false);
             setActionLoading(false);
         }
+    };
+
+    const beginEmployerDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+        if (actionLoading || savingReview) return;
+        const canvas = employerSignatureCanvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) return;
+        canvas.setPointerCapture(event.pointerId);
+        employerDrawingRef.current = true;
+        const point = canvasPoint(canvas, event);
+        context.beginPath();
+        context.moveTo(point.x, point.y);
+    }, [actionLoading, savingReview]);
+
+    const drawEmployerSignature = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+        if (!employerDrawingRef.current || actionLoading || savingReview) return;
+        const canvas = employerSignatureCanvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) return;
+        const point = canvasPoint(canvas, event);
+        context.lineWidth = 2;
+        context.lineCap = "round";
+        context.strokeStyle = "#111827";
+        context.lineTo(point.x, point.y);
+        context.stroke();
+    }, [actionLoading, savingReview]);
+
+    const endEmployerDrawing = useCallback((event: ReactPointerEvent<HTMLCanvasElement>) => {
+        const canvas = employerSignatureCanvasRef.current;
+        if (canvas?.hasPointerCapture(event.pointerId)) {
+            canvas.releasePointerCapture(event.pointerId);
+        }
+        if (!employerDrawingRef.current || !canvas) return;
+        employerDrawingRef.current = false;
+        setContractDraft((prev) => ({
+            ...prev,
+            employerDrawnSignatureImage: canvas.toDataURL("image/png"),
+        }));
+    }, []);
+
+    const clearEmployerSignature = () => {
+        const canvas = employerSignatureCanvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) return;
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        setContractDraft((prev) => ({ ...prev, employerDrawnSignatureImage: "" }));
     };
 
     const handleDownloadContractPdf = async () => {
@@ -1857,6 +2022,64 @@ export default function AdminOnboardingReviewDetails() {
                                                     />
                                                 </label>
                                             </div>
+                                            <div className="reviewField reviewFieldCheckbox">
+                                                <label className="reviewChecklistToggle reviewChecklistToggle--inline">
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={contractDraft.employerAgreementChecked}
+                                                        onChange={(event) =>
+                                                            setContractDraft((prev) => ({
+                                                                ...prev,
+                                                                employerAgreementChecked: event.target.checked,
+                                                            }))
+                                                        }
+                                                        disabled={savingReview || actionLoading}
+                                                    />
+                                                    <span className="reviewChecklistLabel">{EMPLOYER_AGREEMENT_TEXT}</span>
+                                                </label>
+                                            </div>
+                                            <label className="reviewField">
+                                                <span className="reviewFieldLabel">Employer full legal name</span>
+                                                <input
+                                                    className="uiSelect"
+                                                    value={contractDraft.employerTypedSignatureName}
+                                                    onChange={(event) =>
+                                                        setContractDraft((prev) => ({
+                                                            ...prev,
+                                                            employerTypedSignatureName: event.target.value,
+                                                        }))
+                                                    }
+                                                    placeholder="Manager full legal name"
+                                                    disabled={savingReview || actionLoading}
+                                                />
+                                            </label>
+                                            <div className="reviewField">
+                                                <span className="reviewFieldLabel">Optional employer drawn signature</span>
+                                                <canvas
+                                                    ref={employerSignatureCanvasRef}
+                                                    className="contractSignatureCanvas"
+                                                    width={520}
+                                                    height={180}
+                                                    onPointerDown={beginEmployerDrawing}
+                                                    onPointerMove={drawEmployerSignature}
+                                                    onPointerUp={endEmployerDrawing}
+                                                    onPointerCancel={endEmployerDrawing}
+                                                    aria-label="Employer drawn signature box"
+                                                />
+                                                <div className="reviewActions reviewActions--download">
+                                                    <button
+                                                        type="button"
+                                                        className="button buttonSecondary"
+                                                        onClick={clearEmployerSignature}
+                                                        disabled={savingReview || actionLoading || !contractDraft.employerDrawnSignatureImage}
+                                                    >
+                                                        Clear employer signature
+                                                    </button>
+                                                </div>
+                                                <span className="reviewFieldHelp">
+                                                    This signature will be shown to the employee and used to finalize the contract automatically after the employee signs.
+                                                </span>
+                                            </div>
 
                                             {actionError ? <pre className="reviewActionError">{actionError}</pre> : null}
                                             {actionSuccess ? <div className="helperText">{actionSuccess}</div> : null}
@@ -1930,4 +2153,42 @@ export default function AdminOnboardingReviewDetails() {
             </div>
         </>
     );
+}
+
+function canvasPoint(canvas: HTMLCanvasElement, event: ReactPointerEvent<HTMLCanvasElement>) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+        x: ((event.clientX - rect.left) / rect.width) * canvas.width,
+        y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+    };
+}
+
+async function buildEmployerDocumentHash(
+    contract: ContractResponseDTO,
+    typedSignatureName: string
+): Promise<string | null> {
+    if (!crypto.subtle) return null;
+    const source = JSON.stringify({
+        contractVersion: CONTRACT_VERSION,
+        contractId: contract.contractId,
+        userId: contract.userId,
+        employerTypedSignatureName: typedSignatureName.trim(),
+        employeeTypedSignatureName: contract.typedSignatureName,
+        employeeSignedAt: contract.employeeSignedAt,
+        functionName: contract.functionName,
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+        contractType: contract.contractType,
+        grossHourlyWage: contract.grossHourlyWage,
+        paymentFrequency: contract.paymentFrequency,
+        weeklyHours: contract.weeklyHours,
+        holidayAllowancePercentage: contract.holidayAllowancePercentage,
+        leaveEntitlementDays: contract.leaveEntitlementDays,
+        workLocation: contract.workLocation,
+        noticePeriod: contract.noticePeriod,
+    });
+    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(source));
+    return "sha256:" + Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, "0"))
+        .join("");
 }

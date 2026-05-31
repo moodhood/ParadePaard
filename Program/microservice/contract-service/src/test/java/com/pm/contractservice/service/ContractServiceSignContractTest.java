@@ -85,6 +85,81 @@ class ContractServiceSignContractTest {
     }
 
     @Test
+    void signContractAutoFinalizesWhenEmployerPreSignDataAlreadyExists() {
+        UUID contractId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Contract contract = contract(contractId, userId);
+        contract.setEmployerSignedUserId(UUID.randomUUID());
+        contract.setEmployerTypedSignatureName("Mara Manager");
+        contract.setEmployerDrawnSignatureImage("data:image/png;base64,manager123");
+        contract.setEmployerAgreementCheckboxText("I have reviewed the signed employment contract and approve it for ParadePaard.");
+        contract.setEmployerContractVersion("2026-05-employment-v1");
+        contract.setEmployerDocumentHash("sha256:manager-contract-hash");
+        contract.setEmployerIpAddress("203.0.113.20");
+        contract.setEmployerBrowserUserAgent("Mozilla/5.0 Manager Browser");
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
+                .setFirstNames("Imre")
+                .setLastName("Janssen")
+                .build());
+        when(contractPdfGenerator.generate(eq(contract), any())).thenReturn("final signed pdf".getBytes());
+        when(contractRepository.save(contract)).thenReturn(contract);
+
+        SignContractRequestDTO request = new SignContractRequestDTO();
+        request.setTypedSignatureName("Imre Janssen");
+        request.setDrawnSignatureImage("data:image/png;base64,abc123");
+        request.setAgreementCheckboxText("I have read the employment contract and agree to it.");
+        request.setContractVersion("2026-05-employment-v1");
+        request.setDocumentHash("sha256:contract-hash");
+        request.setIpAddress("203.0.113.10");
+        request.setBrowserUserAgent("Mozilla/5.0 Test Browser");
+
+        ContractService service = contractService();
+        service.signContract(contractId, userId, request);
+
+        assertThat(contract.getStatus()).isEqualTo(ContractStatus.FINALIZED);
+        assertThat(contract.getEmployeeSignedAt()).isNotNull();
+        assertThat(contract.getFinalizedAt()).isNotNull();
+        assertThat(new String(contract.getPdfData())).isEqualTo("final signed pdf");
+        verify(contractEventPublisher).publishEmployeeRegistered(eq(contract), any());
+    }
+
+    @Test
+    void prepareEmployerSignatureStoresEmployerAuditDetailsWithoutFinalizingContract() {
+        UUID contractId = UUID.randomUUID();
+        UUID employeeUserId = UUID.randomUUID();
+        UUID managerUserId = UUID.randomUUID();
+        Contract contract = contract(contractId, employeeUserId);
+        contract.setStatus(ContractStatus.DRAFT);
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(contractRepository.save(contract)).thenReturn(contract);
+
+        SignContractRequestDTO request = new SignContractRequestDTO();
+        request.setTypedSignatureName("Mara Manager");
+        request.setDrawnSignatureImage("data:image/png;base64,manager123");
+        request.setAgreementCheckboxText("I have reviewed the signed employment contract and approve it for ParadePaard.");
+        request.setContractVersion("2026-05-employment-v1");
+        request.setDocumentHash("sha256:manager-contract-hash");
+        request.setIpAddress("203.0.113.20");
+        request.setBrowserUserAgent("Mozilla/5.0 Manager Browser");
+
+        ContractService service = contractService();
+        service.prepareEmployerSignature(contractId, managerUserId, request);
+
+        assertThat(contract.getStatus()).isEqualTo(ContractStatus.DRAFT);
+        assertThat(contract.getFinalizedAt()).isNull();
+        assertThat(contract.getEmployerSignedUserId()).isEqualTo(managerUserId);
+        assertThat(contract.getEmployerTypedSignatureName()).isEqualTo("Mara Manager");
+        assertThat(contract.getEmployerDrawnSignatureImage()).isEqualTo("data:image/png;base64,manager123");
+        assertThat(contract.getEmployerAgreementCheckboxText()).isEqualTo("I have reviewed the signed employment contract and approve it for ParadePaard.");
+        assertThat(contract.getEmployerContractVersion()).isEqualTo("2026-05-employment-v1");
+        assertThat(contract.getEmployerDocumentHash()).isEqualTo("sha256:manager-contract-hash");
+        assertThat(contract.getEmployerIpAddress()).isEqualTo("203.0.113.20");
+        assertThat(contract.getEmployerBrowserUserAgent()).isEqualTo("Mozilla/5.0 Manager Browser");
+        verify(contractEventPublisher, never()).publishEmployeeRegistered(eq(contract), any());
+    }
+
+    @Test
     void getContractPdfRegeneratesSignedContractInsteadOfReturningCachedDraftPdf() {
         UUID contractId = UUID.randomUUID();
         UUID userId = UUID.randomUUID();

@@ -121,6 +121,11 @@ export function ContractDocumentPreview({
                     By signing this agreement, the employee confirms that the contract has been read, the personal and
                     employment details have been checked, and the employee agrees to the terms above.
                 </p>
+                {contract.employerTypedSignatureName ? (
+                    <p>
+                        Employer signature is prepared as {contract.employerTypedSignatureName}.
+                    </p>
+                ) : null}
             </section>
         </article>
     );
