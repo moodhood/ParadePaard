@@ -404,6 +404,30 @@
     padding: 0;
 }
 
+/* Inline hint shown under the gross hourly wage input that tells the admin
+ * which horeca minimum wage applies to this employee's age. Kept small and
+ * neutral so it reads as guidance rather than an error. */
+.contractDraftWageHint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #475569;
+}
+
+/* Warning that appears when the entered wage is below the horeca minimum.
+ * Uses an amber surface and border so it reads as a caution without looking
+ * like a blocking validation error. Sits under the wage field. */
+.contractDraftWageWarning {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    background-color: #fef3c7;
+    color: #78350f;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
 .contractReviewTextarea {
     min-height: 88px;
     resize: vertical;

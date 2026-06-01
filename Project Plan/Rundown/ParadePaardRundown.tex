@@ -546,6 +546,8 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 \section*{Change Log}
 
 \begin{itemize}
+    \item 2026 06 01: Added automatic horeca minimum wage validation in admin contract create and edit flows: the gross hourly wage now auto-fills from the employee date of birth using the 1 January 2026 horeca wage table for ages 15 through 21+, recomputes whenever the date of birth or start date changes, and shows a non-blocking warning under the wage field when the admin enters a value below the table minimum.
+    \item 2026 06 01: Extended the 2026 horeca wage table data with rows for ages 15, 16, 17, 18, 19, and 20 in addition to the adult row, and softened the contract validator so a below-minimum wage produces a clear warning instead of blocking submission.
     \item 2026 05 31: Updated onboarding review so Create and send contract auto-saves the review, captures employer pre-signing, and lets employee signing finalize the contract automatically.
     \item 2026 05 31: Added a project design spec for onboarding review contract auto-save and employer pre-sign auto-finalization planning.
     \item 2026 05 31: Updated the Codex project instructions so future UI work must review full layout, spacing, styling, and consistency, and so completed work must be committed and pushed to GitHub.
@@ -711,7 +713,4 @@ Workflow settings define how future operational states are created. \code{ADMIN_
 
 \section{Final Summary}
 
-The ParadePaard frontend tells one connected workforce story. An authorized user invites an employee and sets up the first contract details. The employee logs in, resets their password if needed, completes onboarding, and starts using the personal dashboard. A planner creates events and shifts, then assigns employees. Employees accept or decline those shifts. Completed shifts become worked-hour records, and those records appear in work history. Travel claims can be submitted after completed shifts and reviewed by managers. Worked hours, travel amounts, tax settings, and payroll review come together in payslips. Employees can download payslips or report errors, and payroll users can investigate and correct them when their permissions allow it.
-
-The app is now held together by permission-aware navigation and page protection instead of a separate admin flow. Every active user starts with their own work area. Management pages appear only when the user's role grants the matching permissions. A broad Admin role can still exist, but it is only one possible permission bundle. The frontend therefore works as both an employee self-service portal and a flexible management console, with planning and payroll acting as the bridge between the two.
-\end{document}
+The ParadePaard frontend tells one connected workforce story. An authorized user invites an employee and sets up the first contract details. The employee logs in, resets their password if needed, completes onboarding, and starts using the personal dashboard. A planner creates events and shifts, then assigns employees. Employees accept or decline those shifts. Completed shifts become worked-hour records, and those records appear in work history. Travel claims can be submitted after completed shifts and reviewed by managers. Worked hours, travel amounts, tax settings, and payr

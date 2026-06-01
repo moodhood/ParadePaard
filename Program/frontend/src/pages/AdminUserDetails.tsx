@@ -35,6 +35,7 @@ import {
 } from "../utils/hoursSummary";
 import { flattenPlanningProjects, type PlanningExplorerRow } from "../utils/planningExplorer";
 import { getAllocationStatusLabel, getAllocationStatusTone } from "../utils/planningSummary";
+import { getHorecaMinimumHourlyWage } from "../utils/horecaPayrollRules";
 
 const normalizeRoleName = (value: string) => value.trim().toUpperCase();
 const moneyFormatter = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
@@ -517,6 +518,16 @@ export default function AdminUserDetails() {
     const canManageContracts = permissions.includes("CAN_MANAGE_CONTRACTS");
     const canReviewContracts = permissions.includes("CAN_REVIEW_CONTRACTS");
     const canFinalizeContracts = permissions.includes("CAN_FINALIZE_CONTRACT");
+    // Gates the BSN and ID document fields. Admins without it still see the
+    // employee profile and contract but the actual ID values are masked.
+    const canViewIdentification = permissions.includes("CAN_VIEW_EMPLOYEE_IDENTIFICATION");
+    const maskedIdentificationValue = "•••••";
+    const maskIdentification = (value: string | number): string | number => {
+        if (canViewIdentification) return value;
+        // Preserve the empty-state "-" placeholder so the row still reads as
+        // missing rather than masked when there's actually no value to hide.
+        return value === "-" ? value : maskedIdentificationValue;
+    };
 
     useEffect(() => {
         if (!canManageContracts) return;
@@ -546,6 +557,43 @@ export default function AdminUserDetails() {
             grossHourlyWage: String(selectedFunction.hourlyWage),
         }));
     }, [functions, selectedFunctionId]);
+
+    // Looks up the horeca minimum hourly wage for this employee using their date
+    // of birth and the contract start date. Falls back to today's date if the
+    // admin hasn't picked a start date yet so the field still gets a sensible
+    // prefill the moment the form opens.
+    const minimumWageInfo = useMemo(() => {
+        const referenceDate = contractDraft.startDate || today;
+        return getHorecaMinimumHourlyWage({
+            dateOfBirth: user?.dateOfBirth,
+            referenceDate,
+            functionGroup: "I+II",
+        });
+    }, [user?.dateOfBirth, contractDraft.startDate, today]);
+
+    // Auto-fill the gross hourly wage with the horeca minimum wage as soon as
+    // the lookup resolves, but only when the admin hasn't picked a function
+    // (which would otherwise override) and hasn't typed a wage themselves yet.
+    useEffect(() => {
+        if (selectedFunctionId) return;
+        if (minimumWageInfo.minimumHourlyWage == null) return;
+        setContractDraft((current) => {
+            if (current.grossHourlyWage.trim() !== "") return current;
+            return { ...current, grossHourlyWage: minimumWageInfo.minimumHourlyWage!.toFixed(2) };
+        });
+    }, [minimumWageInfo.minimumHourlyWage, selectedFunctionId]);
+
+    // Warning shown to the admin when the entered hourly wage is below the
+    // horeca minimum for this employee's age. Does NOT block submission, per
+    // product requirement: the admin can still proceed.
+    const wageBelowMinimumWarning = useMemo(() => {
+        const minimum = minimumWageInfo.minimumHourlyWage;
+        const entered = Number(contractDraft.grossHourlyWage);
+        if (minimum == null) return null;
+        if (!Number.isFinite(entered) || entered <= 0) return null;
+        if (entered >= minimum) return null;
+        return `The entered hourly wage (€${entered.toFixed(2)}) is below the minimum wage from the horeca wage table (€${minimum.toFixed(2)}) for this employee age. Please proceed with caution.`;
+    }, [minimumWageInfo.minimumHourlyWage, contractDraft.grossHourlyWage]);
 
     const sortedUserRoles = useMemo(() => {
         const list = uniqueRoles(userRoles);
@@ -1051,7 +1099,7 @@ export default function AdminUserDetails() {
         ] as const;
 
         const profileTaxRows = [
-            ["BSN", formatValue(user?.employeeTaxProfile?.bsn)],
+            ["BSN", maskIdentification(formatValue(user?.employeeTaxProfile?.bsn))],
             ["Apply loonheffingskorting", formatValue(user?.employeeTaxProfile?.applyLoonheffingskorting)],
             ["Pension participant", formatValue(user?.employeeTaxProfile?.pensionParticipant)],
             ["Special employee Zvw contribution", formatValue(user?.employeeTaxProfile?.specialZvwContribution)],
@@ -1118,11 +1166,11 @@ export default function AdminUserDetails() {
         ] as const;
 
         const idDocumentRows = [
-            ["Document type", formatValue(user?.idDocumentType)],
-            ["Document number", formatValue(user?.idDocumentNumber)],
-            ["Issue date", formatValue(user?.idIssueDate)],
-            ["Expiration date", formatValue(user?.idExpirationDate)],
-            ["Issuing country", formatValue(user?.idIssuingCountry)],
+            ["Document type", maskIdentification(formatValue(user?.idDocumentType))],
+            ["Document number", maskIdentification(formatValue(user?.idDocumentNumber))],
+            ["Issue date", maskIdentification(formatValue(user?.idIssueDate))],
+            ["Expiration date", maskIdentification(formatValue(user?.idExpirationDate))],
+            ["Issuing country", maskIdentification(formatValue(user?.idIssuingCountry))],
         ] as const;
 
         const emergencyContactRows = [
@@ -1542,6 +1590,28 @@ export default function AdminUserDetails() {
                                                     }))}
                                                     disabled={contractActionLoading || Boolean(selectedFunctionId)}
                                                 />
+                                                {minimumWageInfo.minimumHourlyWage != null ? (
+                                                    <p className="helperText contractDraftWageHint">
+                                                        Horeca minimum for{" "}
+                                                        {minimumWageInfo.age != null
+                                                            ? `age ${minimumWageInfo.age}`
+                                                            : "this employee"}
+                                                        : {moneyFormatter.format(minimumWageInfo.minimumHourlyWage)} per hour.
+                                                    </p>
+                                                ) : user?.dateOfBirth ? null : (
+                                                    <p className="helperText contractDraftWageHint">
+                                                        Add a date of birth to the employee profile to enable automatic
+                                                        horeca minimum wage validation.
+                                                    </p>
+                                                )}
+                                                {wageBelowMinimumWarning ? (
+                                                    <p
+                                                        className="errorText contractDraftWageWarning"
+                                                        role="alert"
+                                                    >
+                                                        {wageBelowMinimumWarning}
+                                                    </p>
+                                                ) : null}
                                             </div>
                                             <div className="payslipDetailField">
                                                 <label className="payslipDetailFieldLabel" htmlFor="contract-draft-frequency">
@@ -1630,22 +1700,38 @@ export default function AdminUserDetails() {
                                     <div className="profile_info_row">
                                         <span className="profile_info_label">ID document image</span>
                                         <span className="profile_info_value">
-                                            {idDocumentLoading ? "Loading..." : idDocumentNoFile ? "No file uploaded" : "Available when uploaded"}
+                                            {canViewIdentification
+                                                ? idDocumentLoading
+                                                    ? "Loading..."
+                                                    : idDocumentNoFile
+                                                        ? "No file uploaded"
+                                                        : "Available when uploaded"
+                                                : maskedIdentificationValue}
                                         </span>
                                     </div>
                                 </div>
-                                {idDocumentError ? <p className="errorText">{idDocumentError}</p> : null}
-                                {idDocumentNoFile ? <p className="helperText">No ID document image has been uploaded for this user.</p> : null}
-                                <div className="cardFooter contractReviewActions">
-                                    <button
-                                        className="button buttonSecondary"
-                                        type="button"
-                                        onClick={() => void handleOpenIdDocumentImage()}
-                                        disabled={idDocumentLoading}
-                                    >
-                                        {idDocumentLoading ? "Opening..." : "Open ID document image"}
-                                    </button>
-                                </div>
+                                {canViewIdentification ? (
+                                    <>
+                                        {idDocumentError ? <p className="errorText">{idDocumentError}</p> : null}
+                                        {idDocumentNoFile ? (
+                                            <p className="helperText">No ID document image has been uploaded for this user.</p>
+                                        ) : null}
+                                        <div className="cardFooter contractReviewActions">
+                                            <button
+                                                className="button buttonSecondary"
+                                                type="button"
+                                                onClick={() => void handleOpenIdDocumentImage()}
+                                                disabled={idDocumentLoading}
+                                            >
+                                                {idDocumentLoading ? "Opening..." : "Open ID document image"}
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="helperText">
+                                        You do not have permission to view this employee&apos;s ID document image.
+                                    </p>
+                                )}
                             </Card>
 
                             <Card title="Emergency contact" className="adminUserDetailsPanel">

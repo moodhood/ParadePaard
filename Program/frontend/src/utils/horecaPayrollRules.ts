@@ -243,21 +243,64 @@ export function normalizeHolidayAllowanceMode(value?: string | null): HolidayAll
     return "RESERVED";
 }
 
+function ageGroupForAge(age: number): string | null {
+    if (age >= 21) return "Adult";
+    if (age >= 15 && age <= 20) return String(age);
+    return null;
+}
+
 export function getHorecaRequiredHourlyWage(input: HorecaWageLookupInput) {
     const startDate = input.startDate ?? "";
     const age = calculateAgeOnDate(input.dateOfBirth, startDate);
-    if (age == null || age < 21 || !input.functionGroup || !startDate) return null;
+    if (age == null || !input.functionGroup || !startDate) return null;
+
+    const ageGroup = ageGroupForAge(age);
+    if (!ageGroup) return null;
 
     return (
         HORECA_WAGE_RULES.find((rule) => {
             return (
-                rule.ageGroup === "Adult" &&
+                rule.ageGroup === ageGroup &&
                 rule.functionGroup === input.functionGroup &&
                 isOnOrAfter(startDate, rule.effectiveFrom) &&
                 isOnOrBefore(startDate, rule.effectiveTo)
             );
         }) ?? null
     );
+}
+
+// Resolves the minimum hourly wage for an employee on a given reference date
+// using the horeca wage table. This is the building block the contract create
+// and edit forms use to auto-fill the wage and to warn admins when a manually
+// entered wage is below the table.
+export type HorecaMinimumWageLookup = {
+    dateOfBirth?: string | null;
+    referenceDate?: string | null;
+    functionGroup?: string | null;
+};
+
+export type HorecaMinimumWageResult = {
+    age: number | null;
+    ageGroup: string | null;
+    minimumHourlyWage: number | null;
+    sourceId: string | null;
+};
+
+export function getHorecaMinimumHourlyWage(input: HorecaMinimumWageLookup): HorecaMinimumWageResult {
+    const referenceDate = input.referenceDate ?? new Date().toISOString().slice(0, 10);
+    const age = calculateAgeOnDate(input.dateOfBirth, referenceDate);
+    const functionGroup = input.functionGroup ?? "I+II";
+    const wageRule = getHorecaRequiredHourlyWage({
+        dateOfBirth: input.dateOfBirth,
+        startDate: referenceDate,
+        functionGroup,
+    });
+    return {
+        age,
+        ageGroup: age == null ? null : ageGroupForAge(age),
+        minimumHourlyWage: wageRule?.hourlyWage ?? null,
+        sourceId: wageRule?.sourceId ?? null,
+    };
 }
 
 export function validateContractPayrollSettings(
@@ -288,8 +331,12 @@ export function validateContractPayrollSettings(
 
     if (requiredHourlyWage != null && input.hourlyWage != null) {
         if (input.hourlyWage < requiredHourlyWage) {
-            blockingErrors.push(
-                `Gross hourly wage is below the required horeca wage table amount of \u20ac${requiredHourlyWage.toFixed(2)}.`
+            // The admin is allowed to push the contract through with a wage
+            // below the table, but they must be clearly warned. This text is
+            // the user-facing copy for the wage warning across all admin
+            // contract create/edit screens.
+            warnings.push(
+                `The entered hourly wage (\u20ac${input.hourlyWage.toFixed(2)}) is below the minimum wage from the horeca wage table (\u20ac${requiredHourlyWage.toFixed(2)}) for this employee age. Please proceed with caution.`
             );
         } else if (input.hourlyWage > requiredHourlyWage) {
             warnings.push("Gross hourly wage is above the horeca CAO wage table amount.");
