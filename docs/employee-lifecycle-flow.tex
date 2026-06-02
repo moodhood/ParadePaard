@@ -141,9 +141,13 @@ from the application source code, not invented.
 \section*{How to read the flowchart}
 \addcontentsline{toc}{section}{How to read the flowchart}
 
-The diagram on the following page shows the full lifecycle as a single map.
-Every box carries the section number (\S) of the page that explains it in
-detail. Box shapes and colours encode the kind of step:
+The lifecycle is drawn as \emph{two} separate flows on the following pages.
+\textbf{Flow~1 \textemdash{} Hiring \& Onboarding} runs from first contact up to the
+moment the employee can see their finalised contract, where it ends.
+\textbf{Flow~2 \textemdash{} Work \& Payroll} is a fresh flow that starts once the
+employee is active: it begins at shift planning and runs through to a received
+payslip. Every box carries the section number (\S) of the page that explains it
+in detail. Box shapes and colours encode the kind of step:
 
 \vspace{0.4em}
 \begin{center}
@@ -166,17 +170,18 @@ provisions an account, a contract draft and a temporary password in one step.
 \clearpage
 
 % =====================================================================
-%  FULL-PAGE FLOWCHART (landscape)
+%  FLOW 1 - HIRING & ONBOARDING (landscape, ends at contract view)
 % =====================================================================
 \begin{landscape}
 \thispagestyle{fancy}
 \begin{center}
-{\large\bfseries The ParadePaard Employee Lifecycle \textemdash{} Full Flow}\\[2mm]
+{\LARGE\bfseries Flow 1 \textemdash{} Hiring \& Onboarding}\\[1mm]
+{\normalsize From first contact to a finalised, viewable contract \textemdash{} where this flow ends.}\\[3mm]
 \end{center}
 
 \noindent\makebox[\linewidth][c]{%
-\resizebox{!}{0.80\textheight}{%
-\begin{tikzpicture}[node distance=10mm and 16mm]
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=14mm and 22mm]
 
 % ---------- Entry points ----------
 \node[terminal] (start) {Public\\applicant};
@@ -184,11 +189,11 @@ provisions an account, a contract draft and a temporary password in one step.
 \node[decision, right=of apply] (accept) {Accept?\\(\S\ref{sec:appreview})};
 
 % admin alternate entry (above)
-\node[terminal, above=14mm of apply] (adminstart) {Admin direct\\onboarding};
+\node[terminal, above=18mm of apply] (adminstart) {Admin direct\\onboarding};
 
 % deny branch (below accept)
-\node[email,  below=12mm of accept] (denymail) {Denial email\\(\S\ref{sec:emails})};
-\node[reject, below=10mm of denymail] (denied) {Application\\\code{DENIED}};
+\node[email,  below=16mm of accept] (denymail) {Denial email\\(\S\ref{sec:emails})};
+\node[reject, below=14mm of denymail] (denied) {Application\\\code{DENIED}};
 
 % accept -> account + onboarding email
 \node[email, right=of accept] (acctmail) {Onboarding email\\+ temp password\\(\S\ref{sec:emails})};
@@ -196,33 +201,16 @@ provisions an account, a contract draft and a temporary password in one step.
 \node[decision, right=of onboard] (profok) {Profile\\approved?\\(\S\ref{sec:onbreview})};
 
 % profile review branches
-\node[reject, above=12mm of profok] (changes) {Changes requested\\\code{CHANGES_REQUESTED}};
-\node[reject, below=12mm of profok] (onbreject) {Onboarding\\\code{REJECTED}};
+\node[reject, above=16mm of profok] (changes) {Changes requested\\\code{CHANGES_REQUESTED}};
+\node[reject, below=16mm of profok] (onbreject) {Onboarding\\\code{REJECTED}};
 
 % contract spine (second row, going right)
-\node[process, below=24mm of onbreject, xshift=-30mm] (contract) {Contract draft\\(\S\ref{sec:contract})};
+\node[process, below=32mm of onbreject, xshift=-30mm] (contract) {Contract draft\\(\S\ref{sec:contract})};
 \node[email, right=of contract] (cmail) {Contract-ready\\email (\S\ref{sec:emails})};
 \node[process, right=of cmail] (sign) {Employee signs\\(\S\ref{sec:signing})};
 \node[decision, right=of sign] (finalize) {Employer\\finalises?\\(\S\ref{sec:contract})};
-\node[reject, above=12mm of finalize] (creject) {Contract\\\code{REJECTED}};
-\node[process, right=of finalize] (cview) {Employee contract\\view (\S\ref{sec:contractview})};
-
-% work spine (third row)
-\node[process, below=24mm of contract, xshift=0mm] (planning) {Shift planning\\(\S\ref{sec:planning})};
-\node[decision, right=of planning] (shiftok) {Shift\\accepted?};
-\node[reject, above=12mm of shiftok] (declined) {Shift\\\code{CANCELLED}};
-\node[process, right=of shiftok] (timesheet) {Timesheets \&\\work history\\(\S\ref{sec:timesheets})};
-\node[process, right=of timesheet] (travel) {Travel claims\\(\S\ref{sec:travel})};
-
-% payroll spine (fourth row)
-\node[process, below=24mm of planning] (paygen) {Payslip generation\\(\S\ref{sec:payslipgen})};
-\node[decision, right=of paygen] (zero) {Zero-hour\\on-call?};
-\node[reject, above=12mm of zero] (skip) {Period skipped\\(no payslip)};
-\node[decision, right=of zero] (datok) {Data\\complete?};
-\node[reject, below=12mm of datok] (attention) {\code{NEEDS_ATTENTION}\\auto-flagged};
-\node[process, right=of datok] (payreview) {Payslip review\\(\S\ref{sec:payslipreview})};
-\node[decision, right=of payreview] (release) {Released?};
-\node[terminal, right=of release] (gotpay) {Payslip\\received};
+\node[reject, above=16mm of finalize] (creject) {Contract\\\code{REJECTED}};
+\node[terminal, right=of finalize] (cview) {END \textbullet{} Employee\\contract view\\(\S\ref{sec:contractview})};
 
 % ---------- Edges: application ----------
 \draw[flow] (start) -- (apply);
@@ -248,7 +236,43 @@ provisions an account, a contract draft and a temporary password in one step.
 \draw[flow] (finalize) -- node[flowlab,right]{reject} (creject);
 \draw[rejflow] (creject.west) to[out=180,in=90] (contract.north);
 \draw[flow] (finalize) -- node[flowlab,above]{finalise} (cview);
-\draw[flow] (cview.east) to[out=0,in=0] (planning.east);
+
+\end{tikzpicture}%
+}}
+
+\end{landscape}
+\clearpage
+
+% =====================================================================
+%  FLOW 2 - WORK & PAYROLL (landscape, fresh start at shift planning)
+% =====================================================================
+\begin{landscape}
+\thispagestyle{fancy}
+\begin{center}
+{\LARGE\bfseries Flow 2 \textemdash{} Work \& Payroll}\\[1mm]
+{\normalsize A new flow for an active employee \textemdash{} starts at shift planning and ends at a received payslip.}\\[3mm]
+\end{center}
+
+\noindent\makebox[\linewidth][c]{%
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[node distance=14mm and 22mm]
+
+% ---------- Work row ----------
+\node[terminal] (planning) {START \textbullet{} Shift\\planning (\S\ref{sec:planning})};
+\node[decision, right=of planning] (shiftok) {Shift\\accepted?};
+\node[reject, above=16mm of shiftok] (declined) {Shift\\\code{CANCELLED}};
+\node[process, right=of shiftok] (timesheet) {Timesheets \&\\work history\\(\S\ref{sec:timesheets})};
+\node[process, right=of timesheet] (travel) {Travel claims\\(\S\ref{sec:travel})};
+
+% ---------- Payroll row ----------
+\node[process, below=32mm of planning] (paygen) {Payslip generation\\(\S\ref{sec:payslipgen})};
+\node[decision, right=of paygen] (zero) {Zero-hour\\on-call?};
+\node[reject, above=16mm of zero] (skip) {Period skipped\\(no payslip)};
+\node[decision, right=of zero] (datok) {Data\\complete?};
+\node[reject, below=16mm of datok] (attention) {\code{NEEDS_ATTENTION}\\auto-flagged};
+\node[process, right=of datok] (payreview) {Payslip review\\(\S\ref{sec:payslipreview})};
+\node[decision, right=of payreview] (release) {Released?};
+\node[terminal, right=of release] (gotpay) {END \textbullet{} Payslip\\received};
 
 % ---------- Edges: work ----------
 \draw[flow] (planning) -- (shiftok);
