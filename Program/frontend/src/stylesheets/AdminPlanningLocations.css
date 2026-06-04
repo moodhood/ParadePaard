@@ -1,0 +1,347 @@
+/* src/stylesheets/AdminPlanningLocations.css */
+
+/* --- Toolbar (extends .adminUsersToolbar) --- */
+.planningLocationsToolbar {
+  justify-content: flex-end;
+}
+
+.planningLocationsToolbar .adminUsersCount {
+  margin-right: auto;
+}
+
+.planningLocationsClientSelect {
+  min-width: 170px;
+}
+
+/* --- States --- */
+.planningLocationsError,
+.planningLocationsModalHint {
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.planningLocationsError {
+  margin-bottom: 16px;
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  color: #be123c;
+}
+
+.planningLocationsModalHint {
+  background: #f8fafc;
+  border: 1px solid #dbe3ef;
+  color: #64748b;
+}
+
+.planningLocationsState {
+  padding: 28px 16px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+/* --- Empty state --- */
+.planningLocationsEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 44px 24px;
+}
+
+.planningLocationsEmptyIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  margin-bottom: 6px;
+  border-radius: 50%;
+  background: #eef4ff;
+  color: #2f6bff;
+}
+
+.planningLocationsEmptyIcon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.planningLocationsEmpty h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  color: #1a1a1a;
+}
+
+.planningLocationsEmpty p {
+  margin: 0 0 6px;
+  max-width: 360px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #64748b;
+}
+
+/* --- Locations grid --- */
+.planningLocationsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.planningLocationsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #e6e9f0;
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
+}
+
+.planningLocationsCard:hover {
+  border-color: #cdd7e6;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.planningLocationsCardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.planningLocationsCardHeading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.planningLocationsCardPin {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: #eef4ff;
+  color: #2f6bff;
+}
+
+.planningLocationsCardPin svg {
+  width: 18px;
+  height: 18px;
+}
+
+.planningLocationsCardHeading h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 17px;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.planningLocationsCardBadges,
+.planningLocationsCardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.planningLocationsCardActions {
+  flex: 0 0 auto;
+}
+
+.planningLocationsBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef1f6;
+  color: #475569;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.planningLocationsBadge--preferred {
+  background: #d1fae5;
+  color: #047857;
+}
+
+/* --- Meta list --- */
+.planningLocationsMetaList {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding-top: 2px;
+  border-top: 1px solid #f0f2f7;
+}
+
+.planningLocationsMetaList div {
+  display: grid;
+  gap: 3px;
+}
+
+.planningLocationsMetaList dt {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.planningLocationsMetaList dd {
+  margin: 0;
+  color: #1f2937;
+  font-size: 14px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.planningLocationsMuted {
+  color: #9aa5b5;
+  font-style: italic;
+}
+
+/* --- Modal --- */
+.planningLocationsModal {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.planningLocationsModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planningLocationsModalField span {
+  color: #243142;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planningLocationsTextarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.planningLocationsModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* --- Success toast (matches app toast language) --- */
+.planningLocationsToast {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 280px;
+  max-width: min(360px, calc(100vw - 32px));
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(10, 18, 14, 0.96);
+  color: #eafff1;
+  border: 1px solid rgba(89, 214, 132, 0.35);
+  box-shadow: 0 20px 40px rgba(15, 23, 42, 0.28);
+  backdrop-filter: blur(12px);
+  animation: planningLocationsToastFade 3.2s ease forwards;
+}
+
+.planningLocationsToastIcon {
+  width: 22px;
+  height: 22px;
+  color: #56d364;
+  flex: 0 0 auto;
+}
+
+.planningLocationsToastIcon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.planningLocationsToastBody {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.planningLocationsToastTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #f0fff4;
+}
+
+.planningLocationsToastMessage {
+  font-size: 12px;
+  color: rgba(234, 255, 241, 0.82);
+}
+
+@keyframes planningLocationsToastFade {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0) scale(0.98);
+  }
+  12% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  82% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(0, -10px, 0) scale(0.98);
+  }
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .planningLocationsToolbar .adminUsersSearchInput {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  .planningLocationsCardHeader {
+    flex-direction: column;
+  }
+
+  .planningLocationsCardActions {
+    width: 100%;
+  }
+
+  .planningLocationsCardActions > button {
+    flex: 1 1 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .planningLocationsModalActions {
+    flex-direction: column-reverse;
+  }
+
+  .planningLocationsToast {
+    top: 16px;
+    right: 16px;
+    left: 16px;
+    max-width: none;
+    min-width: 0;
+  }
+}
