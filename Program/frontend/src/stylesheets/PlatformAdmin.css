@@ -1,0 +1,126 @@
+.platformAdminPage .managementGrid {
+    align-items: stretch;
+}
+
+.platformAdminCard {
+    min-height: 100%;
+}
+
+.platformAdminHeaderBar {
+    margin-bottom: 18px;
+}
+
+.platformCompanyList {
+    display: grid;
+    gap: 16px;
+}
+
+.platformCompanyRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px 20px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 22px;
+    background: #ffffff;
+    box-shadow: 0 18px 44px rgba(15, 23, 42, 0.06);
+    color: inherit;
+    text-decoration: none;
+}
+
+.platformCompanyRowMain h2 {
+    margin: 0 0 6px;
+    font-size: 1.05rem;
+}
+
+.platformCompanyRowMain p {
+    margin: 0;
+    color: #52606d;
+}
+
+.platformCompanyRowAction {
+    font-weight: 700;
+    color: #0f4c5c;
+    white-space: nowrap;
+}
+
+.platformCompanyDetailGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.platformAdminFormCard {
+    max-width: 820px;
+}
+
+.platformAdminFormCard .uiCardBody {
+    padding: 24px;
+}
+
+.platformAdminForm {
+    display: grid;
+    gap: 16px;
+}
+
+.platformAdminForm label {
+    display: grid;
+    gap: 8px;
+    color: #102a43;
+    font-weight: 600;
+}
+
+.platformAdminForm input {
+    width: 100%;
+    min-height: 46px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 14px;
+    padding: 0 14px;
+    font: inherit;
+    color: #102a43;
+    background: #ffffff;
+}
+
+.platformAdminFormActions {
+    display: flex;
+    justify-content: flex-start;
+    padding-top: 6px;
+}
+
+.platformDetailList {
+    display: grid;
+    gap: 12px;
+    margin: 0;
+}
+
+.platformDetailList div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.platformDetailList dt {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #52606d;
+}
+
+.platformDetailList dd {
+    margin: 0;
+    font-size: 0.98rem;
+    color: #102a43;
+}
+
+@media (max-width: 900px) {
+    .platformCompanyRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .platformCompanyDetailGrid {
+        grid-template-columns: 1fr;
+    }
+}

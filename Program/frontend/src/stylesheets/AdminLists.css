@@ -177,6 +177,14 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
+.gridCompanies {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr);
+}
+
+.platformCompaniesScroll {
+  max-height: 65vh;
+}
+
 .gridPlanningClients {
   grid-template-columns: minmax(0, 2fr) minmax(160px, 1fr);
 }
