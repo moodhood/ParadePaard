@@ -21,7 +21,15 @@ function hasValue(value: string) {
     return value.trim().length > 0;
 }
 
-function WaitingForReview() {
+// Permissions that mark this user as someone who can drive their own
+// onboarding/contract approval. If they have one of these, the waiting
+// screen offers a way out into the admin app rather than trapping them
+// here — they are very likely the person who would review and approve
+// their own submission.
+const SELF_APPROVAL_PERMISSIONS = ["CAN_REVIEW_ONBOARDING", "CAN_FINALIZE_CONTRACT"];
+
+function WaitingForReview({ canSelfApprove }: { canSelfApprove: boolean }) {
+    const navigate = useNavigate();
     return (
         <div className="onboarding-container">
             <div className="onboarding-card onboarding-card--waiting">
@@ -31,6 +39,13 @@ function WaitingForReview() {
                     Your onboarding details are awaiting internal review. You can return here to check the status,
                     and ParadePaard will continue the contract process after the review is complete.
                 </p>
+                {canSelfApprove ? (
+                    <div className="onboarding-actions onboarding-actions--waiting">
+                        <button type="button" onClick={() => navigate("/management")}>
+                            Continue to admin dashboard
+                        </button>
+                    </div>
+                ) : null}
             </div>
         </div>
     );
@@ -38,7 +53,8 @@ function WaitingForReview() {
 
 export default function Onboarding() {
     const navigate = useNavigate();
-    const { status, setStatus } = useAuth();
+    const { status, setStatus, permissions } = useAuth();
+    const canSelfApprove = SELF_APPROVAL_PERMISSIONS.some((perm) => permissions.includes(perm));
     const [step, setStep] = useState<Step>(1);
     const [showWaiting, setShowWaiting] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -233,7 +249,7 @@ export default function Onboarding() {
     };
 
     if (status === "PENDING_PROFILE_REVIEW" || showWaiting) {
-        return <WaitingForReview />;
+        return <WaitingForReview canSelfApprove={canSelfApprove} />;
     }
 
     return (
