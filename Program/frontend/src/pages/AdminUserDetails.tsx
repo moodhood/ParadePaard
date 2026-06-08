@@ -17,7 +17,11 @@ import {
     type TimesheetRow,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
-import type { HorecaRuleVersionDTO } from "../services/user-service/Types";
+// Onboarding restart on this page issues a fresh password reset link via the
+// auth admin endpoint and pairs that with putting the user back into the
+// CHANGES_REQUESTED state so they re-enter the onboarding form when they log
+// in next.
+
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/GeneralInfo.css";
 import "../stylesheets/PayslipDetails.css";
@@ -37,7 +41,6 @@ import {
 } from "../utils/hoursSummary";
 import { flattenPlanningProjects, type PlanningExplorerRow } from "../utils/planningExplorer";
 import { getAllocationStatusLabel, getAllocationStatusTone } from "../utils/planningSummary";
-import { formatHorecaAgeGroupLabel, getHorecaMinimumHourlyWage, getManagedHorecaWageRules } from "../utils/horecaPayrollRules";
 import { canDeleteUsers } from "../utils/permissionPolicy";
 
 const normalizeRoleName = (value: string) => value.trim().toUpperCase();
@@ -286,20 +289,11 @@ export default function AdminUserDetails() {
     const [employerAgreementChecked, setEmployerAgreementChecked] = useState(false);
     const [employerTypedName, setEmployerTypedName] = useState("");
     const [employerSignatureImage, setEmployerSignatureImage] = useState<string | null>(null);
-    const [functions, setFunctions] = useState<FunctionResponseDTO[]>([]);
-    const [functionsError, setFunctionsError] = useState<string | null>(null);
-    const [horecaRulesVersion, setHorecaRulesVersion] = useState<HorecaRuleVersionDTO | null>(null);
-    const [selectedFunctionId, setSelectedFunctionId] = useState("");
-    const [contractDraft, setContractDraft] = useState<ContractDraftFormState>({
-        functionName: "",
-        functionGroup: "I+II",
-        contractType: "ON_CALL_RUNNER",
-        startDate: "",
-        endDate: "",
-        grossHourlyWage: "",
-        paymentFrequency: "WEEKLY",
-        travelAllowance: false,
-    });
+    // Onboarding-restart action state. Used by the "Send onboarding invite"
+    // button shown in the Active contract card when no contract exists yet.
+    const [restartOnboardingLoading, setRestartOnboardingLoading] = useState(false);
+    const [restartOnboardingError, setRestartOnboardingError] = useState<string | null>(null);
+    const [restartOnboardingSuccess, setRestartOnboardingSuccess] = useState<string | null>(null);
 
     const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
     const [profilePictureLoading, setProfilePictureLoading] = useState(false);
@@ -572,92 +566,6 @@ export default function AdminUserDetails() {
         viewedUserId: user?.userId ?? userId ?? null,
     });
 
-    useEffect(() => {
-        if (!canManageContracts) return;
-        let cancelled = false;
-        Promise.all([
-            UserServices.getFunctions(),
-            UserServices.getCurrentHorecaRules().catch(() => null),
-        ])
-            .then(([data, rulesVersion]) => {
-                if (cancelled) return;
-                setFunctions(data ?? []);
-                setHorecaRulesVersion(rulesVersion);
-                setFunctionsError(null);
-            })
-            .catch((err: unknown) => {
-                if (cancelled) return;
-                const message = err instanceof Error ? err.message : "Failed to load job functions.";
-                setFunctionsError(message);
-            });
-        return () => {
-            cancelled = true;
-        };
-    }, [canManageContracts]);
-
-    useEffect(() => {
-        const selectedFunction = functions.find((item) => item.functionId === selectedFunctionId);
-        if (!selectedFunction) return;
-        setContractDraft((current) => ({
-            ...current,
-            functionName: selectedFunction.functionName,
-            grossHourlyWage: String(selectedFunction.hourlyWage),
-        }));
-    }, [functions, selectedFunctionId]);
-
-    // Looks up the horeca minimum hourly wage for this employee using their date
-    // of birth and the contract start date. Falls back to today's date if the
-    // admin hasn't picked a start date yet so the field still gets a sensible
-    // prefill the moment the form opens.
-    const managedWageRules = useMemo(
-        () => getManagedHorecaWageRules(horecaRulesVersion?.sections?.WAGE_RULES),
-        [horecaRulesVersion]
-    );
-    const minimumWageInfo = useMemo(() => {
-        const referenceDate = contractDraft.startDate || today;
-        return getHorecaMinimumHourlyWage(
-            {
-                dateOfBirth: user?.dateOfBirth,
-                referenceDate,
-                functionGroup: contractDraft.functionGroup,
-            },
-            { wageRules: managedWageRules }
-        );
-    }, [user?.dateOfBirth, contractDraft.functionGroup, contractDraft.startDate, managedWageRules, today]);
-
-    // Auto-fill the gross hourly wage with the horeca minimum wage as soon as
-    // the lookup resolves, but only when the admin hasn't picked a function
-    // (which would otherwise override) and hasn't typed a wage themselves yet.
-    useEffect(() => {
-        if (selectedFunctionId) return;
-        if (minimumWageInfo.minimumHourlyWage == null) return;
-        setContractDraft((current) => {
-            if (current.grossHourlyWage.trim() !== "") return current;
-            return { ...current, grossHourlyWage: minimumWageInfo.minimumHourlyWage!.toFixed(2) };
-        });
-    }, [minimumWageInfo.minimumHourlyWage, selectedFunctionId]);
-
-    // Warning shown to the admin when the entered hourly wage is below the
-    // horeca minimum for this employee's age. Does NOT block submission, per
-    // product requirement: the admin can still proceed.
-    const wageBelowMinimumWarning = useMemo(() => {
-        const minimum = minimumWageInfo.minimumHourlyWage;
-        const entered = Number(contractDraft.grossHourlyWage);
-        if (minimum == null) return null;
-        if (!Number.isFinite(entered) || entered <= 0) return null;
-        if (entered >= minimum) return null;
-        return `The entered hourly wage (€${entered.toFixed(2)}) is below the minimum wage from the horeca wage table (€${minimum.toFixed(2)}) for this employee age. Please proceed with caution.`;
-    }, [minimumWageInfo.minimumHourlyWage, contractDraft.grossHourlyWage]);
-    const wageBelowMinimumWarningDisplay = useMemo(() => {
-        if (!wageBelowMinimumWarning) return null;
-        const minimum = minimumWageInfo.minimumHourlyWage;
-        const entered = Number(contractDraft.grossHourlyWage);
-        if (minimum == null) return wageBelowMinimumWarning;
-        if (!Number.isFinite(entered) || entered <= 0) return wageBelowMinimumWarning;
-        if (entered >= minimum) return wageBelowMinimumWarning;
-        return `Warning: this is below minimum wage. The entered hourly wage (€${entered.toFixed(2)}) is below the horeca minimum (€${minimum.toFixed(2)}) for this employee age group.`;
-    }, [minimumWageInfo.minimumHourlyWage, contractDraft.grossHourlyWage, wageBelowMinimumWarning]);
-
     const sortedUserRoles = useMemo(() => {
         const list = uniqueRoles(userRoles);
         return [...list].sort((left, right) => left.localeCompare(right));
@@ -902,26 +810,34 @@ export default function AdminUserDetails() {
         }
     };
 
-    const handleCreateContractDraft = async () => {
-        if (!userId || !user) return;
+    // Restart onboarding from the user-details page: when there is no
+    // contract yet, the recommended way to start one is to send the employee
+    // back through the onboarding form. This sets the user's status back to
+    // CHANGES_REQUESTED (so the onboarding form is what they see at next
+    // login) and emails them a fresh account-setup link. After they submit,
+    // the admin can review and create the contract from the onboarding
+    // review page.
+    const handleSendOnboardingInvite = async () => {
+        if (!userId) return;
         try {
-            setContractActionLoading(true);
-            setContractError(null);
-            setContractActionSuccess(null);
-            const created = await UserServices.createContract(buildContractDraftPayload({
-                userId,
-                functionId: selectedFunctionId,
-                fallbackFunctionName: user.position,
-                functions,
-                draft: contractDraft,
-            }));
-            setCurrentContract(created);
-            setContractActionSuccess("Contract draft created.");
+            setRestartOnboardingLoading(true);
+            setRestartOnboardingError(null);
+            setRestartOnboardingSuccess(null);
+            const updated = await UserServices.updateOnboardingReview(userId, {
+                decision: "NEEDS_CHANGES",
+                note: "Onboarding restarted by admin from the user details page.",
+                status: "CHANGES_REQUESTED",
+            });
+            setUser(updated);
+            await AuthServices.resendOnboardingEmail(userId);
+            setRestartOnboardingSuccess(
+                "Onboarding invitation sent. The employee will be asked to review or update their details and submit them for review."
+            );
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : "Failed to create contract draft.";
-            setContractError(message);
+            const message = err instanceof Error ? err.message : "Failed to send onboarding invitation.";
+            setRestartOnboardingError(message);
         } finally {
-            setContractActionLoading(false);
+            setRestartOnboardingLoading(false);
         }
     };
 
@@ -1562,219 +1478,59 @@ export default function AdminUserDetails() {
                                         </div>
                                     </>
                                 ) : canCreateContractDraft ? (
-                                    <div className="contractDraftBox">
-                                        <div className="profile_role_hint">No active contract found. Create a draft before sending it to the employee.</div>
-                                        <div className="payslipDetailFields">
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function">
-                                                    Role/function
-                                                </label>
-                                                <select
-                                                    id="contract-draft-function"
-                                                    className="uiSelect"
-                                                    value={selectedFunctionId}
-                                                    onChange={(event) => setSelectedFunctionId(event.target.value)}
-                                                    disabled={contractActionLoading}
-                                                >
-                                                    <option value="">Manual role</option>
-                                                    {functions.map((item) => (
-                                                        <option key={item.functionId} value={item.functionId}>
-                                                            {item.functionName}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function-name">
-                                                    Function name
-                                                </label>
-                                                <input
-                                                    id="contract-draft-function-name"
-                                                    className="uiSelect"
-                                                    value={contractDraft.functionName}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        functionName: event.target.value,
-                                                    }))}
-                                                    placeholder={formatPosition(user?.position)}
-                                                    disabled={contractActionLoading || Boolean(selectedFunctionId)}
-                                                />
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-type">
-                                                    Contract type
-                                                </label>
-                                                <select
-                                                    id="contract-draft-type"
-                                                    className="uiSelect"
-                                                    value={contractDraft.contractType}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        contractType: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading}
-                                                >
-                                                    <option value="ON_CALL_RUNNER">On-call (Runner)</option>
-                                                    <option value="ON_CALL_BAR">On-call (Bar)</option>
-                                                    <option value="FIXED_HOURS">Fixed hours</option>
-                                                </select>
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-start">
-                                                    Start date
-                                                </label>
-                                                <input
-                                                    id="contract-draft-start"
-                                                    className="uiSelect"
-                                                    type="date"
-                                                    value={contractDraft.startDate}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        startDate: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading}
-                                                />
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function-group">
-                                                    Function group
-                                                </label>
-                                                <select
-                                                    id="contract-draft-function-group"
-                                                    className="uiSelect"
-                                                    value={contractDraft.functionGroup}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        functionGroup: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading}
-                                                >
-                                                    <option value="I+II">I plus II</option>
-                                                    <option value="III">III</option>
-                                                    <option value="IV">IV</option>
-                                                    <option value="V">V</option>
-                                                </select>
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-age-group">
-                                                    Age group from date of birth
-                                                </label>
-                                                <input
-                                                    id="contract-draft-age-group"
-                                                    className="uiSelect"
-                                                    value={formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)}
-                                                    readOnly
-                                                    disabled
-                                                />
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-end">
-                                                    End date
-                                                </label>
-                                                <input
-                                                    id="contract-draft-end"
-                                                    className="uiSelect"
-                                                    type="date"
-                                                    value={contractDraft.endDate}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        endDate: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading}
-                                                />
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-wage">
-                                                    Gross hourly wage
-                                                </label>
-                                                <input
-                                                    id="contract-draft-wage"
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={contractDraft.grossHourlyWage}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        grossHourlyWage: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading || Boolean(selectedFunctionId)}
-                                                />
-                                                {minimumWageInfo.minimumHourlyWage != null ? (
-                                                    <p className="helperText contractDraftWageHint">
-                                                        Suggested horeca minimum for {formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)} in
-                                                        group {contractDraft.functionGroup}:{" "}
-                                                        {moneyFormatter.format(minimumWageInfo.minimumHourlyWage)} per hour.
-                                                    </p>
-                                                ) : user?.dateOfBirth ? null : (
-                                                    <p className="helperText contractDraftWageHint">
-                                                        Add a date of birth to the employee profile to enable automatic
-                                                        horeca minimum wage validation.
-                                                    </p>
-                                                )}
-                                                {wageBelowMinimumWarningDisplay ? (
-                                                    <div className="contractDraftWageWarning" role="alert">
-                                                        <span
-                                                            className="contractDraftWarningIcon"
-                                                            aria-label={wageBelowMinimumWarningDisplay}
-                                                            title={wageBelowMinimumWarningDisplay}
-                                                        >
-                                                            !
-                                                        </span>
-                                                        <p className="errorText">{wageBelowMinimumWarningDisplay}</p>
-                                                    </div>
-                                                ) : null}
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-frequency">
-                                                    Payment frequency
-                                                </label>
-                                                <select
-                                                    id="contract-draft-frequency"
-                                                    className="uiSelect"
-                                                    value={contractDraft.paymentFrequency}
-                                                    onChange={(event) => setContractDraft((current) => ({
-                                                        ...current,
-                                                        paymentFrequency: event.target.value,
-                                                    }))}
-                                                    disabled={contractActionLoading}
-                                                >
-                                                    <option value="DAILY">Daily</option>
-                                                    <option value="WEEKLY">Weekly</option>
-                                                    <option value="BIWEEKLY">Biweekly</option>
-                                                    <option value="MONTHLY">Monthly</option>
-                                                </select>
-                                            </div>
-                                            <div className="payslipDetailField">
-                                                <label className="payslipDetailFieldLabel adminUserDetailsCheckbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={contractDraft.travelAllowance}
-                                                        onChange={(event) => setContractDraft((current) => ({
-                                                            ...current,
-                                                            travelAllowance: event.target.checked,
-                                                        }))}
-                                                        disabled={contractActionLoading}
-                                                    />
-                                                    <span>Travel allowance</span>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        {functionsError ? <p className="errorText">{functionsError}</p> : null}
-                                        {contractActionSuccess ? <p className="helperText">{contractActionSuccess}</p> : null}
-                                        <div className="cardFooter contractReviewActions">
+                                    <div className="contractRestartBox">
+                                        <p className="contractRestartIntro">
+                                            No active contract found for this employee.
+                                        </p>
+                                        <p className="contractRestartBody">
+                                            To set up a contract, restart the onboarding flow. The employee will
+                                            receive an email with a fresh setup link; any details they have
+                                            already filled in will be pre-filled so they only need to confirm
+                                            or update them. Once they submit, you can review the information
+                                            and create the contract from the onboarding review page.
+                                        </p>
+                                        <ol className="contractRestartSteps">
+                                            <li>Send the onboarding invitation.</li>
+                                            <li>The employee reviews and updates their details, then submits.</li>
+                                            <li>You review the submission and create the contract.</li>
+                                        </ol>
+                                        {restartOnboardingError ? (
+                                            <p className="errorText">{restartOnboardingError}</p>
+                                        ) : null}
+                                        {restartOnboardingSuccess ? (
+                                            <p className="helperText">{restartOnboardingSuccess}</p>
+                                        ) : null}
+                                        <div className="cardFooter contractReviewActions contractRestartActions">
+                                            <Link
+                                                className="button buttonSecondary"
+                                                to={`/management/onboarding-review/${userId}`}
+                                            >
+                                                Open onboarding review
+                                            </Link>
                                             <button
                                                 className="button"
                                                 type="button"
-                                                onClick={() => void handleCreateContractDraft()}
-                                                disabled={contractActionLoading}
+                                                onClick={() => void handleSendOnboardingInvite()}
+                                                disabled={restartOnboardingLoading}
                                             >
-                                                {contractActionLoading ? "Creating..." : "Create contract draft"}
+                                                {restartOnboardingLoading
+                                                    ? "Sending..."
+                                                    : "Send onboarding invitation"}
                                             </button>
                                         </div>
                                     </div>
                                 ) : (
-                                    <div className="profile_role_hint">No active contract found for this employee.</div>
+                                    <div className="contractRestartBox">
+                                        <p className="contractRestartIntro">
+                                            No active contract found for this employee.
+                                        </p>
+                                        {canManageContracts ? (
+                                            <p className="contractRestartBody">
+                                                The employee has not finished onboarding yet. They will appear in
+                                                the onboarding review queue once they submit their details.
+                                            </p>
+                                        ) : null}
+                                    </div>
                                 )}
                                 {contractError ? <p className="errorText">{contractError}</p> : null}
                             </Card>

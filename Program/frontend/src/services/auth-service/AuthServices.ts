@@ -10,6 +10,7 @@ import DeleteRole from "./DeleteRole";
 import SetUserRoles from "./SetUserRoles";
 import GetUserRoles from "./GetUserRoles";
 import DisableUser from "./DisableUser";
+import ResendOnboardingEmail, { type ResendOnboardingEmailResponse } from "./ResendOnboardingEmail";
 import SwitchPlatformCompanyScope, { type SwitchPlatformCompanyScopeResponse } from "./SwitchPlatformCompanyScope";
 import type {
     CreateRoleRequestDTO,
@@ -57,6 +58,9 @@ export const AuthServices = {
     disableUser: async (userId: string): Promise<void> => {
         return await DisableUser(API_BASE_URL, userId);
     },
+    resendOnboardingEmail: async (userId: string): Promise<ResendOnboardingEmailResponse> => {
+        return await ResendOnboardingEmail(API_BASE_URL, userId);
+    },
     switchPlatformCompanyScope: async (companyId: string | null): Promise<SwitchPlatformCompanyScopeResponse> => {
         return await SwitchPlatformCompanyScope(API_BASE_URL, companyId);
     },
@@ -64,6 +68,7 @@ export const AuthServices = {
 
 export type {
     CreateRoleRequestDTO,
+    ResendOnboardingEmailResponse,
     RoleResponseDTO,
     SwitchPlatformCompanyScopeResponse,
     UpdateRoleRequestDTO,
