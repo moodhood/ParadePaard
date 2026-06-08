@@ -39,6 +39,116 @@ export type PayrollDeductionLineDTO = {
     sortOrder?: number | null;
 };
 
+export type HorecaRuleItemDTO = {
+    id?: string | null;
+    sectionKey?: string | null;
+    itemKey: string;
+    name: string;
+    valueText?: string | null;
+    valueNumber?: number | null;
+    valueBoolean?: boolean | null;
+    valueType?: "TEXT" | "NUMBER" | "BOOLEAN" | string | null;
+    unit?: string | null;
+    calculationRule?: string | null;
+    documentName?: string | null;
+    documentUrl?: string | null;
+    pageReference?: string | null;
+    functionGroup?: string | null;
+    ageGroup?: string | null;
+    sourceNote?: string | null;
+    usedInContract?: boolean | null;
+    usedInPayroll?: boolean | null;
+    sortOrder?: number | null;
+};
+
+export type HorecaJobPresetConfigDTO = {
+    id?: string | null;
+    presetKey?: string | null;
+    presetName: string;
+    jobTitle: string;
+    jobFunction: string;
+    functionGroup: string;
+    defaultContractType: string;
+    defaultHourlyWage: number;
+    defaultMonthlyWage?: number | null;
+    defaultHoursPerWeek?: number | null;
+    defaultPayrollPeriod: string;
+    pensionApplicable?: boolean | null;
+    holidayAllowanceMode?: string | null;
+    vacationBuildUpApplicable?: boolean | null;
+    documentName?: string | null;
+    documentUrl?: string | null;
+    pageReference?: string | null;
+    sourceNote?: string | null;
+    active?: boolean | null;
+    adminNotes?: string | null;
+    sortOrder?: number | null;
+};
+
+export type HorecaRuleVersionDTO = {
+    versionId: string;
+    companyId: string;
+    versionLabel?: string | null;
+    status: string;
+    effectiveFrom?: string | null;
+    effectiveTo?: string | null;
+    reason?: string | null;
+    sourceSummary?: string | null;
+    publishedAt?: string | null;
+    publishedByUserId?: string | null;
+    sections: Record<string, HorecaRuleItemDTO[]>;
+    jobPresets: HorecaJobPresetConfigDTO[];
+};
+
+export type HorecaRuleSectionUpdateDTO = {
+    items: HorecaRuleItemDTO[];
+};
+
+export type HorecaJobPresetUpdateDTO = {
+    jobPresets: HorecaJobPresetConfigDTO[];
+};
+
+export type HorecaRulePublishRequestDTO = {
+    effectiveFrom: string;
+    versionLabel?: string | null;
+    reason?: string | null;
+};
+
+export type AuditLogMessagePartDTO = {
+    type: "TEXT" | "LINK" | string;
+    text?: string | null;
+    entityType?: string | null;
+    entityId?: string | null;
+    label?: string | null;
+    route?: string | null;
+};
+
+export type AuditLogEntryDTO = {
+    entryId: string;
+    companyId: string;
+    occurredAt: string;
+    category: string;
+    action: string;
+    entityType: string;
+    entityId?: string | null;
+    actorUserId?: string | null;
+    actorDisplayName?: string | null;
+    summary: string;
+    messageParts: AuditLogMessagePartDTO[];
+};
+
+export type AuditLogQuery = {
+    category?: string | null;
+    action?: string | null;
+    entityType?: string | null;
+    actorUserId?: string | null;
+    occurredFrom?: string | null;
+    occurredTo?: string | null;
+    query?: string | null;
+    page?: number;
+    size?: number;
+};
+
 export type OnboardingReviewContractSetupDraftDTO = {
     selectedFunctionId?: string | null;
     caoId?: string | null;
@@ -135,6 +245,35 @@ export type CompanyResponseDTO = {
     payrollTaxTemplates?: PayrollTaxTemplateDTO[] | null;
 };
 
+export type PlatformCompanySummaryDTO = {
+    companyId: string;
+    name: string;
+    payoutFrequencyMinutes?: number | null;
+    timesheetLoggingMode?: "AUTO_ON_SHIFT_END" | "ADMIN_FINALIZE" | string | null;
+    travelClaimMode?: "AUTO_APPROVE" | "REQUIRES_APPROVAL" | string | null;
+    totalUsers: number;
+    activeUsers: number;
+    pendingOnboardingReview: number;
+};
+
+export type PlatformCompanyDetailDTO = PlatformCompanySummaryDTO;
+
+export type PlatformCompanyOnboardingRequestDTO = {
+    companyName: string;
+    adminFirstName: string;
+    adminLastName: string;
+    adminEmail: string;
+    adminPassword: string;
+};
+
+export type PlatformCompanyOnboardingResponseDTO = {
+    companyId: string;
+    companyName: string;
+    adminUserId: string;
+    adminEmail: string;
+    username?: string | null;
+};
+
 export type UserUpdateRequestDTO = {
     email?: string | null;
     preferredName?: string | null;
@@ -227,6 +366,9 @@ export type JobApplicationRequestDTO = {
 
 export type JobApplicationResponseDTO = JobApplicationRequestDTO & {
     applicationId: string;
+    profilePictureFileName?: string | null;
+    profilePictureContentType?: string | null;
+    hasProfilePicture?: boolean;
     cvFileName?: string | null;
     cvContentType?: string | null;
     status: ApplicationStatus | string;

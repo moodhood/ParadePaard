@@ -5,6 +5,7 @@ import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
 import PaginationControls from "../components/common/PaginationControls";
+import { WorkHistoryColumnPicker } from "../components/work-history/WorkHistoryColumnPicker";
 import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
 import {
@@ -487,47 +488,31 @@ function WorkHistoryPage({ scope }: { scope: WorkHistoryScope }) {
                                                         : ""}
                                                     {` on this page | ${totalTimesheets} total`}
                                                 </div>
-                                                <button
-                                                    type="button"
-                                                    className="workHistoryButtonSecondary"
-                                                    onClick={addFilter}
-                                                >
-                                                    Add filter
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="workHistoryButtonSecondary"
-                                                    onClick={resetFilters}
-                                                >
-                                                    Reset filters
-                                                </button>
+                                                <div className="workHistoryToolbarActions">
+                                                    <button
+                                                        type="button"
+                                                        className="workHistoryButtonSecondary"
+                                                        onClick={addFilter}
+                                                    >
+                                                        Add filter
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="workHistoryButtonSecondary"
+                                                        onClick={resetFilters}
+                                                    >
+                                                        Reset filters
+                                                    </button>
+                                                </div>
                                             </div>
+                                            {isManagementScope ? (
+                                                <WorkHistoryColumnPicker
+                                                    availableColumns={availableColumns}
+                                                    visibleColumns={visibleColumns}
+                                                    onToggleColumn={toggleColumn}
+                                                />
+                                            ) : null}
                                         </div>
-                                        {isManagementScope ? (
-                                            <div className="workHistoryColumnChooser" aria-label="Choose work history columns">
-                                                <div>
-                                                    <strong>Columns</strong>
-                                                    <span>
-                                                        Finance columns are only available to users with payroll finance permission.
-                                                    </span>
-                                                </div>
-                                                <div className="workHistoryColumnOptions">
-                                                    {availableColumns.map((column) => (
-                                                        <label
-                                                            key={column.key}
-                                                            className={column.financeOnly ? "workHistoryColumnOption--finance" : ""}
-                                                        >
-                                                            <input
-                                                                type="checkbox"
-                                                                checked={visibleColumns.includes(column.key)}
-                                                                onChange={() => toggleColumn(column.key)}
-                                                            />
-                                                            <span>{column.label}</span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ) : null}
                                         <div className="workHistoryTableWrap">
                                             <table className="workHistoryTable">
                                                 <thead>

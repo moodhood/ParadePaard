@@ -1,0 +1,42 @@
+.planningLocationAddressFields {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planningLocationAddressFieldsRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, 0.75fr);
+  gap: 12px;
+}
+
+.planningLocationAddressFieldsRow--single {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.planningLocationAddressField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.planningLocationAddressLabel {
+  color: #243142;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planningLocationAddressField--compact {
+  max-width: 180px;
+}
+
+@media (max-width: 640px) {
+  .planningLocationAddressFieldsRow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .planningLocationAddressField--compact {
+    max-width: none;
+  }
+}

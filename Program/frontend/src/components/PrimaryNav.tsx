@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UserServices, type MessageRealtimeEventDTO } from "../services/user-service/UserServices";
-import { canAccessManagement, canViewPayslips } from "../utils/permissionPolicy";
+import { canAccessManagement, canAccessPlatform, canViewPayslips } from "../utils/permissionPolicy";
 import "../stylesheets/PrimaryNav.css";
 
 type PrimaryNavProps = {
@@ -38,6 +38,7 @@ export default function PrimaryNav({ messageUnreadCount: providedMessageUnreadCo
               : currentPath;
     const { permissions } = useAuth();
     const showManagement = canAccessManagement(permissions);
+    const showPlatform = canAccessPlatform(permissions);
     const showPayslips = canViewPayslips(permissions);
     const [loadedMessageUnreadCount, setLoadedMessageUnreadCount] = useState(0);
     const [contractsAwaitingSignature, setContractsAwaitingSignature] = useState(0);
@@ -136,6 +137,7 @@ export default function PrimaryNav({ messageUnreadCount: providedMessageUnreadCo
         contractsCount > 0 ? `Contracts, ${contractsLabel} ready to sign` : "Contracts";
 
     const isDashboardActive = path === "/dashboard";
+    const isPlatformActive = path.startsWith("/platform");
     const isManagementActive = path.startsWith("/management");
     const isPayslipsActive = path.startsWith("/payslips");
     const isContractsActive = path.startsWith("/account/employment") || path.startsWith("/contracts/");
@@ -200,6 +202,34 @@ export default function PrimaryNav({ messageUnreadCount: providedMessageUnreadCo
                             <path d="M4 18h16" />
                         </svg>
                         <span className="nav_quick_text">Management</span>
+                    </Link>
+                ) : null}
+
+                {showPlatform ? (
+                    <Link
+                        className={linkClass(isPlatformActive)}
+                        to="/platform"
+                        aria-current={isPlatformActive ? "page" : undefined}
+                        aria-label="Platform"
+                        title="Platform"
+                    >
+                        <svg
+                            className="nav_quick_icon"
+                            viewBox="0 0 24 24"
+                            width="18"
+                            height="18"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            aria-hidden="true"
+                        >
+                            <rect x="3" y="4" width="18" height="14" rx="2" />
+                            <path d="M7 20h10" />
+                            <path d="M12 18v2" />
+                        </svg>
+                        <span className="nav_quick_text">Platform</span>
                     </Link>
                 ) : null}
 

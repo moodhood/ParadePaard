@@ -60,6 +60,9 @@ type AdminApplicationDetailsViewProps = {
     decision: ApplicationDecisionState;
     cvLoading: boolean;
     cvError: string | null;
+    profilePictureUrl: string | null;
+    profilePictureLoading: boolean;
+    profilePictureError: string | null;
     canReview?: boolean;
     onDecisionNoteChange: (value: string) => void;
     onAccept: () => void;
@@ -76,6 +79,9 @@ export function AdminApplicationDetailsView({
     decision,
     cvLoading,
     cvError,
+    profilePictureUrl,
+    profilePictureLoading,
+    profilePictureError,
     canReview = true,
     onDecisionNoteChange,
     onAccept,
@@ -133,6 +139,39 @@ export function AdminApplicationDetailsView({
                         </div>
                     </div>
 
+                    <section className="applicationDetailSection">
+                        <h2>Applicant photo</h2>
+                        <div className="applicationProfilePanel">
+                            <div className="applicationProfileFrame" aria-label="Applicant profile picture">
+                                {profilePictureUrl ? (
+                                    <img src={profilePictureUrl} alt="Applicant profile" />
+                                ) : (
+                                    <div className="applicationProfileFallback">
+                                        {profilePictureLoading
+                                            ? "Loading picture..."
+                                            : application.hasProfilePicture
+                                              ? "Picture unavailable"
+                                              : "No picture submitted"}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="applicationProfileMeta">
+                                <div className="applicationDetailLabel">Profile picture file</div>
+                                <div className="applicationDetailValue">
+                                    {application.profilePictureFileName ?? "-"}
+                                </div>
+                                <div className="applicationDetailValue">
+                                    {application.hasProfilePicture
+                                        ? "This photo will prefill the accepted user account avatar."
+                                        : "Older applications may not include a photo."}
+                                </div>
+                            </div>
+                        </div>
+                        {profilePictureError ? (
+                            <div className="applicationInlineError">{profilePictureError}</div>
+                        ) : null}
+                    </section>
+
                     <DetailSection title="Personal details">
                         <DetailField label="Full first names" value={application.firstNames} />
                         <DetailField label="Preferred name" value={application.preferredName} />
@@ -159,7 +198,7 @@ export function AdminApplicationDetailsView({
                     </DetailSection>
 
                     <section className="applicationDetailSection">
-                        <h2>CV and documents</h2>
+                        <h2>Application files</h2>
                         <div className="applicationDocumentRow">
                             <div>
                                 <div className="applicationDetailLabel">CV file</div>
@@ -268,6 +307,9 @@ export default function AdminApplicationDetails() {
     });
     const [cvLoading, setCvLoading] = useState(false);
     const [cvError, setCvError] = useState<string | null>(null);
+    const [profilePictureUrl, setProfilePictureUrl] = useState<string | null>(null);
+    const [profilePictureLoading, setProfilePictureLoading] = useState(false);
+    const [profilePictureError, setProfilePictureError] = useState<string | null>(null);
 
     const loadApplication = useCallback(async () => {
         if (!applicationId) {
@@ -291,6 +333,51 @@ export default function AdminApplicationDetails() {
     useEffect(() => {
         void loadApplication();
     }, [loadApplication]);
+
+    useEffect(() => {
+        let cancelled = false;
+        let objectUrl: string | null = null;
+
+        async function loadProfilePicture() {
+            if (!application?.applicationId || !application.hasProfilePicture) {
+                setProfilePictureUrl(null);
+                setProfilePictureError(null);
+                setProfilePictureLoading(false);
+                return;
+            }
+
+            try {
+                setProfilePictureLoading(true);
+                setProfilePictureError(null);
+                const blob = await UserServices.getApplicationProfilePicture(application.applicationId);
+                if (cancelled) {
+                    return;
+                }
+                objectUrl = URL.createObjectURL(blob);
+                setProfilePictureUrl(objectUrl);
+            } catch (err: unknown) {
+                if (cancelled) {
+                    return;
+                }
+                const message = err instanceof Error ? err.message : "Failed to load profile picture.";
+                setProfilePictureUrl(null);
+                setProfilePictureError(message);
+            } finally {
+                if (!cancelled) {
+                    setProfilePictureLoading(false);
+                }
+            }
+        }
+
+        void loadProfilePicture();
+
+        return () => {
+            cancelled = true;
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+    }, [application?.applicationId, application?.hasProfilePicture]);
 
     const makeDecision = useCallback(
         async (action: "accept" | "deny") => {
@@ -376,7 +463,7 @@ export default function AdminApplicationDetails() {
                             <PageBack to="/management/applications" />
                             <h1 className="pageTitle">Application details</h1>
                             <p className="pageSubtitle">
-                                Review submitted applicant details without exposing CV bytes in page data.
+                                Review submitted applicant details without exposing file bytes in page data.
                             </p>
                         </header>
                         <div className="adminDashboardCard">
@@ -387,6 +474,9 @@ export default function AdminApplicationDetails() {
                                 decision={decision}
                                 cvLoading={cvLoading}
                                 cvError={cvError}
+                                profilePictureUrl={profilePictureUrl}
+                                profilePictureLoading={profilePictureLoading}
+                                profilePictureError={profilePictureError}
                                 canReview={permissions.includes("CAN_REVIEW_APPLICATIONS")}
                                 onDecisionNoteChange={(note) =>
                                     setDecision((current) => ({ ...current, note }))

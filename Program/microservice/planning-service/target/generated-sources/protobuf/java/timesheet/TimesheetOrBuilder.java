@@ -69,16 +69,16 @@ public interface TimesheetOrBuilder extends
       getTravelExpensesBytes();
 
   /**
-   * <code>string sourceEventId = 6;</code>
-   * @return The sourceEventId.
+   * <code>string sourceProjectId = 6;</code>
+   * @return The sourceProjectId.
    */
-  java.lang.String getSourceEventId();
+  java.lang.String getSourceProjectId();
   /**
-   * <code>string sourceEventId = 6;</code>
-   * @return The bytes for sourceEventId.
+   * <code>string sourceProjectId = 6;</code>
+   * @return The bytes for sourceProjectId.
    */
   com.google.protobuf.ByteString
-      getSourceEventIdBytes();
+      getSourceProjectIdBytes();
 
   /**
    * <code>string sourceShiftId = 7;</code>
@@ -105,16 +105,16 @@ public interface TimesheetOrBuilder extends
       getSourceScheduleEntryIdBytes();
 
   /**
-   * <code>string eventName = 9;</code>
-   * @return The eventName.
+   * <code>string projectName = 9;</code>
+   * @return The projectName.
    */
-  java.lang.String getEventName();
+  java.lang.String getProjectName();
   /**
-   * <code>string eventName = 9;</code>
-   * @return The bytes for eventName.
+   * <code>string projectName = 9;</code>
+   * @return The bytes for projectName.
    */
   com.google.protobuf.ByteString
-      getEventNameBytes();
+      getProjectNameBytes();
 
   /**
    * <code>string shiftName = 10;</code>

@@ -1,26 +1,38 @@
 package com.pm.planningservice.service;
 
+import com.pm.planningservice.dto.AuditLogCreateRequestDTO;
+import com.pm.planningservice.dto.AuditLogMessagePartDTO;
 import com.pm.planningservice.dto.PlanningAssignmentMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningAssignmentSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyContactDTO;
 import com.pm.planningservice.dto.PlanningClientCompanyContactSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningClientCompanySaveRequestDTO;
+import com.pm.planningservice.dto.PlanningLocationDTO;
+import com.pm.planningservice.dto.PlanningLocationSaveRequestDTO;
 import com.pm.planningservice.dto.PagedResponseDTO;
 import com.pm.planningservice.dto.PlanningProjectMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningProjectSaveRequestDTO;
 import com.pm.planningservice.dto.PlanningShiftMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningShiftSaveRequestDTO;
+import com.pm.planningservice.integration.AuditLogClient;
 import com.pm.planningservice.model.ClientCompany;
 import com.pm.planningservice.model.ClientCompanyContact;
+import com.pm.planningservice.model.PlanningClientLocationUsage;
+import com.pm.planningservice.model.PlanningLocation;
 import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.repository.ClientCompanyRepository;
+import com.pm.planningservice.repository.PlanningClientLocationUsageRepository;
+import com.pm.planningservice.repository.PlanningLocationRepository;
 import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageRequest;
@@ -29,27 +41,40 @@ import org.springframework.data.domain.Sort;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class PlanningManagementService {
+    private static final Logger log = LoggerFactory.getLogger(PlanningManagementService.class);
     private static final String DEFAULT_PROJECT_STATUS = "DRAFT";
     private static final int MAX_CLIENT_PROFILE_PICTURE_LENGTH = 800_000;
 
     private final ClientCompanyRepository clientCompanyRepository;
+    private final PlanningLocationRepository planningLocationRepository;
+    private final PlanningClientLocationUsageRepository planningClientLocationUsageRepository;
     private final ProjectRepository projectRepository;
     private final ShiftRepository shiftRepository;
     private final ScheduleEntryRepository scheduleEntryRepository;
+    @Autowired(required = false)
+    private AuditLogClient auditLogClient;
 
     public PlanningManagementService(
             ClientCompanyRepository clientCompanyRepository,
+            PlanningLocationRepository planningLocationRepository,
+            PlanningClientLocationUsageRepository planningClientLocationUsageRepository,
             ProjectRepository projectRepository,
             ShiftRepository shiftRepository,
             ScheduleEntryRepository scheduleEntryRepository
     ) {
         this.clientCompanyRepository = clientCompanyRepository;
+        this.planningLocationRepository = planningLocationRepository;
+        this.planningClientLocationUsageRepository = planningClientLocationUsageRepository;
         this.projectRepository = projectRepository;
         this.shiftRepository = shiftRepository;
         this.scheduleEntryRepository = scheduleEntryRepository;
@@ -57,6 +82,11 @@ public class PlanningManagementService {
 
     @Transactional
     public PlanningClientCompanyDTO createClientCompany(UUID companyId, PlanningClientCompanySaveRequestDTO request) {
+        return createClientCompany(companyId, request, null);
+    }
+
+    @Transactional
+    public PlanningClientCompanyDTO createClientCompany(UUID companyId, PlanningClientCompanySaveRequestDTO request, String accessToken) {
         String name = normalizeRequiredText(request.getName(), "Client company name is required");
         if (clientCompanyRepository.existsByOwnerCompanyIdAndNameIgnoreCase(companyId, name)) {
             throw new IllegalArgumentException("A client company with this name already exists");
@@ -71,7 +101,16 @@ public class PlanningManagementService {
         clientCompany.setProfilePictureUrl(normalizeClientProfilePicture(request.getProfilePictureUrl()));
         clientCompany.setContacts(normalizeContacts(request.getContacts()));
         clientCompany.setCreatedAt(LocalDateTime.now());
-        return toClientCompanyDto(clientCompanyRepository.save(clientCompany));
+        ClientCompany saved = clientCompanyRepository.save(clientCompany);
+        recordAudit(
+                accessToken,
+                "CLIENTS",
+                "CREATED",
+                "CLIENT_COMPANY",
+                saved.getClientCompanyId(),
+                List.of(textPart(" created client "), clientLink(saved))
+        );
+        return toClientCompanyDto(saved);
     }
 
     @Transactional
@@ -79,6 +118,16 @@ public class PlanningManagementService {
             UUID companyId,
             UUID clientCompanyId,
             PlanningClientCompanySaveRequestDTO request
+    ) {
+        return updateClientCompany(companyId, clientCompanyId, request, null);
+    }
+
+    @Transactional
+    public PlanningClientCompanyDTO updateClientCompany(
+            UUID companyId,
+            UUID clientCompanyId,
+            PlanningClientCompanySaveRequestDTO request,
+            String accessToken
     ) {
         ClientCompany clientCompany = clientCompanyRepository
                 .findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId)
@@ -99,7 +148,16 @@ public class PlanningManagementService {
         clientCompany.setNotes(normalizeOptionalText(request.getNotes()));
         clientCompany.setProfilePictureUrl(normalizeClientProfilePicture(request.getProfilePictureUrl()));
         clientCompany.setContacts(normalizeContacts(request.getContacts()));
-        return toClientCompanyDto(clientCompanyRepository.save(clientCompany));
+        ClientCompany saved = clientCompanyRepository.save(clientCompany);
+        recordAudit(
+                accessToken,
+                "CLIENTS",
+                "UPDATED",
+                "CLIENT_COMPANY",
+                saved.getClientCompanyId(),
+                List.of(textPart(" updated client "), clientLink(saved))
+        );
+        return toClientCompanyDto(saved);
     }
 
     @Transactional(readOnly = true)
@@ -116,9 +174,141 @@ public class PlanningManagementService {
         return PagedResponseDTO.from(companies, this::toClientCompanyDto);
     }
 
+    @Transactional(readOnly = true)
+    public List<PlanningLocationDTO> listLocations(UUID companyId, UUID clientCompanyId) {
+        List<PlanningLocation> locations = planningLocationRepository.findByOwnerCompanyIdOrderByNameAsc(companyId);
+        if (locations.isEmpty()) {
+            return List.of();
+        }
+
+        Map<UUID, PlanningClientLocationUsage> usageByLocationId;
+        if (clientCompanyId != null) {
+            requireClientCompany(companyId, clientCompanyId);
+            usageByLocationId = planningClientLocationUsageRepository.findByClientCompanyIdAndLocationIdIn(
+                            clientCompanyId,
+                            locations.stream().map(PlanningLocation::getLocationId).toList()
+                    ).stream()
+                    .collect(Collectors.toMap(PlanningClientLocationUsage::getLocationId, Function.identity()));
+        } else {
+            usageByLocationId = Map.of();
+        }
+
+        return locations.stream()
+                .sorted(Comparator
+                        .comparing((PlanningLocation location) -> usageByLocationId.containsKey(location.getLocationId())).reversed()
+                        .thenComparing(
+                                (PlanningLocation location) -> {
+                                    PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
+                                    return usage == null ? null : usage.getLastUsedAt();
+                                },
+                                Comparator.nullsLast(Comparator.reverseOrder())
+                        )
+                        .thenComparing(PlanningLocation::getName, String.CASE_INSENSITIVE_ORDER))
+                .map(location -> toLocationDto(location, usageByLocationId.get(location.getLocationId())))
+                .toList();
+    }
+
+    @Transactional
+    public PlanningLocationDTO createLocation(UUID companyId, PlanningLocationSaveRequestDTO request) {
+        return createLocation(companyId, request, null);
+    }
+
+    @Transactional
+    public PlanningLocationDTO createLocation(UUID companyId, PlanningLocationSaveRequestDTO request, String accessToken) {
+        String name = normalizeRequiredText(request.getName(), "Location name is required");
+        if (planningLocationRepository.existsByOwnerCompanyIdAndNameIgnoreCase(companyId, name)) {
+            throw new IllegalArgumentException("A saved location with this name already exists");
+        }
+
+        PlanningLocation location = new PlanningLocation();
+        location.setOwnerCompanyId(companyId);
+        location.setName(name);
+        location.setStreetName(normalizeOptionalText(request.getStreetName()));
+        location.setHouseNumber(normalizeOptionalText(request.getHouseNumber()));
+        location.setHouseNumberSuffix(normalizeOptionalText(request.getHouseNumberSuffix()));
+        location.setPostalCode(normalizeOptionalText(request.getPostalCode()));
+        location.setCity(normalizeOptionalText(request.getCity()));
+        location.setNotes(normalizeOptionalText(request.getNotes()));
+        PlanningLocation saved = planningLocationRepository.save(location);
+        PlanningClientLocationUsage usage = touchLocationUsage(companyId, request.getClientCompanyId(), saved);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "CREATED",
+                "PLANNING_LOCATION",
+                saved.getLocationId(),
+                List.of(textPart(" created saved location "), locationLink(saved))
+        );
+        return toLocationDto(saved, usage);
+    }
+
+    @Transactional
+    public PlanningLocationDTO updateLocation(UUID companyId, UUID locationId, PlanningLocationSaveRequestDTO request) {
+        return updateLocation(companyId, locationId, request, null);
+    }
+
+    @Transactional
+    public PlanningLocationDTO updateLocation(UUID companyId, UUID locationId, PlanningLocationSaveRequestDTO request, String accessToken) {
+        PlanningLocation location = requireLocation(companyId, locationId);
+        String name = normalizeRequiredText(request.getName(), "Location name is required");
+        if (planningLocationRepository.existsByOwnerCompanyIdAndNameIgnoreCaseAndLocationIdNot(companyId, name, locationId)) {
+            throw new IllegalArgumentException("A saved location with this name already exists");
+        }
+
+        location.setName(name);
+        location.setStreetName(normalizeOptionalText(request.getStreetName()));
+        location.setHouseNumber(normalizeOptionalText(request.getHouseNumber()));
+        location.setHouseNumberSuffix(normalizeOptionalText(request.getHouseNumberSuffix()));
+        location.setPostalCode(normalizeOptionalText(request.getPostalCode()));
+        location.setCity(normalizeOptionalText(request.getCity()));
+        location.setNotes(normalizeOptionalText(request.getNotes()));
+        PlanningLocation saved = planningLocationRepository.save(location);
+        PlanningClientLocationUsage usage = touchLocationUsage(companyId, request.getClientCompanyId(), saved);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "UPDATED",
+                "PLANNING_LOCATION",
+                saved.getLocationId(),
+                List.of(textPart(" updated saved location "), locationLink(saved))
+        );
+        return toLocationDto(saved, usage);
+    }
+
+    @Transactional
+    public void deleteLocation(UUID companyId, UUID locationId) {
+        deleteLocation(companyId, locationId, null);
+    }
+
+    @Transactional
+    public void deleteLocation(UUID companyId, UUID locationId, String accessToken) {
+        PlanningLocation location = requireLocation(companyId, locationId);
+        planningClientLocationUsageRepository.deleteByLocationId(location.getLocationId());
+        planningLocationRepository.delete(location);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "DELETED",
+                "PLANNING_LOCATION",
+                location.getLocationId(),
+                List.of(textPart(" deleted saved location "), locationLink(location))
+        );
+    }
+
     @Transactional
     public PlanningProjectMutationResponseDTO createProject(UUID companyId, UUID userId, PlanningProjectSaveRequestDTO request) {
+        return createProject(companyId, userId, request, null);
+    }
+
+    @Transactional
+    public PlanningProjectMutationResponseDTO createProject(
+            UUID companyId,
+            UUID userId,
+            PlanningProjectSaveRequestDTO request,
+            String accessToken
+    ) {
         validateProjectRequest(companyId, request);
+        PlanningLocation savedLocation = resolveSavedLocation(companyId, request.getSavedLocationId());
 
         Project project = new Project();
         project.setCompanyId(companyId);
@@ -131,7 +321,7 @@ public class PlanningManagementService {
         project.setDefaultStartTime(request.getDefaultStartTime());
         project.setDefaultEndTime(request.getDefaultEndTime());
         project.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone()));
-        project.setLocation(normalizeOptionalText(request.getLocation()));
+        project.setLocation(resolveLocationValue(request.getLocation(), savedLocation));
         project.setStatus(normalizeProjectStatus(request.getStatus()));
         project.setCreatedByUserId(userId);
         project.setCreatedAt(LocalDateTime.now());
@@ -140,14 +330,34 @@ public class PlanningManagementService {
         project.setFinalizedAt(null);
 
         Project saved = projectRepository.save(project);
+        touchLocationUsage(companyId, saved.getClientCompanyId(), savedLocation);
         PlanningProjectMutationResponseDTO response = new PlanningProjectMutationResponseDTO();
         response.setProjectId(saved.getProjectId());
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "CREATED",
+                "PROJECT",
+                saved.getProjectId(),
+                List.of(textPart(" created project "), projectLink(saved))
+        );
         return response;
     }
 
     @Transactional
     public PlanningProjectMutationResponseDTO updateProject(UUID companyId, UUID projectId, PlanningProjectSaveRequestDTO request) {
+        return updateProject(companyId, projectId, request, null);
+    }
+
+    @Transactional
+    public PlanningProjectMutationResponseDTO updateProject(
+            UUID companyId,
+            UUID projectId,
+            PlanningProjectSaveRequestDTO request,
+            String accessToken
+    ) {
         validateProjectRequest(companyId, request);
+        PlanningLocation savedLocation = resolveSavedLocation(companyId, request.getSavedLocationId());
 
         Project project = requireEditableProject(companyId, projectId);
         List<Shift> existingShifts = shiftRepository.findByProjectId(projectId);
@@ -166,29 +376,62 @@ public class PlanningManagementService {
         project.setDefaultStartTime(request.getDefaultStartTime());
         project.setDefaultEndTime(request.getDefaultEndTime());
         project.setProjectTimezone(PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone()));
-        project.setLocation(normalizeOptionalText(request.getLocation()));
+        project.setLocation(resolveLocationValue(request.getLocation(), savedLocation));
         project.setStatus(normalizeProjectStatus(request.getStatus()));
         project.setUpdatedAt(LocalDateTime.now());
         projectRepository.save(project);
+        touchLocationUsage(companyId, project.getClientCompanyId(), savedLocation);
 
         PlanningProjectMutationResponseDTO response = new PlanningProjectMutationResponseDTO();
         response.setProjectId(project.getProjectId());
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "UPDATED",
+                "PROJECT",
+                project.getProjectId(),
+                List.of(textPart(" updated project "), projectLink(project))
+        );
         return response;
     }
 
     @Transactional
     public void deleteProject(UUID companyId, UUID projectId) {
+        deleteProject(companyId, projectId, null);
+    }
+
+    @Transactional
+    public void deleteProject(UUID companyId, UUID projectId, String accessToken) {
         Project project = requireEditableProject(companyId, projectId);
         List<Shift> shifts = shiftRepository.findByProjectId(projectId);
         deleteShiftChildren(shifts);
         shiftRepository.deleteAll(shifts);
         projectRepository.delete(project);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "DELETED",
+                "PROJECT",
+                project.getProjectId(),
+                List.of(textPart(" deleted project "), projectLink(project))
+        );
     }
 
     @Transactional
     public PlanningShiftMutationResponseDTO createShift(UUID companyId, UUID projectId, PlanningShiftSaveRequestDTO request) {
+        return createShift(companyId, projectId, request, null);
+    }
+
+    @Transactional
+    public PlanningShiftMutationResponseDTO createShift(
+            UUID companyId,
+            UUID projectId,
+            PlanningShiftSaveRequestDTO request,
+            String accessToken
+    ) {
         Project project = requireEditableProject(companyId, projectId);
         validateShift(project, request);
+        PlanningLocation savedLocation = resolveSavedLocation(companyId, request.getSavedLocationId());
 
         Shift shift = new Shift();
         shift.setProjectId(project.getProjectId());
@@ -196,44 +439,86 @@ public class PlanningManagementService {
         shift.setEndTime(request.getEndTime());
         shift.setName(normalizeOptionalText(request.getName()));
         shift.setBreakMinutes(resolveBreakMinutes(request.getBreakMinutes()));
-        shift.setLocation(normalizeOptionalText(request.getLocation()));
+        shift.setLocation(resolveLocationValue(request.getLocation(), savedLocation));
         shift.setPeopleNeeded(resolvePeopleNeeded(request.getPeopleNeeded()));
         shift.setFunctionName(normalizeRequiredText(request.getFunctionName(), "Job function is required"));
 
         Shift saved = shiftRepository.save(shift);
+        touchLocationUsage(companyId, project.getClientCompanyId(), savedLocation);
         PlanningShiftMutationResponseDTO response = new PlanningShiftMutationResponseDTO();
         response.setShiftId(saved.getShiftId());
         response.setProjectId(project.getProjectId());
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "CREATED",
+                "SHIFT",
+                saved.getShiftId(),
+                List.of(textPart(" created shift "), shiftLink(project, saved))
+        );
         return response;
     }
 
     @Transactional
     public PlanningShiftMutationResponseDTO updateShift(UUID companyId, UUID shiftId, PlanningShiftSaveRequestDTO request) {
+        return updateShift(companyId, shiftId, request, null);
+    }
+
+    @Transactional
+    public PlanningShiftMutationResponseDTO updateShift(
+            UUID companyId,
+            UUID shiftId,
+            PlanningShiftSaveRequestDTO request,
+            String accessToken
+    ) {
         Shift shift = requireShift(shiftId);
         Project project = requireEditableProject(companyId, shift.getProjectId());
         validateShift(project, request);
+        PlanningLocation savedLocation = resolveSavedLocation(companyId, request.getSavedLocationId());
 
         shift.setStartTime(request.getStartTime());
         shift.setEndTime(request.getEndTime());
         shift.setName(normalizeOptionalText(request.getName()));
         shift.setBreakMinutes(resolveBreakMinutes(request.getBreakMinutes()));
-        shift.setLocation(normalizeOptionalText(request.getLocation()));
+        shift.setLocation(resolveLocationValue(request.getLocation(), savedLocation));
         shift.setPeopleNeeded(resolvePeopleNeeded(request.getPeopleNeeded()));
         shift.setFunctionName(normalizeRequiredText(request.getFunctionName(), "Job function is required"));
         shiftRepository.save(shift);
+        touchLocationUsage(companyId, project.getClientCompanyId(), savedLocation);
 
         PlanningShiftMutationResponseDTO response = new PlanningShiftMutationResponseDTO();
         response.setShiftId(shift.getShiftId());
         response.setProjectId(project.getProjectId());
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "UPDATED",
+                "SHIFT",
+                shift.getShiftId(),
+                List.of(textPart(" updated shift "), shiftLink(project, shift))
+        );
         return response;
     }
 
     @Transactional
     public void deleteShift(UUID companyId, UUID shiftId) {
+        deleteShift(companyId, shiftId, null);
+    }
+
+    @Transactional
+    public void deleteShift(UUID companyId, UUID shiftId, String accessToken) {
         Shift shift = requireShift(shiftId);
-        requireEditableProject(companyId, shift.getProjectId());
+        Project project = requireEditableProject(companyId, shift.getProjectId());
         deleteShiftChildren(List.of(shift));
         shiftRepository.delete(shift);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "DELETED",
+                "SHIFT",
+                shift.getShiftId(),
+                List.of(textPart(" deleted shift "), shiftLink(project, shift))
+        );
     }
 
     @Transactional
@@ -242,8 +527,18 @@ public class PlanningManagementService {
             UUID shiftId,
             PlanningAssignmentSaveRequestDTO request
     ) {
+        return createAssignment(companyId, shiftId, request, null);
+    }
+
+    @Transactional
+    public PlanningAssignmentMutationResponseDTO createAssignment(
+            UUID companyId,
+            UUID shiftId,
+            PlanningAssignmentSaveRequestDTO request,
+            String accessToken
+    ) {
         Shift shift = requireShift(shiftId);
-        requireEditableProject(companyId, shift.getProjectId());
+        Project project = requireEditableProject(companyId, shift.getProjectId());
         UUID userId = Objects.requireNonNull(request.getUserId(), "User id is required");
         ScheduleEntryStatus requestedStatus = resolveStatus(request.getStatus());
         ScheduleEntry existingEntry = scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId).orElse(null);
@@ -252,6 +547,19 @@ public class PlanningManagementService {
             existingEntry.setTimesheetExported(false);
             existingEntry.setTimesheetExportedAt(null);
             scheduleEntryRepository.save(existingEntry);
+            recordAudit(
+                    accessToken,
+                    "PLANNING",
+                    "ASSIGNED",
+                    "ASSIGNMENT",
+                    existingEntry.getScheduleEntryId(),
+                    List.of(
+                            textPart(" assigned "),
+                            userLink(existingEntry.getUserId()),
+                            textPart(" to "),
+                            shiftLink(project, shift)
+                    )
+            );
 
             PlanningAssignmentMutationResponseDTO existingResponse = new PlanningAssignmentMutationResponseDTO();
             existingResponse.setScheduleEntryId(existingEntry.getScheduleEntryId());
@@ -266,6 +574,19 @@ public class PlanningManagementService {
         scheduleEntry.setTimesheetExported(false);
         scheduleEntry.setTimesheetExportedAt(null);
         ScheduleEntry saved = scheduleEntryRepository.save(scheduleEntry);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "ASSIGNED",
+                "ASSIGNMENT",
+                saved.getScheduleEntryId(),
+                List.of(
+                        textPart(" assigned "),
+                        userLink(saved.getUserId()),
+                        textPart(" to "),
+                        shiftLink(project, shift)
+                )
+        );
 
         PlanningAssignmentMutationResponseDTO response = new PlanningAssignmentMutationResponseDTO();
         response.setScheduleEntryId(saved.getScheduleEntryId());
@@ -279,9 +600,19 @@ public class PlanningManagementService {
             UUID scheduleEntryId,
             PlanningAssignmentSaveRequestDTO request
     ) {
+        return updateAssignment(companyId, scheduleEntryId, request, null);
+    }
+
+    @Transactional
+    public PlanningAssignmentMutationResponseDTO updateAssignment(
+            UUID companyId,
+            UUID scheduleEntryId,
+            PlanningAssignmentSaveRequestDTO request,
+            String accessToken
+    ) {
         ScheduleEntry scheduleEntry = requireScheduleEntry(scheduleEntryId);
         Shift shift = requireShift(scheduleEntry.getShiftId());
-        requireEditableProject(companyId, shift.getProjectId());
+        Project project = requireEditableProject(companyId, shift.getProjectId());
         ensureAssignmentAbsent(shift.getShiftId(), request.getUserId(), scheduleEntry.getScheduleEntryId());
 
         scheduleEntry.setUserId(request.getUserId());
@@ -289,6 +620,19 @@ public class PlanningManagementService {
         scheduleEntry.setTimesheetExported(false);
         scheduleEntry.setTimesheetExportedAt(null);
         scheduleEntryRepository.save(scheduleEntry);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "UPDATED",
+                "ASSIGNMENT",
+                scheduleEntry.getScheduleEntryId(),
+                List.of(
+                        textPart(" updated assignment of "),
+                        userLink(scheduleEntry.getUserId()),
+                        textPart(" on "),
+                        shiftLink(project, shift)
+                )
+        );
 
         PlanningAssignmentMutationResponseDTO response = new PlanningAssignmentMutationResponseDTO();
         response.setScheduleEntryId(scheduleEntry.getScheduleEntryId());
@@ -298,10 +642,115 @@ public class PlanningManagementService {
 
     @Transactional
     public void deleteAssignment(UUID companyId, UUID scheduleEntryId) {
+        deleteAssignment(companyId, scheduleEntryId, null);
+    }
+
+    @Transactional
+    public void deleteAssignment(UUID companyId, UUID scheduleEntryId, String accessToken) {
         ScheduleEntry scheduleEntry = requireScheduleEntry(scheduleEntryId);
         Shift shift = requireShift(scheduleEntry.getShiftId());
-        requireEditableProject(companyId, shift.getProjectId());
+        Project project = requireEditableProject(companyId, shift.getProjectId());
         scheduleEntryRepository.delete(scheduleEntry);
+        recordAudit(
+                accessToken,
+                "PLANNING",
+                "REMOVED",
+                "ASSIGNMENT",
+                scheduleEntry.getScheduleEntryId(),
+                List.of(
+                        textPart(" removed "),
+                        userLink(scheduleEntry.getUserId()),
+                        textPart(" from "),
+                        shiftLink(project, shift)
+                )
+        );
+    }
+
+    private void recordAudit(
+            String accessToken,
+            String category,
+            String action,
+            String entityType,
+            UUID entityId,
+            List<AuditLogMessagePartDTO> messageParts
+    ) {
+        if (auditLogClient == null || accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        AuditLogCreateRequestDTO request = new AuditLogCreateRequestDTO();
+        request.setCategory(category);
+        request.setAction(action);
+        request.setEntityType(entityType);
+        request.setEntityId(entityId == null ? null : entityId.toString());
+        request.setMessageParts(messageParts);
+        try {
+            auditLogClient.record(accessToken, request);
+        } catch (RuntimeException ex) {
+            log.warn("Failed to record planning audit event {} for {} {}", action, entityType, entityId, ex);
+        }
+    }
+
+    private static AuditLogMessagePartDTO textPart(String text) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("TEXT");
+        part.setText(text);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO userLink(UUID userId) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("USER");
+        part.setEntityId(userId == null ? null : userId.toString());
+        part.setRoute(userId == null ? null : "/management/users/" + userId);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO clientLink(ClientCompany clientCompany) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("CLIENT_COMPANY");
+        part.setEntityId(clientCompany.getClientCompanyId() == null ? null : clientCompany.getClientCompanyId().toString());
+        part.setLabel(clientCompany.getName());
+        part.setRoute("/management/clients");
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO locationLink(PlanningLocation location) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("PLANNING_LOCATION");
+        part.setEntityId(location.getLocationId() == null ? null : location.getLocationId().toString());
+        part.setLabel(location.getName());
+        part.setRoute("/management/locations");
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO projectLink(Project project) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("PROJECT");
+        part.setEntityId(project.getProjectId() == null ? null : project.getProjectId().toString());
+        part.setLabel(project.getName());
+        part.setRoute(project.getProjectId() == null ? "/management/planning" : "/management/planning/projects/" + project.getProjectId());
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO shiftLink(Project project, Shift shift) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("SHIFT");
+        part.setEntityId(shift.getShiftId() == null ? null : shift.getShiftId().toString());
+        part.setLabel(shiftLabel(shift));
+        if (project != null && project.getProjectId() != null && shift.getShiftId() != null) {
+            part.setRoute("/management/planning/projects/" + project.getProjectId() + "/shifts/" + shift.getShiftId());
+        }
+        return part;
+    }
+
+    private static String shiftLabel(Shift shift) {
+        String name = shift.getName() == null || shift.getName().isBlank() ? shift.getFunctionName() : shift.getName();
+        return name == null || name.isBlank() ? "shift" : name;
     }
 
     private Project requireEditableProject(UUID companyId, UUID projectId) {
@@ -329,6 +778,9 @@ public class PlanningManagementService {
         PlanningTimeZoneSupport.normalizeProjectTimezone(request.getProjectTimezone());
         if (request.getClientCompanyId() != null) {
             resolveClientCompanyId(companyId, request.getClientCompanyId());
+        }
+        if (request.getSavedLocationId() != null) {
+            requireLocation(companyId, request.getSavedLocationId());
         }
     }
 
@@ -374,6 +826,9 @@ public class PlanningManagementService {
         if (!isWithinProjectRange(startTime, endTime, project.getStartDate(), project.getEndDate())) {
             throw new IllegalArgumentException("Shift must stay within the selected project date range");
         }
+        if (request.getSavedLocationId() != null) {
+            requireLocation(project.getCompanyId(), request.getSavedLocationId());
+        }
     }
 
     private boolean isWithinProjectRange(
@@ -412,6 +867,23 @@ public class PlanningManagementService {
                 .map(this::toClientCompanyContactDto)
                 .toList());
         dto.setCreatedAt(clientCompany.getCreatedAt());
+        return dto;
+    }
+
+    private PlanningLocationDTO toLocationDto(PlanningLocation location, PlanningClientLocationUsage usage) {
+        PlanningLocationDTO dto = new PlanningLocationDTO();
+        dto.setLocationId(location.getLocationId());
+        dto.setName(location.getName());
+        dto.setStreetName(location.getStreetName());
+        dto.setHouseNumber(location.getHouseNumber());
+        dto.setHouseNumberSuffix(location.getHouseNumberSuffix());
+        dto.setPostalCode(location.getPostalCode());
+        dto.setCity(location.getCity());
+        dto.setNotes(location.getNotes());
+        dto.setPreferredForClient(usage != null);
+        dto.setLastUsedAtForClient(usage != null ? usage.getLastUsedAt() : null);
+        dto.setCreatedAt(location.getCreatedAt());
+        dto.setUpdatedAt(location.getUpdatedAt());
         return dto;
     }
 
@@ -464,9 +936,45 @@ public class PlanningManagementService {
         if (clientCompanyId == null) {
             return null;
         }
+        return requireClientCompany(companyId, clientCompanyId).getClientCompanyId();
+    }
+
+    private ClientCompany requireClientCompany(UUID companyId, UUID clientCompanyId) {
         return clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId)
-                .map(ClientCompany::getClientCompanyId)
                 .orElseThrow(() -> new IllegalArgumentException("Selected client company was not found"));
+    }
+
+    private PlanningLocation requireLocation(UUID companyId, UUID locationId) {
+        return planningLocationRepository.findByLocationIdAndOwnerCompanyId(locationId, companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Saved location not found"));
+    }
+
+    private PlanningLocation resolveSavedLocation(UUID companyId, UUID locationId) {
+        if (locationId == null) {
+            return null;
+        }
+        return requireLocation(companyId, locationId);
+    }
+
+    private String resolveLocationValue(String requestLocation, PlanningLocation savedLocation) {
+        if (savedLocation != null) {
+            return savedLocation.getName();
+        }
+        return normalizeOptionalText(requestLocation);
+    }
+
+    private PlanningClientLocationUsage touchLocationUsage(UUID companyId, UUID clientCompanyId, PlanningLocation location) {
+        if (clientCompanyId == null || location == null) {
+            return null;
+        }
+        requireClientCompany(companyId, clientCompanyId);
+        PlanningClientLocationUsage usage = planningClientLocationUsageRepository
+                .findByClientCompanyIdAndLocationId(clientCompanyId, location.getLocationId())
+                .orElseGet(PlanningClientLocationUsage::new);
+        usage.setClientCompanyId(clientCompanyId);
+        usage.setLocationId(location.getLocationId());
+        usage.setLastUsedAt(LocalDateTime.now());
+        return planningClientLocationUsageRepository.save(usage);
     }
 
     private String normalizeRequiredText(String value, String message) {

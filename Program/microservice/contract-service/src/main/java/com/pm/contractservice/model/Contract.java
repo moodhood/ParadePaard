@@ -102,6 +102,10 @@ public class Contract {
     @Column(length = 255)
     private String agreementCheckboxText;
 
+    private UUID replacesContractId;
+
+    private UUID derivedFromRuleVersionId;
+
     @Column(length = 100)
     private String contractVersion;
 
@@ -379,6 +383,22 @@ public class Contract {
 
     public void setAgreementCheckboxText(String agreementCheckboxText) {
         this.agreementCheckboxText = agreementCheckboxText;
+    }
+
+    public UUID getReplacesContractId() {
+        return replacesContractId;
+    }
+
+    public void setReplacesContractId(UUID replacesContractId) {
+        this.replacesContractId = replacesContractId;
+    }
+
+    public UUID getDerivedFromRuleVersionId() {
+        return derivedFromRuleVersionId;
+    }
+
+    public void setDerivedFromRuleVersionId(UUID derivedFromRuleVersionId) {
+        this.derivedFromRuleVersionId = derivedFromRuleVersionId;
     }
 
     public String getContractVersion() {

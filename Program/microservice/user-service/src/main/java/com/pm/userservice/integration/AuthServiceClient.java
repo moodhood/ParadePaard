@@ -85,4 +85,23 @@ public class AuthServiceClient {
             throw e;
         }
     }
+
+    public void deleteUserAccount(UUID userId, String accessToken) {
+        String url = baseUrl + "/auth/admin/users/" + userId;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        if (accessToken != null && !accessToken.isBlank()) {
+            headers.setBearerAuth(accessToken);
+        }
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        try {
+            restTemplate.exchange(url, HttpMethod.DELETE, entity, Void.class);
+        } catch (RestClientException e) {
+            log.error("Auth service delete user account failed", e);
+            throw e;
+        }
+    }
 }

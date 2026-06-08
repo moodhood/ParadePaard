@@ -5,6 +5,7 @@ import com.pm.planningservice.dto.PlanningClientCompanySaveRequestDTO;
 import com.pm.planningservice.dto.PagedResponseDTO;
 import com.pm.planningservice.security.PlanningAuthentication;
 import com.pm.planningservice.service.PlanningManagementService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -58,11 +59,16 @@ public class PlanningClientCompanyController {
     @PreAuthorize("hasAuthority('CAN_MANAGE_PLANNING')")
     public ResponseEntity<?> createClientCompany(
             Authentication authentication,
-            @Valid @RequestBody PlanningClientCompanySaveRequestDTO request
+            @Valid @RequestBody PlanningClientCompanySaveRequestDTO request,
+            HttpServletRequest httpRequest
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
-            PlanningClientCompanyDTO response = planningManagementService.createClientCompany(companyId, request);
+            PlanningClientCompanyDTO response = planningManagementService.createClientCompany(
+                    companyId,
+                    request,
+                    PlanningAuthentication.bearerToken(httpRequest)
+            );
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
@@ -74,12 +80,18 @@ public class PlanningClientCompanyController {
     public ResponseEntity<?> updateClientCompany(
             Authentication authentication,
             @PathVariable UUID clientCompanyId,
-            @Valid @RequestBody PlanningClientCompanySaveRequestDTO request
+            @Valid @RequestBody PlanningClientCompanySaveRequestDTO request,
+            HttpServletRequest httpRequest
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
             PlanningClientCompanyDTO response =
-                    planningManagementService.updateClientCompany(companyId, clientCompanyId, request);
+                    planningManagementService.updateClientCompany(
+                            companyId,
+                            clientCompanyId,
+                            request,
+                            PlanningAuthentication.bearerToken(httpRequest)
+                    );
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));

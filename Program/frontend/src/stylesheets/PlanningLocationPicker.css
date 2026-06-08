@@ -1,0 +1,105 @@
+.planningLocationField {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.planningLocationFieldLabel,
+.planningLocationModalLabel {
+  color: #2b3443;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.planningLocationFieldRow {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.planningLocationFieldRow .modal_input {
+  flex: 1 1 auto;
+}
+
+.planningLocationFieldMeta {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planningLocationFieldMeta--error {
+  color: #b91c1c;
+}
+
+.planningLocationFieldAdd {
+  flex: 0 0 auto;
+  min-width: 72px;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #1d4ed8;
+  background: #2563eb;
+  color: #ffffff;
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.18);
+  transition: background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.planningLocationFieldAdd:hover:not(:disabled) {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.planningLocationFieldAdd:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.planningLocationSuggestionsMeta {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planningLocationSuggestionsMeta--error {
+  color: #b91c1c;
+}
+
+.planningLocationModal {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planningLocationModalField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planningLocationModalTextarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.planningLocationModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+@media (max-width: 720px) {
+  .planningLocationFieldRow {
+    flex-direction: column;
+  }
+
+  .planningLocationFieldAdd {
+    width: 100%;
+  }
+
+  .planningLocationModalActions {
+    flex-direction: column-reverse;
+  }
+}

@@ -45,6 +45,12 @@ class JobApplicationServiceTest {
     @Test
     void submitApplicationStoresSubmittedApplicationWithOptionalCv() throws Exception {
         when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        MockMultipartFile profilePicture = new MockMultipartFile(
+                "profilePicture",
+                "alex.png",
+                "image/png",
+                "image bytes".getBytes(StandardCharsets.UTF_8)
+        );
         MockMultipartFile cv = new MockMultipartFile(
                 "cv",
                 "resume.pdf",
@@ -52,7 +58,7 @@ class JobApplicationServiceTest {
                 "pdf bytes".getBytes(StandardCharsets.UTF_8)
         );
 
-        JobApplicationResponseDTO response = service.submitApplication(applicationRequest(), cv);
+        JobApplicationResponseDTO response = service.submitApplication(applicationRequest(), profilePicture, cv);
 
         ArgumentCaptor<JobApplication> captor = ArgumentCaptor.forClass(JobApplication.class);
         verify(repository).save(captor.capture());
@@ -60,11 +66,16 @@ class JobApplicationServiceTest {
         assertThat(saved.getStatus()).isEqualTo(ApplicationStatus.APPLICATION_SUBMITTED);
         assertThat(saved.getEmail()).isEqualTo("alex@example.com");
         assertThat(saved.getDateOfBirth()).isEqualTo(LocalDate.of(1995, 2, 12));
+        assertThat(saved.getProfilePictureFileName()).isEqualTo("alex.png");
+        assertThat(saved.getProfilePictureContentType()).isEqualTo("image/png");
+        assertThat(saved.getProfilePictureBytes()).isEqualTo("image bytes".getBytes(StandardCharsets.UTF_8));
         assertThat(saved.getCvFileName()).isEqualTo("resume.pdf");
         assertThat(saved.getCvContentType()).isEqualTo("application/pdf");
         assertThat(saved.getCvBytes()).isEqualTo("pdf bytes".getBytes(StandardCharsets.UTF_8));
         assertThat(saved.getNote()).isEqualTo("Weekends");
         assertThat(response.getStatus()).isEqualTo("APPLICATION_SUBMITTED");
+        assertThat(response.isHasProfilePicture()).isTrue();
+        assertThat(response.getProfilePictureFileName()).isEqualTo("alex.png");
         assertThat(response.getNote()).isEqualTo("Weekends");
     }
 
@@ -73,7 +84,14 @@ class JobApplicationServiceTest {
         when(repository.existsByEmailIgnoreCase("alex@example.com"))
                 .thenReturn(true);
 
-        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), null))
+        MockMultipartFile profilePicture = new MockMultipartFile(
+                "profilePicture",
+                "alex.png",
+                "image/png",
+                "image bytes".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), profilePicture, null))
                 .isInstanceOf(EmailAlreadyExistsException.class)
                 .hasMessage("Email already exists alex@example.com");
         verify(repository, never()).save(any(JobApplication.class));
@@ -83,7 +101,14 @@ class JobApplicationServiceTest {
     void submitApplicationRejectsEmailAlreadyUsedByUserAccount() {
         when(userRepository.existsByEmailIgnoreCase("alex@example.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), null))
+        MockMultipartFile profilePicture = new MockMultipartFile(
+                "profilePicture",
+                "alex.png",
+                "image/png",
+                "image bytes".getBytes(StandardCharsets.UTF_8)
+        );
+
+        assertThatThrownBy(() -> service.submitApplication(applicationRequest(), profilePicture, null))
                 .isInstanceOf(EmailAlreadyExistsException.class)
                 .hasMessage("Email already exists alex@example.com");
         verify(repository, never()).save(any(JobApplication.class));
@@ -117,6 +142,8 @@ class JobApplicationServiceTest {
         UUID companyId = UUID.randomUUID();
         JobApplication application = existingApplication(applicationId);
         application.setMiddleNamePrefix("van");
+        application.setProfilePictureBytes("image bytes".getBytes(StandardCharsets.UTF_8));
+        application.setProfilePictureContentType("image/png");
         when(repository.findByApplicationIdForUpdate(applicationId)).thenReturn(Optional.of(application));
         when(repository.save(any(JobApplication.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -151,6 +178,8 @@ class JobApplicationServiceTest {
         assertThat(savedUser.getPosition()).isEqualTo("Runner");
         assertThat(savedUser.isWorkedForUsBefore()).isTrue();
         assertThat(savedUser.getCompanyId()).isEqualTo(companyId);
+        assertThat(savedUser.getProfilePicture()).isEqualTo("image bytes".getBytes(StandardCharsets.UTF_8));
+        assertThat(savedUser.getProfilePictureContentType()).isEqualTo("image/png");
 
         assertThat(application.getStatus()).isEqualTo(ApplicationStatus.APPLICATION_ACCEPTED);
         assertThat(application.getAcceptedUserId()).isEqualTo(acceptedUserId);

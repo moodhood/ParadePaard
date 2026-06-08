@@ -1,5 +1,6 @@
 :root {
   --sidebar-width: 360px;
+  --app-shell-background: #f2f2f2;
 }
 
 .pageShell {

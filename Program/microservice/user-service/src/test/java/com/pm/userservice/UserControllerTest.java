@@ -126,6 +126,22 @@ class UserControllerTest {
         verify(userService).updateWorkHistoryColumnsPreference(userId, request);
     }
 
+    @Test
+    void deleteUserRequiresDedicatedDeletePermissionAndDisallowsSelfDelete() throws Exception {
+        Method method = UserController.class.getMethod(
+                "deleteUser",
+                UUID.class,
+                org.springframework.security.core.Authentication.class,
+                jakarta.servlet.http.HttpServletRequest.class
+        );
+        PreAuthorize annotation = method.getAnnotation(PreAuthorize.class);
+
+        assertThat(annotation).isNotNull();
+        assertThat(annotation.value()).contains("CAN_DELETE_USERS");
+        assertThat(annotation.value()).contains("!@userPermission.isSelf(#id, authentication)");
+        assertThat(annotation.value()).doesNotContain("CAN_MANAGE_USERS");
+    }
+
     private static JwtAuthenticationToken authenticationFor(UUID userId) {
         Jwt jwt = Jwt.withTokenValue("token")
                 .header("alg", "none")

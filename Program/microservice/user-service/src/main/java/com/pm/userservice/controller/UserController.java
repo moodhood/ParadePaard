@@ -10,11 +10,13 @@ import com.pm.userservice.dto.UpdatePayslipFrequencyRequestDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.dto.WorkHistoryColumnsPreferenceDTO;
+import com.pm.userservice.security.TokenExtractor;
 import com.pm.userservice.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.groups.Default;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -461,7 +463,8 @@ public class UserController {
             Authentication authentication
     ) {
         UUID companyId = resolveCompanyId(authentication);
-        UserResponseDTO userResponseDTO = userService.updateOnboardingReview(id, companyId, body);
+        UUID actorUserId = requireUserId(authentication);
+        UserResponseDTO userResponseDTO = userService.updateOnboardingReview(id, companyId, actorUserId, body);
         return ResponseEntity.ok(userResponseDTO);
     }
 
@@ -484,10 +487,16 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a user admin only")
-    @PreAuthorize("hasAuthority('CAN_MANAGE_USERS')")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID id, Authentication authentication){
+    @PreAuthorize("hasAuthority('CAN_DELETE_USERS') and !@userPermission.isSelf(#id, authentication)")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest httpServletRequest
+    ){
         UUID companyId = resolveCompanyId(authentication);
-        userService.deleteUser(id, companyId);
+        UUID actorUserId = requireUserId(authentication);
+        String accessToken = TokenExtractor.extractAccessToken(httpServletRequest);
+        userService.deleteUser(id, companyId, actorUserId, accessToken);
         return ResponseEntity.noContent().build();
     }
 }

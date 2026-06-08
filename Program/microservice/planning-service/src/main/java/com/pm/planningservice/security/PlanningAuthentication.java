@@ -1,5 +1,7 @@
 package com.pm.planningservice.security;
 
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 
@@ -28,5 +30,19 @@ public final class PlanningAuthentication {
             }
         }
         throw new IllegalArgumentException("Missing userId");
+    }
+
+    public static String bearerToken(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return authorization.substring(7).trim();
+        }
+        return null;
     }
 }

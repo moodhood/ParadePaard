@@ -10,6 +10,7 @@ import DeleteRole from "./DeleteRole";
 import SetUserRoles from "./SetUserRoles";
 import GetUserRoles from "./GetUserRoles";
 import DisableUser from "./DisableUser";
+import SwitchPlatformCompanyScope, { type SwitchPlatformCompanyScopeResponse } from "./SwitchPlatformCompanyScope";
 import type {
     CreateRoleRequestDTO,
     RoleResponseDTO,
@@ -56,6 +57,15 @@ export const AuthServices = {
     disableUser: async (userId: string): Promise<void> => {
         return await DisableUser(API_BASE_URL, userId);
     },
+    switchPlatformCompanyScope: async (companyId: string | null): Promise<SwitchPlatformCompanyScopeResponse> => {
+        return await SwitchPlatformCompanyScope(API_BASE_URL, companyId);
+    },
 };
 
-export type { CreateRoleRequestDTO, RoleResponseDTO, UpdateRoleRequestDTO, UserRolesResponseDTO };
+export type {
+    CreateRoleRequestDTO,
+    RoleResponseDTO,
+    SwitchPlatformCompanyScopeResponse,
+    UpdateRoleRequestDTO,
+    UserRolesResponseDTO,
+};

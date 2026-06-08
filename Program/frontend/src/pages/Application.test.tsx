@@ -25,6 +25,10 @@ describe("Application", () => {
         expect(html.match(/placeholder="dd\/mm\/yyyy"/g)).toHaveLength(2);
         expect(html).toContain("Role interest");
         expect(html).toContain("Contract preference");
+        expect(html.indexOf("CV upload")).toBeLessThan(html.indexOf("Profile picture"));
+        expect(html).toContain("Profile picture");
+        expect(html).toContain("Choose profile picture");
+        expect(html).toContain("Adjust visible profile area");
         expect(html).toContain("Note");
         expect(html).not.toContain("Availability notes");
         expect(html).not.toContain("Relevant experience");
@@ -111,8 +115,11 @@ describe("Application", () => {
                 workedForUsBefore: true,
                 contactConsent: true,
                 informationAccurate: true,
+                hasProfilePicture: true,
+                profilePictureFileName: "alex.png",
                 status: "APPLICATION_SUBMITTED",
             });
+        const profilePicture = new File(["image"], "alex.png", { type: "image/png" });
 
         await submitApplicationForm({
             firstNames: "Alex Maria",
@@ -128,7 +135,7 @@ describe("Application", () => {
             workedForUsBefore: true,
             contactConsent: true,
             informationAccurate: true,
-        });
+        }, profilePicture);
 
         expect(submitApplication).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -146,6 +153,7 @@ describe("Application", () => {
                 contactConsent: true,
                 informationAccurate: true,
             }),
+            profilePicture,
             null
         );
         expect(renderToStaticMarkup(<Application initialSubmitted />)).toContain("Application submitted");

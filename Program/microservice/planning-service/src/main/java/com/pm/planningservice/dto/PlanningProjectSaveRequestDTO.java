@@ -31,6 +31,8 @@ public class PlanningProjectSaveRequestDTO {
 
     private String location;
 
+    private UUID savedLocationId;
+
     private String status;
 
     public String getName() {
@@ -111,6 +113,14 @@ public class PlanningProjectSaveRequestDTO {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public UUID getSavedLocationId() {
+        return savedLocationId;
+    }
+
+    public void setSavedLocationId(UUID savedLocationId) {
+        this.savedLocationId = savedLocationId;
     }
 
     public String getStatus() {

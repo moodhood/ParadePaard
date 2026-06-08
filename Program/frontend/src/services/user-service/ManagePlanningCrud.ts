@@ -11,6 +11,7 @@ export type PlanningProjectSaveDTO = {
     defaultStartTime?: string | null;
     defaultEndTime?: string | null;
     location?: string | null;
+    savedLocationId?: string | null;
     status?: string | null;
 };
 
@@ -26,6 +27,7 @@ export type PlanningShiftSaveDTO = {
     name?: string | null;
     breakMinutes?: number | null;
     location?: string | null;
+    savedLocationId?: string | null;
     peopleNeeded?: number | null;
     clientBillingRatePerHour?: number | null;
 };

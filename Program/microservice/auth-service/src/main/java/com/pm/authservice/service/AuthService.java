@@ -19,6 +19,7 @@ import com.pm.authservice.model.Permission;
 import com.pm.authservice.model.Role;
 import com.pm.authservice.model.User;
 import com.pm.authservice.repository.CompanyRepository;
+import com.pm.authservice.repository.PasswordResetTokenRepository;
 import com.pm.authservice.repository.PermissionRepository;
 import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
@@ -43,6 +44,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 @Service
 public class AuthService {
@@ -55,6 +57,7 @@ public class AuthService {
     private final CompanyRepository companyRepository;
     private final KafkaProducer kafkaProducer;
     private final PasswordResetService passwordResetService;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
     private static final String ADMIN_ROLE_NAME = "ADMIN";
@@ -68,6 +71,7 @@ public class AuthService {
             "CAN_DELETE_ROLES",
             "CAN_VIEW_USERS",
             "CAN_MANAGE_USERS",
+            "CAN_DELETE_USERS",
             "CAN_MANAGE_COMPANY",
             "CAN_ONBOARD_USERS",
             "CAN_VIEW_ALL_LEAVE_REQUESTS",
@@ -93,7 +97,8 @@ public class AuthService {
             "CAN_MANAGE_MESSAGES",
             "CAN_MANAGE_PLANNING",
             "CAN_VIEW_PAYROLL_FINANCE",
-            "CAN_MANAGE_PAYROLL_FINANCE"
+            "CAN_MANAGE_PAYROLL_FINANCE",
+            "CAN_VIEW_EMPLOYEE_IDENTIFICATION"
     );
     private static final List<String> DEFAULT_USER_PERMISSIONS = List.of(
             "CAN_COMPLETE_ONBOARDING",
@@ -113,7 +118,8 @@ public class AuthService {
                        RoleRepository roleRepository,
                        PermissionRepository permissionRepository,
                        CompanyRepository companyRepository,
-                       PasswordResetService passwordResetService) {
+                       PasswordResetService passwordResetService,
+                       PasswordResetTokenRepository passwordResetTokenRepository) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.userService = userService;
@@ -123,6 +129,7 @@ public class AuthService {
         this.kafkaProducer = kafkaProducer;
         this.companyRepository = companyRepository;
         this.passwordResetService = passwordResetService;
+        this.passwordResetTokenRepository = passwordResetTokenRepository;
     }
 
     @Transactional
@@ -432,27 +439,36 @@ public class AuthService {
         try {
             jwtUtil.validateToken(refreshToken);
 
-            String userId = jwtUtil.extractClaims(refreshToken).get("userId", String.class);
+            var claims = jwtUtil.extractClaims(refreshToken);
+            String userId = claims.get("userId", String.class);
             User user = userRepository.findById(UUID.fromString(userId))
                     .map(this::normalizeBuiltInUserRoles)
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-            String companyId = user.getCompanyId() != null ? user.getCompanyId().toString() : null;
-            String newAccessToken = accessToken(user);
-            String newRefreshToken = refreshToken(user);
-
-            AuthResponseDTO authResponseDTO = authResponseDTO(user.getId().toString(), user.getEmail(), companyId);
-
-            ResponseCookie refreshTokenCookie = responseRefreshCookie(newRefreshToken);
-            ResponseCookie accessTokenCookie = responseAccessCookie(newAccessToken);
-
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
-                    .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
-                    .body(authResponseDTO);
+            UUID scopedCompanyId = resolveRefreshScopeCompanyId(user, claims.get("companyId", String.class));
+            return scopedAuthResponse(user, scopedCompanyId);
         } catch (JwtException | IllegalArgumentException | UserNotFoundException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+    }
+
+    public ResponseEntity<AuthResponseDTO> switchPlatformCompanyScope(Authentication authentication, UUID requestedCompanyId) {
+        User user = requireAuthenticatedUser(authentication);
+        if (!hasPermission(authentication, "CAN_MANAGE_PLATFORM") && !hasPermission(user, "CAN_MANAGE_PLATFORM")) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        UUID scopedCompanyId = user.getCompanyId();
+        if (requestedCompanyId != null) {
+            companyRepository.findById(requestedCompanyId)
+                    .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+            scopedCompanyId = requestedCompanyId;
+        }
+
+        if (scopedCompanyId == null) {
+            throw new IllegalStateException("User is missing company assignment");
+        }
+        return scopedAuthResponse(user, scopedCompanyId);
     }
 
     public ResponseEntity<Void> logout() {
@@ -513,8 +529,18 @@ public class AuthService {
         return jwtUtil.generateAccessToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
     }
 
+    public String accessToken(User user, UUID scopedCompanyId) {
+        String companyId = scopedCompanyId != null ? scopedCompanyId.toString() : null;
+        return jwtUtil.generateAccessToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
+    }
+
     public String refreshToken(User user){
         String companyId = user.getCompanyId() != null ? user.getCompanyId().toString() : null;
+        return jwtUtil.generateRefreshToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
+    }
+
+    public String refreshToken(User user, UUID scopedCompanyId) {
+        String companyId = scopedCompanyId != null ? scopedCompanyId.toString() : null;
         return jwtUtil.generateRefreshToken(user.getEmail(), user.getId().toString(), user.getRoles(), companyId);
     }
 
@@ -546,6 +572,21 @@ public class AuthService {
 
         u.setRoles(roles);
         userRepository.save(u);
+    }
+
+    @Transactional
+    public void deleteUserAccount(UUID userId, Authentication authentication) {
+        UUID companyId = requireCompanyId(authentication);
+        AuthUserPrincipal principal = extractPrincipal(authentication);
+        if (principal != null && principal.getUserId() != null && principal.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("You cannot delete your own account");
+        }
+
+        User user = userRepository.findByIdAndCompanyId(userId, companyId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        passwordResetTokenRepository.deleteAllByUserId(userId);
+        userRepository.delete(user);
     }
 
     @Transactional
@@ -726,5 +767,59 @@ public class AuthService {
         } catch (JwtException e) {
             return false;
         }
+    }
+
+    private ResponseEntity<AuthResponseDTO> scopedAuthResponse(User user, UUID scopedCompanyId) {
+        String companyId = scopedCompanyId != null ? scopedCompanyId.toString() : null;
+        String newAccessToken = accessToken(user, scopedCompanyId);
+        String newRefreshToken = refreshToken(user, scopedCompanyId);
+
+        AuthResponseDTO authResponseDTO = authResponseDTO(user.getId().toString(), user.getEmail(), companyId);
+        authResponseDTO.setUsername(user.getUsername());
+
+        ResponseCookie refreshTokenCookie = responseRefreshCookie(newRefreshToken);
+        ResponseCookie accessTokenCookie = responseAccessCookie(newAccessToken);
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshTokenCookie.toString())
+                .header(HttpHeaders.SET_COOKIE, accessTokenCookie.toString())
+                .body(authResponseDTO);
+    }
+
+    private UUID resolveRefreshScopeCompanyId(User user, String requestedCompanyId) {
+        if (requestedCompanyId == null || requestedCompanyId.isBlank()) {
+            return user.getCompanyId();
+        }
+
+        UUID parsedCompanyId = UUID.fromString(requestedCompanyId.trim());
+        if (parsedCompanyId.equals(user.getCompanyId())) {
+            return parsedCompanyId;
+        }
+        if (hasPermission(user, "CAN_MANAGE_PLATFORM") && companyRepository.findById(parsedCompanyId).isPresent()) {
+            return parsedCompanyId;
+        }
+        return user.getCompanyId();
+    }
+
+    private static boolean hasPermission(Authentication authentication, String permissionName) {
+        if (authentication == null || authentication.getAuthorities() == null) {
+            return false;
+        }
+        return authentication.getAuthorities().stream()
+                .map(grantedAuthority -> grantedAuthority == null ? null : grantedAuthority.getAuthority())
+                .filter(name -> name != null && !name.isBlank())
+                .anyMatch(permissionName::equalsIgnoreCase);
+    }
+
+    private static boolean hasPermission(User user, String permissionName) {
+        if (user == null || user.getRoles() == null) {
+            return false;
+        }
+        return user.getRoles().stream()
+                .filter(role -> role != null && role.getPermissions() != null)
+                .flatMap(role -> role.getPermissions().stream())
+                .map(permission -> permission == null ? null : permission.getName())
+                .filter(name -> name != null && !name.isBlank())
+                .anyMatch(permissionName::equalsIgnoreCase);
     }
 }

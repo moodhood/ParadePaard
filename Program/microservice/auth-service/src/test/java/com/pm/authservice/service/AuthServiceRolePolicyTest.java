@@ -4,6 +4,7 @@ import com.pm.authservice.dto.UpdateRoleRequestDTO;
 import com.pm.authservice.kafka.KafkaProducer;
 import com.pm.authservice.model.Role;
 import com.pm.authservice.repository.CompanyRepository;
+import com.pm.authservice.repository.PasswordResetTokenRepository;
 import com.pm.authservice.repository.PermissionRepository;
 import com.pm.authservice.repository.RoleRepository;
 import com.pm.authservice.repository.UserRepository;
@@ -45,6 +46,8 @@ class AuthServiceRolePolicyTest {
     private CompanyRepository companyRepository;
     @Mock
     private PasswordResetService passwordResetService;
+    @Mock
+    private PasswordResetTokenRepository passwordResetTokenRepository;
 
     private AuthService authService;
 
@@ -59,7 +62,8 @@ class AuthServiceRolePolicyTest {
                 roleRepository,
                 permissionRepository,
                 companyRepository,
-                passwordResetService
+                passwordResetService,
+                passwordResetTokenRepository
         );
     }
 

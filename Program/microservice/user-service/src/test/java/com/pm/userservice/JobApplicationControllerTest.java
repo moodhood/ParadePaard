@@ -37,10 +37,26 @@ class JobApplicationControllerTest {
     }
 
     @Test
+    void downloadProfilePictureFallsBackToOctetStreamWhenStoredContentTypeIsInvalid() {
+        UUID applicationId = UUID.randomUUID();
+        JobApplication application = new JobApplication();
+        application.setProfilePictureFileName("alex.bin");
+        application.setProfilePictureContentType("not a media type");
+        application.setProfilePictureBytes("pic bytes".getBytes(StandardCharsets.UTF_8));
+        when(service.getApplicationProfilePicture(applicationId)).thenReturn(application);
+
+        ResponseEntity<byte[]> response = controller.downloadProfilePicture(applicationId);
+
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_OCTET_STREAM);
+        assertThat(response.getBody()).isEqualTo("pic bytes".getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
     void readEndpointsAllowViewOrReviewApplicationPermission() throws Exception {
         assertApplicationReadPermission(JobApplicationController.class.getMethod("getApplications"));
         assertApplicationReadPermission(JobApplicationController.class.getMethod("getApplication", UUID.class));
         assertApplicationReadPermission(JobApplicationController.class.getMethod("downloadCv", UUID.class));
+        assertApplicationReadPermission(JobApplicationController.class.getMethod("downloadProfilePicture", UUID.class));
     }
 
     private static void assertApplicationReadPermission(Method method) {

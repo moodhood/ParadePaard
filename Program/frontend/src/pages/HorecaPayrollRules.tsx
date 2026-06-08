@@ -1,33 +1,27 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
 import {
-    DEFAULT_HORECA_JOB_PRESETS,
+    GetCurrentHorecaRules,
+    PublishCurrentHorecaRules,
+    UpdateHorecaRuleSection,
+} from "../services/user-service/HorecaRules";
+import type {
+    HorecaRuleItemDTO,
+    HorecaRuleVersionDTO,
+} from "../services/user-service/Types";
+import {
     HORECA_CAO_OPTIONS,
-    HORECA_EMPLOYER_PREMIUM_RULES,
-    HORECA_PAYROLL_VARIABLES,
     HORECA_RULE_SOURCES,
     HORECA_WAGE_RULES,
-    type ContractType,
-    type HolidayAllowanceMode,
-    type JobPreset,
-    type PayrollPeriod,
     type PayrollRuleSource,
 } from "../data/horecaPayrollRules";
 import {
-    calculatePayrollCalculator,
-    calculateMonthlyHours,
+    formatHorecaAgeGroupLabel,
     formatSourceLabel,
-    getHorecaRequiredHourlyWage,
-    getPayrollVariableNumber,
-    getTravelAllowanceRatePerKilometer,
-    loadHorecaJobPresets,
-    resetHorecaJobPresets,
-    saveHorecaJobPresets,
-    validateContractPayrollSettings,
 } from "../utils/horecaPayrollRules";
 
 import "../stylesheets/AdminDashboard.css";
@@ -36,40 +30,8 @@ import "../stylesheets/AdminLists.css";
 import "../stylesheets/Settings.css";
 import "../stylesheets/HorecaPayrollRules.css";
 
-type ContractRuleDraft = {
-    employeeDateOfBirth: string;
-    caoId: string;
-    jobPresetId: string;
-    jobTitle: string;
-    jobFunction: string;
-    functionGroup: string;
-    contractType: ContractType;
-    startDate: string;
-    endDate: string;
-    hoursPerWeek: number;
-    payrollPeriod: PayrollPeriod;
-    hourlyWage: number;
-    monthlyWage: number;
-    loonheffingskorting: boolean | null;
-    pensionApplicable: boolean | null;
-    holidayAllowanceMode: HolidayAllowanceMode;
-    vacationBuildUpApplicable: boolean;
-    isManualWageOverride: boolean;
-    manualWageOverrideReason: string;
-};
-
-type PayrollCalculatorDraft = {
-    employeeDateOfBirth: string;
-    startDate: string;
-    functionGroup: string;
-    contractType: ContractType;
-    hoursPerWeek: number;
-    hourlyWage: number;
-    loonheffingskorting: boolean;
-    pensionApplicable: boolean;
-};
-
-type PresetWizardStep = "details" | "rules" | "notes";
+type EditableRuleSection = "WAGE_RULES" | "TAX_AND_PAYROLL_RULES" | "PENSION_RULES" | "HOLIDAY_AND_TRAVEL_RULES";
+type RuleSectionsState = Record<EditableRuleSection, HorecaRuleItemDTO[]>;
 
 const currencyFormatter = new Intl.NumberFormat("nl-NL", {
     style: "currency",
@@ -81,6 +43,17 @@ const numberFormatter = new Intl.NumberFormat("nl-NL", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
 });
+const ruleNumberFormatter = new Intl.NumberFormat("nl-NL", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+});
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:4004";
+const RULE_SECTION_TITLES: Record<EditableRuleSection, string> = {
+    WAGE_RULES: "Wage rules",
+    TAX_AND_PAYROLL_RULES: "Tax and payroll rules",
+    PENSION_RULES: "Pension rules",
+    HOLIDAY_AND_TRAVEL_RULES: "Holiday and travel rules",
+};
 
 function money(value: number): string {
     return currencyFormatter.format(value);
@@ -90,28 +63,214 @@ function pct(value: number): string {
     return `${numberFormatter.format(value)}%`;
 }
 
-function makePresetId(name: string): string {
-    const slug = name
-        .trim()
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-")
-        .replace(/^-|-$/g, "");
-    return `${slug || "job-preset"}-${Date.now()}`;
+function createInitialSectionState(): RuleSectionsState {
+    return {
+        WAGE_RULES: buildFallbackSectionItems("WAGE_RULES"),
+        TAX_AND_PAYROLL_RULES: buildFallbackSectionItems("TAX_AND_PAYROLL_RULES"),
+        PENSION_RULES: buildFallbackSectionItems("PENSION_RULES"),
+        HOLIDAY_AND_TRAVEL_RULES: buildFallbackSectionItems("HOLIDAY_AND_TRAVEL_RULES"),
+    };
 }
 
-function createPresetDraft(): JobPreset {
+function sortRuleItems(items: HorecaRuleItemDTO[]): HorecaRuleItemDTO[] {
+    return [...items].sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0));
+}
+
+function mergeSectionItems(section: EditableRuleSection, items?: HorecaRuleItemDTO[] | null): HorecaRuleItemDTO[] {
+    const fallbackItems = sortRuleItems(buildFallbackSectionItems(section));
+    const incomingItems = sortRuleItems(items ?? []);
+    const incomingByKey = new Map(incomingItems.map((item) => [item.itemKey, item]));
+    const merged = fallbackItems.map((fallbackItem) => ({
+        ...fallbackItem,
+        ...incomingByKey.get(fallbackItem.itemKey),
+        sectionKey: section,
+    }));
+    const fallbackKeys = new Set(fallbackItems.map((item) => item.itemKey));
+    const additionalItems = incomingItems
+        .filter((item) => !fallbackKeys.has(item.itemKey))
+        .map((item) => ({ ...item, sectionKey: section }));
+    return sortRuleItems([...merged, ...additionalItems]).map((item, index) => ({
+        ...item,
+        sortOrder: index + 1,
+    }));
+}
+
+function mapRuleSections(version?: HorecaRuleVersionDTO | null): RuleSectionsState {
     return {
-        ...DEFAULT_HORECA_JOB_PRESETS[0],
-        id: "",
-        presetName: "",
-        jobTitle: "",
-        jobFunction: "",
-        adminNotes: "",
+        WAGE_RULES: mergeSectionItems("WAGE_RULES", version?.sections?.WAGE_RULES),
+        TAX_AND_PAYROLL_RULES: mergeSectionItems("TAX_AND_PAYROLL_RULES", version?.sections?.TAX_AND_PAYROLL_RULES),
+        PENSION_RULES: mergeSectionItems("PENSION_RULES", version?.sections?.PENSION_RULES),
+        HOLIDAY_AND_TRAVEL_RULES: mergeSectionItems("HOLIDAY_AND_TRAVEL_RULES", version?.sections?.HOLIDAY_AND_TRAVEL_RULES),
     };
+}
+
+function toLocalDateInputValue(date = new Date()): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function normalizeText(value?: string | null): string {
+    return value?.trim() ?? "";
+}
+
+function getRuleItemNumber(item?: HorecaRuleItemDTO | null): number | null {
+    if (typeof item?.valueNumber === "number" && Number.isFinite(item.valueNumber)) {
+        return item.valueNumber;
+    }
+    return null;
+}
+
+function formatRuleDisplayValue(item: HorecaRuleItemDTO): string {
+    if (item.valueType === "BOOLEAN") {
+        return item.valueBoolean ? "Yes" : "No";
+    }
+
+    if (item.valueType === "NUMBER") {
+        const numericValue = getRuleItemNumber(item);
+        if (numericValue == null) return "-";
+        const normalizedUnit = normalizeText(item.unit).toLowerCase();
+        if (normalizedUnit.includes("percent")) {
+            return `${ruleNumberFormatter.format(numericValue)}%`;
+        }
+        if (normalizedUnit === "eur") {
+            return money(numericValue);
+        }
+        if (normalizedUnit.includes("eur per km")) {
+            return `${money(numericValue)} per km`;
+        }
+        return item.unit ? `${ruleNumberFormatter.format(numericValue)} ${item.unit}` : ruleNumberFormatter.format(numericValue);
+    }
+
+    return item.valueText?.trim() || "-";
+}
+
+function formatRuleUsage(item: HorecaRuleItemDTO): string {
+    if (item.usedInContract && item.usedInPayroll) return "Contract and payroll";
+    if (item.usedInContract) return "Contract";
+    if (item.usedInPayroll) return "Payroll";
+    return "Reference only";
+}
+
+function formatWageMetaLabel(item: HorecaRuleItemDTO): string {
+    const functionGroup = normalizeText(item.functionGroup);
+    const ageGroup = normalizeText(item.ageGroup);
+    if (!functionGroup && !ageGroup) return "No wage band metadata";
+    if (!functionGroup) return formatHorecaAgeGroupLabel(ageGroup);
+    if (!ageGroup) return `Group ${functionGroup}`;
+    return `${formatHorecaAgeGroupLabel(ageGroup)} | Group ${functionGroup}`;
 }
 
 function sourceById(sourceId: string): PayrollRuleSource | null {
     return HORECA_RULE_SOURCES.find((source) => source.id === sourceId) ?? null;
+}
+
+function buildFallbackSectionItems(section: EditableRuleSection): HorecaRuleItemDTO[] {
+    if (section === "HOLIDAY_AND_TRAVEL_RULES") {
+        return [
+            {
+                itemKey: "holidayAllowancePercentage",
+                name: "Holiday allowance",
+                valueNumber: 8,
+                valueType: "NUMBER",
+                unit: "percent reserved",
+                documentName: "Horeca cao 2025 2026",
+                documentUrl: HORECA_RULE_SOURCES[0].sourceUrl,
+                pageReference: "32",
+                sourceNote: "The CAO gives employees the right to 8 percent holiday allowance.",
+                usedInContract: true,
+                usedInPayroll: true,
+                sortOrder: 1,
+            },
+            {
+                itemKey: "vacationBuildUpPerPaidHour",
+                name: "Vacation buildup",
+                valueNumber: 0.0961,
+                valueType: "NUMBER",
+                unit: "vacation hour per paid hour",
+                documentName: "Horeca cao 2025 2026",
+                documentUrl: HORECA_RULE_SOURCES[0].sourceUrl,
+                pageReference: "23",
+                sourceNote: "0.0769 legal vacation hour plus 0.0192 extra vacation hour per paid hour.",
+                usedInContract: true,
+                usedInPayroll: true,
+                sortOrder: 2,
+            },
+            {
+                itemKey: "vacationDayBuildUpPerWorkedHour",
+                name: "Vacation day buildup",
+                valueNumber: 0.0961,
+                valueType: "NUMBER",
+                unit: "vacation hour per worked hour",
+                documentName: "Horeca cao 2025 2026",
+                documentUrl: HORECA_RULE_SOURCES[0].sourceUrl,
+                pageReference: "23",
+                sourceNote: "Displayed as the vacation-hours-per-worked-hour rule used in onboarding.",
+                usedInContract: true,
+                usedInPayroll: true,
+                sortOrder: 3,
+            },
+            {
+                itemKey: "travelAllowancePerKilometer",
+                name: "Travel allowance rate",
+                valueNumber: 0.23,
+                valueType: "NUMBER",
+                unit: "EUR per km",
+                documentName: "Horeca cao 2025 2026",
+                documentUrl: HORECA_RULE_SOURCES[0].sourceUrl,
+                pageReference: "32",
+                sourceNote: "Temporary shared horeca rule used for onboarding and travel claim estimates.",
+                usedInContract: false,
+                usedInPayroll: true,
+                sortOrder: 4,
+            },
+        ];
+    }
+    if (section === "PENSION_RULES") {
+        return [
+            { itemKey: "pensionPremiumTotal", name: "Total pension premium", valueNumber: 16.8, valueType: "NUMBER", unit: "percent", documentName: "Pensioenpremie Pensioenfonds Horeca en Catering", documentUrl: "https://www.phenc.nl/werkgever/pensioen-bij-ons/pensioenadministratie/pensioenpremie", pageReference: "Web page", sourceNote: "Total basic pension premium.", usedInContract: true, usedInPayroll: true, sortOrder: 1 },
+            { itemKey: "pensionPremiumEmployee", name: "Employee part", valueNumber: 8.4, valueType: "NUMBER", unit: "percent", documentName: "Pensioenpremie Pensioenfonds Horeca en Catering", documentUrl: "https://www.phenc.nl/werkgever/pensioen-bij-ons/pensioenadministratie/pensioenpremie", pageReference: "Web page", sourceNote: "Employee part of the horeca pension premium.", usedInContract: true, usedInPayroll: true, sortOrder: 2 },
+            { itemKey: "pensionPremiumEmployer", name: "Employer part", valueNumber: 8.4, valueType: "NUMBER", unit: "percent", documentName: "Pensioenpremie Pensioenfonds Horeca en Catering", documentUrl: "https://www.phenc.nl/werkgever/pensioen-bij-ons/pensioenadministratie/pensioenpremie", pageReference: "Web page", sourceNote: "Employer part of the horeca pension premium.", usedInContract: true, usedInPayroll: true, sortOrder: 3 },
+        ];
+    }
+    if (section === "TAX_AND_PAYROLL_RULES") {
+        return [
+            { itemKey: "awfLowPercentage", name: "AWf low", valueNumber: 2.74, valueType: "NUMBER", unit: "percent", documentName: "Tarieven, bedragen en percentages loonheffingen vanaf 1 januari 2026", documentUrl: "https://download.belastingdienst.nl/belastingdienst/docs/bijlage-nieuwsbrief-loonheffingen-2026-lh2091b63fd.pdf", pageReference: "10", sourceNote: "Low AWf premium percentage.", usedInContract: false, usedInPayroll: true, sortOrder: 1 },
+            { itemKey: "monthlyPayrollTaxWithCreditExample", name: "Payroll tax with loonheffingskorting", valueNumber: 160.5, valueType: "NUMBER", unit: "EUR", documentName: "Witte Maandloon tabel loonbelasting premie volksverzekeringen Nederland Standaard 2026", documentUrl: "https://download.belastingdienst.nl/belastingdienst/dl/rekenhulpen/loonheffing/2026/v01/pdf/wit_mnd_nl_std_20260101.pdf", pageReference: "15", sourceNote: "Example monthly withholding with loonheffingskorting.", usedInContract: false, usedInPayroll: true, sortOrder: 2 },
+        ];
+    }
+    return [
+        ...HORECA_WAGE_RULES
+            .filter((rule) => rule.functionGroup === "I+II")
+            .sort((left, right) => {
+                const leftAge = left.ageGroup === "Adult" ? 999 : Number(left.ageGroup);
+                const rightAge = right.ageGroup === "Adult" ? 999 : Number(right.ageGroup);
+                return rightAge - leftAge;
+            })
+            .map((rule, index) => ({
+                itemKey:
+                    rule.ageGroup === "Adult"
+                        ? "adultFunctionGroupI_IIHourlyWage"
+                        : `age${rule.ageGroup}FunctionGroupI_IIHourlyWage`,
+                name: `${rule.ageGroup === "Adult" ? "Adult" : `Age ${rule.ageGroup}`} function group ${rule.functionGroup} hourly wage`,
+                valueNumber: rule.hourlyWage,
+                valueType: "NUMBER" as const,
+                unit: "EUR",
+                documentName: "Loontabel per 1 januari 2026",
+                documentUrl: "https://static2.khn.nl/public/images/downloads/Loontabel-per-1-januari-20261.pdf",
+                pageReference: "1",
+                functionGroup: rule.functionGroup,
+                ageGroup: rule.ageGroup,
+                sourceNote:
+                    rule.ageGroup === "Adult"
+                        ? `Adult horeca hourly wage for function group ${rule.functionGroup}.`
+                        : `Horeca hourly wage for age group ${rule.ageGroup} in function group ${rule.functionGroup}.`,
+                usedInContract: true,
+                usedInPayroll: true,
+                sortOrder: index + 1,
+            })),
+    ];
 }
 
 function PencilIcon() {
@@ -145,265 +304,231 @@ function PencilIcon() {
     );
 }
 
-function DisableIcon() {
-    return (
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-            <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path
-                d="M5.4 14.6L14.6 5.4"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeWidth="1.6"
-            />
-        </svg>
-    );
-}
-
-function EnableIcon() {
-    return (
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-            <circle cx="10" cy="10" r="6.5" fill="none" stroke="currentColor" strokeWidth="1.6" />
-            <path
-                d="M7.2 10.1L9 11.9L12.8 8.1"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.6"
-            />
-        </svg>
-    );
-}
-
-function TrashIcon() {
-    return (
-        <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">
-            <path d="M5.75 6.25H14.25" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
-            <path
-                d="M7.25 6.25V4.75C7.25 4.34 7.59 4 8 4H12C12.41 4 12.75 4.34 12.75 4.75V6.25"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.6"
-            />
-            <path
-                d="M6.75 6.25V14.25C6.75 14.94 7.31 15.5 8 15.5H12C12.69 15.5 13.25 14.94 13.25 14.25V6.25"
-                fill="none"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="1.6"
-            />
-            <path d="M8.75 8.5V13" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
-            <path d="M11.25 8.5V13" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
-        </svg>
-    );
-}
-
 export default function HorecaPayrollRules() {
-    const [jobPresets, setJobPresets] = useState<JobPreset[]>(() => loadHorecaJobPresets());
-    const [presetDraft, setPresetDraft] = useState<JobPreset>(() => createPresetDraft());
-    const [presetError, setPresetError] = useState<string | null>(null);
-    const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
-    const [presetStep, setPresetStep] = useState<PresetWizardStep>("details");
-    const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+    const [ruleSections, setRuleSections] = useState<RuleSectionsState>(createInitialSectionState);
+    const [ruleVersion, setRuleVersion] = useState<HorecaRuleVersionDTO | null>(null);
+    const [rulesLoadError, setRulesLoadError] = useState<string | null>(null);
+    const [rulesStatusMessage, setRulesStatusMessage] = useState<string | null>(null);
+    const [isRulePublishPending, setIsRulePublishPending] = useState(false);
+    const [isRulesLoading, setIsRulesLoading] = useState(true);
+    const [activeRuleSection, setActiveRuleSection] = useState<EditableRuleSection | null>(null);
+    const [ruleEditorDraftItems, setRuleEditorDraftItems] = useState<HorecaRuleItemDTO[]>([]);
+    const [ruleEditorError, setRuleEditorError] = useState<string | null>(null);
+    const [expandedRuleEditorItemKey, setExpandedRuleEditorItemKey] = useState<string | null>(null);
 
-    const activePresets = useMemo(() => jobPresets.filter((preset) => preset.isActive), [jobPresets]);
-    const firstPreset = activePresets[0] ?? DEFAULT_HORECA_JOB_PRESETS[0];
+    const holidaySectionItems = ruleSections.HOLIDAY_AND_TRAVEL_RULES;
+    const pensionSectionItems = ruleSections.PENSION_RULES;
+    const wageSectionItems = ruleSections.WAGE_RULES;
+    const holidayAllowanceItem = holidaySectionItems.find((item) => item.itemKey === "holidayAllowancePercentage");
+    const pensionEmployeeItem = pensionSectionItems.find((item) => item.itemKey === "pensionPremiumEmployee");
+    const pensionEmployerItem = pensionSectionItems.find((item) => item.itemKey === "pensionPremiumEmployer");
+    const wageReferenceItem = wageSectionItems.find((item) => item.ageGroup === "Adult" && item.functionGroup === "I+II")
+        ?? wageSectionItems[0]
+        ?? buildFallbackSectionItems("WAGE_RULES")[0];
+    const wageRuleCount = wageSectionItems.filter((item) => getRuleItemNumber(item) != null).length;
+    const holidayAllowancePct = getRuleItemNumber(holidayAllowanceItem) ?? 8;
+    const fullTimeWeeklyHours = 38;
+    const fullTimeMonthlyHours = 164.67;
+    const pensionEmployeePct = getRuleItemNumber(pensionEmployeeItem) ?? 8.4;
+    const pensionEmployerPct = getRuleItemNumber(pensionEmployerItem) ?? 8.4;
 
-    const [contractDraft, setContractDraft] = useState<ContractRuleDraft>(() => ({
-        employeeDateOfBirth: "1998-02-10",
-        caoId: HORECA_CAO_OPTIONS[0].id,
-        jobPresetId: firstPreset.id,
-        jobTitle: firstPreset.jobTitle,
-        jobFunction: firstPreset.jobFunction,
-        functionGroup: firstPreset.functionGroup,
-        contractType: firstPreset.defaultContractType,
-        startDate: "2026-01-01",
-        endDate: "",
-        hoursPerWeek: firstPreset.defaultHoursPerWeek || 38,
-        payrollPeriod: firstPreset.defaultPayrollPeriod,
-        hourlyWage: firstPreset.defaultHourlyWage,
-        monthlyWage: firstPreset.defaultMonthlyWage,
-        loonheffingskorting: true,
-        pensionApplicable: firstPreset.pensionApplicable,
-        holidayAllowanceMode: firstPreset.holidayAllowanceMode,
-        vacationBuildUpApplicable: firstPreset.vacationBuildUpApplicable,
-        isManualWageOverride: false,
-        manualWageOverrideReason: "",
-    }));
+    const applyRuleVersion = (version: HorecaRuleVersionDTO) => {
+        setRuleVersion(version);
+        setRuleSections(mapRuleSections(version));
+    };
 
-    const selectedSource = selectedSourceId ? sourceById(selectedSourceId) : null;
-    const holidayAllowancePct = getPayrollVariableNumber("holidayAllowancePercentage");
-    const vacationBuildUp = getPayrollVariableNumber("vacationBuildUpPerPaidHour");
-    const fullTimeWeeklyHours = getPayrollVariableNumber("normalFullTimeWeeklyHours");
-    const fullTimeMonthlyHours = getPayrollVariableNumber("normalFullTimeMonthlyHours");
-    const pensionEmployeePct = getPayrollVariableNumber("pensionPremiumEmployee");
-    const pensionEmployerPct = getPayrollVariableNumber("pensionPremiumEmployer");
-    const travelAllowanceRatePerKilometer = getTravelAllowanceRatePerKilometer();
-    const selectedPreset = jobPresets.find((preset) => preset.id === contractDraft.jobPresetId) ?? null;
-    const validation = validateContractPayrollSettings({
-        employeeDateOfBirth: contractDraft.employeeDateOfBirth,
-        startDate: contractDraft.startDate,
-        caoId: contractDraft.caoId,
-        jobPresetId: contractDraft.jobPresetId,
-        contractType: contractDraft.contractType,
-        functionGroup: contractDraft.functionGroup,
-        hourlyWage: contractDraft.hourlyWage,
-        loonheffingskorting: contractDraft.loonheffingskorting,
-        pensionApplicable: contractDraft.pensionApplicable,
-        isManualWageOverride: contractDraft.isManualWageOverride,
-        manualWageOverrideReason: contractDraft.manualWageOverrideReason,
-    });
-    const [calculatorDraft, setCalculatorDraft] = useState<PayrollCalculatorDraft>(() => ({
-        employeeDateOfBirth: "1998-02-10",
-        startDate: "2026-01-01",
-        functionGroup: "I+II",
-        contractType: "FULL_TIME",
-        hoursPerWeek: 38,
-        hourlyWage: 14.71,
-        loonheffingskorting: true,
-        pensionApplicable: true,
-    }));
-    const [calculatorResult, setCalculatorResult] = useState(() => calculatePayrollCalculator(calculatorDraft));
-    const calculatorMonthlyHours =
-        calculatorDraft.contractType === "FULL_TIME"
-            ? calculateMonthlyHours(38)
-            : calculateMonthlyHours(calculatorDraft.hoursPerWeek);
-    const calculatorRequiredWage = getHorecaRequiredHourlyWage({
-        dateOfBirth: calculatorDraft.employeeDateOfBirth,
-        startDate: calculatorDraft.startDate,
-        functionGroup: calculatorDraft.functionGroup,
-    });
-    const calculatorWageWarning =
-        calculatorRequiredWage && calculatorDraft.hourlyWage < calculatorRequiredWage.hourlyWage
-            ? `Entered wage is below the horeca minimum of ${money(calculatorRequiredWage.hourlyWage)} for this age and function group.`
-            : null;
+    useEffect(() => {
+        let isCancelled = false;
+
+        const loadRules = async () => {
+            setIsRulesLoading(true);
+            setRulesLoadError(null);
+            try {
+                const currentRules = await GetCurrentHorecaRules(API_BASE_URL);
+                if (isCancelled) return;
+                applyRuleVersion(currentRules);
+            } catch (error) {
+                if (isCancelled) return;
+                console.error("Failed to load horeca rules", error);
+                setRulesLoadError("Could not load the backend horeca rules. Showing the current fallback values instead.");
+            } finally {
+                if (!isCancelled) {
+                    setIsRulesLoading(false);
+                }
+            }
+        };
+
+        void loadRules();
+
+        return () => {
+            isCancelled = true;
+        };
+    }, []);
 
     const sourceButton = (sourceId: string, pageNumber?: string) => (
-        <button
-            type="button"
+        <a
             className="sourcePill"
-            onClick={() => setSelectedSourceId(sourceId)}
+            href={sourceById(sourceId)?.sourceUrl ?? "#"}
+            target="_blank"
+            rel="noreferrer"
         >
             {formatSourceLabel(sourceId, pageNumber)}
-        </button>
+        </a>
     );
 
-    const savePresets = (nextPresets: JobPreset[]) => {
-        setJobPresets(nextPresets);
-        saveHorecaJobPresets(nextPresets);
+    const publishRuleDraft = async (reason: string): Promise<HorecaRuleVersionDTO> => {
+        return await PublishCurrentHorecaRules(API_BASE_URL, {
+            effectiveFrom: toLocalDateInputValue(),
+            versionLabel: `Horeca rules ${toLocalDateInputValue()}`,
+            reason,
+        });
     };
 
-    const updateCalculatorDraft = <K extends keyof PayrollCalculatorDraft>(key: K, value: PayrollCalculatorDraft[K]) => {
-        setCalculatorDraft((prev) => ({ ...prev, [key]: value }));
+    const openRuleEditor = (section: EditableRuleSection) => {
+        const nextItems = ruleSections[section].map((item) => ({ ...item }));
+        setActiveRuleSection(section);
+        setRuleEditorDraftItems(nextItems);
+        setRuleEditorError(null);
+        setExpandedRuleEditorItemKey(nextItems[0]?.itemKey ?? null);
     };
 
-    const handleGenerateCalculatorOutput = () => {
-        setCalculatorResult(calculatePayrollCalculator(calculatorDraft));
+    const closeRuleEditor = () => {
+        setActiveRuleSection(null);
+        setRuleEditorDraftItems([]);
+        setRuleEditorError(null);
+        setExpandedRuleEditorItemKey(null);
     };
 
-    const openCreatePresetModal = () => {
-        setPresetDraft(createPresetDraft());
-        setPresetError(null);
-        setPresetStep("details");
-        setIsPresetModalOpen(true);
+    const toggleRuleEditorItem = (itemKey: string) => {
+        setExpandedRuleEditorItemKey((prev) => (prev === itemKey ? null : itemKey));
     };
 
-    const openEditPresetModal = (preset: JobPreset) => {
-        setPresetDraft({ ...preset });
-        setPresetError(null);
-        setPresetStep("details");
-        setIsPresetModalOpen(true);
+    const updateRuleEditorItem = <K extends keyof HorecaRuleItemDTO>(
+        index: number,
+        key: K,
+        value: HorecaRuleItemDTO[K]
+    ) => {
+        setRuleEditorDraftItems((prev) =>
+            prev.map((item, itemIndex) => (itemIndex === index ? { ...item, [key]: value } : item))
+        );
     };
 
-    const closePresetModal = () => {
-        setIsPresetModalOpen(false);
-        setPresetDraft(createPresetDraft());
-        setPresetError(null);
-        setPresetStep("details");
-    };
-
-    const updatePresetDraft = <K extends keyof JobPreset>(key: K, value: JobPreset[K]) => {
-        setPresetDraft((prev) => ({ ...prev, [key]: value }));
-    };
-
-    const handleSavePreset = () => {
-        if (!presetDraft.presetName.trim()) {
-            setPresetError("Preset name is required.");
-            return;
-        }
-        if (!presetDraft.jobTitle.trim() || !presetDraft.jobFunction.trim()) {
-            setPresetError("Job title and job function are required.");
-            return;
-        }
-        if (!presetDraft.functionGroup.trim()) {
-            setPresetError("Function group is required.");
-            return;
-        }
-        if (!Number.isFinite(presetDraft.defaultHourlyWage) || presetDraft.defaultHourlyWage <= 0) {
-            setPresetError("Default hourly wage must be higher than zero.");
+    const handleSaveRuleSection = async () => {
+        if (!activeRuleSection) {
             return;
         }
 
-        const nextPreset = {
-            ...presetDraft,
-            id: presetDraft.id || makePresetId(presetDraft.presetName),
-            sector: "horeca" as const,
-            sourceId: presetDraft.sourceId || "loontabel-2026-01-01",
-        };
-        const exists = jobPresets.some((preset) => preset.id === nextPreset.id);
-        const nextPresets = exists
-            ? jobPresets.map((preset) => (preset.id === nextPreset.id ? nextPreset : preset))
-            : [...jobPresets, nextPreset];
+        if (activeRuleSection === "WAGE_RULES") {
+            const invalidItem = ruleEditorDraftItems.find((item) => {
+                return !normalizeText(item.functionGroup) || !normalizeText(item.ageGroup);
+            });
+            if (invalidItem) {
+                setRuleEditorError(`Function group and age group are required for ${invalidItem.name}.`);
+                return;
+            }
+        }
 
-        savePresets(nextPresets);
-        closePresetModal();
-    };
+        setIsRulePublishPending(true);
+        setRuleEditorError(null);
+        setRulesStatusMessage(null);
 
-    const handleTogglePresetActive = (presetId: string) => {
-        savePresets(jobPresets.map((item) => (item.id === presetId ? { ...item, isActive: !item.isActive } : item)));
-    };
-
-    const handleDeletePreset = (presetId: string) => {
-        savePresets(jobPresets.filter((preset) => preset.id !== presetId));
-        setContractDraft((prev) => (prev.jobPresetId === presetId ? { ...prev, jobPresetId: "" } : prev));
-        if (presetDraft.id === presetId) {
-            closePresetModal();
+        try {
+            await UpdateHorecaRuleSection(API_BASE_URL, activeRuleSection, {
+                items: ruleEditorDraftItems.map((item, index) => ({
+                    ...item,
+                    id: item.id ?? undefined,
+                    sectionKey: activeRuleSection,
+                    sortOrder: index + 1,
+                })),
+            });
+            const publishedVersion = await publishRuleDraft(`Updated ${RULE_SECTION_TITLES[activeRuleSection].toLowerCase()}.`);
+            applyRuleVersion(publishedVersion);
+            setRulesStatusMessage(`${RULE_SECTION_TITLES[activeRuleSection]} saved to the backend and published for new contracts.`);
+            closeRuleEditor();
+        } catch (error) {
+            console.error("Failed to save horeca rule section", error);
+            setRuleEditorError("Could not save this section to the backend.");
+        } finally {
+            setIsRulePublishPending(false);
         }
     };
 
-    const applyPresetToContract = (presetId: string) => {
-        const preset = jobPresets.find((item) => item.id === presetId);
-        if (!preset) {
-            setContractDraft((prev) => ({ ...prev, jobPresetId: "" }));
-            return;
-        }
-        setContractDraft((prev) => ({
-            ...prev,
-            jobPresetId: preset.id,
-            jobTitle: preset.jobTitle,
-            jobFunction: preset.jobFunction,
-            functionGroup: preset.functionGroup,
-            contractType: preset.defaultContractType,
-            hoursPerWeek: preset.defaultContractType === "FULL_TIME" ? 38 : preset.defaultHoursPerWeek,
-            payrollPeriod: preset.defaultPayrollPeriod,
-            hourlyWage: preset.defaultHourlyWage,
-            monthlyWage: preset.defaultMonthlyWage,
-            pensionApplicable: preset.pensionApplicable,
-            holidayAllowanceMode: preset.holidayAllowanceMode,
-            vacationBuildUpApplicable: preset.vacationBuildUpApplicable,
-            isManualWageOverride: false,
-            manualWageOverrideReason: "",
-        }));
-    };
-
-    const expectedMonthlyHours =
-        contractDraft.contractType === "ZERO_HOURS" && contractDraft.hoursPerWeek === 0
-            ? 0
-            : calculateMonthlyHours(contractDraft.contractType === "FULL_TIME" ? 38 : contractDraft.hoursPerWeek);
+    const renderRuleSectionTable = (section: EditableRuleSection) => (
+        <div className="tableScroll">
+            <table className="rulesTable">
+                <thead>
+                    {section === "WAGE_RULES" ? (
+                        <tr>
+                            <th>Age group</th>
+                            <th>Function group</th>
+                            <th>Hourly wage</th>
+                            <th>Used for</th>
+                            <th>Document</th>
+                            <th>Page</th>
+                        </tr>
+                    ) : (
+                        <tr>
+                            <th>Name</th>
+                            <th>Value</th>
+                            <th>Used for</th>
+                            <th>Document</th>
+                            <th>Page</th>
+                        </tr>
+                    )}
+                </thead>
+                <tbody>
+                    {ruleSections[section].map((item) => (
+                        section === "WAGE_RULES" ? (
+                            <tr key={item.id ?? item.itemKey}>
+                                <td>
+                                    <strong>{formatHorecaAgeGroupLabel(item.ageGroup)}</strong>
+                                    <span>{item.name}</span>
+                                </td>
+                                <td>{item.functionGroup ?? "-"}</td>
+                                <td>
+                                    <strong>{formatRuleDisplayValue(item)}</strong>
+                                    {item.sourceNote ? <span>{item.sourceNote}</span> : null}
+                                </td>
+                                <td>{formatRuleUsage(item)}</td>
+                                <td>
+                                    {item.documentUrl ? (
+                                        <a href={item.documentUrl} target="_blank" rel="noreferrer">
+                                            {item.documentName}
+                                        </a>
+                                    ) : (
+                                        <strong>{item.documentName ?? "-"}</strong>
+                                    )}
+                                </td>
+                                <td>{item.pageReference ?? "-"}</td>
+                            </tr>
+                        ) : (
+                            <tr key={item.id ?? item.itemKey}>
+                                <td>
+                                    <strong>{item.name}</strong>
+                                    {item.calculationRule ? <span>{item.calculationRule}</span> : null}
+                                </td>
+                                <td>
+                                    <strong>{formatRuleDisplayValue(item)}</strong>
+                                    {item.sourceNote ? <span>{item.sourceNote}</span> : null}
+                                </td>
+                                <td>{formatRuleUsage(item)}</td>
+                                <td>
+                                    {item.documentUrl ? (
+                                        <a href={item.documentUrl} target="_blank" rel="noreferrer">
+                                            {item.documentName}
+                                        </a>
+                                    ) : (
+                                        <strong>{item.documentName ?? "-"}</strong>
+                                    )}
+                                </td>
+                                <td>{item.pageReference ?? "-"}</td>
+                            </tr>
+                        )
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
 
     return (
         <>
@@ -422,37 +547,183 @@ export default function HorecaPayrollRules() {
                             </div>
                         </header>
 
+                        {rulesLoadError ? <div className="rulesError">{rulesLoadError}</div> : null}
+                        {rulesStatusMessage ? <div className="rulesValidationWarning">{rulesStatusMessage}</div> : null}
+
                         <div className="horecaRulesLayout">
                             <section className="horecaRulesMain">
-                                <Card title="Overview" className="horecaRulesCard">
+                                <Card title="Example contract population" className="horecaRulesCard">
                                     <div className="horecaCardBody">
+                                        <div className="sectionIntro">
+                                            Keep these horeca defaults aligned before new hires move through onboarding.
+                                            The values below flow into contract drafting and future payroll calculations.
+                                        </div>
                                         <div className="ruleValueGrid">
                                             <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Sector</span>
-                                                <strong>Horeca only</strong>
-                                                <span className="ruleValueNote">Other sectors can be added later.</span>
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">CAO</span>
+                                                <span className="ruleValueLabel">Horeca CAO</span>
                                                 <strong>{HORECA_CAO_OPTIONS[0].name}</strong>
-                                                {sourceButton(HORECA_CAO_OPTIONS[0].sourceId, "12")}
+                                                <span className="ruleValueNote">
+                                                    {fullTimeWeeklyHours} hours per week, {fullTimeMonthlyHours} hours per month
+                                                    at full time.
+                                                </span>
+                                                {sourceButton("horeca-cao-2025-2026", "12")}
                                             </div>
                                             <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Full time</span>
-                                                <strong>
-                                                    {fullTimeWeeklyHours} hours per week, {fullTimeMonthlyHours} hours per month
-                                                </strong>
-                                                {sourceButton("horeca-cao-2025-2026", "12")}
+                                                <span className="ruleValueLabel">Age-based wage rows</span>
+                                                <strong>{wageRuleCount} managed wage rows</strong>
+                                                <span className="ruleValueNote">
+                                                    Adult group I+II currently {formatRuleDisplayValue(wageReferenceItem)}.
+                                                    Contract drafting now matches by function group and employee age group.
+                                                </span>
+                                                {sourceButton("loontabel-2026-01-01", "1")}
+                                            </div>
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Holiday allowance</span>
+                                                <strong>{pct(holidayAllowancePct)}</strong>
+                                                <span className="ruleValueNote">
+                                                    Reserved or paid each period depending on the contract setup.
+                                                </span>
+                                                {sourceButton("horeca-cao-2025-2026", "32")}
+                                            </div>
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Pension split</span>
+                                                <strong>{pct(pensionEmployeePct + pensionEmployerPct)} total</strong>
+                                                <span className="ruleValueNote">
+                                                    {pct(pensionEmployeePct)} employee and {pct(pensionEmployerPct)} employer.
+                                                </span>
+                                                {sourceButton("phenc-pensioenpremie")}
+                                            </div>
+                                            <div className="ruleValueCard">
+                                                <span className="ruleValueLabel">Rule version</span>
+                                                <strong>{ruleVersion?.versionLabel ?? "Fallback values"}</strong>
+                                                <span className="ruleValueNote">
+                                                    {isRulesLoading
+                                                        ? "Loading backend version..."
+                                                        : `Status: ${ruleVersion?.status ?? "fallback"}${
+                                                              ruleVersion?.effectiveFrom ? ` from ${ruleVersion.effectiveFrom}` : ""
+                                                          }`}
+                                                </span>
                                             </div>
                                         </div>
                                         <p className="businessFlowText">
-                                            The employee works at the horeca client. The payroll company is the legal employer.
-                                            The horeca client sends or approves worked hours. The payroll company uses the
-                                            contract settings and horeca CAO rules to calculate gross wage, withholds employee
-                                            payroll tax and employee pension, pays net wage to the employee, pays payroll tax and
-                                            employer premiums to the Belastingdienst, pays pension premium to Pensioenfonds
-                                            Horeca en Catering, and invoices the horeca client based on the contract terms.
+                                            The horeca client provides the work environment, while the payroll company keeps
+                                            the contract defaults, legal source values, and payroll rule versioning aligned
+                                            before new contracts are generated.
                                         </p>
+                                        <div className="contractPopulationGrid">
+                                            <div>
+                                                <h3>Employee provided information</h3>
+                                                <ul className="rulesList">
+                                                    <li>Name, date of birth, address, email, and phone</li>
+                                                    <li>Bank account, nationality, identification, and emergency contact</li>
+                                                    <li>Tax credit choice and other personal onboarding details</li>
+                                                </ul>
+                                            </div>
+                                            <div>
+                                                <h3>Admin selected contract information</h3>
+                                                <ul className="rulesList">
+                                                    <li>CAO, job title, job function, function group, and age-group wage row</li>
+                                                    <li>Contract type, start date, end date, wage, hours, and payroll period</li>
+                                                    <li>Pension, holiday allowance, vacation buildup, and billing settings</li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </Card>
+
+                                <Card
+                                    title="Wage rules"
+                                    className="horecaRulesCard"
+                                    right={
+                                        <button
+                                            type="button"
+                                            className="tableActionIconButton"
+                                            aria-label="Edit wage rules"
+                                            title="Edit wage rules"
+                                            onClick={() => openRuleEditor("WAGE_RULES")}
+                                        >
+                                            <PencilIcon />
+                                        </button>
+                                    }
+                                >
+                                    <div className="horecaCardBody">
+                                        <div className="sectionIntro">
+                                            Each wage rule is stored as a backend-managed value with its document, page,
+                                            and usage context. Editing publishes a new effective rule version.
+                                        </div>
+                                        {renderRuleSectionTable("WAGE_RULES")}
+                                    </div>
+                                </Card>
+
+                                <Card
+                                    title="Tax and payroll rules"
+                                    className="horecaRulesCard"
+                                    right={
+                                        <button
+                                            type="button"
+                                            className="tableActionIconButton"
+                                            aria-label="Edit tax and payroll rules"
+                                            title="Edit tax and payroll rules"
+                                            onClick={() => openRuleEditor("TAX_AND_PAYROLL_RULES")}
+                                        >
+                                            <PencilIcon />
+                                        </button>
+                                    }
+                                >
+                                    <div className="horecaCardBody">
+                                        <div className="sectionIntro">
+                                            Tax and payroll values are versioned backend records so future payroll periods
+                                            resolve the correct lawful source by effective date.
+                                        </div>
+                                        {renderRuleSectionTable("TAX_AND_PAYROLL_RULES")}
+                                    </div>
+                                </Card>
+
+                                <Card
+                                    title="Pension rules"
+                                    className="horecaRulesCard"
+                                    right={
+                                        <button
+                                            type="button"
+                                            className="tableActionIconButton"
+                                            aria-label="Edit pension rules"
+                                            title="Edit pension rules"
+                                            onClick={() => openRuleEditor("PENSION_RULES")}
+                                        >
+                                            <PencilIcon />
+                                        </button>
+                                    }
+                                >
+                                    <div className="horecaCardBody">
+                                        <div className="sectionIntro">
+                                            Pension values and wording can be updated with the exact source document and
+                                            page, while older contract versions stay in history unchanged.
+                                        </div>
+                                        {renderRuleSectionTable("PENSION_RULES")}
+                                    </div>
+                                </Card>
+
+                                <Card
+                                    title="Holiday and travel rules"
+                                    className="horecaRulesCard"
+                                    right={
+                                        <button
+                                            type="button"
+                                            className="tableActionIconButton"
+                                            aria-label="Edit holiday and travel rules"
+                                            title="Edit holiday and travel rules"
+                                            onClick={() => openRuleEditor("HOLIDAY_AND_TRAVEL_RULES")}
+                                        >
+                                            <PencilIcon />
+                                        </button>
+                                    }
+                                >
+                                    <div className="horecaCardBody">
+                                        <div className="sectionIntro">
+                                            Holiday allowance, vacation buildup, vacation day buildup, and travel allowance
+                                            all publish as editable backend rule items with document and page references.
+                                        </div>
+                                        {renderRuleSectionTable("HOLIDAY_AND_TRAVEL_RULES")}
                                     </div>
                                 </Card>
 
@@ -465,7 +736,7 @@ export default function HorecaPayrollRules() {
                                                     <th>Used for</th>
                                                     <th>Effective</th>
                                                     <th>Page</th>
-                                                    <th>Source</th>
+                                                    <th>Link</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -485,7 +756,6 @@ export default function HorecaPayrollRules() {
                                                             <a href={source.sourceUrl} target="_blank" rel="noreferrer">
                                                                 Open document
                                                             </a>
-                                                            {sourceButton(source.id)}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -493,885 +763,276 @@ export default function HorecaPayrollRules() {
                                         </table>
                                     </div>
                                 </Card>
-
-                                <Card
-                                    title="Job presets"
-                                    className="horecaRulesCard"
-                                    right={
-                                        <div className="cardHeaderActions">
-                                            <button
-                                                type="button"
-                                                className="button buttonSecondary"
-                                                onClick={() => {
-                                                    const defaults = resetHorecaJobPresets();
-                                                    setJobPresets(defaults);
-                                                    closePresetModal();
-                                                }}
-                                            >
-                                                Reset defaults
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="button"
-                                                aria-label="Create job preset"
-                                                onClick={openCreatePresetModal}
-                                            >
-                                                Create job preset
-                                            </button>
-                                        </div>
-                                    }
-                                >
-                                    <div className="horecaCardBody">
-                                        <div className="sectionIntro">
-                                            Job presets are reusable templates for horeca roles. Selecting a preset fills the
-                                            contract title, function, function group, wage, contract type, payroll period,
-                                            pension setting, holiday allowance setting, and vacation buildup rule.
-                                        </div>
-                                        <div className="tableScroll">
-                                            <table className="rulesTable">
-                                                <thead>
-                                                    <tr>
-                                                        <th>Preset</th>
-                                                        <th>Function</th>
-                                                        <th>Group</th>
-                                                        <th>Wage</th>
-                                                        <th>Contract</th>
-                                                        <th>Payroll</th>
-                                                        <th>Actions</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {jobPresets.map((preset) => (
-                                                        <tr key={preset.id}>
-                                                            <td>
-                                                                <strong>{preset.presetName}</strong>
-                                                                <span>{preset.jobTitle}</span>
-                                                            </td>
-                                                            <td>{preset.jobFunction}</td>
-                                                            <td>{preset.functionGroup}</td>
-                                                            <td>
-                                                                {money(preset.defaultHourlyWage)} hourly
-                                                                <span>{money(preset.defaultMonthlyWage)} monthly</span>
-                                                                {sourceButton(preset.sourceId, "1")}
-                                                            </td>
-                                                            <td>{preset.defaultContractType.replace("_", " ").toLowerCase()}</td>
-                                                            <td>
-                                                                {preset.defaultPayrollPeriod}
-                                                                <span>
-                                                                    Pension {preset.pensionApplicable ? "yes" : "no"}, holiday allowance{" "}
-                                                                    {preset.holidayAllowanceMode === "RESERVED" ? "reserved" : "paid each period"}
-                                                                </span>
-                                                            </td>
-                                                            <td>
-                                                                <div className="tableActions">
-                                                                    <button
-                                                                        type="button"
-                                                                        className="tableActionIconButton"
-                                                                        aria-label={`Edit preset ${preset.presetName}`}
-                                                                        title={`Edit ${preset.presetName}`}
-                                                                        onClick={() => openEditPresetModal(preset)}
-                                                                    >
-                                                                        <PencilIcon />
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="tableActionIconButton"
-                                                                        aria-label={`${preset.isActive ? "Disable" : "Enable"} preset ${preset.presetName}`}
-                                                                        title={`${preset.isActive ? "Disable" : "Enable"} ${preset.presetName}`}
-                                                                        onClick={() => handleTogglePresetActive(preset.id)}
-                                                                    >
-                                                                        {preset.isActive ? <DisableIcon /> : <EnableIcon />}
-                                                                    </button>
-                                                                    <button
-                                                                        type="button"
-                                                                        className="tableActionIconButton tableActionIconButton--danger"
-                                                                        aria-label={`Delete preset ${preset.presetName}`}
-                                                                        title={`Delete ${preset.presetName}`}
-                                                                        onClick={() => handleDeletePreset(preset.id)}
-                                                                    >
-                                                                        <TrashIcon />
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card title="Contract settings" className="horecaRulesCard">
-                                    <div className="horecaCardBody">
-                                        <div className="sectionIntro">
-                                            This sample admin contract setup shows how the final onboarding review should separate
-                                            employee-provided personal data from admin-selected legal and payroll settings.
-                                        </div>
-                                        <div className="rulesFormGrid">
-                                            <label className="rulesField">
-                                                <span>Horeca CAO</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={contractDraft.caoId}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({ ...prev, caoId: event.target.value }))
-                                                    }
-                                                >
-                                                    {HORECA_CAO_OPTIONS.map((cao) => (
-                                                        <option key={cao.id} value={cao.id}>
-                                                            {cao.name}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {sourceButton("horeca-cao-2025-2026", "12")}
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Job preset</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={contractDraft.jobPresetId}
-                                                    onChange={(event) => applyPresetToContract(event.target.value)}
-                                                >
-                                                    <option value="">Select a preset</option>
-                                                    {activePresets.map((preset) => (
-                                                        <option key={preset.id} value={preset.id}>
-                                                            {preset.presetName}
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                                {selectedPreset ? sourceButton(selectedPreset.sourceId, "1") : null}
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Contract type</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={contractDraft.contractType}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            contractType: event.target.value as ContractType,
-                                                            hoursPerWeek:
-                                                                event.target.value === "FULL_TIME" ? 38 : prev.hoursPerWeek,
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value="FULL_TIME">Full time</option>
-                                                    <option value="PART_TIME">Part time</option>
-                                                    <option value="ZERO_HOURS">Zero hours</option>
-                                                </select>
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Hours per week</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.25"
-                                                    value={contractDraft.contractType === "FULL_TIME" ? 38 : contractDraft.hoursPerWeek}
-                                                    disabled={contractDraft.contractType === "FULL_TIME"}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            hoursPerWeek: Number(event.target.value),
-                                                        }))
-                                                    }
-                                                />
-                                                {sourceButton("horeca-cao-2025-2026", "12")}
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Gross wage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.grossWage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("grossWage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <div className="rulesField rulesFieldFull">
-                                                <span>Gross hourly wage *</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={contractDraft.hourlyWage}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            hourlyWage: Number(event.target.value),
-                                                            isManualWageOverride: true,
-                                                    }))
-                                                }
-                                                />
-                                                {sourceButton("loontabel-2026-01-01", "1")}
-                                                <span className="ruleValueNote">Manual wage override reason</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    value={contractDraft.manualWageOverrideReason}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            manualWageOverrideReason: event.target.value,
-                                                        }))
-                                                    }
-                                                    placeholder="Required when wage is overridden"
-                                                />
-                                            </div>
-                                            <label className="rulesField">
-                                                <span>Payroll period</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={contractDraft.payrollPeriod}
-                                                    onChange={(event) =>
-                                                        setContractDraft((prev) => ({
-                                                            ...prev,
-                                                            payrollPeriod: event.target.value as PayrollPeriod,
-                                                        }))
-                                                    }
-                                                >
-                                                    <option value="MONTHLY">Monthly</option>
-                                                    <option value="WEEKLY">Weekly</option>
-                                                    <option value="BIWEEKLY">Bi-weekly</option>
-                                                    <option value="FOUR_WEEKLY">Four-weekly</option>
-                                                </select>
-                                            </label>
-                                        </div>
-                                        <div className="ruleValueGrid">
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Expected monthly hours</span>
-                                                <strong>{numberFormatter.format(expectedMonthlyHours)}</strong>
-                                                {sourceButton("horeca-cao-2025-2026", "12")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Holiday allowance</span>
-                                                <strong>
-                                                    {pct(holidayAllowancePct)}{" "}
-                                                    {contractDraft.holidayAllowanceMode === "RESERVED"
-                                                        ? "reserved"
-                                                        : "paid each period"}
-                                                </strong>
-                                                {sourceButton("horeca-cao-2025-2026", "32")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Vacation buildup</span>
-                                                <strong>{vacationBuildUp} vacation hour per paid hour</strong>
-                                                {sourceButton("horeca-cao-2025-2026", "23")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Travel allowance rate</span>
-                                                <strong>{money(travelAllowanceRatePerKilometer)} per km</strong>
-                                                <span className="ruleValueNote">
-                                                    Temporary shared horeca rule used for onboarding and travel claim estimates.
-                                                </span>
-                                            </div>
-                                        </div>
-                                        {validation.blockingErrors.length || validation.warnings.length ? (
-                                            <div className="rulesValidation">
-                                                {validation.blockingErrors.map((item) => (
-                                                    <div key={item} className="rulesValidationError">
-                                                        {item}
-                                                    </div>
-                                                ))}
-                                                {validation.warnings.map((item) => (
-                                                    <div key={item} className="rulesValidationWarning">
-                                                        {item}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        ) : null}
-                                    </div>
-                                </Card>
-
-                                <Card title="Wage rules" className="horecaRulesCard">
-                                    <div className="tableScroll">
-                                        <table className="rulesTable">
-                                            <thead>
-                                                <tr>
-                                                    <th>Year</th>
-                                                    <th>Age group</th>
-                                                    <th>Function group</th>
-                                                    <th>Monthly</th>
-                                                    <th>Weekly</th>
-                                                    <th>Hourly wage</th>
-                                                    <th>Source</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {HORECA_WAGE_RULES.map((rule) => (
-                                                    <tr key={rule.id}>
-                                                        <td>{rule.year}</td>
-                                                        <td>{rule.ageGroup}</td>
-                                                        <td>{rule.functionGroup}</td>
-                                                        <td>{money(rule.monthlyWage)}</td>
-                                                        <td>{money(rule.weeklyWage)}</td>
-                                                        <td>{money(rule.hourlyWage)}</td>
-                                                        <td>{sourceButton(rule.sourceId, rule.pageNumber)}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </Card>
-
-                                <Card title="Tax and payroll rules" className="horecaRulesCard">
-                                    <div className="horecaCardBody">
-                                        <div className="ruleValueGrid">
-                                            {HORECA_EMPLOYER_PREMIUM_RULES.map((rule) => (
-                                                <div className="ruleValueCard" key={rule.id}>
-                                                    <span className="ruleValueLabel">{rule.premiumName}</span>
-                                                    <strong>{pct(rule.percentage)}</strong>
-                                                    <span className="ruleValueNote">{rule.conditionName}</span>
-                                                    {sourceButton(rule.sourceId, rule.pageNumber)}
-                                                </div>
-                                            ))}
-                                            {HORECA_PAYROLL_VARIABLES.filter((variable) =>
-                                                variable.variableName.startsWith("monthlyPayrollTax")
-                                            ).map((variable) => (
-                                                <div className="ruleValueCard" key={variable.id}>
-                                                    <span className="ruleValueLabel">{variable.displayName}</span>
-                                                    <strong>{money(Number(variable.value))}</strong>
-                                                    <span className="ruleValueNote">{variable.meaning}</span>
-                                                    {sourceButton(variable.sourceId, variable.pageNumber)}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card title="Pension rules" className="horecaRulesCard">
-                                    <div className="horecaCardBody">
-                                        <div className="ruleValueGrid">
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Total pension premium</span>
-                                                <strong>{pct(pensionEmployeePct + pensionEmployerPct)}</strong>
-                                                {sourceButton("phenc-pensioenpremie", "Web page")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Employee part</span>
-                                                <strong>{pct(pensionEmployeePct)}</strong>
-                                                {sourceButton("phenc-pensioenpremie", "Web page")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Employer part</span>
-                                                <strong>{pct(pensionEmployerPct)}</strong>
-                                                {sourceButton("phenc-pensioenpremie", "Web page")}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card title="Example contract population" className="horecaRulesCard">
-                                    <div className="horecaCardBody">
-                                        <div className="contractPopulationGrid">
-                                            <div>
-                                                <h3>Employee provided information</h3>
-                                                <ul className="rulesList">
-                                                    <li>Name, date of birth, address, email, and phone</li>
-                                                    <li>Bank account, nationality, identification, and emergency contact</li>
-                                                    <li>Tax credit choice and other personal onboarding details</li>
-                                                </ul>
-                                            </div>
-                                            <div>
-                                                <h3>Admin selected contract information</h3>
-                                                <ul className="rulesList">
-                                                    <li>CAO, job preset, job title, job function, and function group</li>
-                                                    <li>Contract type, start date, end date, wage, hours, and payroll period</li>
-                                                    <li>Pension, holiday allowance, vacation buildup, and billing settings</li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <div className="sourceDetailsBlock">
-                                            <h3>Source details</h3>
-                                            <div className="rulesRows">
-                                                <div>
-                                                    <span>Hourly wage</span>
-                                                    <strong>{money(14.71)}</strong>
-                                                    {sourceButton("loontabel-2026-01-01", "1")}
-                                                </div>
-                                                <div>
-                                                    <span>Holiday allowance</span>
-                                                    <strong>{pct(8)}</strong>
-                                                    {sourceButton("horeca-cao-2025-2026", "32")}
-                                                </div>
-                                                <div>
-                                                    <span>Full time hours</span>
-                                                    <strong>38 hours per week, 164.67 hours per month</strong>
-                                                    {sourceButton("horeca-cao-2025-2026", "12")}
-                                                </div>
-                                                <div>
-                                                    <span>Pension premium</span>
-                                                    <strong>16.8% total, 8.4% employee and 8.4% employer</strong>
-                                                    {sourceButton("phenc-pensioenpremie", "Web page")}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
-
-                                <Card title="Payroll calculator" className="horecaRulesCard">
-                                    <div className="horecaCardBody">
-                                        <div className="sectionIntro">
-                                            Enter the employee and contract context. The calculator derives horeca tax,
-                                            pension, holiday allowance, vacation buildup, and employer premiums from the
-                                            official source-backed rules. Only the wage is meant to be adjusted manually.
-                                        </div>
-                                        <div className="ruleValueGrid">
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Derived monthly hours</span>
-                                                <strong>{numberFormatter.format(calculatorMonthlyHours)} hours</strong>
-                                                {sourceButton("horeca-cao-2025-2026", "12")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Required horeca hourly wage</span>
-                                                <strong>
-                                                    {calculatorRequiredWage ? money(calculatorRequiredWage.hourlyWage) : "Not available"}
-                                                </strong>
-                                                {sourceButton("loontabel-2026-01-01", "1")}
-                                            </div>
-                                            <div className="ruleValueCard">
-                                                <span className="ruleValueLabel">Tax source</span>
-                                                <strong>Belastingdienst monthly wage tax table 2026</strong>
-                                                {sourceButton("witte-maandloon-2026-01-01", "15")}
-                                            </div>
-                                        </div>
-                                        <div className="rulesFormGrid">
-                                            <label className="rulesField">
-                                                <span>Employee date of birth</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="date"
-                                                    value={calculatorDraft.employeeDateOfBirth}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("employeeDateOfBirth", event.target.value)
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Start date</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="date"
-                                                    value={calculatorDraft.startDate}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("startDate", event.target.value)
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Function group</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={calculatorDraft.functionGroup}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("functionGroup", event.target.value)
-                                                    }
-                                                >
-                                                    <option value="I+II">I plus II</option>
-                                                </select>
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Contract type</span>
-                                                <select
-                                                    className="uiSelect"
-                                                    value={calculatorDraft.contractType}
-                                                    onChange={(event) => {
-                                                        const nextContractType = event.target.value as ContractType;
-                                                        setCalculatorDraft((prev) => ({
-                                                            ...prev,
-                                                            contractType: nextContractType,
-                                                            hoursPerWeek: nextContractType === "FULL_TIME" ? 38 : prev.hoursPerWeek,
-                                                        }));
-                                                    }}
-                                                >
-                                                    <option value="FULL_TIME">Full time</option>
-                                                    <option value="PART_TIME">Part time</option>
-                                                    <option value="ZERO_HOURS">Zero hours</option>
-                                                </select>
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Hours per week</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.25"
-                                                    value={calculatorDraft.hoursPerWeek}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("hoursPerWeek", Number(event.target.value))
-                                                    }
-                                                    disabled={calculatorDraft.contractType === "FULL_TIME"}
-                                                />
-                                            </label>
-                                            <label className="rulesField">
-                                                <span>Hourly wage</span>
-                                                <input
-                                                    className="uiSelect"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={calculatorDraft.hourlyWage}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("hourlyWage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="rulesCheckbox">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={calculatorDraft.loonheffingskorting}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("loonheffingskorting", event.target.checked)
-                                                    }
-                                                />
-                                                <span>Loonheffingskorting</span>
-                                            </label>
-                                            <label className="rulesCheckbox">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={calculatorDraft.pensionApplicable}
-                                                    onChange={(event) =>
-                                                        updateCalculatorDraft("pensionApplicable", event.target.checked)
-                                                    }
-                                                />
-                                                <span>Pension applies</span>
-                                            </label>
-                                        </div>
-                                        {calculatorWageWarning ? (
-                                            <div className="rulesValidationError">{calculatorWageWarning}</div>
-                                        ) : null}
-                                        <div className="exampleNotice">
-                                            Payroll tax withholding is estimated from the Belastingdienst monthly wage tax
-                                            table example and scales automatically from the selected wage and
-                                            loonheffingskorting choice.
-                                        </div>
-                                        <div className="rulesActions">
-                                            <button type="button" className="button" onClick={handleGenerateCalculatorOutput}>
-                                                Generate output
-                                            </button>
-                                        </div>
-                                        <div className="tableScroll">
-                                            <table className="rulesTable">
-                                                <tbody>
-                                                    <tr>
-                                                        <th>Monthly hours</th>
-                                                        <td>{numberFormatter.format(calculatorMonthlyHours)} hours</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Gross wage</th>
-                                                        <td>{money(calculatorResult.grossWage)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Payroll tax withheld</th>
-                                                        <td>{money(calculatorResult.payrollTaxWithheld)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Holiday allowance reservation</th>
-                                                        <td>{money(calculatorResult.holidayAllowanceReservation)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Vacation hours buildup</th>
-                                                        <td>{numberFormatter.format(calculatorResult.vacationHoursBuildUp)} hours</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Employee pension deduction</th>
-                                                        <td>{money(calculatorResult.employeePensionDeduction)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Net wage paid to employee</th>
-                                                        <td>{money(calculatorResult.netWagePaid)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Employer payroll contributions</th>
-                                                        <td>{money(calculatorResult.employerPayrollContributions)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Amount payable to Belastingdienst</th>
-                                                        <td>{money(calculatorResult.amountPayableToBelastingdienst)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Amount payable to pension fund</th>
-                                                        <td>{money(calculatorResult.amountPayableToPensionFund)}</td>
-                                                    </tr>
-                                                    <tr>
-                                                        <th>Total employer cost before payroll margin</th>
-                                                        <td>{money(calculatorResult.totalEmployerCostBeforePayrollMargin)}</td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </Card>
                             </section>
 
                             <Modal
-                                open={isPresetModalOpen}
-                                title={presetDraft.id ? "Edit job preset" : "Create job preset"}
-                                onClose={closePresetModal}
+                                open={activeRuleSection !== null}
+                                title={activeRuleSection ? RULE_SECTION_TITLES[activeRuleSection] : "Edit rules"}
+                                onClose={closeRuleEditor}
                                 hideDefaultFooter
-                                maxHeight={560}
-                                height={560}
+                                maxHeight={680}
+                                height={680}
                             >
-                                <form className="roleWizard" onSubmit={(event) => {
-                                    event.preventDefault();
-                                    void handleSavePreset();
-                                }}>
-                                    <div className="roleWizardTabs" role="tablist" aria-label="Preset setup steps">
-                                        <button
-                                            type="button"
-                                            className={`roleWizardTab ${presetStep === "details" ? "roleWizardTab--active" : ""}`}
-                                            onClick={() => setPresetStep("details")}
-                                            role="tab"
-                                            aria-selected={presetStep === "details"}
-                                        >
-                                            Details
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`roleWizardTab ${presetStep === "rules" ? "roleWizardTab--active" : ""}`}
-                                            onClick={() => setPresetStep("rules")}
-                                            role="tab"
-                                            aria-selected={presetStep === "rules"}
-                                        >
-                                            Rules
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`roleWizardTab ${presetStep === "notes" ? "roleWizardTab--active" : ""}`}
-                                            onClick={() => setPresetStep("notes")}
-                                            role="tab"
-                                            aria-selected={presetStep === "notes"}
-                                        >
-                                            Notes
-                                        </button>
-                                    </div>
-
-                                    {presetStep === "details" ? (
-                                        <div className="roleWizardPanel">
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Preset name</span>
-                                                <input
-                                                    className="modal_input"
-                                                    value={presetDraft.presetName}
-                                                    onChange={(event) => updatePresetDraft("presetName", event.target.value)}
-                                                    placeholder="Bar employee"
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Job title</span>
-                                                <input
-                                                    className="modal_input"
-                                                    value={presetDraft.jobTitle}
-                                                    onChange={(event) => updatePresetDraft("jobTitle", event.target.value)}
-                                                    placeholder="Waiter"
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Job function</span>
-                                                <input
-                                                    className="modal_input"
-                                                    value={presetDraft.jobFunction}
-                                                    onChange={(event) => updatePresetDraft("jobFunction", event.target.value)}
-                                                    placeholder="Guest service and table care"
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Horeca function group</span>
-                                                <select
-                                                    className="modal_input"
-                                                    value={presetDraft.functionGroup}
-                                                    onChange={(event) => updatePresetDraft("functionGroup", event.target.value)}
-                                                >
-                                                    <option value="I+II">I plus II</option>
-                                                </select>
-                                            </label>
+                                {activeRuleSection ? (
+                                    <form
+                                        className="ruleEditorForm"
+                                        onSubmit={(event) => {
+                                            event.preventDefault();
+                                            void handleSaveRuleSection();
+                                        }}
+                                    >
+                                        <div className="sectionIntro">
+                                            Edit the backend rule items for this section. Saving publishes a new effective
+                                            version for future contracts and payroll calculations.
                                         </div>
-                                    ) : null}
-
-                                    {presetStep === "rules" ? (
-                                        <div className="roleWizardPanel">
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Default hourly wage</span>
-                                                <input
-                                                    className="modal_input"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={presetDraft.defaultHourlyWage}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft("defaultHourlyWage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Default monthly wage</span>
-                                                <input
-                                                    className="modal_input"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.01"
-                                                    value={presetDraft.defaultMonthlyWage}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft("defaultMonthlyWage", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Contract type</span>
-                                                <select
-                                                    className="modal_input"
-                                                    value={presetDraft.defaultContractType}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft("defaultContractType", event.target.value as ContractType)
-                                                    }
-                                                >
-                                                    <option value="FULL_TIME">Full time</option>
-                                                    <option value="PART_TIME">Part time</option>
-                                                    <option value="ZERO_HOURS">Zero hours</option>
-                                                </select>
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Default hours per week</span>
-                                                <input
-                                                    className="modal_input"
-                                                    type="number"
-                                                    min="0"
-                                                    step="0.25"
-                                                    value={presetDraft.defaultHoursPerWeek}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft("defaultHoursPerWeek", Number(event.target.value))
-                                                    }
-                                                />
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Payroll period</span>
-                                                <select
-                                                    className="modal_input"
-                                                    value={presetDraft.defaultPayrollPeriod}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft("defaultPayrollPeriod", event.target.value as PayrollPeriod)
-                                                    }
-                                                >
-                                                    <option value="MONTHLY">Monthly</option>
-                                                    <option value="WEEKLY">Weekly</option>
-                                                    <option value="BIWEEKLY">Bi-weekly</option>
-                                                    <option value="FOUR_WEEKLY">Four-weekly</option>
-                                                </select>
-                                            </label>
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Holiday allowance</span>
-                                                <select
-                                                    className="modal_input"
-                                                    value={presetDraft.holidayAllowanceMode}
-                                                    onChange={(event) =>
-                                                        updatePresetDraft(
-                                                            "holidayAllowanceMode",
-                                                            event.target.value as HolidayAllowanceMode
-                                                        )
-                                                    }
-                                                >
-                                                    <option value="RESERVED">Reserved</option>
-                                                    <option value="PAID_EACH_PERIOD">Paid each period</option>
-                                                </select>
-                                            </label>
-                                            <div className="roleWizardCheckboxGrid">
-                                                <label className="roleWizardCheckbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={presetDraft.pensionApplicable}
-                                                        onChange={(event) => updatePresetDraft("pensionApplicable", event.target.checked)}
-                                                    />
-                                                    <span>Pension applies</span>
-                                                </label>
-                                                <label className="roleWizardCheckbox">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={presetDraft.vacationBuildUpApplicable}
-                                                        onChange={(event) =>
-                                                            updatePresetDraft("vacationBuildUpApplicable", event.target.checked)
-                                                        }
-                                                    />
-                                                    <span>Vacation buildup applies</span>
-                                                </label>
-                                            </div>
+                                        <div className="ruleEditorList">
+                                            {ruleEditorDraftItems.map((item, index) => {
+                                                const isExpanded = expandedRuleEditorItemKey === item.itemKey;
+                                                const itemPanelId = `rule-editor-panel-${item.itemKey}`;
+                                                return (
+                                                    <section
+                                                        className={`ruleEditorItem${isExpanded ? " ruleEditorItem--expanded" : ""}`}
+                                                        key={item.id ?? item.itemKey}
+                                                    >
+                                                        <button
+                                                            type="button"
+                                                            className="ruleEditorItemToggle"
+                                                            aria-expanded={isExpanded}
+                                                            aria-controls={itemPanelId}
+                                                            onClick={() => toggleRuleEditorItem(item.itemKey)}
+                                                        >
+                                                            <div className="ruleEditorItemHeader">
+                                                                <div className="ruleEditorItemIdentity">
+                                                                    <h3>{item.name}</h3>
+                                                                    <span>{item.itemKey}</span>
+                                                                    {activeRuleSection === "WAGE_RULES" ? (
+                                                                        <span className="ruleEditorItemMeta">{formatWageMetaLabel(item)}</span>
+                                                                    ) : null}
+                                                                </div>
+                                                                <div className="ruleEditorItemSummary">
+                                                                    <strong>{formatRuleDisplayValue(item)}</strong>
+                                                                    <span>{formatRuleUsage(item)}</span>
+                                                                </div>
+                                                                <span
+                                                                    className={`ruleEditorItemChevron${
+                                                                        isExpanded ? " ruleEditorItemChevron--expanded" : ""
+                                                                    }`}
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    ▾
+                                                                </span>
+                                                            </div>
+                                                        </button>
+                                                        {isExpanded ? (
+                                                            <div className="ruleEditorItemPanel" id={itemPanelId}>
+                                                                <div className="rulesFormGrid">
+                                                                    <label className="rulesField">
+                                                                        <span>Name</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.name}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "name", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Value type</span>
+                                                                        <select
+                                                                            className="modal_input"
+                                                                            value={item.valueType ?? "TEXT"}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "valueType", event.target.value)
+                                                                            }
+                                                                        >
+                                                                            <option value="TEXT">Text</option>
+                                                                            <option value="NUMBER">Number</option>
+                                                                            <option value="BOOLEAN">Boolean</option>
+                                                                        </select>
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Value</span>
+                                                                        {item.valueType === "BOOLEAN" ? (
+                                                                            <select
+                                                                                className="modal_input"
+                                                                                value={item.valueBoolean ? "true" : "false"}
+                                                                                onChange={(event) =>
+                                                                                    updateRuleEditorItem(
+                                                                                        index,
+                                                                                        "valueBoolean",
+                                                                                        event.target.value === "true"
+                                                                                    )
+                                                                                }
+                                                                            >
+                                                                                <option value="true">True</option>
+                                                                                <option value="false">False</option>
+                                                                            </select>
+                                                                        ) : item.valueType === "NUMBER" ? (
+                                                                            <input
+                                                                                className="modal_input"
+                                                                                type="number"
+                                                                                step={normalizeText(item.unit).toLowerCase().includes("hour") ? "0.0001" : "0.01"}
+                                                                                value={item.valueNumber ?? 0}
+                                                                                onChange={(event) =>
+                                                                                    updateRuleEditorItem(
+                                                                                        index,
+                                                                                        "valueNumber",
+                                                                                        Number(event.target.value)
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        ) : (
+                                                                            <input
+                                                                                className="modal_input"
+                                                                                value={item.valueText ?? ""}
+                                                                                onChange={(event) =>
+                                                                                    updateRuleEditorItem(index, "valueText", event.target.value)
+                                                                                }
+                                                                            />
+                                                                        )}
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Unit</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.unit ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "unit", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    {activeRuleSection === "WAGE_RULES" ? (
+                                                                        <>
+                                                                            <label className="rulesField">
+                                                                                <span>Function group</span>
+                                                                                <select
+                                                                                    className="modal_input"
+                                                                                    value={item.functionGroup ?? ""}
+                                                                                    onChange={(event) =>
+                                                                                        updateRuleEditorItem(index, "functionGroup", event.target.value)
+                                                                                    }
+                                                                                >
+                                                                                    <option value="">Select function group</option>
+                                                                                    <option value="I+II">I plus II</option>
+                                                                                    <option value="III">III</option>
+                                                                                    <option value="IV">IV</option>
+                                                                                    <option value="V">V</option>
+                                                                                </select>
+                                                                            </label>
+                                                                            <label className="rulesField">
+                                                                                <span>Age group</span>
+                                                                                <select
+                                                                                    className="modal_input"
+                                                                                    value={item.ageGroup ?? ""}
+                                                                                    onChange={(event) =>
+                                                                                        updateRuleEditorItem(index, "ageGroup", event.target.value)
+                                                                                    }
+                                                                                >
+                                                                                    <option value="">Select age group</option>
+                                                                                    <option value="Adult">Adult (21+)</option>
+                                                                                    <option value="20">20 years</option>
+                                                                                    <option value="19">19 years</option>
+                                                                                    <option value="18">18 years</option>
+                                                                                    <option value="17">17 years</option>
+                                                                                    <option value="16">16 years</option>
+                                                                                    <option value="15">15 years</option>
+                                                                                </select>
+                                                                            </label>
+                                                                        </>
+                                                                    ) : null}
+                                                                    <label className="rulesField rulesFieldFull">
+                                                                        <span>Calculation rule</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.calculationRule ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "calculationRule", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Document</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.documentName ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "documentName", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Document URL</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.documentUrl ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "documentUrl", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Page</span>
+                                                                        <input
+                                                                            className="modal_input"
+                                                                            value={item.pageReference ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "pageReference", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                    <label className="rulesField">
+                                                                        <span>Usage</span>
+                                                                        <select
+                                                                            className="modal_input"
+                                                                            value={`${item.usedInContract ? "contract" : ""}|${item.usedInPayroll ? "payroll" : ""}`}
+                                                                            onChange={(event) => {
+                                                                                const [contractUsage, payrollUsage] = event.target.value.split("|");
+                                                                                updateRuleEditorItem(index, "usedInContract", contractUsage === "contract");
+                                                                                updateRuleEditorItem(index, "usedInPayroll", payrollUsage === "payroll");
+                                                                            }}
+                                                                        >
+                                                                            <option value="contract|payroll">Contract and payroll</option>
+                                                                            <option value="contract|">Contract only</option>
+                                                                            <option value="|payroll">Payroll only</option>
+                                                                            <option value="|">Reference only</option>
+                                                                        </select>
+                                                                    </label>
+                                                                    <label className="rulesField rulesFieldFull">
+                                                                        <span>Source note</span>
+                                                                        <textarea
+                                                                            className="modal_input planningWizardTextarea"
+                                                                            rows={3}
+                                                                            value={item.sourceNote ?? ""}
+                                                                            onChange={(event) =>
+                                                                                updateRuleEditorItem(index, "sourceNote", event.target.value)
+                                                                            }
+                                                                        />
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        ) : null}
+                                                    </section>
+                                                );
+                                            })}
                                         </div>
-                                    ) : null}
-
-                                    {presetStep === "notes" ? (
-                                        <div className="roleWizardPanel">
-                                            <label className="roleWizardField">
-                                                <span className="roleWizardLabel">Notes</span>
-                                                <textarea
-                                                    className="modal_input planningWizardTextarea"
-                                                    rows={4}
-                                                    value={presetDraft.adminNotes}
-                                                    onChange={(event) => updatePresetDraft("adminNotes", event.target.value)}
-                                                    placeholder="Optional notes for the preset"
-                                                />
-                                            </label>
+                                        {ruleEditorError ? <div className="roleWizardAlert roleWizardAlert--error">{ruleEditorError}</div> : null}
+                                        <div className="roleWizardActions planningWizardActions">
+                                            <button
+                                                type="button"
+                                                className="buttonSecondary planningWizardCancel"
+                                                onClick={closeRuleEditor}
+                                                disabled={isRulePublishPending}
+                                            >
+                                                Cancel
+                                            </button>
+                                            <button type="submit" className="roleWizardPrimary" disabled={isRulePublishPending}>
+                                                {isRulePublishPending ? "Saving..." : "Save section"}
+                                            </button>
                                         </div>
-                                    ) : null}
-
-                                    {presetError ? <div className="roleWizardAlert roleWizardAlert--error">{presetError}</div> : null}
-                                    <div className="roleWizardActions planningWizardActions">
-                                        <button
-                                            type="button"
-                                            className="buttonSecondary planningWizardCancel"
-                                            onClick={closePresetModal}
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button type="submit" className="roleWizardPrimary">
-                                            {presetDraft.id ? "Save preset" : "Create preset"}
-                                        </button>
-                                    </div>
-                                </form>
+                                    </form>
+                                ) : null}
                             </Modal>
 
-                            {selectedSource ? (
-                                <aside className="sourcePanel" aria-label="Source details">
-                                    <div className="sourcePanelHeader">
-                                        <h2>Source details</h2>
-                                        <button
-                                            type="button"
-                                            className="button buttonSecondary"
-                                            onClick={() => setSelectedSourceId(null)}
-                                        >
-                                            Close
-                                        </button>
-                                    </div>
-                                    <div className="sourcePanelRows">
-                                        <div>
-                                            <span>Document name</span>
-                                            <strong>{selectedSource.documentName}</strong>
-                                        </div>
-                                        <div>
-                                            <span>Document URL</span>
-                                            <a href={selectedSource.sourceUrl} target="_blank" rel="noreferrer">
-                                                {selectedSource.sourceUrl}
-                                            </a>
-                                        </div>
-                                        <div>
-                                            <span>Page number</span>
-                                            <strong>{selectedSource.pageNumber}</strong>
-                                        </div>
-                                        <div>
-                                            <span>Effective date</span>
-                                            <strong>
-                                                {selectedSource.effectiveFrom}
-                                                {selectedSource.effectiveTo ? ` to ${selectedSource.effectiveTo}` : ""}
-                                            </strong>
-                                        </div>
-                                        <div>
-                                            <span>Explanation</span>
-                                            <p>{selectedSource.sourceNote}</p>
-                                        </div>
-                                    </div>
-                                </aside>
-                            ) : null}
                         </div>
                     </main>
                 </div>

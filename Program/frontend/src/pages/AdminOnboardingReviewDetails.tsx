@@ -10,10 +10,12 @@ import {
     type ContractResponseDTO,
     type CreateContractRequestDTO,
     type FunctionResponseDTO,
+    type SignContractRequestDTO,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
 import {
     HORECA_CAO_OPTIONS,
+    HORECA_RULE_SOURCES,
     type ContractType,
     type HolidayAllowanceMode,
     type JobPreset,
@@ -21,16 +23,21 @@ import {
 } from "../data/horecaPayrollRules";
 import {
     calculateMonthlyHours,
+    formatHorecaAgeGroupLabel,
     formatOnboardingReviewTravelAllowanceHelpText,
     formatSourceLabel,
-    getHorecaRequiredHourlyWage,
+    getHorecaMinimumHourlyWage,
+    getManagedHorecaWageRules,
     getPayrollVariableNumber,
     getRuleSource,
     loadHorecaJobPresets,
     validateContractPayrollSettings,
 } from "../utils/horecaPayrollRules";
+import type { HorecaJobPresetConfigDTO, HorecaRuleVersionDTO } from "../services/user-service/Types";
 import { formatDate } from "../utils/dateFormat";
 import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
+import { useAuth } from "../context/AuthContext";
+import { canViewEmployeeIdentification } from "../utils/permissionPolicy";
 
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminUsers.css";
@@ -76,7 +83,10 @@ type ContractSetupDraft = {
 
 type ChecklistSectionKey = "personal" | "address" | "identification" | "bank" | "emergency" | "tax" | "contract";
 type PayrollPeriodOption = { value: PayrollPeriod; label: string };
-type ContractTypeRuleDraft = Pick<ContractSetupDraft, "contractType" | "hoursPerWeek" | "payrollPeriod" | "paymentFrequency">;
+type ContractTypeRuleDraft = Pick<
+    ContractSetupDraft,
+    "contractType" | "hoursPerWeek" | "grossMonthlyWage" | "payrollPeriod" | "paymentFrequency"
+>;
 type EmployerPreSignValidationInput = Pick<ContractSetupDraft, "employerAgreementChecked" | "employerTypedSignatureName">;
 type CreateAndSendOnboardingContractInput = {
     currentContract: ContractResponseDTO | null;
@@ -130,6 +140,8 @@ export function getPayrollPeriodOptionsForContractType(contractType?: string | n
 export function normalizeContractDraftForContractType<T extends ContractTypeRuleDraft>(draft: T): T {
     const normalizedHoursPerWeek =
         draft.contractType === "FULL_TIME" ? "38" : draft.contractType === "ZERO_HOURS" ? "0" : (draft.hoursPerWeek ?? "");
+    const normalizedGrossMonthlyWage =
+        draft.contractType === "ZERO_HOURS" ? "0" : (draft.grossMonthlyWage ?? "");
     const normalizedPayrollPeriod =
         draft.contractType !== "ZERO_HOURS" && draft.payrollPeriod === "EVERY_10_MINUTES" ? "MONTHLY" : (draft.payrollPeriod ?? "");
     const normalizedPaymentFrequency =
@@ -138,6 +150,7 @@ export function normalizeContractDraftForContractType<T extends ContractTypeRule
     return {
         ...draft,
         hoursPerWeek: normalizedHoursPerWeek,
+        grossMonthlyWage: normalizedGrossMonthlyWage,
         payrollPeriod: normalizedPayrollPeriod as T["payrollPeriod"],
         paymentFrequency: normalizedPaymentFrequency,
     };
@@ -276,6 +289,32 @@ function numberFromDraft(value?: string | null): number | null {
     return Number.isFinite(parsed) ? parsed : null;
 }
 
+function sourceIdFromDocumentName(documentName?: string | null): string {
+    return HORECA_RULE_SOURCES.find((source) => source.documentName === documentName)?.id ?? "loontabel-2026-01-01";
+}
+
+function toJobPreset(dto: HorecaJobPresetConfigDTO): JobPreset {
+    return {
+        id: dto.id ?? dto.presetKey ?? "",
+        sector: "horeca",
+        presetName: dto.presetName,
+        jobTitle: dto.jobTitle,
+        jobFunction: dto.jobFunction,
+        functionGroup: dto.functionGroup,
+        defaultContractType: dto.defaultContractType as ContractType,
+        defaultHourlyWage: dto.defaultHourlyWage,
+        defaultMonthlyWage: dto.defaultMonthlyWage ?? 0,
+        defaultHoursPerWeek: dto.defaultHoursPerWeek ?? 0,
+        defaultPayrollPeriod: dto.defaultPayrollPeriod as PayrollPeriod,
+        pensionApplicable: dto.pensionApplicable ?? false,
+        holidayAllowanceMode: (dto.holidayAllowanceMode ?? "RESERVED") as HolidayAllowanceMode,
+        vacationBuildUpApplicable: dto.vacationBuildUpApplicable ?? false,
+        sourceId: sourceIdFromDocumentName(dto.documentName),
+        adminNotes: dto.adminNotes ?? dto.sourceNote ?? "",
+        isActive: dto.active ?? true,
+    };
+}
+
 const reviewCurrencyFormatter = new Intl.NumberFormat("nl-NL", {
     style: "currency",
     currency: "EUR",
@@ -298,6 +337,7 @@ function buildContractPayload(input: {
     selectedFunctionId: string;
     functions: FunctionResponseDTO[];
     draft: ContractSetupDraft;
+    managedWageRules?: ReturnType<typeof getManagedHorecaWageRules>;
 }): CreateContractRequestDTO {
     const selectedFunction = input.functions.find((item) => item.functionId === input.selectedFunctionId);
     const functionName =
@@ -320,7 +360,7 @@ function buildContractPayload(input: {
         pensionApplicable: choiceToBool(input.draft.pensionApplicable),
         isManualWageOverride: input.draft.isManualWageOverride,
         manualWageOverrideReason: input.draft.manualWageOverrideReason,
-    });
+    }, { wageRules: input.managedWageRules });
 
     if (!input.draft.caoId.trim()) throw new Error("CAO is required.");
     if (!input.draft.jobPresetId.trim()) throw new Error("Job preset is required.");
@@ -364,8 +404,14 @@ export function ReviewContractDownloadAction({
     );
 }
 
+function canReuseOnboardingContractDraft(currentContract: ContractResponseDTO | null): currentContract is ContractResponseDTO {
+    if (!currentContract) return false;
+    const status = normalizeStatus(currentContract.status);
+    return status !== "FINALIZED" && status !== "SIGNED" && status !== "EMPLOYEE_SIGNED";
+}
+
 export function getContractDraftActionLabel(currentContract: ContractResponseDTO | null): string {
-    return currentContract ? "Update contract draft" : "Create contract draft";
+    return canReuseOnboardingContractDraft(currentContract) ? "Update contract draft" : "Create contract draft";
 }
 
 export function applyEmployeeTaxProfileDefaults(
@@ -387,7 +433,7 @@ export async function saveOnboardingReviewContractDraft(input: {
     createContract: (payload: CreateContractRequestDTO) => Promise<ContractResponseDTO>;
     updateContract: (contractId: string, payload: CreateContractRequestDTO) => Promise<ContractResponseDTO>;
 }): Promise<{ contract: ContractResponseDTO; mode: "created" | "updated" }> {
-    if (input.currentContract) {
+    if (canReuseOnboardingContractDraft(input.currentContract)) {
         const contract = await input.updateContract(input.currentContract.contractId, input.payload);
         return { contract, mode: "updated" };
     }
@@ -406,6 +452,35 @@ export function validateEmployerPreSignRequirements(input: EmployerPreSignValida
     return missing;
 }
 
+export async function saveEmployerSignatureForContract(input: {
+    contract: ContractResponseDTO;
+    typedSignatureName: string;
+    drawnSignatureImage?: string | null;
+    agreementCheckboxText: string;
+    contractVersion: string;
+    buildDocumentHash: (contract: ContractResponseDTO, typedSignatureName: string) => Promise<string | null>;
+    browserUserAgent?: string;
+    prepareEmployerSignature: (contractId: string, payload: SignContractRequestDTO) => Promise<ContractResponseDTO>;
+    finalizeContract: (contractId: string, payload: SignContractRequestDTO) => Promise<ContractResponseDTO>;
+}): Promise<ContractResponseDTO> {
+    const documentHash = await input.buildDocumentHash(input.contract, input.typedSignatureName);
+    const payload: SignContractRequestDTO = {
+        typedSignatureName: input.typedSignatureName.trim(),
+        drawnSignatureImage: input.drawnSignatureImage ?? null,
+        agreementCheckboxText: input.agreementCheckboxText,
+        contractVersion: input.contractVersion,
+        documentHash,
+        browserUserAgent: input.browserUserAgent,
+    };
+
+    const status = normalizeStatus(input.contract.status);
+    if (status === "SIGNED" || status === "EMPLOYEE_SIGNED") {
+        return input.finalizeContract(input.contract.contractId, payload);
+    }
+
+    return input.prepareEmployerSignature(input.contract.contractId, payload);
+}
+
 export async function createAndSendOnboardingContract(input: CreateAndSendOnboardingContractInput): Promise<{
     contract: ContractResponseDTO;
 }> {
@@ -420,6 +495,14 @@ export async function createAndSendOnboardingContract(input: CreateAndSendOnboar
 export default function AdminOnboardingReviewDetails() {
     const navigate = useNavigate();
     const { userId } = useParams();
+    const { permissions } = useAuth();
+    // Without CAN_VIEW_EMPLOYEE_IDENTIFICATION the BSN and ID-document fields
+    // are masked so reviewers can still process the rest of the profile/contract
+    // without seeing personal identifiers.
+    const canSeeIdentification = canViewEmployeeIdentification(permissions);
+    const maskedIdentificationValue = "•••••";
+    const renderIdentificationValue = (value?: string | null): string =>
+        canSeeIdentification ? valueLabel(value) : isMissing(value) ? valueLabel(value) : maskedIdentificationValue;
     const employerSignatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
     const employerDrawingRef = useRef(false);
 
@@ -431,7 +514,8 @@ export default function AdminOnboardingReviewDetails() {
 
     const [functions, setFunctions] = useState<FunctionResponseDTO[]>([]);
     const [selectedFunctionId, setSelectedFunctionId] = useState("");
-    const [horecaJobPresets] = useState<JobPreset[]>(() => loadHorecaJobPresets().filter((preset) => preset.isActive));
+    const [horecaRulesVersion, setHorecaRulesVersion] = useState<HorecaRuleVersionDTO | null>(null);
+    const [horecaJobPresets, setHorecaJobPresets] = useState<JobPreset[]>(() => loadHorecaJobPresets().filter((preset) => preset.isActive));
 
     const [contractDraft, setContractDraft] = useState<ContractSetupDraft>({
         caoId: HORECA_CAO_OPTIONS[0].id,
@@ -502,15 +586,22 @@ export default function AdminOnboardingReviewDetails() {
             setActionError(null);
             setActionSuccess(null);
 
-            const [userRes, contractRes, functionsRes] = await Promise.all([
+            const [userRes, contractRes, functionsRes, horecaRulesRes] = await Promise.all([
                 UserServices.getUserById(userId),
                 UserServices.getCurrentContractForUser(userId),
                 UserServices.getFunctions(),
+                UserServices.getCurrentHorecaRules().catch(() => null),
             ]);
 
             setUser(userRes);
             setCurrentContract(contractRes);
             setFunctions(functionsRes);
+            setHorecaRulesVersion(horecaRulesRes);
+            setHorecaJobPresets(
+                horecaRulesRes?.jobPresets?.length
+                    ? horecaRulesRes.jobPresets.map(toJobPreset).filter((preset) => preset.isActive)
+                    : loadHorecaJobPresets().filter((preset) => preset.isActive)
+            );
 
             const existingDecision = (userRes.onboardingReviewDecision ?? "").trim();
             if (existingDecision) {
@@ -617,14 +708,21 @@ export default function AdminOnboardingReviewDetails() {
     const contractStartIso = useMemo(() => parseDisplayDate(contractDraft.startDate), [contractDraft.startDate]);
     const contractHourlyWage = useMemo(() => numberFromDraft(contractDraft.grossHourlyWage), [contractDraft.grossHourlyWage]);
     const contractHoursPerWeek = useMemo(() => numberFromDraft(contractDraft.hoursPerWeek), [contractDraft.hoursPerWeek]);
-    const wageRule = useMemo(
+    const managedWageRules = useMemo(
+        () => getManagedHorecaWageRules(horecaRulesVersion?.sections?.WAGE_RULES),
+        [horecaRulesVersion]
+    );
+    const minimumWageInfo = useMemo(
         () =>
-            getHorecaRequiredHourlyWage({
-                dateOfBirth: user?.dateOfBirth,
-                startDate: contractStartIso,
-                functionGroup: contractDraft.functionGroup,
-            }),
-        [user?.dateOfBirth, contractStartIso, contractDraft.functionGroup]
+            getHorecaMinimumHourlyWage(
+                {
+                    dateOfBirth: user?.dateOfBirth,
+                    referenceDate: contractStartIso ?? new Date().toISOString().slice(0, 10),
+                    functionGroup: contractDraft.functionGroup,
+                },
+                { wageRules: managedWageRules }
+            ),
+        [user?.dateOfBirth, contractStartIso, contractDraft.functionGroup, managedWageRules]
     );
     const contractValidation = useMemo(
         () =>
@@ -640,7 +738,7 @@ export default function AdminOnboardingReviewDetails() {
                 pensionApplicable: choiceToBool(contractDraft.pensionApplicable),
                 isManualWageOverride: contractDraft.isManualWageOverride,
                 manualWageOverrideReason: contractDraft.manualWageOverrideReason,
-            }),
+            }, { wageRules: managedWageRules }),
         [
             user?.dateOfBirth,
             contractStartIso,
@@ -653,7 +751,18 @@ export default function AdminOnboardingReviewDetails() {
             contractDraft.isManualWageOverride,
             contractDraft.manualWageOverrideReason,
             contractHourlyWage,
+            managedWageRules,
         ]
+    );
+    const wageBelowMinimumWarning = useMemo(() => {
+        const minimum = minimumWageInfo.minimumHourlyWage;
+        if (minimum == null || contractHourlyWage == null) return null;
+        if (contractHourlyWage >= minimum) return null;
+        return `Warning: this is below minimum wage. The entered hourly wage (€${contractHourlyWage.toFixed(2)}) is below the minimum wage from the horeca wage table (€${minimum.toFixed(2)}) for this employee age.`;
+    }, [contractHourlyWage, minimumWageInfo.minimumHourlyWage]);
+    const contractValidationWarnings = useMemo(
+        () => contractValidation.warnings.filter((item) => !wageBelowMinimumWarning || item !== wageBelowMinimumWarning.replace("Warning: this is below minimum wage. ", "")),
+        [contractValidation.warnings, wageBelowMinimumWarning]
     );
     const selectedSource = useMemo(() => getRuleSource(selectedSourceId), [selectedSourceId]);
     const expectedMonthlyHours = useMemo(() => {
@@ -738,6 +847,20 @@ export default function AdminOnboardingReviewDetails() {
             JSON.stringify({ selectedFunctionId, draft: contractDraft })
         );
     }, [contractDraft, selectedFunctionId, userId]);
+
+    useEffect(() => {
+        if (contractDraft.isManualWageOverride) return;
+        if (minimumWageInfo.minimumHourlyWage == null) return;
+        const nextHourlyWage = minimumWageInfo.minimumHourlyWage.toFixed(2);
+        setContractDraft((prev) => {
+            if (prev.isManualWageOverride) return prev;
+            if (prev.grossHourlyWage === nextHourlyWage) return prev;
+            return {
+                ...prev,
+                grossHourlyWage: nextHourlyWage,
+            };
+        });
+    }, [contractDraft.isManualWageOverride, minimumWageInfo.minimumHourlyWage]);
 
     useEffect(() => {
         // If fields become missing, clear the manual checkmark so the UI stays honest.
@@ -850,6 +973,7 @@ export default function AdminOnboardingReviewDetails() {
                 selectedFunctionId,
                 functions,
                 draft: contractDraft,
+                managedWageRules,
             });
             const result = await saveOnboardingReviewContractDraft({
                 currentContract,
@@ -858,7 +982,59 @@ export default function AdminOnboardingReviewDetails() {
                 updateContract: UserServices.updateContract,
             });
             setCurrentContract(result.contract);
-            setActionSuccess(result.mode === "updated" ? "Contract draft updated." : "Contract draft created.");
+
+            // Also persist the optional employer signature (typed name and the
+            // optional drawn image) so it doesn't get lost between sessions.
+            // The backend requires the typed name and agreement to be present
+            // before it accepts any signature data, so if either is missing we
+            // skip silently and only save the contract fields.
+            const canSaveEmployerSignature =
+                contractDraft.employerAgreementChecked &&
+                contractDraft.employerTypedSignatureName.trim().length > 0;
+
+            let employerSignatureSaved = false;
+            let employerSignatureFinalizedContract = false;
+            let employerSignatureError: string | null = null;
+            if (canSaveEmployerSignature && normalizeStatus(result.contract.status) !== "FINALIZED") {
+                try {
+                    const signed = await saveEmployerSignatureForContract({
+                        contract: result.contract,
+                        typedSignatureName: contractDraft.employerTypedSignatureName.trim(),
+                        drawnSignatureImage: contractDraft.employerDrawnSignatureImage || null,
+                        agreementCheckboxText: EMPLOYER_AGREEMENT_TEXT,
+                        contractVersion: CONTRACT_VERSION,
+                        buildDocumentHash: buildEmployerDocumentHash,
+                        browserUserAgent: navigator.userAgent,
+                        prepareEmployerSignature: UserServices.prepareEmployerSignature,
+                        finalizeContract: UserServices.finalizeContract,
+                    });
+                    setCurrentContract(signed);
+                    employerSignatureSaved = true;
+                    employerSignatureFinalizedContract =
+                        normalizeStatus(result.contract.status) !== "FINALIZED" &&
+                        normalizeStatus(signed.status) === "FINALIZED";
+                } catch (err: unknown) {
+                    // Don't fail the whole save just because the signature
+                    // persistence failed — the contract changes are already
+                    // committed. Surface the reason as part of the success/
+                    // warning line so the admin can react.
+                    employerSignatureError =
+                        err instanceof Error ? err.message : "Failed to save employer signature.";
+                }
+            }
+
+            const baseMessage = result.mode === "updated" ? "Contract draft updated." : "Contract draft created.";
+            if (employerSignatureSaved) {
+                setActionSuccess(
+                    employerSignatureFinalizedContract
+                        ? `${baseMessage} Employer signature saved and contract finalized.`
+                        : `${baseMessage} Employer signature saved.`
+                );
+            } else if (employerSignatureError) {
+                setActionSuccess(`${baseMessage} Employer signature could not be saved: ${employerSignatureError}`);
+            } else {
+                setActionSuccess(baseMessage);
+            }
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to save contract draft.";
             setActionError(message);
@@ -912,6 +1088,7 @@ export default function AdminOnboardingReviewDetails() {
                 selectedFunctionId,
                 functions,
                 draft: contractDraft,
+                managedWageRules,
             });
             const result = await createAndSendOnboardingContract({
                 currentContract,
@@ -942,14 +1119,16 @@ export default function AdminOnboardingReviewDetails() {
                     return draftResult;
                 },
                 saveEmployerSignature: async (contract) => {
-                    const documentHash = await buildEmployerDocumentHash(contract, contractDraft.employerTypedSignatureName);
-                    const prepared = await UserServices.prepareEmployerSignature(contract.contractId, {
+                    const prepared = await saveEmployerSignatureForContract({
+                        contract,
                         typedSignatureName: contractDraft.employerTypedSignatureName.trim(),
                         drawnSignatureImage: contractDraft.employerDrawnSignatureImage || null,
                         agreementCheckboxText: EMPLOYER_AGREEMENT_TEXT,
                         contractVersion: CONTRACT_VERSION,
-                        documentHash,
+                        buildDocumentHash: buildEmployerDocumentHash,
                         browserUserAgent: navigator.userAgent,
+                        prepareEmployerSignature: UserServices.prepareEmployerSignature,
+                        finalizeContract: UserServices.finalizeContract,
                     });
                     setCurrentContract(prepared);
                     return prepared;
@@ -1151,6 +1330,15 @@ export default function AdminOnboardingReviewDetails() {
             setContractDraft((prev) => ({ ...prev, jobPresetId: "" }));
             return;
         }
+        const referenceDate = parseDisplayDate(contractDraft.startDate) ?? new Date().toISOString().slice(0, 10);
+        const presetMinimum = getHorecaMinimumHourlyWage(
+            {
+                dateOfBirth: user?.dateOfBirth,
+                referenceDate,
+                functionGroup: preset.functionGroup,
+            },
+            { wageRules: managedWageRules }
+        );
         setSelectedFunctionId("");
         setContractDraft((prev) =>
             normalizeContractDraftForContractType({
@@ -1162,7 +1350,7 @@ export default function AdminOnboardingReviewDetails() {
                 functionGroup: preset.functionGroup,
                 functionName: preset.jobTitle,
                 contractType: preset.defaultContractType,
-                grossHourlyWage: preset.defaultHourlyWage.toFixed(2),
+                grossHourlyWage: (presetMinimum.minimumHourlyWage ?? preset.defaultHourlyWage).toFixed(2),
                 grossMonthlyWage: preset.defaultMonthlyWage.toFixed(2),
                 hoursPerWeek: String(preset.defaultHoursPerWeek),
                 payrollPeriod: preset.defaultPayrollPeriod,
@@ -1358,55 +1546,61 @@ export default function AdminOnboardingReviewDetails() {
                                                     <div key={label} className="reviewRow">
                                                         <div className="reviewLabel">{label}</div>
                                                         <div className={`reviewValue ${isMissing(value) ? "reviewValue--missing" : ""}`}>
-                                                            {valueLabel(value)}
+                                                            {renderIdentificationValue(value)}
                                                         </div>
                                                     </div>
                                                 ))}
                                             <div className="reviewRow">
                                                 <div className="reviewLabel">Uploaded ID documents</div>
                                                 <div className="reviewValue">
-                                                    <div className="reviewDocumentActions">
-                                                        <div className="reviewDocumentAction">
-                                                            {user.hasIdDocumentImage ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="button buttonSecondary"
-                                                                    onClick={() => void handleOpenIdDocument("front")}
-                                                                    disabled={idDocumentLoadingSide !== null}
-                                                                >
-                                                                    {idDocumentLoadingSide === "front" ? "Opening..." : "Open front"}
-                                                                </button>
-                                                            ) : (
-                                                                <div className="reviewInlineWarn">Missing front</div>
-                                                            )}
-                                                            {idDocumentFrontNoFile ? (
-                                                                <div className="reviewInlineWarn">Missing front</div>
-                                                            ) : null}
-                                                            {idDocumentFrontError ? (
-                                                                <div className="reviewInlineError">{idDocumentFrontError}</div>
-                                                            ) : null}
+                                                    {canSeeIdentification ? (
+                                                        <div className="reviewDocumentActions">
+                                                            <div className="reviewDocumentAction">
+                                                                {user.hasIdDocumentImage ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="button buttonSecondary"
+                                                                        onClick={() => void handleOpenIdDocument("front")}
+                                                                        disabled={idDocumentLoadingSide !== null}
+                                                                    >
+                                                                        {idDocumentLoadingSide === "front" ? "Opening..." : "Open front"}
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="reviewInlineWarn">Missing front</div>
+                                                                )}
+                                                                {idDocumentFrontNoFile ? (
+                                                                    <div className="reviewInlineWarn">Missing front</div>
+                                                                ) : null}
+                                                                {idDocumentFrontError ? (
+                                                                    <div className="reviewInlineError">{idDocumentFrontError}</div>
+                                                                ) : null}
+                                                            </div>
+                                                            <div className="reviewDocumentAction">
+                                                                {user.hasIdDocumentBackImage ? (
+                                                                    <button
+                                                                        type="button"
+                                                                        className="button buttonSecondary"
+                                                                        onClick={() => void handleOpenIdDocument("back")}
+                                                                        disabled={idDocumentLoadingSide !== null}
+                                                                    >
+                                                                        {idDocumentLoadingSide === "back" ? "Opening..." : "Open back"}
+                                                                    </button>
+                                                                ) : (
+                                                                    <div className="reviewInlineWarn">Missing back</div>
+                                                                )}
+                                                                {idDocumentBackNoFile ? (
+                                                                    <div className="reviewInlineWarn">Missing back</div>
+                                                                ) : null}
+                                                                {idDocumentBackError ? (
+                                                                    <div className="reviewInlineError">{idDocumentBackError}</div>
+                                                                ) : null}
+                                                            </div>
                                                         </div>
-                                                        <div className="reviewDocumentAction">
-                                                            {user.hasIdDocumentBackImage ? (
-                                                                <button
-                                                                    type="button"
-                                                                    className="button buttonSecondary"
-                                                                    onClick={() => void handleOpenIdDocument("back")}
-                                                                    disabled={idDocumentLoadingSide !== null}
-                                                                >
-                                                                    {idDocumentLoadingSide === "back" ? "Opening..." : "Open back"}
-                                                                </button>
-                                                            ) : (
-                                                                <div className="reviewInlineWarn">Missing back</div>
-                                                            )}
-                                                            {idDocumentBackNoFile ? (
-                                                                <div className="reviewInlineWarn">Missing back</div>
-                                                            ) : null}
-                                                            {idDocumentBackError ? (
-                                                                <div className="reviewInlineError">{idDocumentBackError}</div>
-                                                            ) : null}
+                                                    ) : (
+                                                        <div className="reviewFieldHelp">
+                                                            You do not have permission to view uploaded ID documents.
                                                         </div>
-                                                    </div>
+                                                    )}
                                                 </div>
                                             </div>
                                             </div>
@@ -1461,7 +1655,7 @@ export default function AdminOnboardingReviewDetails() {
                                                 <div className="reviewRow">
                                                     <div className="reviewLabel">BSN</div>
                                                     <div className={`reviewValue ${isMissing(user.employeeTaxProfile?.bsn ?? null) ? "reviewValue--missing" : ""}`}>
-                                                        {valueLabel(user.employeeTaxProfile?.bsn ?? null)}
+                                                        {renderIdentificationValue(user.employeeTaxProfile?.bsn ?? null)}
                                                     </div>
                                                 </div>
                                                 <div className="reviewRow">
@@ -1623,8 +1817,23 @@ export default function AdminOnboardingReviewDetails() {
                                                     >
                                                         <option value="">Select a function group</option>
                                                         <option value="I+II">I plus II</option>
+                                                        <option value="III">III</option>
+                                                        <option value="IV">IV</option>
+                                                        <option value="V">V</option>
                                                     </select>
                                                     {sourceButton("loontabel-2026-01-01", "1")}
+                                                </label>
+                                                <label className="reviewField">
+                                                    <span className="reviewFieldLabel">Age group from date of birth</span>
+                                                    <input
+                                                        className="uiSelect"
+                                                        value={formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)}
+                                                        readOnly
+                                                        disabled
+                                                    />
+                                                    <span className="reviewFieldHelp">
+                                                        The employee date of birth determines which minimum wage row is suggested for this contract.
+                                                    </span>
                                                 </label>
                                                 <label className="reviewField">
                                                     <span className="reviewFieldLabel">
@@ -1709,6 +1918,24 @@ export default function AdminOnboardingReviewDetails() {
                                                         placeholder="e.g. 14.71"
                                                         disabled={actionLoading}
                                                     />
+                                                    {minimumWageInfo.minimumHourlyWage != null ? (
+                                                        <span className="reviewFieldHelp">
+                                                            Suggested minimum for {formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)} in group{" "}
+                                                            {contractDraft.functionGroup || "?"}: {moneyLabel(minimumWageInfo.minimumHourlyWage)} per hour.
+                                                        </span>
+                                                    ) : null}
+                                                    {wageBelowMinimumWarning ? (
+                                                        <span className="reviewFieldHelp reviewFieldHelpWarning">
+                                                            <span
+                                                                className="reviewWarningIcon"
+                                                                aria-label={wageBelowMinimumWarning}
+                                                                title={wageBelowMinimumWarning}
+                                                            >
+                                                                !
+                                                            </span>
+                                                            <span>{wageBelowMinimumWarning.replace("Warning: this is below minimum wage. ", "")}</span>
+                                                        </span>
+                                                    ) : null}
                                                     {sourceButton("loontabel-2026-01-01", "1")}
                                                 </label>
                                                 <label className="reviewField">
@@ -1716,12 +1943,16 @@ export default function AdminOnboardingReviewDetails() {
                                                     <input
                                                         className="uiSelect"
                                                         inputMode="decimal"
-                                                        value={contractDraft.grossMonthlyWage}
+                                                        value={
+                                                            contractDraft.contractType === "ZERO_HOURS"
+                                                                ? "0"
+                                                                : contractDraft.grossMonthlyWage
+                                                        }
                                                         onChange={(event) =>
                                                             setContractDraft((prev) => ({ ...prev, grossMonthlyWage: event.target.value }))
                                                         }
                                                         placeholder="e.g. 2422.25"
-                                                        disabled={actionLoading}
+                                                        disabled={actionLoading || contractDraft.contractType === "ZERO_HOURS"}
                                                     />
                                                     {sourceButton("loontabel-2026-01-01", "1")}
                                                 </label>
@@ -1861,9 +2092,14 @@ export default function AdminOnboardingReviewDetails() {
                                                     {sourceButton("horeca-cao-2025-2026", "12")}
                                                 </div>
                                                 <div>
-                                                    <span>Official hourly wage row</span>
-                                                    <strong>{moneyLabel(wageRule?.hourlyWage ?? null)}</strong>
+                                                    <span>Age group</span>
+                                                    <strong>{formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)}</strong>
                                                     {sourceButton("loontabel-2026-01-01", "1")}
+                                                </div>
+                                                <div>
+                                                    <span>Official hourly wage row</span>
+                                                    <strong>{moneyLabel(minimumWageInfo.minimumHourlyWage)}</strong>
+                                                    {minimumWageInfo.sourceId ? sourceButton(minimumWageInfo.sourceId, "1") : sourceButton("loontabel-2026-01-01", "1")}
                                                 </div>
                                                 <div>
                                                     <span>Holiday allowance</span>
@@ -1889,14 +2125,14 @@ export default function AdminOnboardingReviewDetails() {
                                                     {sourceButton("phenc-pensioenpremie", "Web page")}
                                                 </div>
                                             </div>
-                                            {contractValidation.blockingErrors.length || contractValidation.warnings.length ? (
+                                            {contractValidation.blockingErrors.length || contractValidationWarnings.length ? (
                                                 <div className="reviewRulesValidation">
                                                     {contractValidation.blockingErrors.map((item) => (
                                                         <div key={item} className="reviewInlineError">
                                                             {item}
                                                         </div>
                                                     ))}
-                                                    {contractValidation.warnings.map((item) => (
+                                                    {contractValidationWarnings.map((item) => (
                                                         <div key={item} className="reviewInlineWarn">
                                                             {item}
                                                         </div>

@@ -1,4 +1,5 @@
 export type PermissionName = string;
+export const PLATFORM_ADMIN_PERMISSION = "CAN_MANAGE_PLATFORM";
 
 export type NavItem = {
     label: string;
@@ -55,10 +56,19 @@ export const OWN_CONTRACT_PERMISSIONS = [
     "CAN_SIGN_OWN_CONTRACTS",
 ];
 
+// Lets an admin see employee identification fields (BSN, ID document type and
+// number, issue/expiration dates, issuing country). Without it those fields
+// are masked in the admin UI even for users who can otherwise see the rest of
+// the employee profile and contract.
+export const EMPLOYEE_IDENTIFICATION_PERMISSION = "CAN_VIEW_EMPLOYEE_IDENTIFICATION";
+export const DELETE_USERS_PERMISSION = "CAN_DELETE_USERS";
+
 export const MANAGEMENT_PERMISSIONS = [
+    PLATFORM_ADMIN_PERMISSION,
     "CAN_ACCESS_ADMIN_DASHBOARD",
     "CAN_VIEW_USERS",
     "CAN_MANAGE_USERS",
+    DELETE_USERS_PERMISSION,
     "CAN_ONBOARD_USERS",
     "CAN_MANAGE_PLANNING",
     "CAN_VIEW_ALL_TIMESHEETS",
@@ -68,6 +78,7 @@ export const MANAGEMENT_PERMISSIONS = [
     "CAN_MANAGE_PAYSLIPS",
     "CAN_MANAGE_MESSAGES",
     "CAN_MANAGE_COMPANY",
+    EMPLOYEE_IDENTIFICATION_PERMISSION,
     ...PAYROLL_FINANCE_PERMISSIONS,
     ...APPLICATION_REVIEW_PERMISSIONS,
     ...CONTRACT_MANAGEMENT_PERMISSIONS,
@@ -95,6 +106,7 @@ export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
     },
     { label: "Planning", to: "/management/planning", permissions: ["CAN_MANAGE_PLANNING"] },
     { label: "Clients", to: "/management/clients", permissions: ["CAN_MANAGE_PLANNING"] },
+    { label: "Locations", to: "/management/locations", permissions: ["CAN_MANAGE_PLANNING"] },
     { label: "Work history", to: "/management/work-history", permissions: ["CAN_VIEW_ALL_TIMESHEETS"] },
     { label: "Travel claims", to: "/management/travel-claims", permissions: ["CAN_MANAGE_TIMESHEETS"] },
     { label: "All payslips", to: "/payslips?scope=all", permissions: ["CAN_VIEW_ALL_PAYSLIPS"] },
@@ -109,6 +121,11 @@ export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
         label: "Payroll Finance",
         to: "/management/payroll-finance",
         permissions: PAYROLL_FINANCE_PERMISSIONS,
+    },
+    {
+        label: "Audit log",
+        to: "/management/audit-log",
+        permissions: CAO_MANAGEMENT_PERMISSIONS,
     },
 ];
 
@@ -137,12 +154,28 @@ export const canAccessManagement = (permissions: readonly PermissionName[] | nul
     return hasAnyPermission(permissions, MANAGEMENT_PERMISSIONS);
 };
 
+export const canAccessPlatform = (permissions: readonly PermissionName[] | null | undefined) => {
+    return hasPermission(permissions, PLATFORM_ADMIN_PERMISSION);
+};
+
 export const canAccessCompanySettings = (permissions: readonly PermissionName[] | null | undefined) => {
     return hasAnyPermission(permissions, COMPANY_SETTINGS_PERMISSIONS);
 };
 
 export const canViewPayslips = (permissions: readonly PermissionName[] | null | undefined) => {
     return hasAnyPermission(permissions, ["CAN_VIEW_PAYSLIPS", "CAN_VIEW_ALL_PAYSLIPS"]);
+};
+
+export const canViewEmployeeIdentification = (
+    permissions: readonly PermissionName[] | null | undefined
+) => {
+    return hasPermission(permissions, EMPLOYEE_IDENTIFICATION_PERMISSION);
+};
+
+export const canDeleteUsers = (
+    permissions: readonly PermissionName[] | null | undefined
+) => {
+    return hasPermission(permissions, DELETE_USERS_PERMISSION);
 };
 
 export const getManagementNavItems = (permissions: readonly PermissionName[] | null | undefined) => {

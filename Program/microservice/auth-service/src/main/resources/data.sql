@@ -1,7 +1,8 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- Seed credentials:
--- Default Company admin user: ParadeAdmin123!
+-- Company admin user: sanne.admin / ParadeAdmin123!
+-- Platform admin user: super.admin / ParadeAdmin123!
 
 CREATE TABLE IF NOT EXISTS companies (
     id UUID PRIMARY KEY,
@@ -14,6 +15,14 @@ WHERE NOT EXISTS (
     SELECT 1 FROM companies
     WHERE id = '00000000-0000-0000-0000-000000000001'::uuid
        OR name = 'Default Company'
+);
+
+INSERT INTO companies (id, name)
+SELECT '00000000-0000-0000-0000-000000000002'::uuid, 'Platform Sandbox Company'
+WHERE NOT EXISTS (
+    SELECT 1 FROM companies
+    WHERE id = '00000000-0000-0000-0000-000000000002'::uuid
+       OR name = 'Platform Sandbox Company'
 );
 
 CREATE TABLE IF NOT EXISTS "users" (
@@ -128,6 +137,28 @@ SET first_name = EXCLUDED.first_name,
     must_change_password = FALSE,
     disabled = FALSE;
 
+INSERT INTO "users" (id, first_name, last_name, email, username, password, company_id, must_change_password, disabled)
+VALUES (
+    '8f3e44c2-0fb6-4f12-9d5b-8c1a0c72b001'::uuid,
+    'Super',
+    'Admin',
+    'super.admin@example.com',
+    'super.admin',
+    '$2b$12$HQ6WGmIHSyW.zourNrcJVOygqwNoHHt.YH6M89rdidxxKd8HyG3w6',
+    '00000000-0000-0000-0000-000000000001'::uuid,
+    FALSE,
+    FALSE
+)
+ON CONFLICT (id) DO UPDATE
+SET first_name = EXCLUDED.first_name,
+    last_name = EXCLUDED.last_name,
+    email = EXCLUDED.email,
+    username = EXCLUDED.username,
+    password = EXCLUDED.password,
+    company_id = EXCLUDED.company_id,
+    must_change_password = FALSE,
+    disabled = FALSE;
+
 INSERT INTO roles (id, name, company_id)
 VALUES
     ('11111111-aaaa-aaaa-aaaa-111111111111'::uuid, 'ADMIN', '00000000-0000-0000-0000-000000000001'::uuid),
@@ -147,6 +178,7 @@ FROM (VALUES
     ('CAN_CREATE_ADMIN'),
     ('CAN_VIEW_USERS'),
     ('CAN_MANAGE_USERS'),
+    ('CAN_DELETE_USERS'),
     ('CAN_MANAGE_COMPANY'),
     ('CAN_ONBOARD_USERS'),
     ('CAN_COMPLETE_ONBOARDING'),
@@ -178,7 +210,9 @@ FROM (VALUES
     ('CAN_MANAGE_MESSAGES'),
     ('CAN_MANAGE_PLANNING'),
     ('CAN_VIEW_PAYROLL_FINANCE'),
-    ('CAN_MANAGE_PAYROLL_FINANCE')
+    ('CAN_MANAGE_PAYROLL_FINANCE'),
+    ('CAN_VIEW_EMPLOYEE_IDENTIFICATION'),
+    ('CAN_MANAGE_PLATFORM')
 ) AS seed(permission_name)
 WHERE NOT EXISTS (SELECT 1 FROM permissions p WHERE p.name = seed.permission_name);
 
@@ -196,6 +230,7 @@ JOIN permissions p ON p.name IN (
     'CAN_CREATE_ADMIN',
     'CAN_VIEW_USERS',
     'CAN_MANAGE_USERS',
+    'CAN_DELETE_USERS',
     'CAN_MANAGE_COMPANY',
     'CAN_ONBOARD_USERS',
     'CAN_VIEW_ALL_LEAVE_REQUESTS',
@@ -223,7 +258,8 @@ JOIN permissions p ON p.name IN (
     'CAN_MANAGE_MESSAGES',
     'CAN_MANAGE_PLANNING',
     'CAN_VIEW_PAYROLL_FINANCE',
-    'CAN_MANAGE_PAYROLL_FINANCE'
+    'CAN_MANAGE_PAYROLL_FINANCE',
+    'CAN_VIEW_EMPLOYEE_IDENTIFICATION'
 )
 WHERE r.name = 'ADMIN'
   AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
@@ -267,6 +303,16 @@ SELECT u.id, r.id
 FROM "users" u
 JOIN roles r ON r.name = 'ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
 WHERE u.id = '7b962433-6bde-4642-a011-5b56bf4f18e1'::uuid
+  AND NOT EXISTS (
+      SELECT 1 FROM auth_user_roles ur
+      WHERE ur.user_id = u.id AND ur.role_id = r.id
+  );
+
+INSERT INTO auth_user_roles (user_id, role_id)
+SELECT u.id, r.id
+FROM "users" u
+JOIN roles r ON r.name = 'SUPER_ADMIN' AND r.company_id = '00000000-0000-0000-0000-000000000001'::uuid
+WHERE u.id = '8f3e44c2-0fb6-4f12-9d5b-8c1a0c72b001'::uuid
   AND NOT EXISTS (
       SELECT 1 FROM auth_user_roles ur
       WHERE ur.user_id = u.id AND ur.role_id = r.id

@@ -1,0 +1,276 @@
+.auditLogPage {
+    min-height: calc(100vh - 64px);
+    padding: 0 0 56px;
+    background:
+        radial-gradient(circle at top right, rgba(191, 223, 255, 0.28), transparent 32%),
+        linear-gradient(180deg, #f5f8fc 0%, #eef3f9 100%);
+}
+
+.auditLogShell {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+    min-height: calc(100vh - 64px - 56px - 120px);
+}
+
+.auditLogHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 4px;
+    padding: 0 4px;
+}
+
+.auditLogTitle {
+    margin: 8px 0 6px;
+    font-size: 28px;
+    color: #1a1a1a;
+}
+
+.auditLogSubtitle {
+    margin: 0;
+    max-width: 720px;
+    color: #5d6978;
+    line-height: 1.55;
+}
+
+.auditLogCard {
+    overflow: hidden;
+    min-height: 640px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    flex: 1;
+}
+
+.auditLogCard .uiCardBody {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    gap: 16px;
+    padding: 20px;
+}
+
+.auditLogCount {
+    font-size: 13px;
+    color: #5d6978;
+    font-weight: 600;
+}
+
+.auditLogFilterPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px;
+    border-radius: 18px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 14px 32px rgba(22, 34, 51, 0.06);
+}
+
+.auditLogDynamicFilters {
+    display: grid;
+    gap: 12px;
+}
+
+.auditLogFilterRow {
+    display: grid;
+    grid-template-columns: minmax(180px, 0.72fr) minmax(260px, 1fr) 42px;
+    gap: 12px;
+    align-items: end;
+}
+
+.auditLogField {
+    display: grid;
+    gap: 6px;
+    color: #344051;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.auditLogField--field {
+    min-width: 0;
+}
+
+.auditLogField select,
+.auditLogField input {
+    min-height: 44px;
+    border: 1px solid #d2dbe8;
+    border-radius: 16px;
+    background: #fff;
+    padding: 0 14px;
+    color: #17202d;
+    font-size: 14px;
+}
+
+.auditLogField select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #4b5563 50%),
+        linear-gradient(135deg, #4b5563 50%, transparent 50%);
+    background-position:
+        calc(100% - 18px) calc(50% - 1px),
+        calc(100% - 12px) calc(50% - 1px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
+    padding-right: 38px;
+}
+
+.auditLogIconButton {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid #d6dce6;
+    background: #ffffff;
+    color: #374151;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.auditLogIconButton:hover {
+    background: #f5f7fa;
+}
+
+.auditLogFilterActions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.auditLogFilterMeta {
+    font-size: 12px;
+    color: #556070;
+}
+
+.auditLogActionButtons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.auditLogError,
+.auditLogEmpty {
+    border: 1px solid #d7e0eb;
+    border-radius: 14px;
+    background: #f8fafc;
+    padding: 18px;
+    color: #586577;
+}
+
+.auditLogError {
+    color: #9b2c2c;
+    background: #fff7f7;
+    border-color: #f0c5c5;
+}
+
+.auditLogListEmpty {
+    margin: 0;
+}
+
+.auditLogList {
+    display: grid;
+    gap: 14px;
+}
+
+.auditLogRow {
+    border: 1px solid #d8e2ee;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+    padding: 18px 20px;
+    box-shadow: 0 12px 32px rgba(28, 54, 92, 0.08);
+}
+
+.auditLogMetaRow {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+.auditLogTime {
+    font-size: 13px;
+    color: #5d6978;
+}
+
+.auditLogCategory {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    border-radius: 999px;
+    background: #e7eef8;
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #2d4a6a;
+}
+
+.auditLogSummary {
+    color: #17202d;
+    line-height: 1.6;
+    font-size: 15px;
+}
+
+.auditLogLink,
+.auditLogLinkLabel {
+    font-weight: 700;
+    color: #164c7e;
+}
+
+.auditLogLink {
+    text-decoration: none;
+}
+
+.auditLogLink:hover,
+.auditLogLink:focus-visible {
+    text-decoration: underline;
+}
+
+.auditLogPagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+    padding-top: 2px;
+}
+
+@media (max-width: 900px) {
+    .auditLogCard .uiCardBody {
+        padding: 16px;
+    }
+
+    .auditLogFilterRow {
+        grid-template-columns: 1fr;
+    }
+
+    .auditLogIconButton {
+        width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .auditLogTitle {
+        font-size: 22px;
+    }
+
+    .auditLogFilterPanel {
+        padding: 14px;
+    }
+
+    .auditLogPagination {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

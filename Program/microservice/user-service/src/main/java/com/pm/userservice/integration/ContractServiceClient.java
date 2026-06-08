@@ -38,6 +38,11 @@ public class ContractServiceClient {
                 .getBody();
     }
 
+    public void createRuleReplacementDraft(RuleReplacementContractRequestDTO request, String accessToken) {
+        String url = baseUrl + "/api/contract/rule-replacement";
+        restTemplate.exchange(url, HttpMethod.POST, entity(accessToken, request), Void.class);
+    }
+
     private HttpEntity<?> entity(String accessToken, Object body) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

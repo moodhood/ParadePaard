@@ -27,6 +27,14 @@ WHERE NOT EXISTS (
        OR name = 'Default Company'
 );
 
+INSERT INTO companies (id, name, payout_frequency_minutes, timesheet_logging_mode, travel_claim_mode)
+SELECT CAST('00000000-0000-0000-0000-000000000002' AS UUID), 'Platform Sandbox Company', 10080, 'ADMIN_FINALIZE', 'REQUIRES_APPROVAL'
+WHERE NOT EXISTS (
+    SELECT 1 FROM companies
+    WHERE id = CAST('00000000-0000-0000-0000-000000000002' AS UUID)
+       OR name = 'Platform Sandbox Company'
+);
+
 CREATE TABLE IF NOT EXISTS job_applications (
     application_id UUID PRIMARY KEY,
     first_names VARCHAR(255) NOT NULL,
@@ -52,6 +60,9 @@ CREATE TABLE IF NOT EXISTS job_applications (
     motivation VARCHAR(4000),
     contact_consent BOOLEAN NOT NULL DEFAULT FALSE,
     information_accurate BOOLEAN NOT NULL DEFAULT FALSE,
+    profile_picture_file_name VARCHAR(255),
+    profile_picture_content_type VARCHAR(255),
+    profile_picture_bytes BYTEA,
     cv_file_name VARCHAR(255),
     cv_content_type VARCHAR(255),
     cv_bytes BYTEA,
@@ -75,6 +86,9 @@ ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS experience;
 ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS languages;
 ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS certificates;
 ALTER TABLE IF EXISTS job_applications DROP COLUMN IF EXISTS motivation;
+ALTER TABLE IF EXISTS job_applications ADD COLUMN IF NOT EXISTS profile_picture_file_name VARCHAR(255);
+ALTER TABLE IF EXISTS job_applications ADD COLUMN IF NOT EXISTS profile_picture_content_type VARCHAR(255);
+ALTER TABLE IF EXISTS job_applications ADD COLUMN IF NOT EXISTS profile_picture_bytes BYTEA;
 ALTER TABLE IF EXISTS job_applications DROP CONSTRAINT IF EXISTS job_applications_status_check;
 ALTER TABLE IF EXISTS job_applications ADD CONSTRAINT job_applications_status_check CHECK (status IN (
     'APPLICATION_SUBMITTED',
@@ -210,4 +224,110 @@ WHERE NOT EXISTS (
     SELECT 1 FROM users
     WHERE user_id = '7b962433-6bde-4642-a011-5b56bf4f18e1'
        OR (email = 'sanne.admin@example.com' AND company_id = CAST('00000000-0000-0000-0000-000000000001' AS UUID))
+);
+
+INSERT INTO users (user_id, email, preferred_name, first_names, middle_name_prefix, last_name, gender, date_of_birth, mobile_number, position, worked_for_us_before, street, house_number, house_number_suffix, postal_code, city, country, iban, payslip_frequency_minutes, status, company_id)
+SELECT '8f3e44c2-0fb6-4f12-9d5b-8c1a0c72b001',
+       'super.admin@example.com',
+       'Super',
+       'Super',
+       NULL,
+       'Admin',
+       'OTHER',
+       '1985-09-15',
+       '0612340001',
+       'PLATFORM_ADMIN',
+       true,
+       'Keizersgracht',
+       '88',
+       NULL,
+       '1015 CJ',
+       'Amsterdam',
+       'Netherlands',
+       'NL12INGB0001234567',
+       10080,
+       'ACTIVE',
+       CAST('00000000-0000-0000-0000-000000000001' AS UUID)
+WHERE NOT EXISTS (
+    SELECT 1 FROM users
+    WHERE user_id = '8f3e44c2-0fb6-4f12-9d5b-8c1a0c72b001'
+       OR (email = 'super.admin@example.com' AND company_id = CAST('00000000-0000-0000-0000-000000000001' AS UUID))
+);
+
+CREATE TABLE IF NOT EXISTS horeca_rule_versions (
+    id UUID PRIMARY KEY,
+    company_id UUID NOT NULL,
+    version_label VARCHAR(255) NOT NULL,
+    effective_from DATE,
+    effective_to DATE,
+    status VARCHAR(32) NOT NULL,
+    reason VARCHAR(2000),
+    source_summary VARCHAR(2000),
+    created_by_user_id UUID,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    published_by_user_id UUID,
+    published_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE TABLE IF NOT EXISTS horeca_rule_items (
+    id UUID PRIMARY KEY,
+    rule_version_id UUID NOT NULL,
+    section_key VARCHAR(64) NOT NULL,
+    item_key VARCHAR(255) NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    value_text VARCHAR(2000),
+    value_number NUMERIC(19,4),
+    value_boolean BOOLEAN,
+    value_type VARCHAR(32) NOT NULL,
+    unit VARCHAR(255),
+    calculation_rule VARCHAR(1000),
+    document_name VARCHAR(255),
+    document_url VARCHAR(1000),
+    page_reference VARCHAR(255),
+    source_note VARCHAR(2000),
+    used_in_contract BOOLEAN NOT NULL DEFAULT FALSE,
+    used_in_payroll BOOLEAN NOT NULL DEFAULT FALSE,
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+ALTER TABLE horeca_rule_items ADD COLUMN IF NOT EXISTS function_group VARCHAR(64);
+ALTER TABLE horeca_rule_items ADD COLUMN IF NOT EXISTS age_group VARCHAR(64);
+
+CREATE TABLE IF NOT EXISTS horeca_job_preset_configs (
+    id UUID PRIMARY KEY,
+    rule_version_id UUID NOT NULL,
+    preset_key VARCHAR(255) NOT NULL,
+    preset_name VARCHAR(255) NOT NULL,
+    job_title VARCHAR(255) NOT NULL,
+    job_function VARCHAR(1000) NOT NULL,
+    function_group VARCHAR(255) NOT NULL,
+    default_contract_type VARCHAR(64) NOT NULL,
+    default_hourly_wage NUMERIC(19,2) NOT NULL,
+    default_monthly_wage NUMERIC(19,2),
+    default_hours_per_week NUMERIC(8,2),
+    default_payroll_period VARCHAR(64) NOT NULL,
+    pension_applicable BOOLEAN NOT NULL DEFAULT FALSE,
+    holiday_allowance_mode VARCHAR(64) NOT NULL,
+    vacation_build_up_applicable BOOLEAN NOT NULL DEFAULT FALSE,
+    document_name VARCHAR(255),
+    document_url VARCHAR(1000),
+    page_reference VARCHAR(255),
+    source_note VARCHAR(2000),
+    active BOOLEAN NOT NULL DEFAULT TRUE,
+    admin_notes VARCHAR(2000),
+    sort_order INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS audit_log_entries (
+    id UUID PRIMARY KEY,
+    company_id UUID NOT NULL,
+    occurred_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    category VARCHAR(64) NOT NULL,
+    action VARCHAR(64) NOT NULL,
+    entity_type VARCHAR(64) NOT NULL,
+    entity_id VARCHAR(255),
+    actor_user_id UUID,
+    actor_display_name VARCHAR(255) NOT NULL,
+    summary VARCHAR(4000) NOT NULL,
+    message_parts_json TEXT NOT NULL
 );

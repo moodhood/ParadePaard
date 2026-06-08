@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
     buildContractDraftPayload,
+    canShowDeleteUserAction,
     canShowCreateContractDraft,
     canSubmitEmployerContractSignature,
     selectContractForReview,
@@ -79,6 +80,7 @@ describe("AdminUserDetails contract draft creation", () => {
             ],
             draft: {
                 functionName: "",
+                functionGroup: "I+II",
                 contractType: "ON_CALL",
                 startDate: "2026-06-01",
                 endDate: "",
@@ -122,5 +124,33 @@ describe("AdminUserDetails contract draft creation", () => {
                 startDate: "2026-07-01",
             },
         ])?.contractId).toBe("signed-future");
+    });
+});
+
+describe("AdminUserDetails delete user action", () => {
+    it("shows delete only for managers with delete permission viewing another user", () => {
+        expect(canShowDeleteUserAction({
+            permissions: ["CAN_DELETE_USERS"],
+            currentManagerUserId: "manager-1",
+            viewedUserId: "user-1",
+        })).toBe(true);
+
+        expect(canShowDeleteUserAction({
+            permissions: ["CAN_MANAGE_USERS"],
+            currentManagerUserId: "manager-1",
+            viewedUserId: "user-1",
+        })).toBe(false);
+
+        expect(canShowDeleteUserAction({
+            permissions: ["CAN_DELETE_USERS"],
+            currentManagerUserId: "user-1",
+            viewedUserId: "user-1",
+        })).toBe(false);
+
+        expect(canShowDeleteUserAction({
+            permissions: ["CAN_DELETE_USERS"],
+            currentManagerUserId: null,
+            viewedUserId: "user-1",
+        })).toBe(false);
     });
 });

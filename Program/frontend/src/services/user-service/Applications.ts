@@ -8,6 +8,7 @@ import type {
 export async function SubmitApplication(
     API_BASE_URL: string,
     payload: JobApplicationRequestDTO,
+    profilePicture: File,
     cv?: File | null
 ): Promise<JobApplicationResponseDTO> {
     try {
@@ -16,6 +17,7 @@ export async function SubmitApplication(
             "application",
             new Blob([JSON.stringify(payload)], { type: "application/json" })
         );
+        formData.append("profilePicture", profilePicture);
 
         if (cv) {
             formData.append("cv", cv);
@@ -119,6 +121,21 @@ export async function GetApplicationCv(
 ): Promise<Blob> {
     const response = await axios.get(
         `${API_BASE_URL}/api/admin/applications/${applicationId}/cv`,
+        {
+            responseType: "blob",
+            withCredentials: true,
+        }
+    );
+
+    return response.data as Blob;
+}
+
+export async function GetApplicationProfilePicture(
+    API_BASE_URL: string,
+    applicationId: string
+): Promise<Blob> {
+    const response = await axios.get(
+        `${API_BASE_URL}/api/admin/applications/${applicationId}/profile-picture`,
         {
             responseType: "blob",
             withCredentials: true,

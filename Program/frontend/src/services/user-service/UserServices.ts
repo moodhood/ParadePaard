@@ -1,5 +1,6 @@
 import axios from "axios";
 import ApproveLeaveRequest from "./ApproveLeaveRequest";
+import { GetAuditLog } from "./AuditLogs";
 import CompleteSetup, { UploadIdDocumentImages, type UserSetupRequest } from "./CompleteSetup";
 import CreateLeaveRequest from "./CreateLeaveRequest";
 import GetLeaveRequests from "./GetLeaveRequests";
@@ -17,6 +18,7 @@ import {
     DenyApplication,
     GetApplication,
     GetApplicationCv,
+    GetApplicationProfilePicture,
     GetApplications,
     ResendApplicationDecisionEmail,
     SubmitApplication,
@@ -37,6 +39,11 @@ import GetMyProfilePicture from "./GetMyProfilePicture";
 import UpdateMyProfilePicture from "./UpdateMyProfilePicture";
 import DeleteMyProfilePicture from "./DeleteMyProfilePicture";
 import GetMyCompany from "./GetMyCompany";
+import {
+    GetPlatformCompanies,
+    GetPlatformCompany,
+    OnboardPlatformCompany,
+} from "./PlatformAdmin";
 import UpdateMyCompany, { type UpdateCompanyRequestDTO } from "./UpdateMyCompany";
 import GetMyCompanyLogo from "./GetMyCompanyLogo";
 import UpdateMyCompanyLogo from "./UpdateMyCompanyLogo";
@@ -100,6 +107,12 @@ import {
     type TravelClaimSummaryDTO,
 } from "./EmployeePlanning";
 import GetPlanningAssignmentAdmin from "./GetPlanningAssignmentAdmin";
+import {
+    GetCurrentHorecaRules,
+    PublishCurrentHorecaRules,
+    UpdateHorecaJobPresets,
+    UpdateHorecaRuleSection,
+} from "./HorecaRules";
 import CreatePlanningClient, {
     type PlanningClientCompanyContactSaveDTO,
     type PlanningClientCompanySaveDTO,
@@ -108,7 +121,16 @@ import GetPlanningClients, {
     type PlanningClientCompanyContactDTO,
     type PlanningClientCompanyDTO,
 } from "./GetPlanningClients";
+import GetPlanningLocations, {
+    type PlanningLocationDTO,
+} from "./GetPlanningLocations";
 import GetPlanningClientsPage from "./GetPlanningClientsPage";
+import {
+    CreatePlanningLocation,
+    DeletePlanningLocation,
+    type PlanningLocationSaveDTO,
+    UpdatePlanningLocation,
+} from "./ManagePlanningLocations";
 import UpdatePlanningClient from "./UpdatePlanningClient";
 import type { PaginatedResponse } from "./Pagination";
 import FinalizePlanningProject, {
@@ -135,6 +157,8 @@ import {
 import type {
     AdminOnboardingRequestDTO,
     AdminOnboardingResponseDTO,
+    AuditLogEntryDTO,
+    AuditLogQuery,
     ApplicationDecisionRequestDTO,
     ApplicationStatus,
     JobApplicationRequestDTO,
@@ -145,8 +169,18 @@ import type {
     LeaveType,
     CompanyResponseDTO,
     EmployeeTaxProfileDTO,
+    HorecaJobPresetConfigDTO,
+    HorecaJobPresetUpdateDTO,
+    HorecaRuleItemDTO,
+    HorecaRulePublishRequestDTO,
+    HorecaRuleSectionUpdateDTO,
+    HorecaRuleVersionDTO,
     PayrollDeductionLineDTO,
     PayrollTaxTemplateDTO,
+    PlatformCompanyDetailDTO,
+    PlatformCompanyOnboardingRequestDTO,
+    PlatformCompanyOnboardingResponseDTO,
+    PlatformCompanySummaryDTO,
     UserUpdateRequestDTO,
     UserResponseDTO,
 } from "./Types";
@@ -175,6 +209,8 @@ async function dedupeRequest<T>(key: string, loader: () => Promise<T>): Promise<
 export type {
     AdminOnboardingRequestDTO,
     AdminOnboardingResponseDTO,
+    AuditLogEntryDTO,
+    AuditLogQuery,
     ApplicationDecisionRequestDTO,
     ApplicationStatus,
     JobApplicationRequestDTO,
@@ -185,9 +221,19 @@ export type {
     LeaveType,
     CompanyResponseDTO,
     EmployeeTaxProfileDTO,
+    HorecaJobPresetConfigDTO,
+    HorecaJobPresetUpdateDTO,
+    HorecaRuleItemDTO,
+    HorecaRulePublishRequestDTO,
+    HorecaRuleSectionUpdateDTO,
+    HorecaRuleVersionDTO,
     PayslipResponseDTO,
     PayrollDeductionLineDTO,
     PayrollTaxTemplateDTO,
+    PlatformCompanyDetailDTO,
+    PlatformCompanyOnboardingRequestDTO,
+    PlatformCompanyOnboardingResponseDTO,
+    PlatformCompanySummaryDTO,
     UpdatePayslipFrequencyRequestDTO,
     UserUpdateRequestDTO,
     UserResponseDTO,
@@ -211,8 +257,10 @@ export type {
     PlanningResourceAllocationDTO,
     PlanningClientCompanyDTO,
     PlanningClientCompanyContactDTO,
+    PlanningLocationDTO,
     PlanningClientCompanySaveDTO,
     PlanningClientCompanyContactSaveDTO,
+    PlanningLocationSaveDTO,
     FinalizePlanningRequestDTO,
     FinalizePlanningResponseDTO,
     PlanningProjectSaveDTO,
@@ -229,9 +277,10 @@ export type {
 export const UserServices = {
     submitApplication: async (
         payload: JobApplicationRequestDTO,
+        profilePicture: File,
         cv?: File | null
     ): Promise<JobApplicationResponseDTO> => {
-        return await SubmitApplication(API_BASE_URL, payload, cv);
+        return await SubmitApplication(API_BASE_URL, payload, profilePicture, cv);
     },
     getApplications: async (): Promise<JobApplicationResponseDTO[]> => {
         return await GetApplications(API_BASE_URL);
@@ -257,6 +306,9 @@ export const UserServices = {
     getApplicationCv: async (applicationId: string): Promise<Blob> => {
         return await GetApplicationCv(API_BASE_URL, applicationId);
     },
+    getApplicationProfilePicture: async (applicationId: string): Promise<Blob> => {
+        return await GetApplicationProfilePicture(API_BASE_URL, applicationId);
+    },
     adminOnboardEmployee: async (
         payload: AdminOnboardingRequestDTO
     ): Promise<AdminOnboardingResponseDTO> => {
@@ -273,6 +325,18 @@ export const UserServices = {
     },
     getUserById: async (userId: string): Promise<UserResponseDTO> => {
         return await GetUserById(API_BASE_URL, userId);
+    },
+    deleteUser: async (userId: string): Promise<void> => {
+        try {
+            await axios.delete(`${API_BASE_URL}/api/users/${userId}`, {
+                withCredentials: true,
+            });
+        } catch (err) {
+            if (axios.isAxiosError(err)) {
+                throw new Error(err.response?.data?.message || "Failed to delete user");
+            }
+            throw err;
+        }
     },
     updateUser: async (userId: string, payload: UserUpdateRequestDTO): Promise<UserResponseDTO> => {
         return await UpdateUser(API_BASE_URL, userId, payload);
@@ -307,6 +371,17 @@ export const UserServices = {
     },
     getMyCompany: async (): Promise<CompanyResponseDTO> => {
         return await dedupeRequest("getMyCompany", () => GetMyCompany(API_BASE_URL));
+    },
+    getPlatformCompanies: async (): Promise<PlatformCompanySummaryDTO[]> => {
+        return await GetPlatformCompanies(API_BASE_URL);
+    },
+    getPlatformCompany: async (companyId: string): Promise<PlatformCompanyDetailDTO> => {
+        return await GetPlatformCompany(API_BASE_URL, companyId);
+    },
+    onboardPlatformCompany: async (
+        payload: PlatformCompanyOnboardingRequestDTO
+    ): Promise<PlatformCompanyOnboardingResponseDTO> => {
+        return await OnboardPlatformCompany(API_BASE_URL, payload);
     },
     updateMyCompany: async (payload: UpdateCompanyRequestDTO): Promise<CompanyResponseDTO> => {
         return await UpdateMyCompany(API_BASE_URL, payload);
@@ -425,6 +500,9 @@ export const UserServices = {
     getPlanningClients: async (): Promise<PlanningClientCompanyDTO[]> => {
         return await GetPlanningClients(API_BASE_URL);
     },
+    getPlanningLocations: async (clientCompanyId?: string | null): Promise<PlanningLocationDTO[]> => {
+        return await GetPlanningLocations(API_BASE_URL, clientCompanyId);
+    },
     getPlanningClientsPage: async (page: number, size = 50): Promise<PaginatedResponse<PlanningClientCompanyDTO>> => {
         return await GetPlanningClientsPage(API_BASE_URL, { page, size });
     },
@@ -436,6 +514,18 @@ export const UserServices = {
         payload: PlanningClientCompanySaveDTO
     ): Promise<PlanningClientCompanyDTO> => {
         return await UpdatePlanningClient(API_BASE_URL, clientCompanyId, payload);
+    },
+    createPlanningLocation: async (payload: PlanningLocationSaveDTO): Promise<PlanningLocationDTO> => {
+        return await CreatePlanningLocation(API_BASE_URL, payload);
+    },
+    updatePlanningLocation: async (
+        locationId: string,
+        payload: PlanningLocationSaveDTO
+    ): Promise<PlanningLocationDTO> => {
+        return await UpdatePlanningLocation(API_BASE_URL, locationId, payload);
+    },
+    deletePlanningLocation: async (locationId: string): Promise<void> => {
+        return await DeletePlanningLocation(API_BASE_URL, locationId);
     },
     createPlanningProject: async (payload: PlanningProjectSaveDTO): Promise<PlanningProjectMutationResponseDTO> => {
         return await CreatePlanningProject(API_BASE_URL, payload);
@@ -535,6 +625,24 @@ export const UserServices = {
     },
     uploadIdDocumentImage: async (file: File): Promise<void> => {
         return await UploadIdDocumentImages(API_BASE_URL, file, file);
+    },
+    getCurrentHorecaRules: async (): Promise<HorecaRuleVersionDTO> => {
+        return await GetCurrentHorecaRules(API_BASE_URL);
+    },
+    updateHorecaRuleSection: async (
+        sectionKey: string,
+        payload: HorecaRuleSectionUpdateDTO
+    ): Promise<HorecaRuleVersionDTO> => {
+        return await UpdateHorecaRuleSection(API_BASE_URL, sectionKey, payload);
+    },
+    updateHorecaJobPresets: async (payload: HorecaJobPresetUpdateDTO): Promise<HorecaRuleVersionDTO> => {
+        return await UpdateHorecaJobPresets(API_BASE_URL, payload);
+    },
+    publishCurrentHorecaRules: async (payload: HorecaRulePublishRequestDTO): Promise<HorecaRuleVersionDTO> => {
+        return await PublishCurrentHorecaRules(API_BASE_URL, payload);
+    },
+    getAuditLog: async (query: AuditLogQuery = {}): Promise<PaginatedResponse<AuditLogEntryDTO>> => {
+        return await GetAuditLog(API_BASE_URL, query);
     },
     leaveRequests: {
         list: async (status?: LeaveStatus): Promise<LeaveRequestDTO[]> => {

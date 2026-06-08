@@ -1,6 +1,6 @@
-com/pm/planningservice/PlanningServiceApplicationTests.class
-com/pm/planningservice/service/PlanningAutoTimesheetSchedulerTest.class
-com/pm/planningservice/service/EmployeePlanningServiceTest$TimeWindow.class
-com/pm/planningservice/service/EmployeePlanningServiceTest.class
-com/pm/planningservice/service/PlanningManagementServiceTest.class
-com/pm/planningservice/service/PlanningAutoTimesheetSchedulerTest$TimeWindow.class
+com\pm\planningservice\PlanningServiceApplicationTests.class
+com\pm\planningservice\service\EmployeePlanningServiceTest.class
+com\pm\planningservice\service\PlanningManagementServiceTest.class
+com\pm\planningservice\service\PlanningAutoTimesheetSchedulerTest$TimeWindow.class
+com\pm\planningservice\service\PlanningAutoTimesheetSchedulerTest.class
+com\pm\planningservice\service\EmployeePlanningServiceTest$TimeWindow.class

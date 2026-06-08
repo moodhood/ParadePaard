@@ -2,15 +2,15 @@
   display: flex;
   flex-direction: column;
   margin: 0;
-  padding: 4px 0 0;
+  padding: 0;
   box-sizing: border-box;
   align-items: stretch;
   flex: 0 0 var(--sidebar-collapsed-width, 76px);
   width: var(--sidebar-collapsed-width, 76px);
-  height: calc(100vh - var(--navbar-height) - var(--nav-gap));
+  height: calc(100vh - var(--navbar-height));
   position: fixed;
   left: 0;
-  top: calc(var(--navbar-height) + var(--nav-gap));
+  top: var(--navbar-height);
   overflow: visible;
   z-index: 40;
   opacity: 0;
@@ -43,7 +43,7 @@
   z-index: -1;
   border: 0;
   border-radius: inherit;
-  background: #f2f2f2;
+  background: var(--app-shell-background, #f2f2f2);
   box-shadow: none;
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
@@ -109,7 +109,7 @@
   font-size: 11px;
   font-weight: 800;
   line-height: 1;
-  box-shadow: 0 0 0 2px #f2f2f2;
+  box-shadow: 0 0 0 2px var(--app-shell-background, #f2f2f2);
 }
 
 .primaryNav .primaryNavLink--active,

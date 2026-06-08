@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
     canAccessCompanySettings,
     canAccessManagement,
+    canDeleteUsers,
     canViewPayslips,
     getManagementNavItems,
     hasAnyPermission,
@@ -40,7 +41,7 @@ describe("permissionPolicy", () => {
 
     it("builds management navigation from only allowed permissions", () => {
         const plannerItems = getManagementNavItems(["CAN_MANAGE_PLANNING"]).map((item) => item.label);
-        expect(plannerItems).toEqual(["Planning", "Clients"]);
+        expect(plannerItems).toEqual(["Planning", "Clients", "Locations"]);
 
         const payrollItems = getManagementNavItems(["CAN_VIEW_ALL_PAYSLIPS", "CAN_REVIEW_PAYSLIPS"]).map(
             (item) => item.label
@@ -97,6 +98,7 @@ describe("permissionPolicy", () => {
 
         expect(items).toContain("Company settings");
         expect(items).toContain("Horeca Payroll and Contract Rules");
+        expect(items).toContain("Audit log");
         expect(items).not.toContain("Payroll Finance");
         expect(items).not.toContain("CAO templates");
     });
@@ -131,5 +133,11 @@ describe("permissionPolicy", () => {
         expect(getManagementNavItems(["CAN_MANAGE_PAYROLL_FINANCE"])).toEqual(
             expect.arrayContaining([expect.objectContaining({ label: "Payroll Finance" })])
         );
+    });
+
+    it("requires explicit delete-user permission instead of general user management", () => {
+        expect(canDeleteUsers(["CAN_MANAGE_USERS"])).toBe(false);
+        expect(canDeleteUsers(["CAN_DELETE_USERS"])).toBe(true);
+        expect(canAccessManagement(["CAN_DELETE_USERS"])).toBe(true);
     });
 });

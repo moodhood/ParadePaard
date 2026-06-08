@@ -39,7 +39,7 @@ class UserServiceSecurityConfigTest {
     void anonymousApplicationSubmissionReachesController() throws Exception {
         JobApplicationResponseDTO response = new JobApplicationResponseDTO();
         response.setStatus("APPLICATION_SUBMITTED");
-        when(service.submitApplication(any(), any())).thenReturn(response);
+        when(service.submitApplication(any(), any(), any())).thenReturn(response);
 
         MockMultipartFile application = new MockMultipartFile(
                 "application",
@@ -60,8 +60,14 @@ class UserServiceSecurityConfigTest {
                         }
                         """.getBytes(StandardCharsets.UTF_8)
         );
+        MockMultipartFile profilePicture = new MockMultipartFile(
+                "profilePicture",
+                "alex.png",
+                "image/png",
+                "image-bytes".getBytes(StandardCharsets.UTF_8)
+        );
 
-        mockMvc.perform(multipart("/applications").file(application))
+        mockMvc.perform(multipart("/applications").file(application).file(profilePicture))
                 .andExpect(status().isOk());
     }
 

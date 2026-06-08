@@ -2,6 +2,8 @@ package com.pm.payrollservice.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pm.payrollservice.dto.AuditLogCreateRequestDTO;
+import com.pm.payrollservice.dto.AuditLogMessagePartDTO;
 import com.pm.payrollservice.dto.CompanySettingsDTO;
 import com.pm.payrollservice.dto.PagedResponseDTO;
 import com.pm.payrollservice.dto.PayrollDeductionLineDTO;
@@ -13,6 +15,7 @@ import com.pm.payrollservice.exception.PayslipNotFoundException;
 import com.pm.payrollservice.grpc.ContractServiceGrpcClient;
 import com.pm.payrollservice.grpc.TimesheetServiceGrpcClient;
 import com.pm.payrollservice.grpc.UserServiceGrpcClient;
+import com.pm.payrollservice.integration.AuditLogClient;
 import com.pm.payrollservice.mapper.PayslipMapper;
 import com.pm.payrollservice.model.Payslip;
 import com.pm.payrollservice.model.PayslipStatus;
@@ -24,6 +27,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import timesheet.TimesheetDataResponse;
 import user.UserDataResponse;
@@ -55,6 +59,8 @@ public class PayrollService {
     private final PayslipPdfService pdfService;
     private final ObjectMapper objectMapper;
     private final PayPeriodCalculator payPeriodCalculator;
+    @Autowired(required = false)
+    private AuditLogClient auditLogClient;
 
     public PayrollService(PayslipRepository payslipRepository,
                           com.pm.payrollservice.validation.PayslipValidator duplicateValidator,
@@ -80,12 +86,22 @@ public class PayrollService {
         return mapPayslipsToDto(payslipRepository.findAll());
     }
 
+    public List<PayslipResponseDTO> getPayslips(UUID companyId) {
+        return mapPayslipsToDto(filterPayslipsByCompany(payslipRepository.findAll(), companyId));
+    }
+
     public PagedResponseDTO<PayslipResponseDTO> getPayslipsPage(int page, int size) {
         var pageable = PageRequest.of(page, size);
         return PagedResponseDTO.from(
                 payslipRepository.findAllByOrderByDateOfIssueDesc(pageable),
                 PayslipMapper::toDTO
         );
+    }
+
+    public PagedResponseDTO<PayslipResponseDTO> getPayslipsPage(UUID companyId, int page, int size) {
+        List<PayslipResponseDTO> filtered = mapPayslipsToDto(filterPayslipsByCompany(payslipRepository.findAll(), companyId));
+        filtered.sort(Comparator.comparing(PayslipResponseDTO::getDateOfIssue, Comparator.nullsLast(String::compareTo)).reversed());
+        return paginate(filtered, page, size);
     }
 
     public List<PayslipResponseDTO> getPayslipsByUserId(UUID userId) {
@@ -120,15 +136,44 @@ public class PayrollService {
         return mapPayslipsToDto(payslipRepository.findByStatusInOrderByDateOfIssueDesc(statuses));
     }
 
+    public List<PayslipResponseDTO> getPayslipsPendingReview(UUID companyId) {
+        List<PayslipStatus> statuses = List.of(
+                PayslipStatus.PENDING_REVIEW,
+                PayslipStatus.PENDING_APPROVAL,
+                PayslipStatus.NEEDS_ATTENTION,
+                PayslipStatus.DISPUTED
+        );
+        return mapPayslipsToDto(filterPayslipsByCompany(
+                payslipRepository.findByStatusInOrderByDateOfIssueDesc(statuses),
+                companyId
+        ));
+    }
+
     public PayslipResponseDTO getPayslipById(UUID id) {
         Payslip payslip = payslipRepository.findById(id)
                 .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
         return PayslipMapper.toDTO(payslip);
     }
 
+    public PayslipResponseDTO getPayslipById(UUID id, UUID companyId) {
+        Payslip payslip = payslipRepository.findById(id)
+                .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
+        requirePayslipInCompany(payslip, companyId);
+        return PayslipMapper.toDTO(payslip);
+    }
+
     public PayslipResponseDTO createPayslip(PayslipRequestDTO req) {
+        return createPayslip(req, null);
+    }
+
+    public PayslipResponseDTO createPayslip(PayslipRequestDTO req, String accessToken) {
+        return createPayslip(req, null, accessToken);
+    }
+
+    public PayslipResponseDTO createPayslip(PayslipRequestDTO req, UUID companyId, String accessToken) {
         LocalDate date = LocalDate.parse(req.getDateOfIssue());
         UUID userId = UUID.fromString(req.getUserId());
+        requireUserInCompany(userId, companyId);
 
         duplicateValidator.validateNoDuplicate(userId, date);
 
@@ -149,6 +194,17 @@ public class PayrollService {
         applyDiscrepancyStatus(payslip, fetchResult, PayslipStatus.RELEASED);
 
         payslip = payslipRepository.save(payslip);
+        recordAudit(
+                accessToken,
+                "CREATED",
+                payslip,
+                List.of(
+                        textPart(" created payslip "),
+                        payslipLink(payslip),
+                        textPart(" for "),
+                        userLink(payslip.getUserId())
+                )
+        );
         return PayslipMapper.toDTO(payslip);
     }
 
@@ -248,22 +304,54 @@ public class PayrollService {
     }
 
     public PayslipResponseDTO reportPayslipError(UUID payslipId, String errorDescription) {
+        return reportPayslipError(payslipId, errorDescription, null);
+    }
+
+    public PayslipResponseDTO reportPayslipError(UUID payslipId, String errorDescription, String accessToken) {
+        return reportPayslipError(payslipId, null, errorDescription, accessToken);
+    }
+
+    public PayslipResponseDTO reportPayslipError(UUID payslipId, UUID companyId, String errorDescription, String accessToken) {
         Payslip payslip = payslipRepository.findById(payslipId)
                 .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + payslipId + " not found"));
+        requirePayslipInCompany(payslip, companyId);
 
         payslip.setErrorDescription(errorDescription);
         payslip.setStatus(PayslipStatus.DISPUTED);
 
         payslip = payslipRepository.save(payslip);
+        recordAudit(
+                accessToken,
+                "REPORTED_ERROR",
+                payslip,
+                List.of(
+                        textPart(" reported an error on "),
+                        payslipLink(payslip),
+                        textPart(" for "),
+                        userLink(payslip.getUserId())
+                )
+        );
         return PayslipMapper.toDTO(payslip);
     }
 
     public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO req) {
+        return updatePayslip(id, req, null);
+    }
+
+    public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO req, String accessToken) {
+        return updatePayslip(id, req, null, accessToken);
+    }
+
+    public PayslipResponseDTO updatePayslip(UUID id, PayslipRequestDTO req, UUID companyId, String accessToken) {
         Payslip payslip = payslipRepository.findById(id)
                 .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
+        requirePayslipInCompany(payslip, companyId);
+        PayslipStatus previousStatus = payslip.getStatus();
 
         if (req.getUserId() != null && !req.getUserId().isBlank()) {
-            payslip.setUserId(UUID.fromString(req.getUserId()));
+            UUID userId = UUID.fromString(req.getUserId());
+            requireUserInCompany(userId, companyId);
+            payslip.setUserId(userId);
         }
         if (req.getDateOfIssue() != null && !req.getDateOfIssue().isBlank()) {
             LocalDate date = LocalDate.parse(req.getDateOfIssue());
@@ -306,15 +394,118 @@ public class PayrollService {
         PayslipCalculator.apply(payslip);
 
         payslip = payslipRepository.save(payslip);
+        recordAudit(
+                accessToken,
+                actionForUpdate(previousStatus, payslip.getStatus()),
+                payslip,
+                updateMessageParts(payslip, previousStatus)
+        );
         return PayslipMapper.toDTO(payslip);
     }
 
     public void deletePayslip(UUID id) {
+        deletePayslip(id, null);
+    }
+
+    public void deletePayslip(UUID id, String accessToken) {
+        deletePayslip(id, null, accessToken);
+    }
+
+    public void deletePayslip(UUID id, UUID companyId, String accessToken) {
+        Payslip payslip = payslipRepository.findById(id)
+                .orElseThrow(() -> new PayslipNotFoundException("Payslip with id: " + id + " not found"));
+        requirePayslipInCompany(payslip, companyId);
         payslipRepository.deleteById(id);
+        recordAudit(
+                accessToken,
+                "DELETED",
+                payslip,
+                List.of(
+                        textPart(" deleted "),
+                        payslipLink(payslip),
+                        textPart(" for "),
+                        userLink(payslip.getUserId())
+                )
+        );
+    }
+
+    private void recordAudit(String accessToken, String action, Payslip payslip, List<AuditLogMessagePartDTO> messageParts) {
+        if (auditLogClient == null || accessToken == null || accessToken.isBlank() || payslip == null) {
+            return;
+        }
+        AuditLogCreateRequestDTO request = new AuditLogCreateRequestDTO();
+        request.setCategory("PAYROLL");
+        request.setAction(action);
+        request.setEntityType("PAYSLIP");
+        request.setEntityId(payslip.getPayslipId() == null ? null : payslip.getPayslipId().toString());
+        request.setMessageParts(messageParts);
+        auditLogClient.record(accessToken, request);
+    }
+
+    private static String actionForUpdate(PayslipStatus previousStatus, PayslipStatus nextStatus) {
+        if (nextStatus == PayslipStatus.APPROVED && previousStatus != PayslipStatus.APPROVED) {
+            return "APPROVED";
+        }
+        if (nextStatus == PayslipStatus.RELEASED && previousStatus != PayslipStatus.RELEASED) {
+            return "RELEASED";
+        }
+        if (nextStatus == PayslipStatus.DISPUTED && previousStatus != PayslipStatus.DISPUTED) {
+            return "DISPUTED";
+        }
+        if (nextStatus == PayslipStatus.NEEDS_ATTENTION && previousStatus != PayslipStatus.NEEDS_ATTENTION) {
+            return "FLAGGED";
+        }
+        return "UPDATED";
+    }
+
+    private static List<AuditLogMessagePartDTO> updateMessageParts(Payslip payslip, PayslipStatus previousStatus) {
+        String actionText = switch (actionForUpdate(previousStatus, payslip.getStatus())) {
+            case "APPROVED" -> " approved ";
+            case "RELEASED" -> " released ";
+            case "DISPUTED" -> " marked disputed ";
+            case "FLAGGED" -> " flagged ";
+            default -> " updated ";
+        };
+        return List.of(
+                textPart(actionText),
+                payslipLink(payslip),
+                textPart(" for "),
+                userLink(payslip.getUserId())
+        );
+    }
+
+    private static AuditLogMessagePartDTO textPart(String text) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("TEXT");
+        part.setText(text);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO userLink(UUID userId) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("USER");
+        part.setEntityId(userId == null ? null : userId.toString());
+        part.setRoute(userId == null ? null : "/management/users/" + userId);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO payslipLink(Payslip payslip) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("PAYSLIP");
+        part.setEntityId(payslip.getPayslipId() == null ? null : payslip.getPayslipId().toString());
+        part.setLabel("payslip " + (payslip.getDateOfIssue() == null ? "" : payslip.getDateOfIssue()));
+        part.setRoute(payslip.getPayslipId() == null ? null : "/management/payslips/" + payslip.getPayslipId());
+        return part;
     }
 
     public String renderPayslipHtml(UUID id) {
-        PayslipResponseDTO dto = getPayslipById(id);
+        return renderPayslipHtml(id, null);
+    }
+
+    public String renderPayslipHtml(UUID id, UUID companyId) {
+        PayslipResponseDTO dto = getPayslipById(id, companyId);
         String json;
         try {
             json = objectMapper.writeValueAsString(dto);
@@ -325,8 +516,8 @@ public class PayrollService {
         return template.replace("__PAYSLIP_JSON__", json);
     }
 
-    private String renderPayslipHtmlForPdf(UUID id) {
-        PayslipResponseDTO dto = getPayslipById(id);
+    private String renderPayslipHtmlForPdf(UUID id, UUID companyId) {
+        PayslipResponseDTO dto = getPayslipById(id, companyId);
         String template = loadTemplate("templates/payslip_pdf.html");
 
         NumberFormat eur = NumberFormat.getCurrencyInstance(new Locale("nl", "NL"));
@@ -379,7 +570,11 @@ public class PayrollService {
     }
 
     public byte[] generatePayslipPdf(UUID id) {
-        String html = renderPayslipHtmlForPdf(id);
+        return generatePayslipPdf(id, null);
+    }
+
+    public byte[] generatePayslipPdf(UUID id, UUID companyId) {
+        String html = renderPayslipHtmlForPdf(id, companyId);
         return pdfService.generatePdfFromHtml(html);
     }
 
@@ -663,5 +858,56 @@ public class PayrollService {
             }
         }
         return results;
+    }
+
+    private List<Payslip> filterPayslipsByCompany(List<Payslip> payslips, UUID companyId) {
+        if (companyId == null) {
+            return payslips;
+        }
+        return payslips.stream()
+                .filter(payslip -> belongsToCompany(payslip.getUserId(), companyId))
+                .toList();
+    }
+
+    private void requirePayslipInCompany(Payslip payslip, UUID companyId) {
+        if (payslip == null || companyId == null) {
+            return;
+        }
+        requireUserInCompany(payslip.getUserId(), companyId);
+    }
+
+    private void requireUserInCompany(UUID userId, UUID companyId) {
+        if (companyId == null || userId == null) {
+            return;
+        }
+        if (!belongsToCompany(userId, companyId)) {
+            throw new IllegalArgumentException("Payslip is not accessible in this company");
+        }
+    }
+
+    private boolean belongsToCompany(UUID userId, UUID companyId) {
+        if (companyId == null || userId == null) {
+            return true;
+        }
+        UserDataResponse userData = userServiceGrpcClient.requestUserData(userId.toString());
+        return companyId.toString().equals(userData.getCompanyId());
+    }
+
+    private static <T> PagedResponseDTO<T> paginate(List<T> items, int page, int size) {
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.min(Math.max(size, 1), 100);
+        int totalElements = items.size();
+        int fromIndex = Math.min(safePage * safeSize, totalElements);
+        int toIndex = Math.min(fromIndex + safeSize, totalElements);
+        int totalPages = totalElements == 0 ? 0 : (int) Math.ceil((double) totalElements / safeSize);
+        return new PagedResponseDTO<>(
+                items.subList(fromIndex, toIndex),
+                safePage,
+                safeSize,
+                totalElements,
+                totalPages,
+                toIndex < totalElements,
+                fromIndex > 0
+        );
     }
 }

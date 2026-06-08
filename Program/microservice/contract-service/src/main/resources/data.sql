@@ -109,6 +109,8 @@ ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS employer_contract_versi
 ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS employer_document_hash VARCHAR(128);
 ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS employer_ip_address VARCHAR(100);
 ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS employer_browser_user_agent VARCHAR(1000);
+ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS replaces_contract_id UUID;
+ALTER TABLE IF EXISTS contracts ADD COLUMN IF NOT EXISTS derived_from_rule_version_id UUID;
 ALTER TABLE IF EXISTS contracts ALTER COLUMN wage_tax_amount_test SET DEFAULT 0;
 ALTER TABLE IF EXISTS contracts ALTER COLUMN payout_schedule SET DEFAULT 'WEEKLY';
 ALTER TABLE IF EXISTS contracts ALTER COLUMN end_date DROP NOT NULL;

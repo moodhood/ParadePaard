@@ -1,10 +1,11 @@
 import { type FormEvent, type PointerEvent as ReactPointerEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Spinner from "../components/Spinner";
 import Card from "../components/common/Card";
+import Modal from "../components/common/Modal";
 import { useAuth } from "../context/AuthContext";
 import { AuthServices, type RoleResponseDTO } from "../services/auth-service/AuthServices";
 import {
@@ -16,6 +17,7 @@ import {
     type TimesheetRow,
     type UserResponseDTO,
 } from "../services/user-service/UserServices";
+import type { HorecaRuleVersionDTO } from "../services/user-service/Types";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/GeneralInfo.css";
 import "../stylesheets/PayslipDetails.css";
@@ -35,6 +37,8 @@ import {
 } from "../utils/hoursSummary";
 import { flattenPlanningProjects, type PlanningExplorerRow } from "../utils/planningExplorer";
 import { getAllocationStatusLabel, getAllocationStatusTone } from "../utils/planningSummary";
+import { formatHorecaAgeGroupLabel, getHorecaMinimumHourlyWage, getManagedHorecaWageRules } from "../utils/horecaPayrollRules";
+import { canDeleteUsers } from "../utils/permissionPolicy";
 
 const normalizeRoleName = (value: string) => value.trim().toUpperCase();
 const moneyFormatter = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" });
@@ -57,6 +61,7 @@ type EmployerSignatureValidationState = {
 
 type ContractDraftFormState = {
     functionName: string;
+    functionGroup: string;
     contractType: string;
     startDate: string;
     endDate: string;
@@ -80,6 +85,12 @@ type ContractDraftVisibilityState = {
     userStatus?: string | null;
 };
 
+type DeleteUserActionState = {
+    permissions: readonly string[] | null | undefined;
+    currentManagerUserId?: string | null;
+    viewedUserId?: string | null;
+};
+
 export function canSubmitEmployerContractSignature(state: EmployerSignatureValidationState): boolean {
     if (!state.contractLoaded || state.alreadyFinalized || !state.agreementChecked) return false;
     return state.typedName.trim().replace(/\s+/g, " ").length > 0;
@@ -88,6 +99,12 @@ export function canSubmitEmployerContractSignature(state: EmployerSignatureValid
 export function canShowCreateContractDraft(state: ContractDraftVisibilityState): boolean {
     if (!state.canManageContracts || state.contractLoading || state.currentContract) return false;
     return Boolean(state.userStatus);
+}
+
+export function canShowDeleteUserAction(state: DeleteUserActionState): boolean {
+    if (!canDeleteUsers(state.permissions)) return false;
+    if (!state.currentManagerUserId || !state.viewedUserId) return false;
+    return state.currentManagerUserId !== state.viewedUserId;
 }
 
 export function buildContractDraftPayload(input: ContractDraftPayloadInput): CreateContractRequestDTO {
@@ -239,6 +256,7 @@ function getStatusTone(status: string): "success" | "warning" | "danger" | "neut
 }
 
 export default function AdminUserDetails() {
+    const navigate = useNavigate();
     const { userId } = useParams<{ userId: string }>();
     const { permissions, permissionsLoading, permissionsError } = useAuth();
     const employerSignatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -270,9 +288,11 @@ export default function AdminUserDetails() {
     const [employerSignatureImage, setEmployerSignatureImage] = useState<string | null>(null);
     const [functions, setFunctions] = useState<FunctionResponseDTO[]>([]);
     const [functionsError, setFunctionsError] = useState<string | null>(null);
+    const [horecaRulesVersion, setHorecaRulesVersion] = useState<HorecaRuleVersionDTO | null>(null);
     const [selectedFunctionId, setSelectedFunctionId] = useState("");
     const [contractDraft, setContractDraft] = useState<ContractDraftFormState>({
         functionName: "",
+        functionGroup: "I+II",
         contractType: "ON_CALL_RUNNER",
         startDate: "",
         endDate: "",
@@ -299,6 +319,9 @@ export default function AdminUserDetails() {
     const [roleSaving, setRoleSaving] = useState(false);
     const [showRolePicker, setShowRolePicker] = useState(false);
     const rolePickerRef = useRef<HTMLDivElement | null>(null);
+    const [deleteUserModalOpen, setDeleteUserModalOpen] = useState(false);
+    const [deleteUserLoading, setDeleteUserLoading] = useState(false);
+    const [deleteUserError, setDeleteUserError] = useState<string | null>(null);
 
     const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
     const currentMoment = useMemo(() => new Date(), []);
@@ -457,6 +480,22 @@ export default function AdminUserDetails() {
         setRoleSaveSuccess(null);
     }, [userId]);
 
+    const handleDeleteUser = async () => {
+        if (!user) return;
+        try {
+            setDeleteUserLoading(true);
+            setDeleteUserError(null);
+            await UserServices.deleteUser(user.userId);
+            setDeleteUserModalOpen(false);
+            navigate("/management/users");
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : "Failed to delete user.";
+            setDeleteUserError(message);
+        } finally {
+            setDeleteUserLoading(false);
+        }
+    };
+
     useEffect(() => {
         if (!userId) return;
         let cancelled = false;
@@ -517,14 +556,33 @@ export default function AdminUserDetails() {
     const canManageContracts = permissions.includes("CAN_MANAGE_CONTRACTS");
     const canReviewContracts = permissions.includes("CAN_REVIEW_CONTRACTS");
     const canFinalizeContracts = permissions.includes("CAN_FINALIZE_CONTRACT");
+    // Gates the BSN and ID document fields. Admins without it still see the
+    // employee profile and contract but the actual ID values are masked.
+    const canViewIdentification = permissions.includes("CAN_VIEW_EMPLOYEE_IDENTIFICATION");
+    const maskedIdentificationValue = "•••••";
+    const maskIdentification = (value: string | number): string | number => {
+        if (canViewIdentification) return value;
+        // Preserve the empty-state "-" placeholder so the row still reads as
+        // missing rather than masked when there's actually no value to hide.
+        return value === "-" ? value : maskedIdentificationValue;
+    };
+    const canDeleteViewedUser = canShowDeleteUserAction({
+        permissions,
+        currentManagerUserId: currentManager?.userId ?? null,
+        viewedUserId: user?.userId ?? userId ?? null,
+    });
 
     useEffect(() => {
         if (!canManageContracts) return;
         let cancelled = false;
-        UserServices.getFunctions()
-            .then((data) => {
+        Promise.all([
+            UserServices.getFunctions(),
+            UserServices.getCurrentHorecaRules().catch(() => null),
+        ])
+            .then(([data, rulesVersion]) => {
                 if (cancelled) return;
                 setFunctions(data ?? []);
+                setHorecaRulesVersion(rulesVersion);
                 setFunctionsError(null);
             })
             .catch((err: unknown) => {
@@ -546,6 +604,59 @@ export default function AdminUserDetails() {
             grossHourlyWage: String(selectedFunction.hourlyWage),
         }));
     }, [functions, selectedFunctionId]);
+
+    // Looks up the horeca minimum hourly wage for this employee using their date
+    // of birth and the contract start date. Falls back to today's date if the
+    // admin hasn't picked a start date yet so the field still gets a sensible
+    // prefill the moment the form opens.
+    const managedWageRules = useMemo(
+        () => getManagedHorecaWageRules(horecaRulesVersion?.sections?.WAGE_RULES),
+        [horecaRulesVersion]
+    );
+    const minimumWageInfo = useMemo(() => {
+        const referenceDate = contractDraft.startDate || today;
+        return getHorecaMinimumHourlyWage(
+            {
+                dateOfBirth: user?.dateOfBirth,
+                referenceDate,
+                functionGroup: contractDraft.functionGroup,
+            },
+            { wageRules: managedWageRules }
+        );
+    }, [user?.dateOfBirth, contractDraft.functionGroup, contractDraft.startDate, managedWageRules, today]);
+
+    // Auto-fill the gross hourly wage with the horeca minimum wage as soon as
+    // the lookup resolves, but only when the admin hasn't picked a function
+    // (which would otherwise override) and hasn't typed a wage themselves yet.
+    useEffect(() => {
+        if (selectedFunctionId) return;
+        if (minimumWageInfo.minimumHourlyWage == null) return;
+        setContractDraft((current) => {
+            if (current.grossHourlyWage.trim() !== "") return current;
+            return { ...current, grossHourlyWage: minimumWageInfo.minimumHourlyWage!.toFixed(2) };
+        });
+    }, [minimumWageInfo.minimumHourlyWage, selectedFunctionId]);
+
+    // Warning shown to the admin when the entered hourly wage is below the
+    // horeca minimum for this employee's age. Does NOT block submission, per
+    // product requirement: the admin can still proceed.
+    const wageBelowMinimumWarning = useMemo(() => {
+        const minimum = minimumWageInfo.minimumHourlyWage;
+        const entered = Number(contractDraft.grossHourlyWage);
+        if (minimum == null) return null;
+        if (!Number.isFinite(entered) || entered <= 0) return null;
+        if (entered >= minimum) return null;
+        return `The entered hourly wage (€${entered.toFixed(2)}) is below the minimum wage from the horeca wage table (€${minimum.toFixed(2)}) for this employee age. Please proceed with caution.`;
+    }, [minimumWageInfo.minimumHourlyWage, contractDraft.grossHourlyWage]);
+    const wageBelowMinimumWarningDisplay = useMemo(() => {
+        if (!wageBelowMinimumWarning) return null;
+        const minimum = minimumWageInfo.minimumHourlyWage;
+        const entered = Number(contractDraft.grossHourlyWage);
+        if (minimum == null) return wageBelowMinimumWarning;
+        if (!Number.isFinite(entered) || entered <= 0) return wageBelowMinimumWarning;
+        if (entered >= minimum) return wageBelowMinimumWarning;
+        return `Warning: this is below minimum wage. The entered hourly wage (€${entered.toFixed(2)}) is below the horeca minimum (€${minimum.toFixed(2)}) for this employee age group.`;
+    }, [minimumWageInfo.minimumHourlyWage, contractDraft.grossHourlyWage, wageBelowMinimumWarning]);
 
     const sortedUserRoles = useMemo(() => {
         const list = uniqueRoles(userRoles);
@@ -1051,7 +1162,7 @@ export default function AdminUserDetails() {
         ] as const;
 
         const profileTaxRows = [
-            ["BSN", formatValue(user?.employeeTaxProfile?.bsn)],
+            ["BSN", maskIdentification(formatValue(user?.employeeTaxProfile?.bsn))],
             ["Apply loonheffingskorting", formatValue(user?.employeeTaxProfile?.applyLoonheffingskorting)],
             ["Pension participant", formatValue(user?.employeeTaxProfile?.pensionParticipant)],
             ["Special employee Zvw contribution", formatValue(user?.employeeTaxProfile?.specialZvwContribution)],
@@ -1118,11 +1229,11 @@ export default function AdminUserDetails() {
         ] as const;
 
         const idDocumentRows = [
-            ["Document type", formatValue(user?.idDocumentType)],
-            ["Document number", formatValue(user?.idDocumentNumber)],
-            ["Issue date", formatValue(user?.idIssueDate)],
-            ["Expiration date", formatValue(user?.idExpirationDate)],
-            ["Issuing country", formatValue(user?.idIssuingCountry)],
+            ["Document type", maskIdentification(formatValue(user?.idDocumentType))],
+            ["Document number", maskIdentification(formatValue(user?.idDocumentNumber))],
+            ["Issue date", maskIdentification(formatValue(user?.idIssueDate))],
+            ["Expiration date", maskIdentification(formatValue(user?.idExpirationDate))],
+            ["Issuing country", maskIdentification(formatValue(user?.idIssuingCountry))],
         ] as const;
 
         const emergencyContactRows = [
@@ -1137,11 +1248,26 @@ export default function AdminUserDetails() {
                 <section className="adminUserDetailsHero">
                     <div className="adminUserDetailsHeaderTop">
                         <PageBack to="/management/users" />
-                        <div className="pageHeader adminUserDetailsHeader">
-                            <h1 className="pageTitle">User Details</h1>
-                            <p className="pageSubtitle">
-                                Profile, timesheets, and planning in one consistent workspace.
-                            </p>
+                        <div className="adminUserDetailsHeaderRow">
+                            <div className="pageHeader adminUserDetailsHeader">
+                                <h1 className="pageTitle">User Details</h1>
+                                <p className="pageSubtitle">
+                                    Profile, timesheets, and planning in one consistent workspace.
+                                </p>
+                            </div>
+                            {canDeleteViewedUser ? (
+                                <button
+                                    type="button"
+                                    className="button buttonDanger adminUserDetailsDeleteButton"
+                                    onClick={() => {
+                                        setDeleteUserError(null);
+                                        setDeleteUserModalOpen(true);
+                                    }}
+                                    disabled={deleteUserLoading}
+                                >
+                                    Delete user
+                                </button>
+                            ) : null}
                         </div>
                     </div>
 
@@ -1510,6 +1636,38 @@ export default function AdminUserDetails() {
                                                 />
                                             </div>
                                             <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-function-group">
+                                                    Function group
+                                                </label>
+                                                <select
+                                                    id="contract-draft-function-group"
+                                                    className="uiSelect"
+                                                    value={contractDraft.functionGroup}
+                                                    onChange={(event) => setContractDraft((current) => ({
+                                                        ...current,
+                                                        functionGroup: event.target.value,
+                                                    }))}
+                                                    disabled={contractActionLoading}
+                                                >
+                                                    <option value="I+II">I plus II</option>
+                                                    <option value="III">III</option>
+                                                    <option value="IV">IV</option>
+                                                    <option value="V">V</option>
+                                                </select>
+                                            </div>
+                                            <div className="payslipDetailField">
+                                                <label className="payslipDetailFieldLabel" htmlFor="contract-draft-age-group">
+                                                    Age group from date of birth
+                                                </label>
+                                                <input
+                                                    id="contract-draft-age-group"
+                                                    className="uiSelect"
+                                                    value={formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)}
+                                                    readOnly
+                                                    disabled
+                                                />
+                                            </div>
+                                            <div className="payslipDetailField">
                                                 <label className="payslipDetailFieldLabel" htmlFor="contract-draft-end">
                                                     End date
                                                 </label>
@@ -1542,6 +1700,30 @@ export default function AdminUserDetails() {
                                                     }))}
                                                     disabled={contractActionLoading || Boolean(selectedFunctionId)}
                                                 />
+                                                {minimumWageInfo.minimumHourlyWage != null ? (
+                                                    <p className="helperText contractDraftWageHint">
+                                                        Suggested horeca minimum for {formatHorecaAgeGroupLabel(minimumWageInfo.ageGroup)} in
+                                                        group {contractDraft.functionGroup}:{" "}
+                                                        {moneyFormatter.format(minimumWageInfo.minimumHourlyWage)} per hour.
+                                                    </p>
+                                                ) : user?.dateOfBirth ? null : (
+                                                    <p className="helperText contractDraftWageHint">
+                                                        Add a date of birth to the employee profile to enable automatic
+                                                        horeca minimum wage validation.
+                                                    </p>
+                                                )}
+                                                {wageBelowMinimumWarningDisplay ? (
+                                                    <div className="contractDraftWageWarning" role="alert">
+                                                        <span
+                                                            className="contractDraftWarningIcon"
+                                                            aria-label={wageBelowMinimumWarningDisplay}
+                                                            title={wageBelowMinimumWarningDisplay}
+                                                        >
+                                                            !
+                                                        </span>
+                                                        <p className="errorText">{wageBelowMinimumWarningDisplay}</p>
+                                                    </div>
+                                                ) : null}
                                             </div>
                                             <div className="payslipDetailField">
                                                 <label className="payslipDetailFieldLabel" htmlFor="contract-draft-frequency">
@@ -1630,22 +1812,38 @@ export default function AdminUserDetails() {
                                     <div className="profile_info_row">
                                         <span className="profile_info_label">ID document image</span>
                                         <span className="profile_info_value">
-                                            {idDocumentLoading ? "Loading..." : idDocumentNoFile ? "No file uploaded" : "Available when uploaded"}
+                                            {canViewIdentification
+                                                ? idDocumentLoading
+                                                    ? "Loading..."
+                                                    : idDocumentNoFile
+                                                        ? "No file uploaded"
+                                                        : "Available when uploaded"
+                                                : maskedIdentificationValue}
                                         </span>
                                     </div>
                                 </div>
-                                {idDocumentError ? <p className="errorText">{idDocumentError}</p> : null}
-                                {idDocumentNoFile ? <p className="helperText">No ID document image has been uploaded for this user.</p> : null}
-                                <div className="cardFooter contractReviewActions">
-                                    <button
-                                        className="button buttonSecondary"
-                                        type="button"
-                                        onClick={() => void handleOpenIdDocumentImage()}
-                                        disabled={idDocumentLoading}
-                                    >
-                                        {idDocumentLoading ? "Opening..." : "Open ID document image"}
-                                    </button>
-                                </div>
+                                {canViewIdentification ? (
+                                    <>
+                                        {idDocumentError ? <p className="errorText">{idDocumentError}</p> : null}
+                                        {idDocumentNoFile ? (
+                                            <p className="helperText">No ID document image has been uploaded for this user.</p>
+                                        ) : null}
+                                        <div className="cardFooter contractReviewActions">
+                                            <button
+                                                className="button buttonSecondary"
+                                                type="button"
+                                                onClick={() => void handleOpenIdDocumentImage()}
+                                                disabled={idDocumentLoading}
+                                            >
+                                                {idDocumentLoading ? "Opening..." : "Open ID document image"}
+                                            </button>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <p className="helperText">
+                                        You do not have permission to view this employee&apos;s ID document image.
+                                    </p>
+                                )}
                             </Card>
 
                             <Card title="Emergency contact" className="adminUserDetailsPanel">
@@ -2065,6 +2263,48 @@ export default function AdminUserDetails() {
                     </div>
                 </div>
             </div>
+            <Modal
+                open={deleteUserModalOpen}
+                title="Delete user"
+                onClose={() => {
+                    if (deleteUserLoading) return;
+                    setDeleteUserError(null);
+                    setDeleteUserModalOpen(false);
+                }}
+                footer={
+                    <>
+                        <button
+                            type="button"
+                            className="button buttonSecondary"
+                            onClick={() => {
+                                setDeleteUserError(null);
+                                setDeleteUserModalOpen(false);
+                            }}
+                            disabled={deleteUserLoading}
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            className="button buttonDanger"
+                            onClick={() => void handleDeleteUser()}
+                            disabled={deleteUserLoading}
+                        >
+                            {deleteUserLoading ? "Deleting..." : "Delete user"}
+                        </button>
+                    </>
+                }
+            >
+                <div className="adminUserDeleteModal">
+                    <p className="adminUserDeleteModalText">
+                        Delete <strong>{user ? personFullName(user) : "this user"}</strong> permanently.
+                    </p>
+                    <p className="adminUserDeleteModalWarning">
+                        This action is irreversible. The user account and its stored profile data will be removed.
+                    </p>
+                    {deleteUserError ? <div className="workHistoryError">{deleteUserError}</div> : null}
+                </div>
+            </Modal>
         </>
     );
 }

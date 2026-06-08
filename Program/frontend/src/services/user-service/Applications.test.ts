@@ -17,8 +17,9 @@ describe("application services", () => {
             data: { status: "APPLICATION_SUBMITTED" },
             status: 200,
         });
+        const profilePicture = new File(["image"], "alex.png", { type: "image/png" });
 
-        await SubmitApplication("http://localhost:4004", applicationPayload());
+        await SubmitApplication("http://localhost:4004", applicationPayload(), profilePicture);
 
         expect(axios.post).toHaveBeenCalledWith(
             "http://localhost:4004/api/applications",
@@ -39,9 +40,10 @@ describe("application services", () => {
                 data: { message: "Email Already Exists" },
             },
         });
+        const profilePicture = new File(["image"], "alex.png", { type: "image/png" });
 
         try {
-            await SubmitApplication("http://localhost:4004", applicationPayload());
+            await SubmitApplication("http://localhost:4004", applicationPayload(), profilePicture);
             throw new Error("Expected submission to fail");
         } catch (error) {
             expect(error).toBeInstanceOf(Error);
