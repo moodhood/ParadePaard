@@ -61,13 +61,30 @@
     max-width: 820px;
 }
 
+/* Give the form a bit more horizontal breathing room than the default 24px
+ * card padding so the inputs don't run right up against the card edge on
+ * the right side. */
 .platformAdminFormCard .uiCardBody {
-    padding: 24px;
+    padding: 28px 32px;
 }
 
 .platformAdminForm {
     display: grid;
     gap: 16px;
+    /* Extra inline padding-right on the form area so the input borders sit
+     * comfortably inside the card surface and the page right padding reads
+     * intentionally, not cramped. */
+    padding-right: 8px;
+}
+
+@media (max-width: 640px) {
+    .platformAdminFormCard .uiCardBody {
+        padding: 22px 20px;
+    }
+
+    .platformAdminForm {
+        padding-right: 0;
+    }
 }
 
 .platformAdminForm label {
@@ -97,36 +114,4 @@
 .platformDetailList {
     display: grid;
     gap: 12px;
-    margin: 0;
-}
-
-.platformDetailList div {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.platformDetailList dt {
-    font-size: 0.82rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    color: #52606d;
-}
-
-.platformDetailList dd {
-    margin: 0;
-    font-size: 0.98rem;
-    color: #102a43;
-}
-
-@media (max-width: 900px) {
-    .platformCompanyRow {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .platformCompanyDetailGrid {
-        grid-template-columns: 1fr;
-    }
-}
+    margin: 
