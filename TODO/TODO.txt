@@ -23,102 +23,12 @@ make sure that there is a balance for the company too!
 
 Build the payroll flow for a Dutch payroll company.
 
-The system should treat payroll as a flow from worked hours to gross salary, then from gross salary to net salary, and then to tax reporting and employer costs.
+There should be a permission for being able to see id's apart from contracts, so someone with contract permissions should be able the contract, but if they do not have have id visibility permission (or a better name idk) they cannot see the the id of that corresponding employee
 
-First, the system records the employee, the employment contract, the applicable CAO if there is one, the wage, the worked hours, and the payroll period. The CAO or employment contract decides the employment conditions, such as hourly wage, working hours, holiday allowance, overtime rules, pension rules, travel allowance, and possible weekend or evening surcharges. The CAO does not directly calculate the payroll tax. It mainly decides the wage and work conditions.
+So for the location, there should be a list of locations that the admin should be able to choose from for the project/shift part, this list should be a backended list, it should also be tied to the client, so lets say there is a project x, that has client y, and location z, then next time I make a project, with client y, location z should be automatically be at the top of the list. To make it easy to add a location to the list, if it is not in it yet, then you just need to click on the add button next to the location text box that will prompt you a pop up box with fields to fill in which will add that location to the list.
 
-The gross salary is calculated from the worked hours and the agreed wage.
+Make the apply form modular, as in the admin can change the apply form.
 
-gross salary = hours worked × hourly wage
+Make a super super admin, as in a admin that has an interface where they can see, adjust, and do everything with every company, and also create a new company, and onboard for that company, since if there is no user that has any permissions within that company, there is no way to onboard other people to that company.
 
-Extra wage components can be added to this gross salary, for example overtime, holiday allowance, bonuses, allowances, or corrections. These values should be stored separately so the payslip stays clear.
-
-After the gross salary is calculated, the system calculates the employee payroll tax according to Dutch tax rules from the Belastingdienst. This is not mainly based on the CAO. The tax calculation uses official payroll tax rules, payroll tax tables, employee tax settings, wage period, tax credit settings, and other required payroll data.
-
-The employee does not receive the full gross salary. The employer withholds the employee payroll tax from the gross salary. This withheld amount is not profit for the company. The company temporarily holds this amount and later pays it to the Belastingdienst through the payroll tax return.
-
-net salary = gross salary − employee payroll tax withheld
-
-The company pays the net salary to the employee.
-
-The company also has employer costs on top of the gross salary. These can include employer social security contributions, employer insurance contributions, employer healthcare contribution, pension contributions, and other employer costs. These are not deducted from the employee’s gross salary. They are extra costs for the employer.
-
-total employer cost = gross salary + employer contributions + other employer costs
-
-The payroll system should clearly separate these amounts:
-
-gross salary
-
-employee payroll tax withheld
-
-net salary paid to employee
-
-employer contributions
-
-total employer cost
-
-The system should not treat all taxes as employee deductions. Some amounts are withheld from the employee’s gross salary, while other amounts are paid by the employer on top of the gross salary.
-
-The system should also keep track of where every number comes from.
-
-Employee data should be stored in the employee profile. This includes name, address, date of birth, BSN if legally required, tax credit choice, bank account, and other payroll required personal data.
-
-Employment data should be stored in the employment contract. This includes start date, end date if temporary, job title, hourly wage, contract hours, employment type, pay period, work location, and whether a CAO applies.
-
-CAO data should be stored in a CAO rules table or CAO configuration file. This includes wage scales, minimum wages, overtime rules, holiday allowance rules, surcharges, pension rules, travel allowance rules, and other employment conditions.
-
-Worked hours should be stored in timesheets or approved work logs. These records should contain date, start time, end time, break time, approved hours, overtime hours, location, function, and approval status.
-
-Payroll calculation results should be stored in payroll runs. A payroll run should contain the payroll period, employee, gross salary, all wage components, employee tax withheld, employer contributions, net salary, and total employer cost.
-
-Payslip data should be generated from the payroll run. The payslip should show the employee what was earned, what was deducted, and what was paid. It should show gross salary, wage components, deductions, tax withheld, net salary, and relevant cumulative totals.
-
-Tax declaration data should be stored separately in a payroll tax return or declaration table. This contains the data needed for the Dutch wage tax return. The company sends this declaration digitally to the Belastingdienst, usually monthly or every four weeks.
-
-Payment data should be stored separately as payment records. There should be one payment record for the net salary paid to the employee and separate payment records for amounts paid to the Belastingdienst and other parties.
-
-The full flow should be:
-
-1. Create or update employee profile.
-
-2. Create or update employment contract.
-
-3. Link the correct CAO rules if a CAO applies.
-
-4. Record and approve worked hours.
-
-5. Calculate gross salary from hours and wage.
-
-6. Add wage components such as overtime, allowances, holiday allowance, and corrections.
-
-7. Calculate employee payroll tax using Belastingdienst rules and tax tables.
-
-8. Calculate net salary.
-
-9. Calculate employer contributions and total employer cost.
-
-10. Generate the payslip.
-
-11. Pay the net salary to the employee.
-
-12. Prepare the payroll tax return.
-
-13. Send the payroll tax return to the Belastingdienst.
-
-14. Pay the withheld employee tax and employer contributions to the Belastingdienst.
-
-15. Store all results for audit, correction, and future payroll runs.
-
-The important logic is:
-
-The CAO or contract decides what the employee earns.
-
-The Belastingdienst rules decide what tax must be withheld.
-
-The employee receives net salary.
-
-The company temporarily holds the withheld employee tax.
-
-The company later pays that withheld tax plus employer contributions to the Belastingdienst.
-
-The employer contributions are extra employer costs and are not taken from the employee’s salary.
+user page improve contract part

@@ -51,5 +51,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByEmailAndUserIdNot(String email, UUID id);
     boolean existsByEmailAndCompanyIdAndUserIdNot(String email, UUID companyId, UUID id);
     boolean existsByMobileNumberAndUserIdNot(String mobileNumber, UUID id);
+    long countByCompanyId(UUID companyId);
+    long countByCompanyIdAndStatus(UUID companyId, UserStatus status);
+    long countByCompanyIdAndStatusIn(UUID companyId, Collection<UserStatus> statuses);
 
 }

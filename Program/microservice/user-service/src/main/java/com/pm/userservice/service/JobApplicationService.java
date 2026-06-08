@@ -1,6 +1,8 @@
 package com.pm.userservice.service;
 
 import com.pm.userservice.dto.ApplicationDecisionRequestDTO;
+import com.pm.userservice.dto.AuditLogCreateRequestDTO;
+import com.pm.userservice.dto.AuditLogMessagePartDTO;
 import com.pm.userservice.dto.AuthAdminOnboardUserRequestDTO;
 import com.pm.userservice.dto.AuthAdminOnboardUserResponseDTO;
 import com.pm.userservice.dto.JobApplicationRequestDTO;
@@ -15,6 +17,7 @@ import com.pm.userservice.model.UserStatus;
 import com.pm.userservice.repository.JobApplicationRepository;
 import com.pm.userservice.repository.UserRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -35,6 +38,8 @@ public class JobApplicationService {
     private final JobApplicationRepository repository;
     private final UserRepository userRepository;
     private final AuthServiceClient authServiceClient;
+    @Autowired(required = false)
+    private AuditLogService auditLogService;
 
     public JobApplicationService(JobApplicationRepository repository,
                                  UserRepository userRepository,
@@ -45,9 +50,14 @@ public class JobApplicationService {
     }
 
     @Transactional
-    public JobApplicationResponseDTO submitApplication(JobApplicationRequestDTO request, MultipartFile cv) throws IOException {
+    public JobApplicationResponseDTO submitApplication(JobApplicationRequestDTO request,
+                                                       MultipartFile profilePicture,
+                                                       MultipartFile cv) throws IOException {
         validateUniqueApplicationEmail(request);
         JobApplication application = JobApplicationMapper.toNewEntity(request);
+        application.setProfilePictureFileName(profilePicture.getOriginalFilename());
+        application.setProfilePictureContentType(profilePicture.getContentType());
+        application.setProfilePictureBytes(profilePicture.getBytes());
         if (cv != null && !cv.isEmpty()) {
             application.setCvFileName(cv.getOriginalFilename());
             application.setCvContentType(cv.getContentType());
@@ -82,6 +92,11 @@ public class JobApplicationService {
         return findApplication(applicationId);
     }
 
+    @Transactional(readOnly = true)
+    public JobApplication getApplicationProfilePicture(UUID applicationId) {
+        return findApplication(applicationId);
+    }
+
     @Transactional
     public JobApplicationResponseDTO denyApplication(UUID applicationId,
                                                      ApplicationDecisionRequestDTO request,
@@ -98,7 +113,9 @@ public class JobApplicationService {
         }
         application.setStatus(ApplicationStatus.APPLICATION_DENIED);
         applyDecisionMetadata(application, request, reviewerUserId);
-        return JobApplicationMapper.toDTO(repository.save(application));
+        JobApplication saved = repository.save(application);
+        recordAudit(saved, reviewerUserId, "REJECTED");
+        return JobApplicationMapper.toDTO(saved);
     }
 
     @Transactional
@@ -132,7 +149,9 @@ public class JobApplicationService {
         application.setStatus(ApplicationStatus.APPLICATION_ACCEPTED);
         applyDecisionMetadata(application, request, reviewerUserId);
         application.setDecisionEmailSent(Boolean.TRUE.equals(authResponse.getOnboardingEmailSent()));
-        return JobApplicationMapper.toDTO(repository.save(application));
+        JobApplication saved = repository.save(application);
+        recordAudit(saved, reviewerUserId, "ACCEPTED");
+        return JobApplicationMapper.toDTO(saved);
     }
 
     @Transactional
@@ -153,7 +172,79 @@ public class JobApplicationService {
 
         authServiceClient.resendOnboardingEmail(application.getAcceptedUserId(), accessToken);
         application.setDecisionEmailSent(true);
-        return JobApplicationMapper.toDTO(repository.save(application));
+        JobApplication saved = repository.save(application);
+        recordAudit(saved, saved.getReviewedByUserId(), "RESENT_DECISION_EMAIL");
+        return JobApplicationMapper.toDTO(saved);
+    }
+
+    private void recordAudit(JobApplication application, String reviewerUserId, String action) {
+        if (auditLogService == null) {
+            return;
+        }
+        UUID companyId = resolveCompanyId(reviewerUserId);
+        UUID actorUserId = reviewerUserId == null || reviewerUserId.isBlank() ? null : UUID.fromString(reviewerUserId);
+        AuditLogCreateRequestDTO request = new AuditLogCreateRequestDTO();
+        request.setCategory("APPLICATIONS");
+        request.setAction(action);
+        request.setEntityType("APPLICATION");
+        request.setEntityId(application.getApplicationId().toString());
+        request.setMessageParts(List.of(
+                textPart(actionText(action)),
+                linkPart("APPLICATION", application.getApplicationId().toString(), "application", "/management/applications/" + application.getApplicationId()),
+                textPart(" for "),
+                textPart(applicantLabel(application))
+        ));
+        auditLogService.record(companyId, actorUserId, request);
+    }
+
+    private UUID resolveCompanyId(String reviewerUserId) {
+        if (reviewerUserId == null || reviewerUserId.isBlank()) {
+            return DEFAULT_COMPANY_ID;
+        }
+        return userRepository.findByUserId(UUID.fromString(reviewerUserId))
+                .map(User::getCompanyId)
+                .orElse(DEFAULT_COMPANY_ID);
+    }
+
+    private static String applicantLabel(JobApplication application) {
+        String preferred = StringUtils.trimToNull(application.getPreferredName());
+        if (preferred != null) {
+            return preferred;
+        }
+        String combined = StringUtils.normalizeSpace(
+                String.join(" ",
+                        StringUtils.defaultString(application.getFirstNames()),
+                        StringUtils.defaultString(application.getMiddleNamePrefix()),
+                        StringUtils.defaultString(application.getLastName())
+                )
+        );
+        return combined.isBlank() ? application.getEmail() : combined;
+    }
+
+    private static String actionText(String action) {
+        return switch (action) {
+            case "ACCEPTED" -> " accepted ";
+            case "REJECTED" -> " denied ";
+            case "RESENT_DECISION_EMAIL" -> " resent decision email for ";
+            default -> " updated ";
+        };
+    }
+
+    private static AuditLogMessagePartDTO textPart(String text) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("TEXT");
+        part.setText(text);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO linkPart(String entityType, String entityId, String label, String route) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType(entityType);
+        part.setEntityId(entityId);
+        part.setLabel(label);
+        part.setRoute(route);
+        return part;
     }
 
     private JobApplication findApplication(UUID applicationId) {
@@ -204,6 +295,8 @@ public class JobApplicationService {
         user.setMobileNumber(application.getPhoneNumber());
         user.setPosition(application.getRoleInterest());
         user.setWorkedForUsBefore(application.isWorkedForUsBefore());
+        user.setProfilePicture(application.getProfilePictureBytes());
+        user.setProfilePictureContentType(application.getProfilePictureContentType());
         user.setStatus(UserStatus.PENDING_SETUP);
         user.setCompanyId(parseCompanyIdOrDefault(authResponse));
         return user;

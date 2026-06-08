@@ -2,6 +2,7 @@ com\pm\planningservice\repository\ScheduleEntryRepository.class
 com\pm\planningservice\dto\FinalizePlanningResponseDTO.class
 com\pm\planningservice\repository\ClientCompanyRepository.class
 timesheet\TimesheetDataResponse.class
+com\pm\planningservice\dto\PlanningLocationDTO.class
 com\pm\planningservice\repository\ScheduleEntryRepository$ShiftAssignmentCountView.class
 timesheet\TimesheetDataResponse$Builder.class
 com\pm\planningservice\dto\PlanningProjectMutationResponseDTO.class
@@ -23,6 +24,7 @@ com\pm\planningservice\integration\UserDirectoryRestClient$1.class
 com\pm\planningservice\service\PlanningManagementService.class
 timesheet\TimesheetDataRequest$Builder.class
 timesheet\TimesheetServiceGrpc$2.class
+com\pm\planningservice\dto\AuditLogMessagePartDTO.class
 com\pm\planningservice\integration\CompanySettingsDTO.class
 com\pm\planningservice\service\PlanningFinalizationService.class
 com\pm\planningservice\controller\PlanningTravelClaimAdminController.class
@@ -30,6 +32,7 @@ timesheet\ImportPlannedTimesheetsRequest$1.class
 timesheet\Timesheet.class
 timesheet\ImportPlannedTimesheetsRequestOrBuilder.class
 com\pm\planningservice\security\PlanningAuthentication.class
+com\pm\planningservice\repository\PlanningClientLocationUsageRepository.class
 timesheet\TimesheetServiceGrpc$TimesheetServiceStub.class
 timesheet\TimesheetServiceGrpc.class
 com\pm\planningservice\dto\PlanningAssignmentSaveRequestDTO.class
@@ -45,12 +48,15 @@ com\pm\planningservice\service\PlanningTimesheetExportService.class
 timesheet\ImportPlannedTimesheetsRequest$Builder.class
 timesheet\TimesheetDataRequest.class
 com\pm\planningservice\service\PlanningViewService$ShiftAssignmentCounts.class
+com\pm\planningservice\repository\PlanningLocationRepository.class
+com\pm\planningservice\model\PlanningClientLocationUsage.class
 com\pm\planningservice\dto\TravelClaimSaveRequestDTO.class
 com\pm\planningservice\integration\UserDirectoryClient.class
 timesheet\TimesheetServiceGrpc$AsyncService.class
 timesheet\PlannedTimesheetRecord$Builder.class
 com\pm\planningservice\dto\TravelClaimReviewRequestDTO.class
 com\pm\planningservice\model\Shift.class
+com\pm\planningservice\dto\AuditLogCreateRequestDTO.class
 com\pm\planningservice\integration\NoopUserDirectoryClient.class
 timesheet\TimesheetDataRequest$1.class
 timesheet\TimesheetServiceGrpc$TimesheetServiceBaseDescriptorSupplier.class
@@ -60,6 +66,7 @@ timesheet\TimesheetServiceGrpc$1.class
 com\pm\planningservice\integration\UserDirectoryRestClient.class
 com\pm\planningservice\dto\PlanningViewResponseDTO.class
 com\pm\planningservice\dto\EmployeePlanningAssignmentDTO.class
+com\pm\planningservice\dto\PlanningLocationSaveRequestDTO.class
 timesheet\TimesheetServiceGrpc$TimesheetServiceFutureStub.class
 timesheet\Timesheet$1.class
 com\pm\planningservice\PlanningServiceApplication.class
@@ -80,6 +87,7 @@ timesheet\TimesheetServiceGrpc$TimesheetServiceFileDescriptorSupplier.class
 com\pm\planningservice\controller\PlanningViewController.class
 com\pm\planningservice\service\PlanningViewService.class
 com\pm\planningservice\controller\PlanningClientCompanyController.class
+com\pm\planningservice\integration\AuditLogClient.class
 timesheet\ImportPlannedTimesheetsResponse.class
 com\pm\planningservice\repository\TravelClaimRepository.class
 timesheet\PlannedTimesheetRecord.class
@@ -87,6 +95,7 @@ com\pm\planningservice\model\TravelClaimStatus.class
 com\pm\planningservice\model\TravelClaim.class
 com\pm\planningservice\dto\PlanningClientCompanyContactSaveRequestDTO.class
 com\pm\planningservice\model\ScheduleEntryStatus.class
+com\pm\planningservice\model\PlanningLocation.class
 com\pm\planningservice\dto\PagedResponseDTO.class
 com\pm\planningservice\repository\ClientCompanyRepository$ClientCompanyNameView.class
 timesheet\PlannedTimesheetRecordOrBuilder.class

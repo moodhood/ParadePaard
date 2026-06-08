@@ -1,6 +1,6 @@
 .managementPage {
     min-height: 100vh;
-    background: #f6f7fb;
+    background: var(--app-shell-background, #f2f2f2);
 }
 
 .managementHeader {

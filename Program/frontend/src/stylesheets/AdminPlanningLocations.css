@@ -206,6 +206,12 @@
   word-break: break-word;
 }
 
+.planningLocationsAddressValue {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .planningLocationsMuted {
   color: #9aa5b5;
   font-style: italic;
@@ -215,7 +221,7 @@
 .planningLocationsModal {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 .planningLocationsModalField {

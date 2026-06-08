@@ -100,6 +100,7 @@
 
 .sourcePill {
     cursor: pointer;
+    text-decoration: none;
 }
 
 .sourcePill:hover,
@@ -340,6 +341,7 @@
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
+    align-items: start;
 }
 
 .rulesList {
@@ -391,68 +393,131 @@
     font-weight: 800;
 }
 
-.sourcePanel {
-    position: sticky;
-    top: 16px;
-    align-self: start;
+.ruleEditorForm,
+.ruleEditorList {
     display: grid;
     gap: 14px;
-    padding: 16px;
-    border-radius: 8px;
-    border: 1px solid rgba(15, 23, 42, 0.12);
-    background: #fff;
-    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.16);
 }
 
-.sourcePanelHeader {
+.ruleEditorForm .sectionIntro {
+    color: #cbd5e1;
+}
+
+.ruleEditorItem {
+    display: grid;
+    gap: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.96) 0%, rgba(15, 23, 42, 0.96) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.ruleEditorItem--expanded {
+    border-color: rgba(96, 165, 250, 0.45);
+    box-shadow:
+        0 18px 32px rgba(15, 23, 42, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.ruleEditorItemToggle {
+    width: 100%;
+    padding: 16px 18px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: inherit;
+}
+
+.ruleEditorItemToggle:focus-visible {
+    outline: 2px solid rgba(96, 165, 250, 0.72);
+    outline-offset: -2px;
+}
+
+.ruleEditorItemHeader {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 16px;
 }
 
-.sourcePanelHeader h2 {
-    margin: 0;
-    color: #0f172a;
-    font-size: 18px;
-}
-
-.sourcePanelRows {
+.ruleEditorItemIdentity {
+    min-width: 0;
     display: grid;
-    gap: 12px;
+    gap: 6px;
+    flex: 1 1 auto;
 }
 
-.sourcePanelRows > div {
+.ruleEditorItemIdentity h3 {
+    margin: 0;
+    color: #f8fafc;
+    font-size: 16px;
+}
+
+.ruleEditorItemIdentity span {
+    color: rgba(226, 232, 240, 0.72);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ruleEditorItemMeta {
+    color: rgba(191, 219, 254, 0.92) !important;
+}
+
+.ruleEditorItemSummary {
     display: grid;
     gap: 4px;
+    text-align: right;
+    flex: 0 0 auto;
 }
 
-.sourcePanelRows span {
-    color: #64748b;
-    font-size: 12px;
+.ruleEditorItemSummary strong {
+    color: #f8fafc;
+    font-size: 14px;
     font-weight: 800;
-    text-transform: uppercase;
 }
 
-.sourcePanelRows strong,
-.sourcePanelRows p,
-.sourcePanelRows a {
-    margin: 0;
-    color: #0f172a;
-    font-size: 13px;
+.ruleEditorItemSummary span {
+    color: rgba(191, 219, 254, 0.9);
+    font-size: 12px;
     font-weight: 700;
-    line-height: 1.45;
-    word-break: break-word;
 }
 
-.sourcePanelRows a {
-    color: #1d4ed8;
+.ruleEditorItemChevron {
+    color: #f8fafc;
+    font-size: 18px;
+    line-height: 1;
+    transition: transform 0.18s ease;
+}
+
+.ruleEditorItemChevron--expanded {
+    transform: rotate(180deg);
+}
+
+.ruleEditorItemPanel {
+    padding: 0 18px 18px;
+    border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.ruleEditorItemPanel .rulesFormGrid {
+    padding-top: 16px;
+}
+
+.ruleEditorItemPanel .rulesField {
+    color: #f8fafc;
+}
+
+.ruleEditorItemPanel .rulesField > span {
+    color: rgba(226, 232, 240, 0.94);
+}
+
+.ruleEditorItemPanel .planningWizardTextarea {
+    min-height: 96px;
 }
 
 @media (min-width: 1180px) {
     .horecaRulesLayout {
-        grid-template-columns: minmax(0, 1fr) 360px;
-        align-items: start;
+        grid-template-columns: minmax(0, 1fr);
     }
 }
 
@@ -478,5 +543,15 @@
     .planningWizardActions .roleWizardPrimary,
     .planningWizardActions .planningWizardCancel {
         width: 100%;
+    }
+
+    .ruleEditorItemHeader {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .ruleEditorItemSummary {
+        width: 100%;
+        text-align: left;
     }
 }

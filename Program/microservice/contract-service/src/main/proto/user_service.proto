@@ -28,4 +28,5 @@ message UserDataResponse {
   string email = 14;
   string mobileNumber = 15;
   string iban = 16;
+  string companyId = 17;
 }

@@ -45,9 +45,11 @@ public class JobApplicationController {
     @PostMapping(value = "/applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<JobApplicationResponseDTO> submit(
             @Valid @RequestPart("application") JobApplicationRequestDTO request,
+            @RequestPart("profilePicture") MultipartFile profilePicture,
             @RequestPart(value = "cv", required = false) MultipartFile cv
     ) throws IOException {
-        return ResponseEntity.ok(service.submitApplication(request, cv));
+        validateProfilePicture(profilePicture);
+        return ResponseEntity.ok(service.submitApplication(request, profilePicture, cv));
     }
 
     @GetMapping("/admin/applications")
@@ -83,6 +85,31 @@ public class JobApplicationController {
                                 .toString()
                 )
                 .body(cvBytes);
+    }
+
+    @GetMapping("/admin/applications/{applicationId}/profile-picture")
+    @PreAuthorize("hasAuthority('CAN_VIEW_APPLICATIONS') or hasAuthority('CAN_REVIEW_APPLICATIONS')")
+    public ResponseEntity<byte[]> downloadProfilePicture(@PathVariable UUID applicationId) {
+        JobApplication application = service.getApplicationProfilePicture(applicationId);
+        byte[] profilePictureBytes = application.getProfilePictureBytes();
+        if (profilePictureBytes == null || profilePictureBytes.length == 0) {
+            throw new ResponseStatusException(NOT_FOUND);
+        }
+
+        return ResponseEntity.ok()
+                .contentType(safeMediaType(application.getProfilePictureContentType()))
+                .header(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.inline()
+                                .filename(
+                                        application.getProfilePictureFileName() != null
+                                                ? application.getProfilePictureFileName()
+                                                : "profile-picture"
+                                )
+                                .build()
+                                .toString()
+                )
+                .body(profilePictureBytes);
     }
 
     @PostMapping("/admin/applications/{applicationId}/deny")
@@ -140,6 +167,19 @@ public class JobApplicationController {
             return MediaType.parseMediaType(contentType);
         } catch (InvalidMediaTypeException ex) {
             return MediaType.APPLICATION_OCTET_STREAM;
+        }
+    }
+
+    private static void validateProfilePicture(MultipartFile profilePicture) {
+        if (profilePicture == null || profilePicture.isEmpty()) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Profile picture is required");
+        }
+        String contentType = profilePicture.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST, "Profile picture must be an image");
+        }
+        if (profilePicture.getSize() > 2_000_000) {
+            throw new ResponseStatusException(org.springframework.http.HttpStatus.PAYLOAD_TOO_LARGE, "Profile picture is too large (max 2MB)");
         }
     }
 }

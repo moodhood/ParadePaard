@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
     applyEmployeeTaxProfileDefaults,
     createAndSendOnboardingContract,
+    saveEmployerSignatureForContract,
     getContractDraftActionLabel,
     getPayrollPeriodOptionsForContractType,
     normalizeContractDraftForContractType,
@@ -89,12 +90,33 @@ describe("AdminOnboardingReviewDetails contract draft saving", () => {
         expect(result.mode).toBe("updated");
         expect(result.contract.grossHourlyWage).toBe(17.25);
     });
+
+    it("creates a new draft instead of updating a finalized contract", async () => {
+        const createContract = vi.fn().mockResolvedValue(buildContract({ contractId: "created-contract" }));
+        const updateContract = vi.fn();
+
+        const result = await saveOnboardingReviewContractDraft({
+            currentContract: buildContract({ contractId: "finalized-contract", status: "FINALIZED" }),
+            payload,
+            createContract,
+            updateContract,
+        });
+
+        expect(createContract).toHaveBeenCalledWith(payload);
+        expect(updateContract).not.toHaveBeenCalled();
+        expect(result.mode).toBe("created");
+        expect(result.contract.contractId).toBe("created-contract");
+    });
 });
 
 describe("AdminOnboardingReviewDetails draft action label", () => {
     it("shows update wording when a current contract exists", () => {
         expect(getContractDraftActionLabel(buildContract())).toBe("Update contract draft");
         expect(getContractDraftActionLabel(null)).toBe("Create contract draft");
+    });
+
+    it("shows create wording when the current contract is already finalized", () => {
+        expect(getContractDraftActionLabel(buildContract({ status: "FINALIZED" }))).toBe("Create contract draft");
     });
 });
 
@@ -137,17 +159,19 @@ describe("AdminOnboardingReviewDetails employee tax profile defaults", () => {
 });
 
 describe("AdminOnboardingReviewDetails contract type rules", () => {
-    it("forces zero-hours contracts to keep 0 hours per week", () => {
+    it("forces zero-hours contracts to keep 0 hours per week and 0 gross monthly wage", () => {
         expect(
             normalizeContractDraftForContractType({
                 contractType: "ZERO_HOURS",
                 hoursPerWeek: "24",
+                grossMonthlyWage: "2422.25",
                 payrollPeriod: "MONTHLY",
                 paymentFrequency: "MONTHLY",
             })
         ).toMatchObject({
             contractType: "ZERO_HOURS",
             hoursPerWeek: "0",
+            grossMonthlyWage: "0",
             payrollPeriod: "MONTHLY",
             paymentFrequency: "MONTHLY",
         });
@@ -158,12 +182,14 @@ describe("AdminOnboardingReviewDetails contract type rules", () => {
             normalizeContractDraftForContractType({
                 contractType: "PART_TIME",
                 hoursPerWeek: "24",
+                grossMonthlyWage: "2422.25",
                 payrollPeriod: "EVERY_10_MINUTES",
                 paymentFrequency: "EVERY_10_MINUTES",
             })
         ).toMatchObject({
             contractType: "PART_TIME",
             hoursPerWeek: "24",
+            grossMonthlyWage: "2422.25",
             payrollPeriod: "MONTHLY",
             paymentFrequency: "MONTHLY",
         });
@@ -184,6 +210,33 @@ describe("AdminOnboardingReviewDetails employer pre-sign rules", () => {
                 employerTypedSignatureName: "",
             })
         ).toEqual(["Employer agreement confirmation", "Employer typed signature name"]);
+    });
+});
+
+describe("AdminOnboardingReviewDetails employer signature persistence", () => {
+    it("finalizes already employee-signed contracts instead of calling pre-sign again", async () => {
+        const signedContract = buildContract({ status: "SIGNED" });
+        const prepareEmployerSignature = vi.fn();
+        const finalizeContract = vi.fn().mockResolvedValue(buildContract({ status: "FINALIZED" }));
+
+        const result = await saveEmployerSignatureForContract({
+            contract: signedContract,
+            typedSignatureName: "Mara Manager",
+            drawnSignatureImage: "data:image/png;base64,manager123",
+            agreementCheckboxText: "I have reviewed the signed employment contract and approve it for ParadePaard.",
+            contractVersion: "2026-05-employment-v1",
+            buildDocumentHash: async () => "sha256:manager-contract-hash",
+            browserUserAgent: "Mozilla/5.0 Manager Browser",
+            prepareEmployerSignature,
+            finalizeContract,
+        });
+
+        expect(finalizeContract).toHaveBeenCalledWith("contract-1", expect.objectContaining({
+            typedSignatureName: "Mara Manager",
+            documentHash: "sha256:manager-contract-hash",
+        }));
+        expect(prepareEmployerSignature).not.toHaveBeenCalled();
+        expect(result.status).toBe("FINALIZED");
     });
 });
 

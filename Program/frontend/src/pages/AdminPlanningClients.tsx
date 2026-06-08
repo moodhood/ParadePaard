@@ -465,52 +465,67 @@ export default function AdminPlanningClients() {
                                 )}
                             >
                                 <div className="listContainer">
-                                    <div className="listHeaderGrid gridPlanningClients">
-                                        <div>Name</div>
-                                        <div>Address</div>
-                                        <div>Company line</div>
-                                    </div>
-                                    <div className="listScrollArea adminUsersScroll planningClientListScroll">
-                                        {loading ? <div className="listEmpty">Loading clients...</div> : null}
-                                        {error ? <div className="listEmpty errorText">{error}</div> : null}
-                                        {!loading && !error && filteredClients.length === 0 ? (
-                                            <div className="listEmpty">No client companies found.</div>
-                                        ) : null}
-
-                                        {!loading && !error
-                                            ? filteredClients.map((client) => (
-                                                <div
-                                                    key={client.clientCompanyId}
-                                                    className="listRowGrid gridPlanningClients planningClientRow planningClientRowButton"
-                                                    role="button"
-                                                    tabIndex={0}
-                                                    onClick={() => openClientDetailModal(client)}
-                                                    onKeyDown={(event) => handleClientRowKeyDown(event, client)}
-                                                >
-                                                    <div className="cellMain planningClientCell planningClientIdentityCell">
-                                                        <div
-                                                            className={`planningClientAvatar ${
-                                                                client.profilePictureUrl ? "planningClientAvatar--image" : ""
-                                                            }`}
-                                                            aria-hidden="true"
-                                                        >
-                                                            {client.profilePictureUrl ? (
-                                                                <img
-                                                                    className="planningClientAvatarImage"
-                                                                    src={client.profilePictureUrl}
-                                                                    alt=""
-                                                                />
-                                                            ) : (
-                                                                <span className="planningClientAvatarLetter">{clientInitial(client.name)}</span>
-                                                            )}
-                                                        </div>
-                                                        <span className="planningClientNameText">{client.name}</span>
-                                                    </div>
-                                                    <div className="cellSub planningClientCell">{client.address || "—"}</div>
-                                                    <div className="cellSub planningClientCell">{client.companyLine || "—"}</div>
+                                    <div className="planningClientTableFrame">
+                                        <div className="planningClientTable">
+                                            <div className="listHeaderGrid gridPlanningClients">
+                                                <div className="planningClientHeaderCell planningClientHeaderCell--identity">
+                                                    <span className="planningClientAvatarSpacer" aria-hidden="true" />
+                                                    <span>Name</span>
                                                 </div>
-                                            ))
-                                            : null}
+                                                <div className="planningClientHeaderCell">
+                                                    <span>Address</span>
+                                                </div>
+                                                <div className="planningClientHeaderCell">
+                                                    <span>Company line</span>
+                                                </div>
+                                            </div>
+                                            <div className="listScrollArea adminUsersScroll planningClientListScroll">
+                                                {loading ? <div className="listEmpty">Loading clients...</div> : null}
+                                                {error ? <div className="listEmpty errorText">{error}</div> : null}
+                                                {!loading && !error && filteredClients.length === 0 ? (
+                                                    <div className="listEmpty">No client companies found.</div>
+                                                ) : null}
+
+                                                {!loading && !error
+                                                    ? filteredClients.map((client) => (
+                                                        <div
+                                                            key={client.clientCompanyId}
+                                                            className="listRowGrid gridPlanningClients planningClientRow planningClientRowButton"
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            onClick={() => openClientDetailModal(client)}
+                                                            onKeyDown={(event) => handleClientRowKeyDown(event, client)}
+                                                        >
+                                                            <div className="cellMain planningClientCell planningClientIdentityCell">
+                                                                <div
+                                                                    className={`planningClientAvatar ${
+                                                                        client.profilePictureUrl ? "planningClientAvatar--image" : ""
+                                                                    }`}
+                                                                    aria-hidden="true"
+                                                                >
+                                                                    {client.profilePictureUrl ? (
+                                                                        <img
+                                                                            className="planningClientAvatarImage"
+                                                                            src={client.profilePictureUrl}
+                                                                            alt=""
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="planningClientAvatarLetter">{clientInitial(client.name)}</span>
+                                                                    )}
+                                                                </div>
+                                                                <span className="planningClientNameText planningClientCellValue">{client.name}</span>
+                                                            </div>
+                                                            <div className="cellSub planningClientCell">
+                                                                <span className="planningClientCellValue">{client.address || "—"}</span>
+                                                            </div>
+                                                            <div className="cellSub planningClientCell">
+                                                                <span className="planningClientCellValue">{client.companyLine || "—"}</span>
+                                                            </div>
+                                                        </div>
+                                                    ))
+                                                    : null}
+                                            </div>
+                                        </div>
                                     </div>
                                     <PaginationControls
                                         page={page}

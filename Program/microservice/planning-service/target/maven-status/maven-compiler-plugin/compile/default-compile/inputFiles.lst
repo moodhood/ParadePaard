@@ -5,6 +5,8 @@ E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\p
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\controller\PlanningManagementController.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\controller\PlanningTravelClaimAdminController.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\controller\PlanningViewController.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\AuditLogCreateRequestDTO.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\AuditLogMessagePartDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\EmployeePlanningAssignmentDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\EmployeeShiftResponseRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\FinalizePlanningRequestDTO.java
@@ -17,6 +19,8 @@ E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\p
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningClientCompanyDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningClientCompanySaveRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningDayDTO.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningLocationDTO.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningLocationSaveRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningProjectMutationResponseDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningProjectSaveRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\PlanningResourceAllocationDTO.java
@@ -27,6 +31,7 @@ E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\p
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\TravelClaimReviewRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\TravelClaimSaveRequestDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\dto\TravelClaimSummaryDTO.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\integration\AuditLogClient.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\integration\CompanySettingsClient.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\integration\CompanySettingsDTO.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\integration\NoopUserDirectoryClient.java
@@ -35,6 +40,8 @@ E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\p
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\integration\UserDirectoryRestClient.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\ClientCompany.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\ClientCompanyContact.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\PlanningClientLocationUsage.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\PlanningLocation.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\Project.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\ScheduleEntry.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\ScheduleEntryStatus.java
@@ -43,6 +50,8 @@ E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\p
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\model\TravelClaimStatus.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\PlanningServiceApplication.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\ClientCompanyRepository.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\PlanningClientLocationUsageRepository.java
+E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\PlanningLocationRepository.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\ProjectRepository.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\ScheduleEntryRepository.java
 E:\Code\ParadePaard\Program\microservice\planning-service\src\main\java\com\pm\planningservice\repository\ShiftRepository.java

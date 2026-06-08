@@ -10,6 +10,7 @@ import {
     type PayrollPeriod,
     type PayrollRuleSource,
 } from "../data/horecaPayrollRules";
+import type { HorecaRuleItemDTO } from "../services/user-service/Types";
 
 export type HorecaContractValidationInput = {
     employeeDateOfBirth?: string | null;
@@ -37,6 +38,20 @@ export type HorecaWageLookupInput = {
     dateOfBirth?: string | null;
     startDate?: string | null;
     functionGroup?: string | null;
+};
+
+export type ManagedHorecaWageRule = {
+    itemKey: string;
+    name: string;
+    ageGroup: string;
+    functionGroup: string;
+    hourlyWage: number;
+    sourceId: string | null;
+    pageReference: string | null;
+};
+
+export type HorecaWageLookupOptions = {
+    wageRules?: ManagedHorecaWageRule[] | null;
 };
 
 export type ExamplePayrollCalculation = {
@@ -95,6 +110,11 @@ function parseIsoDate(value?: string | null): Date | null {
     if (!normalized) return null;
     const date = new Date(`${normalized}T00:00:00`);
     return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function sourceIdFromDocumentName(documentName?: string | null): string | null {
+    if (!documentName?.trim()) return null;
+    return HORECA_RULE_SOURCES.find((source) => source.documentName === documentName)?.id ?? null;
 }
 
 function isOnOrAfter(value: string, compareTo: string): boolean {
@@ -249,13 +269,60 @@ function ageGroupForAge(age: number): string | null {
     return null;
 }
 
-export function getHorecaRequiredHourlyWage(input: HorecaWageLookupInput) {
+export function formatHorecaAgeGroupLabel(ageGroup?: string | null): string {
+    if (!ageGroup) return "Unknown";
+    return ageGroup === "Adult" ? "Adult (21+)" : `${ageGroup} years`;
+}
+
+export function getManagedHorecaWageRules(items?: HorecaRuleItemDTO[] | null): ManagedHorecaWageRule[] {
+    return (items ?? [])
+        .map((item) => {
+            const hourlyWage = safeNumber(item.valueNumber);
+            const functionGroup = item.functionGroup?.trim() ?? "";
+            const ageGroup = item.ageGroup?.trim() ?? "";
+            if (!item.itemKey || !item.name?.trim() || hourlyWage == null || !functionGroup || !ageGroup) {
+                return null;
+            }
+            return {
+                itemKey: item.itemKey,
+                name: item.name,
+                ageGroup,
+                functionGroup,
+                hourlyWage,
+                sourceId: sourceIdFromDocumentName(item.documentName),
+                pageReference: item.pageReference?.trim() ?? null,
+            } satisfies ManagedHorecaWageRule;
+        })
+        .filter((rule): rule is ManagedHorecaWageRule => rule != null);
+}
+
+export function getHorecaRequiredHourlyWage(input: HorecaWageLookupInput, options: HorecaWageLookupOptions = {}) {
     const startDate = input.startDate ?? "";
     const age = calculateAgeOnDate(input.dateOfBirth, startDate);
     if (age == null || !input.functionGroup || !startDate) return null;
 
     const ageGroup = ageGroupForAge(age);
     if (!ageGroup) return null;
+
+    const managedRule = options.wageRules?.find((rule) => {
+        return rule.ageGroup === ageGroup && rule.functionGroup === input.functionGroup;
+    });
+    if (managedRule) {
+        return {
+            id: managedRule.itemKey,
+            year: Number(startDate.slice(0, 4)),
+            effectiveFrom: startDate,
+            effectiveTo: null,
+            ageGroup: managedRule.ageGroup,
+            functionGroup: managedRule.functionGroup,
+            vakkrachtStatus: managedRule.name,
+            monthlyWage: 0,
+            weeklyWage: 0,
+            hourlyWage: managedRule.hourlyWage,
+            sourceId: managedRule.sourceId ?? "loontabel-2026-01-01",
+            pageNumber: managedRule.pageReference ?? "1",
+        };
+    }
 
     return (
         HORECA_WAGE_RULES.find((rule) => {
@@ -286,7 +353,10 @@ export type HorecaMinimumWageResult = {
     sourceId: string | null;
 };
 
-export function getHorecaMinimumHourlyWage(input: HorecaMinimumWageLookup): HorecaMinimumWageResult {
+export function getHorecaMinimumHourlyWage(
+    input: HorecaMinimumWageLookup,
+    options: HorecaWageLookupOptions = {}
+): HorecaMinimumWageResult {
     const referenceDate = input.referenceDate ?? new Date().toISOString().slice(0, 10);
     const age = calculateAgeOnDate(input.dateOfBirth, referenceDate);
     const functionGroup = input.functionGroup ?? "I+II";
@@ -294,7 +364,7 @@ export function getHorecaMinimumHourlyWage(input: HorecaMinimumWageLookup): Hore
         dateOfBirth: input.dateOfBirth,
         startDate: referenceDate,
         functionGroup,
-    });
+    }, options);
     return {
         age,
         ageGroup: age == null ? null : ageGroupForAge(age),
@@ -304,7 +374,8 @@ export function getHorecaMinimumHourlyWage(input: HorecaMinimumWageLookup): Hore
 }
 
 export function validateContractPayrollSettings(
-    input: HorecaContractValidationInput
+    input: HorecaContractValidationInput,
+    options: HorecaWageLookupOptions = {}
 ): HorecaContractValidationResult {
     const blockingErrors: string[] = [];
     const warnings: string[] = [];
@@ -326,7 +397,7 @@ export function validateContractPayrollSettings(
         dateOfBirth: input.employeeDateOfBirth,
         startDate: input.startDate,
         functionGroup: input.functionGroup,
-    });
+    }, options);
     const requiredHourlyWage = wageRule?.hourlyWage ?? null;
 
     if (requiredHourlyWage != null && input.hourlyWage != null) {

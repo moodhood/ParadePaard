@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Modal from "../common/Modal";
+import PlanningLocationAddressFields from "./PlanningLocationAddressFields";
 import { UserServices, type PlanningLocationDTO } from "../../services/user-service/UserServices";
 import "../../stylesheets/PlanningLocationPicker.css";
 
@@ -17,20 +18,27 @@ type PlanningLocationPickerProps = {
 
 type CreateLocationDraft = {
     name: string;
-    address: string;
+    streetName: string;
+    houseNumber: string;
+    houseNumberSuffix: string;
+    postalCode: string;
+    city: string;
     notes: string;
 };
 
 const INITIAL_DRAFT: CreateLocationDraft = {
     name: "",
-    address: "",
+    streetName: "",
+    houseNumber: "",
+    houseNumberSuffix: "",
+    postalCode: "",
+    city: "",
     notes: "",
 };
 
 export default function PlanningLocationPicker({
     label,
     value,
-    savedLocationId = null,
     clientCompanyId = null,
     clientCompanyName = null,
     disabled = false,
@@ -113,7 +121,11 @@ export default function PlanningLocationPicker({
             setCreateError(null);
             const created = await UserServices.createPlanningLocation({
                 name: createDraft.name,
-                address: createDraft.address.trim() || null,
+                streetName: createDraft.streetName.trim() || null,
+                houseNumber: createDraft.houseNumber.trim() || null,
+                houseNumberSuffix: createDraft.houseNumberSuffix.trim() || null,
+                postalCode: createDraft.postalCode.trim() || null,
+                city: createDraft.city.trim() || null,
                 notes: createDraft.notes.trim() || null,
                 clientCompanyId,
             });
@@ -151,7 +163,8 @@ export default function PlanningLocationPicker({
                         Add
                     </button>
                 </div>
-
+                {loading ? <div className="planningLocationFieldMeta">Loading saved locations...</div> : null}
+                {loadError ? <div className="planningLocationFieldMeta planningLocationFieldMeta--error">{loadError}</div> : null}
             </div>
 
             <Modal
@@ -159,8 +172,7 @@ export default function PlanningLocationPicker({
                 onClose={() => !savingCreate && setIsCreateOpen(false)}
                 title="Add location"
                 hideDefaultFooter
-                maxHeight={560}
-                height={560}
+                maxHeight={700}
             >
                 <div className="planningLocationModal">
                     <label className="planningLocationModalField">
@@ -173,16 +185,13 @@ export default function PlanningLocationPicker({
                             disabled={savingCreate}
                         />
                     </label>
-                    <label className="planningLocationModalField">
-                        <span className="planningLocationModalLabel">Address</span>
-                        <input
-                            className="modal_input"
-                            value={createDraft.address}
-                            onChange={(event) => setCreateDraft((current) => ({ ...current, address: event.target.value }))}
-                            placeholder="Optional"
-                            disabled={savingCreate}
-                        />
-                    </label>
+                    <PlanningLocationAddressFields
+                        value={createDraft}
+                        onChange={(field, nextValue) =>
+                            setCreateDraft((current) => ({ ...current, [field]: nextValue }))
+                        }
+                        disabled={savingCreate}
+                    />
                     <label className="planningLocationModalField">
                         <span className="planningLocationModalLabel">Notes</span>
                         <textarea
@@ -226,4 +235,3 @@ export default function PlanningLocationPicker({
         </>
     );
 }
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            

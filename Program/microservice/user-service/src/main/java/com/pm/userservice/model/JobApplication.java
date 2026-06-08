@@ -61,6 +61,9 @@ public class JobApplication {
     private String cvFileName;
     private String cvContentType;
     private byte[] cvBytes;
+    private String profilePictureFileName;
+    private String profilePictureContentType;
+    private byte[] profilePictureBytes;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -256,6 +259,30 @@ public class JobApplication {
 
     public void setCvBytes(byte[] cvBytes) {
         this.cvBytes = cvBytes;
+    }
+
+    public String getProfilePictureFileName() {
+        return profilePictureFileName;
+    }
+
+    public void setProfilePictureFileName(String profilePictureFileName) {
+        this.profilePictureFileName = profilePictureFileName;
+    }
+
+    public String getProfilePictureContentType() {
+        return profilePictureContentType;
+    }
+
+    public void setProfilePictureContentType(String profilePictureContentType) {
+        this.profilePictureContentType = profilePictureContentType;
+    }
+
+    public byte[] getProfilePictureBytes() {
+        return profilePictureBytes;
+    }
+
+    public void setProfilePictureBytes(byte[] profilePictureBytes) {
+        this.profilePictureBytes = profilePictureBytes;
     }
 
     public ApplicationStatus getStatus() {

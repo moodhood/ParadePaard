@@ -7,12 +7,20 @@ import com.pm.userservice.dto.CaoUserAssignDTO;
 import com.pm.userservice.dto.CompanyResponseDTO;
 import com.pm.userservice.dto.OnboardingReviewContractSetupDraftDTO;
 import com.pm.userservice.dto.OnboardingReviewUpdateDTO;
+import com.pm.userservice.dto.AuditLogCreateRequestDTO;
+import com.pm.userservice.dto.AuditLogMessagePartDTO;
+import com.pm.userservice.dto.AuthRegisterRequestDTO;
 import com.pm.userservice.dto.PagedResponseDTO;
 import com.pm.userservice.dto.PayrollTaxTemplateDTO;
+import com.pm.userservice.dto.PlatformCompanyDetailDTO;
+import com.pm.userservice.dto.PlatformCompanyListItemDTO;
+import com.pm.userservice.dto.PlatformCompanyOnboardingRequestDTO;
+import com.pm.userservice.dto.PlatformCompanyOnboardingResponseDTO;
 import com.pm.userservice.dto.UserRequestDTO;
 import com.pm.userservice.dto.UserResponseDTO;
 import com.pm.userservice.dto.WorkHistoryColumnsPreferenceDTO;
 import com.pm.userservice.exception.UserNotFoundException;
+import com.pm.userservice.integration.AuthServiceClient;
 import com.pm.userservice.mapper.UserMapper;
 import com.pm.userservice.model.CaoTemplate;
 import com.pm.userservice.model.Company;
@@ -22,6 +30,7 @@ import com.pm.userservice.repository.CaoTemplateRepository;
 import com.pm.userservice.repository.CompanyRepository;
 import com.pm.userservice.repository.UserRepository;
 import com.pm.userservice.validation.UserDuplicateValidator;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
@@ -32,6 +41,7 @@ import org.springframework.data.domain.Sort;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -45,12 +55,21 @@ public class UserService {
             new TypeReference<>() {};
     private static final TypeReference<List<String>> STRING_LIST_TYPE =
             new TypeReference<>() {};
+    private static final List<UserStatus> PLATFORM_PENDING_REVIEW_STATUSES = List.of(
+            UserStatus.PENDING_PROFILE_REVIEW,
+            UserStatus.CHANGES_REQUESTED,
+            UserStatus.PENDING_CONTRACT_SIGNATURE,
+            UserStatus.PENDING_CONTRACT_REVIEW
+    );
 
     private final UserRepository userRepository;
     private final CompanyRepository companyRepository;
     private final CaoTemplateRepository caoTemplateRepository;
     private final UserDuplicateValidator userDuplicateValidator;
     private final ObjectMapper objectMapper;
+    private final AuthServiceClient authServiceClient;
+    @Autowired(required = false)
+    private AuditLogService auditLogService;
 
     public record ProfilePicture(byte[] data, String contentType) {}
     public record CompanyLogo(byte[] data, String contentType) {}
@@ -60,12 +79,14 @@ public class UserService {
                        CompanyRepository companyRepository,
                        CaoTemplateRepository caoTemplateRepository,
                        UserDuplicateValidator userDuplicateValidator,
-                       ObjectMapper objectMapper) {
+                       ObjectMapper objectMapper,
+                       AuthServiceClient authServiceClient) {
         this.userRepository = userRepository;
         this.companyRepository = companyRepository;
         this.caoTemplateRepository = caoTemplateRepository;
         this.userDuplicateValidator = userDuplicateValidator;
         this.objectMapper = objectMapper;
+        this.authServiceClient = authServiceClient;
     }
 
     @Transactional(readOnly = true)
@@ -117,6 +138,42 @@ public class UserService {
                 .collect(Collectors.toSet());
         var payoutByCompany = resolveCompanyPayoutFrequencies(companyIds);
         return PagedResponseDTO.from(users, user -> toUserResponseDTO(user, payoutByCompany.get(user.getCompanyId())));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlatformCompanyListItemDTO> listPlatformCompanies() {
+        return companyRepository.findAllByOrderByNameAsc().stream()
+                .map(this::toPlatformCompanyListItem)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PlatformCompanyDetailDTO getPlatformCompany(UUID companyId) {
+        Company company = companyRepository.findById(companyId)
+                .orElseThrow(() -> new IllegalArgumentException("Company not found"));
+        PlatformCompanyDetailDTO dto = new PlatformCompanyDetailDTO();
+        applyPlatformCompanyFields(dto, company);
+        return dto;
+    }
+
+    @Transactional
+    public PlatformCompanyOnboardingResponseDTO onboardPlatformCompany(PlatformCompanyOnboardingRequestDTO request) {
+        AuthRegisterRequestDTO authRequest = new AuthRegisterRequestDTO();
+        authRequest.setFirstName(request.getAdminFirstName());
+        authRequest.setLastName(request.getAdminLastName());
+        authRequest.setEmail(request.getAdminEmail());
+        authRequest.setPassword(request.getAdminPassword());
+        authRequest.setCompanyName(request.getCompanyName());
+
+        var authResponse = authServiceClient.register(authRequest);
+
+        PlatformCompanyOnboardingResponseDTO response = new PlatformCompanyOnboardingResponseDTO();
+        response.setCompanyId(authResponse.getCompanyId());
+        response.setCompanyName(request.getCompanyName());
+        response.setAdminUserId(authResponse.getUserId());
+        response.setAdminEmail(authResponse.getEmail());
+        response.setUsername(authResponse.getUsername());
+        return response;
     }
 
     @Transactional(readOnly = true)
@@ -352,7 +409,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponseDTO updateOnboardingReview(UUID id, UUID companyId, OnboardingReviewUpdateDTO body) {
+    public UserResponseDTO updateOnboardingReview(UUID id, UUID companyId, UUID actorUserId, OnboardingReviewUpdateDTO body) {
         User existing = companyId != null
                 ? userRepository.findByUserIdAndCompanyId(id, companyId)
                     .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"))
@@ -376,6 +433,18 @@ public class UserService {
         }
 
         User updatedUser = userRepository.save(existing);
+        recordAudit(
+                companyId,
+                actorUserId,
+                "ONBOARDING",
+                "REVIEWED",
+                "USER",
+                updatedUser.getUserId().toString(),
+                List.of(
+                        textPart(" reviewed onboarding for "),
+                        linkPart("USER", updatedUser.getUserId().toString(), displayName(updatedUser), "/management/onboarding-review/" + updatedUser.getUserId())
+                )
+        );
         Integer payoutFrequency = updatedUser.getCompanyId() != null
                 ? resolveCompanyPayoutFrequency(updatedUser.getCompanyId())
                 : updatedUser.getPayslipFrequencyMinutes();
@@ -488,6 +557,57 @@ public class UserService {
         return trimmed.isEmpty() ? null : trimmed;
     }
 
+    private void recordAudit(
+            UUID companyId,
+            UUID actorUserId,
+            String category,
+            String action,
+            String entityType,
+            String entityId,
+            List<AuditLogMessagePartDTO> messageParts
+    ) {
+        if (auditLogService == null || companyId == null) {
+            return;
+        }
+        AuditLogCreateRequestDTO request = new AuditLogCreateRequestDTO();
+        request.setCategory(category);
+        request.setAction(action);
+        request.setEntityType(entityType);
+        request.setEntityId(entityId);
+        request.setMessageParts(messageParts);
+        auditLogService.record(companyId, actorUserId, request);
+    }
+
+    private String displayName(User user) {
+        String preferred = normalizeOptionalText(user.getPreferredName());
+        if (preferred != null) {
+            return preferred;
+        }
+        String combined = String.join(" ",
+                user.getFirstNames() == null ? "" : user.getFirstNames(),
+                user.getMiddleNamePrefix() == null ? "" : user.getMiddleNamePrefix(),
+                user.getLastName() == null ? "" : user.getLastName()
+        ).trim().replaceAll("\\s+", " ");
+        return combined.isBlank() ? user.getEmail() : combined;
+    }
+
+    private static AuditLogMessagePartDTO textPart(String text) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("TEXT");
+        part.setText(text);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO linkPart(String entityType, String entityId, String label, String route) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType(entityType);
+        part.setEntityId(entityId);
+        part.setLabel(label);
+        part.setRoute(route);
+        return part;
+    }
+
     @Transactional(readOnly = true)
     public Optional<IdDocumentImage> getIdDocumentImage(UUID id) {
         User user = userRepository.findByUserId(id)
@@ -524,16 +644,31 @@ public class UserService {
         userRepository.save(user);
     }
 
-    public void deleteUser(UUID id, UUID companyId) {
+    @Transactional
+    public void deleteUser(UUID id, UUID companyId, UUID actorUserId, String accessToken) {
         if (companyId != null) {
             User user = userRepository.findByUserIdAndCompanyId(id, companyId)
                     .orElseThrow(() -> new UserNotFoundException("User with id: " + id + " not found"));
+            authServiceClient.deleteUserAccount(user.getUserId(), accessToken);
             userRepository.deleteByUserId(user.getUserId());
+            recordAudit(
+                    companyId,
+                    actorUserId,
+                    "PEOPLE",
+                    "DELETED",
+                    "USER",
+                    user.getUserId().toString(),
+                    List.of(
+                            textPart(" deleted "),
+                            linkPart("USER", user.getUserId().toString(), displayName(user), null)
+                    )
+            );
             return;
         }
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User with id: " + id + " not found");
         }
+        authServiceClient.deleteUserAccount(id, accessToken);
         userRepository.deleteByUserId(id);
     }
 
@@ -552,6 +687,29 @@ public class UserService {
         dto.setTravelClaimMode(company.getTravelClaimMode());
         dto.setPayrollTaxTemplates(readPayrollTaxTemplates(company.getPayrollTaxTemplatesJson()));
         return dto;
+    }
+
+    private PlatformCompanyListItemDTO toPlatformCompanyListItem(Company company) {
+        PlatformCompanyListItemDTO dto = new PlatformCompanyListItemDTO();
+        applyPlatformCompanyFields(dto, company);
+        return dto;
+    }
+
+    private void applyPlatformCompanyFields(PlatformCompanyListItemDTO dto, Company company) {
+        dto.setCompanyId(company.getId().toString());
+        dto.setName(company.getName());
+        dto.setPayoutFrequencyMinutes(company.getPayoutFrequencyMinutes());
+        dto.setTimesheetLoggingMode(company.getTimesheetLoggingMode());
+        dto.setTravelClaimMode(company.getTravelClaimMode());
+        dto.setTotalUsers(toIntCount(userRepository.countByCompanyId(company.getId())));
+        dto.setActiveUsers(toIntCount(userRepository.countByCompanyIdAndStatus(company.getId(), UserStatus.ACTIVE)));
+        dto.setPendingOnboardingReview(toIntCount(
+                userRepository.countByCompanyIdAndStatusIn(company.getId(), PLATFORM_PENDING_REVIEW_STATUSES)
+        ));
+    }
+
+    private static int toIntCount(long value) {
+        return Math.toIntExact(Math.min(value, Integer.MAX_VALUE));
     }
 
     private String normalizeSetting(String value, Set<String> allowed, String message) {

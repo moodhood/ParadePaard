@@ -32,11 +32,17 @@ import AdminPayslipDetails from "./pages/AdminPayslipDetails";
 import AdminUsers from "./pages/AdminUsers";
 import HorecaPayrollRules from "./pages/HorecaPayrollRules";
 import PayrollFinance from "./pages/PayrollFinance";
+import AdminAuditLog from "./pages/AdminAuditLog";
 import AdminMessages from "./pages/AdminMessages";
 import AdminPlanningOverview from "./pages/AdminPlanningOverview";
 import AdminPlanningClients from "./pages/AdminPlanningClients";
+import AdminPlanningLocations from "./pages/AdminPlanningLocations";
 import AdminPlanningProjectDetail from "./pages/AdminPlanningProjectDetail";
 import AdminPlanningShiftDetail from "./pages/AdminPlanningShiftDetail";
+import PlatformAdminCompanies from "./pages/PlatformAdminCompanies";
+import PlatformAdminCompanyDetails from "./pages/PlatformAdminCompanyDetails";
+import PlatformAdminHome from "./pages/PlatformAdminHome";
+import PlatformAdminOnboarding from "./pages/PlatformAdminOnboarding";
 import RequireActiveUser from "./components/RequireActiveUser";
 import RequireOnboarding from "./components/RequireOnboarding";
 import RequirePermission from "./components/RequirePermission";
@@ -48,6 +54,7 @@ import {
     MANAGEMENT_PERMISSIONS,
     ONBOARDING_REVIEW_PERMISSIONS,
     PAYROLL_FINANCE_PERMISSIONS,
+    PLATFORM_ADMIN_PERMISSION,
 } from "./utils/permissionPolicy";
 
 function RedirectAdminUser() {
@@ -134,6 +141,46 @@ export default function App() {
                 element={
                     <RequireActiveUser>
                         <Messages />
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/platform"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission={PLATFORM_ADMIN_PERMISSION}>
+                            <PlatformAdminHome />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/platform/onboarding"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission={PLATFORM_ADMIN_PERMISSION}>
+                            <PlatformAdminOnboarding />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/platform/companies"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission={PLATFORM_ADMIN_PERMISSION}>
+                            <PlatformAdminCompanies />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/platform/companies/:companyId"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission={PLATFORM_ADMIN_PERMISSION}>
+                            <PlatformAdminCompanyDetails />
+                        </RequirePermission>
                     </RequireActiveUser>
                 }
             />
@@ -401,6 +448,26 @@ export default function App() {
                 }
             />
             <Route
+                path="/management/audit-log"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission anyOf={CAO_MANAGEMENT_PERMISSIONS}>
+                            <AdminAuditLog />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
+                path="/management/locations"
+                element={
+                    <RequireActiveUser>
+                        <RequirePermission permission="CAN_MANAGE_PLANNING">
+                            <AdminPlanningLocations />
+                        </RequirePermission>
+                    </RequireActiveUser>
+                }
+            />
+            <Route
                 path="/management/travel-claims"
                 element={
                     <RequireActiveUser>
@@ -422,6 +489,7 @@ export default function App() {
             <Route path="/admin/planning/events/:eventId" element={<RedirectAdminPlanningProject />} />
             <Route path="/admin/planning/events/:eventId/shifts/:shiftId" element={<RedirectAdminPlanningShift />} />
             <Route path="/admin/clients" element={<Navigate to="/management/clients" replace />} />
+            <Route path="/admin/locations" element={<Navigate to="/management/locations" replace />} />
             <Route
                 path="/"
                 element={

@@ -77,6 +77,10 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
         description: "Manage client companies, contacts, addresses, and planning notes.",
         meta: "Planning contacts",
     },
+    Locations: {
+        description: "Manage reusable planning locations and prioritize them around client work history.",
+        meta: "Location library",
+    },
     "Travel claims": {
         description: "Review submitted travel claims and approve or reject expenses.",
         meta: "Expense review",
@@ -100,6 +104,10 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
     "Company settings": {
         description: "Manage company details, roles, and workflow settings.",
         meta: "Configuration",
+    },
+    "Audit log": {
+        description: "Inspect the app-wide history of approvals, edits, deletions, and rule changes.",
+        meta: "Audit trail",
     },
     "Horeca Payroll and Contract Rules": {
         description: "Manage horeca CAO sources, job presets, wage checks, payroll rules, and the payroll calculator.",

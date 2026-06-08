@@ -1,5 +1,7 @@
 package com.pm.contractservice.service;
 
+import com.pm.contractservice.dto.AuditLogCreateRequestDTO;
+import com.pm.contractservice.integration.AuditLogClient;
 import com.pm.contractservice.dto.SignContractRequestDTO;
 import com.pm.contractservice.grpc.UserServiceGrpcClient;
 import com.pm.contractservice.model.Contract;
@@ -17,11 +19,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -45,6 +49,8 @@ class ContractServiceSignContractTest {
     private FunctionRepository functionRepository;
     @Mock
     private ContractNotificationService contractNotificationService;
+    @Mock
+    private AuditLogClient auditLogClient;
 
     @Test
     void signContractStoresSignatureAuditDetailsAndLocksContractAsSigned() {
@@ -82,6 +88,35 @@ class ContractServiceSignContractTest {
         assertThat(contract.getIpAddress()).isEqualTo("203.0.113.10");
         assertThat(contract.getBrowserUserAgent()).isEqualTo("Mozilla/5.0 Test Browser");
         assertThat(new String(contract.getPdfData())).isEqualTo("signed pdf");
+    }
+
+    @Test
+    void signContractRecordsAuditEntryWhenAccessTokenIsAvailable() throws Exception {
+        UUID contractId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        Contract contract = contract(contractId, userId);
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(userServiceGrpcClient.requestUserData(userId.toString())).thenReturn(UserDataResponse.newBuilder()
+                .setFirstNames("Imre")
+                .setLastName("Janssen")
+                .build());
+        when(contractPdfGenerator.generate(eq(contract), any())).thenReturn("signed pdf".getBytes());
+        when(contractRepository.save(contract)).thenReturn(contract);
+
+        SignContractRequestDTO request = new SignContractRequestDTO();
+        request.setTypedSignatureName("Imre Janssen");
+        request.setAgreementCheckboxText("I agree.");
+
+        ContractService service = contractService();
+        injectAuditLogClient(service);
+        service.signContract(contractId, userId, request, "access-token");
+
+        verify(auditLogClient).record(eq("access-token"), argThat((AuditLogCreateRequestDTO auditRequest) ->
+                auditRequest != null
+                        && "CONTRACTS".equals(auditRequest.getCategory())
+                        && "SIGNED".equals(auditRequest.getAction())
+                        && contractId.toString().equals(auditRequest.getEntityId())
+        ));
     }
 
     @Test
@@ -279,6 +314,12 @@ class ContractServiceSignContractTest {
                 functionRepository,
                 contractNotificationService
         );
+    }
+
+    private void injectAuditLogClient(ContractService service) throws Exception {
+        Field field = ContractService.class.getDeclaredField("auditLogClient");
+        field.setAccessible(true);
+        field.set(service, auditLogClient);
     }
 
     private static Contract contract(UUID contractId, UUID userId) {

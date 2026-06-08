@@ -93,37 +93,143 @@
     margin-bottom: 12px;
 }
 
-.workHistoryColumnChooser {
+.workHistoryToolbarActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.workHistoryColumnPicker {
+    position: relative;
+    width: min(380px, 100%);
+    align-self: flex-start;
+}
+
+.workHistoryColumnPickerButton {
+    min-width: 240px;
+    max-width: 320px;
     display: grid;
-    gap: 12px;
-    margin-bottom: 12px;
-    padding: 14px 16px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    border-radius: 12px;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border: 1px solid #d6dce6;
+    border-radius: 14px;
     background: #ffffff;
+    color: #111827;
+    text-align: left;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+    cursor: pointer;
 }
 
-.workHistoryColumnChooser > div:first-child {
-    display: grid;
-    gap: 4px;
+.workHistoryColumnPickerButton:hover {
+    background: #f8fafc;
+    border-color: #c7d2e0;
 }
 
-.workHistoryColumnChooser strong {
+.workHistoryColumnPickerButton:focus-visible {
+    outline: 2px solid #2f6bff;
+    outline-offset: 2px;
+}
+
+.workHistoryColumnPickerLabel {
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.workHistoryColumnPickerValue {
     color: #111827;
     font-size: 14px;
 }
 
-.workHistoryColumnChooser span {
+.workHistoryColumnPickerPreview {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.workHistoryColumnPickerCaret {
+    grid-row: 1 / span 3;
+    grid-column: 2;
+    color: #64748b;
+    font-size: 11px;
+}
+
+.workHistoryColumnPopover {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    width: min(380px, calc(100vw - 56px));
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.workHistoryColumnPopover--above {
+    top: auto;
+    bottom: calc(100% + 8px);
+}
+
+.workHistoryColumnPopoverHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.workHistoryColumnPopoverCopy {
+    display: grid;
+    gap: 4px;
+}
+
+.workHistoryColumnPopoverCopy strong {
+    color: #111827;
+    font-size: 14px;
+}
+
+.workHistoryColumnPopoverCopy span {
     color: #64748b;
     font-size: 12px;
     font-weight: 700;
+    line-height: 1.4;
+}
+
+.workHistoryColumnPopoverDone {
+    padding: 8px 12px;
+    border: 1px solid #d6dce6;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.workHistoryColumnPopoverDone:hover {
+    background: #f8fafc;
 }
 
 .workHistoryColumnOptions {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
     gap: 8px;
-    max-height: 180px;
+    flex: 1;
+    min-height: 0;
     overflow-y: auto;
     padding-right: 4px;
 }
@@ -213,6 +319,7 @@
     align-items: center;
     justify-content: space-between;
     gap: 12px;
+    flex-wrap: wrap;
 }
 
 .workHistoryFilterMeta {
@@ -477,6 +584,25 @@
     }
 
     .workHistoryIconButton {
+        width: 100%;
+    }
+
+    .workHistoryToolbarActions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .workHistoryColumnPicker {
+        width: 100%;
+    }
+
+    .workHistoryColumnPickerButton,
+    .workHistoryButtonSecondary {
+        width: 100%;
+        max-width: none;
+    }
+
+    .workHistoryColumnPopover {
         width: 100%;
     }
 }

@@ -1,5 +1,7 @@
 package com.pm.contractservice.service;
 
+import com.pm.contractservice.dto.AuditLogCreateRequestDTO;
+import com.pm.contractservice.integration.AuditLogClient;
 import com.pm.contractservice.exception.ContractEmailDeliveryException;
 import com.pm.contractservice.grpc.UserServiceGrpcClient;
 import com.pm.contractservice.model.Contract;
@@ -18,17 +20,20 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.argThat;
 
 @ExtendWith(MockitoExtension.class)
 class ContractServiceSendContractTest {
@@ -47,6 +52,8 @@ class ContractServiceSendContractTest {
     private FunctionRepository functionRepository;
     @Mock
     private ContractNotificationService contractNotificationService;
+    @Mock
+    private AuditLogClient auditLogClient;
 
     @Test
     void sendContractEmailsEmployeeBeforeSavingSentStatus() {
@@ -64,6 +71,26 @@ class ContractServiceSendContractTest {
         assertThat(contract.getStatus()).isEqualTo(ContractStatus.SENT_TO_EMPLOYEE);
         assertThat(contract.getSentToEmployeeAt()).isNotNull();
         assertThat(contract.getReviewComment()).isNull();
+    }
+
+    @Test
+    void sendContractRecordsAuditEntryWhenAccessTokenIsAvailable() throws Exception {
+        UUID contractId = UUID.randomUUID();
+        Contract contract = contract(contractId);
+        when(contractValidator.getExistingContract(contractId)).thenReturn(contract);
+        when(contractRepository.save(contract)).thenReturn(contract);
+
+        ContractService service = contractService();
+        injectAuditLogClient(service);
+
+        service.sendContract(contractId, "access-token");
+
+        verify(auditLogClient).record(eq("access-token"), argThat((AuditLogCreateRequestDTO request) ->
+                request != null
+                        && "CONTRACTS".equals(request.getCategory())
+                        && "SENT".equals(request.getAction())
+                        && contractId.toString().equals(request.getEntityId())
+        ));
     }
 
     @Test
@@ -94,6 +121,12 @@ class ContractServiceSendContractTest {
                 functionRepository,
                 contractNotificationService
         );
+    }
+
+    private void injectAuditLogClient(ContractService service) throws Exception {
+        Field field = ContractService.class.getDeclaredField("auditLogClient");
+        field.setAccessible(true);
+        field.set(service, auditLogClient);
     }
 
     private static Contract contract(UUID contractId) {

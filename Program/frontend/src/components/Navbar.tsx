@@ -1,6 +1,7 @@
 import { type JSX, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { PLATFORM_ACTING_COMPANY_STORAGE_KEY, usePlatformAdmin } from "../context/PlatformAdminContext";
 import {
     UserServices,
     type CompanyResponseDTO,
@@ -9,6 +10,12 @@ import {
 } from "../services/user-service/UserServices";
 import { clearAuthCache } from "../utils/authCache";
 import { goBackOrFallback } from "../utils/backNavigation";
+import {
+    buildNavbarSearchResults,
+    getNextHighlightedIndex,
+    type NavbarSearchUserCandidate,
+} from "../utils/navbarSearch";
+import { getSearchableNavbarPages } from "../utils/navbarSearchPages";
 import { canAccessCompanySettings } from "../utils/permissionPolicy";
 import AdminMessageDrawer from "./AdminMessageDrawer";
 import { openCompanyMenu, openUserMenu } from "./navbarOverlayState";
@@ -18,6 +25,7 @@ export default function Navbar(): JSX.Element {
     const location = useLocation();
     const navigate = useNavigate();
     const { setStatus, permissions, hasPermission } = useAuth();
+    const { actingCompany, isPlatformAdmin, stopActingAsCompany } = usePlatformAdmin();
     const [menuOpen, setMenuOpen] = useState(false);
     const [loggingOut, setLoggingOut] = useState(false);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -33,6 +41,7 @@ export default function Navbar(): JSX.Element {
     const [searchError, setSearchError] = useState<string | null>(null);
     const [users, setUsers] = useState<UserResponseDTO[]>([]);
     const [searchUsersLoaded, setSearchUsersLoaded] = useState(false);
+    const [highlightedIndex, setHighlightedIndex] = useState(-1);
     const [companyInfo, setCompanyInfo] = useState<CompanyResponseDTO | null>(null);
     const [companyOpen, setCompanyOpen] = useState(false);
     const [adminMessagesOpen, setAdminMessagesOpen] = useState(false);
@@ -64,6 +73,7 @@ export default function Navbar(): JSX.Element {
     const canViewUsers = hasPermission("CAN_VIEW_USERS");
     const canManageMessages = hasPermission("CAN_MANAGE_MESSAGES");
     const canManageCompany = canAccessCompanySettings(permissions);
+    const [switchingPlatformCompany, setSwitchingPlatformCompany] = useState(false);
 
     // Total unread messages across all admin conversations. Drives the badge on
     // the shared admin inbox button. Fetched once and then kept in sync via SSE
@@ -151,8 +161,6 @@ export default function Navbar(): JSX.Element {
         if (!canViewUsers) {
             setUsers([]);
             setSearchUsersLoaded(false);
-            setSearchOpen(false);
-            setSearchTerm("");
             setSearchLoading(false);
             setSearchError(null);
             return;
@@ -184,6 +192,10 @@ export default function Navbar(): JSX.Element {
             cancelled = true;
         };
     }, [canViewUsers, searchOpen, searchUsersLoaded]);
+
+    useEffect(() => {
+        setHighlightedIndex(-1);
+    }, [searchOpen, searchTerm]);
 
     useEffect(() => {
         if (!canManageCompany) {
@@ -378,31 +390,37 @@ export default function Navbar(): JSX.Element {
         return user.email;
     };
 
-    const searchResults = useMemo(() => {
-        const term = searchTerm.trim().toLowerCase();
-        if (!term) return [];
-        return users
-            .map((user) => ({
-                user,
-                name: displayNameForUser(user),
-            }))
-            .filter(({ user, name }) => {
-                return (
-                    name.toLowerCase().includes(term) ||
-                    (user.preferredName ?? "").toLowerCase().includes(term) ||
-                    user.email.toLowerCase().includes(term)
-                );
-            })
-            .slice(0, 8);
-    }, [searchTerm, users]);
+    const searchablePages = useMemo(() => getSearchableNavbarPages(permissions), [permissions]);
 
-    const companyName = (companyInfo?.name ?? "Company").trim() || "Company";
+    const searchableUsers = useMemo<NavbarSearchUserCandidate[]>(() => {
+        if (!canViewUsers) return [];
+        return users.map((user) => ({
+            userId: user.userId,
+            displayName: displayNameForUser(user),
+            email: user.email,
+            preferredName: user.preferredName ?? "",
+        }));
+    }, [canViewUsers, users]);
+
+    const searchResults = useMemo(() => {
+        return buildNavbarSearchResults(searchTerm, searchablePages, searchableUsers).slice(0, 8);
+    }, [searchTerm, searchablePages, searchableUsers]);
+
+    const companyName = (companyInfo?.name ?? actingCompany?.companyName ?? "Company").trim() || "Company";
     const companyInitial = (companyName.trim()[0] ?? "C").toUpperCase();
 
     const handleSelectUser = (userId: string) => {
         setSearchTerm("");
         setSearchOpen(false);
+        setHighlightedIndex(-1);
         navigate(`/management/users/${userId}`);
+    };
+
+    const handleSelectPage = (to: string) => {
+        setSearchTerm("");
+        setSearchOpen(false);
+        setHighlightedIndex(-1);
+        navigate(to);
     };
 
     const handleGoBack = () => {
@@ -449,6 +467,7 @@ export default function Navbar(): JSX.Element {
             sessionStorage.removeItem("accessToken");
             sessionStorage.removeItem("refreshToken");
             sessionStorage.removeItem("authToken");
+            localStorage.removeItem(PLATFORM_ACTING_COMPANY_STORAGE_KEY);
         } catch {
             // ignore storage failures (private mode, etc.)
         }
@@ -467,6 +486,15 @@ export default function Navbar(): JSX.Element {
             setMenuOpen(false);
             setAvatarUrl(null);
             navigate("/login", { replace: true });
+        }
+    }
+
+    async function handleExitCompany(): Promise<void> {
+        setSwitchingPlatformCompany(true);
+        try {
+            await stopActingAsCompany("/platform");
+        } finally {
+            setSwitchingPlatformCompany(false);
         }
     }
 
@@ -499,49 +527,90 @@ export default function Navbar(): JSX.Element {
                         <div className="brand">
                             <span className="brand_main">ParadePaard</span>
                         </div>
-                        {canViewUsers ? (
-                            <div className="nav_search" ref={searchRef}>
-                                <input
-                                    className="nav_search_input"
-                                    type="search"
-                                    placeholder="Search users"
-                                    aria-label="Search users"
-                                    value={searchTerm}
-                                    onFocus={() => setSearchOpen(true)}
-                                    onChange={(e) => {
-                                        setSearchTerm(e.target.value);
+                        <div className="nav_search" ref={searchRef}>
+                            <input
+                                className="nav_search_input"
+                                type="search"
+                                placeholder="Search users and pages"
+                                aria-label="Search users and pages"
+                                value={searchTerm}
+                                onFocus={() => setSearchOpen(true)}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setSearchOpen(true);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                                        const direction = event.key;
+                                        event.preventDefault();
                                         setSearchOpen(true);
-                                    }}
-                                    disabled={loggingOut}
-                                />
-                                {searchOpen ? (
-                                    <div className="nav_search_results" role="listbox">
-                                        {searchLoading ? (
-                                            <div className="nav_search_empty">Loading users...</div>
-                                        ) : searchError ? (
-                                            <div className="nav_search_empty">{searchError}</div>
-                                        ) : searchTerm.trim().length === 0 ? (
-                                            <div className="nav_search_empty">Start typing to search.</div>
-                                        ) : searchResults.length === 0 ? (
-                                            <div className="nav_search_empty">No matches found.</div>
-                                        ) : (
-                                            searchResults.map(({ user, name }) => (
-                                                <button
-                                                    key={user.userId}
-                                                    type="button"
-                                                    className="nav_search_item"
-                                                    role="option"
-                                                    onClick={() => handleSelectUser(user.userId)}
-                                                >
-                                                    <span className="nav_search_name">{name}</span>
-                                                    <span className="nav_search_email">{user.email}</span>
-                                                </button>
-                                            ))
-                                        )}
-                                    </div>
-                                ) : null}
-                            </div>
-                        ) : null}
+                                        setHighlightedIndex((current) =>
+                                            getNextHighlightedIndex(current, searchResults.length, direction)
+                                        );
+                                        return;
+                                    }
+
+                                    if (event.key === "Enter") {
+                                        const selected = highlightedIndex >= 0 ? searchResults[highlightedIndex] : null;
+                                        if (!selected) return;
+                                        event.preventDefault();
+
+                                        if (selected.type === "page") {
+                                            handleSelectPage(selected.to);
+                                            return;
+                                        }
+
+                                        handleSelectUser(selected.userId);
+                                    }
+                                }}
+                                disabled={loggingOut}
+                            />
+                            {searchOpen ? (
+                                <div className="nav_search_results" role="listbox">
+                                    {searchTerm.trim().length === 0 ? (
+                                        <div className="nav_search_empty">Start typing to search.</div>
+                                    ) : searchLoading && canViewUsers && searchResults.length === 0 ? (
+                                        <div className="nav_search_empty">Loading users...</div>
+                                    ) : searchResults.length === 0 ? (
+                                        <div className="nav_search_empty">
+                                            {searchError && canViewUsers && !searchUsersLoaded
+                                                ? "User results unavailable right now."
+                                                : "No matches found."}
+                                        </div>
+                                    ) : (
+                                        searchResults.map((result, index) => (
+                                            <button
+                                                key={result.type === "page" ? `page:${result.to}` : `user:${result.userId}`}
+                                                type="button"
+                                                className={`nav_search_item${
+                                                    highlightedIndex === index ? " nav_search_item--active" : ""
+                                                }`}
+                                                role="option"
+                                                aria-selected={highlightedIndex === index}
+                                                onMouseEnter={() => setHighlightedIndex(index)}
+                                                onClick={() => {
+                                                    if (result.type === "page") {
+                                                        handleSelectPage(result.to);
+                                                        return;
+                                                    }
+                                                    handleSelectUser(result.userId);
+                                                }}
+                                            >
+                                                <div className="nav_search_item_top">
+                                                    <span className="nav_search_name">{result.label}</span>
+                                                    <span
+                                                        className={`nav_search_type nav_search_type--${result.type}`}
+                                                    >
+                                                        {result.type === "page" ? "Page" : "User"}
+                                                    </span>
+                                                </div>
+                                                <span className="nav_search_email">{result.secondaryLabel}</span>
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
                     
                 </div>
@@ -665,6 +734,22 @@ export default function Navbar(): JSX.Element {
                         )}
                     </div>
                 </div>
+                {isPlatformAdmin && actingCompany ? (
+                    <div className="nav_platform_banner" role="status" aria-live="polite">
+                        <div className="nav_platform_banner_text">
+                            <span className="nav_platform_banner_label">Platform admin mode</span>
+                            <span className="nav_platform_banner_value">Acting in {actingCompany.companyName}</span>
+                        </div>
+                        <button
+                            type="button"
+                            className="nav_platform_banner_button"
+                            onClick={() => void handleExitCompany()}
+                            disabled={switchingPlatformCompany}
+                        >
+                            {switchingPlatformCompany ? "Leaving..." : "Exit company"}
+                        </button>
+                    </div>
+                ) : null}
             </header>
             {canManageMessages ? <AdminMessageDrawer open={adminMessagesOpen} /> : null}
         </>

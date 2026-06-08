@@ -11,6 +11,7 @@ import com.pm.payrollservice.service.PayrollService;
 import com.pm.payrollservice.service.PayslipPdfService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.groups.Default;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,8 +52,8 @@ public class PayrollController {
     @GetMapping
     @Operation(summary = "Get all payslips admin only")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS')")
-    public ResponseEntity<List<PayslipResponseDTO>> getPayslips() {
-        List<PayslipResponseDTO> payslips = payrollService.getPayslips();
+    public ResponseEntity<List<PayslipResponseDTO>> getPayslips(@AuthenticationPrincipal Jwt jwt) {
+        List<PayslipResponseDTO> payslips = payrollService.getPayslips(extractCompanyId(jwt));
         return ResponseEntity.ok().body(payslips);
     }
 
@@ -60,10 +61,15 @@ public class PayrollController {
     @Operation(summary = "Get paged payslips admin only")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS')")
     public ResponseEntity<PagedResponseDTO<PayslipResponseDTO>> getPayslipsPage(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size
     ) {
-        return ResponseEntity.ok(payrollService.getPayslipsPage(Math.max(page, 0), Math.min(Math.max(size, 1), 100)));
+        return ResponseEntity.ok(payrollService.getPayslipsPage(
+                extractCompanyId(jwt),
+                Math.max(page, 0),
+                Math.min(Math.max(size, 1), 100)
+        ));
     }
 
     @GetMapping("/me")
@@ -95,16 +101,16 @@ public class PayrollController {
     @GetMapping("/review")
     @Operation(summary = "Get payslips pending review admin only")
     @PreAuthorize("hasAuthority('CAN_REVIEW_PAYSLIPS')")
-    public ResponseEntity<List<PayslipResponseDTO>> getPayslipsPendingReview() {
-        return ResponseEntity.ok(payrollService.getPayslipsPendingReview());
+    public ResponseEntity<List<PayslipResponseDTO>> getPayslipsPendingReview(@AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(payrollService.getPayslipsPendingReview(extractCompanyId(jwt)));
     }
 
     /* changed: return pdf for a single payslip */
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_PDF_VALUE)
     @Operation(summary = "Get a payslip by id as PDF self or admin")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS') or (hasAuthority('CAN_VIEW_PAYSLIPS') and @payrollPermission.isOwner(#id, authentication))")
-    public ResponseEntity<byte[]> getPayslipPdf(@PathVariable UUID id) {
-        byte[] pdf = payrollService.generatePayslipPdf(id);
+    public ResponseEntity<byte[]> getPayslipPdf(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        byte[] pdf = payrollService.generatePayslipPdf(id, extractCompanyId(jwt));
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"payslip_" + id + ".pdf\"");
@@ -118,16 +124,16 @@ public class PayrollController {
     @GetMapping(value = "/{id}/json", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a payslip as JSON self or admin")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS') or (hasAuthority('CAN_VIEW_PAYSLIPS') and @payrollPermission.isOwner(#id, authentication))")
-    public ResponseEntity<PayslipResponseDTO> getPayslipJson(@PathVariable UUID id) {
-        return ResponseEntity.ok(payrollService.getPayslipById(id));
+    public ResponseEntity<PayslipResponseDTO> getPayslipJson(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        return ResponseEntity.ok(payrollService.getPayslipById(id, extractCompanyId(jwt)));
     }
 
     /* optional: preview html in browser */
     @GetMapping(value = "/{id}/html", produces = MediaType.TEXT_HTML_VALUE)
     @Operation(summary = "Render payslip as HTML self or admin")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_PAYSLIPS') or (hasAuthority('CAN_VIEW_PAYSLIPS') and @payrollPermission.isOwner(#id, authentication))")
-    public ResponseEntity<String> renderHtml(@PathVariable UUID id) {
-        String html = payrollService.renderPayslipHtml(id);
+    public ResponseEntity<String> renderHtml(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt) {
+        String html = payrollService.renderPayslipHtml(id, extractCompanyId(jwt));
         return ResponseEntity.ok(html);
     }
 
@@ -136,8 +142,14 @@ public class PayrollController {
     @PreAuthorize("hasAuthority('CAN_MANAGE_PAYSLIPS')")
     public ResponseEntity<PayslipResponseDTO> createPayslip(
             @Validated({Default.class, CreatePayslipValidationGroup.class})
-            @RequestBody PayslipRequestDTO payslipRequestDTO) {
-        PayslipResponseDTO payslipResponseDTO = payrollService.createPayslip(payslipRequestDTO);
+            @RequestBody PayslipRequestDTO payslipRequestDTO,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest httpRequest) {
+        PayslipResponseDTO payslipResponseDTO = payrollService.createPayslip(
+                payslipRequestDTO,
+                extractCompanyId(jwt),
+                bearerToken(httpRequest)
+        );
         return ResponseEntity.ok().body(payslipResponseDTO);
     }
 
@@ -146,8 +158,15 @@ public class PayrollController {
     @PreAuthorize("hasAuthority('CAN_MANAGE_PAYSLIPS')")
     public ResponseEntity<PayslipResponseDTO> updatePayslip(
             @PathVariable UUID id,
-            @Validated({Default.class}) @RequestBody PayslipRequestDTO payslipRequestDTO) {
-        PayslipResponseDTO payslipResponseDTO = payrollService.updatePayslip(id, payslipRequestDTO);
+            @Validated({Default.class}) @RequestBody PayslipRequestDTO payslipRequestDTO,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest httpRequest) {
+        PayslipResponseDTO payslipResponseDTO = payrollService.updatePayslip(
+                id,
+                payslipRequestDTO,
+                extractCompanyId(jwt),
+                bearerToken(httpRequest)
+        );
         return ResponseEntity.ok().body(payslipResponseDTO);
     }
 
@@ -156,17 +175,38 @@ public class PayrollController {
     @PreAuthorize("hasAuthority('CAN_MANAGE_PAYSLIPS') or (hasAuthority('CAN_REPORT_PAYSLIP_ERRORS') and @payrollPermission.isOwner(#id, authentication))")
     public ResponseEntity<PayslipResponseDTO> reportPayslipError(
             @PathVariable UUID id,
-            @Validated @RequestBody PayslipErrorReportDTO body) {
-        PayslipResponseDTO updated = payrollService.reportPayslipError(id, body.getErrorDescription());
+            @Validated @RequestBody PayslipErrorReportDTO body,
+            @AuthenticationPrincipal Jwt jwt,
+            HttpServletRequest httpRequest) {
+        PayslipResponseDTO updated = payrollService.reportPayslipError(
+                id,
+                extractCompanyId(jwt),
+                body.getErrorDescription(),
+                bearerToken(httpRequest)
+        );
         return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete a payslip admin only")
     @PreAuthorize("hasAuthority('CAN_MANAGE_PAYSLIPS')")
-    public ResponseEntity<Void> deletePayslip(@PathVariable UUID id) {
-        payrollService.deletePayslip(id);
+    public ResponseEntity<Void> deletePayslip(@PathVariable UUID id, @AuthenticationPrincipal Jwt jwt, HttpServletRequest httpRequest) {
+        payrollService.deletePayslip(id, extractCompanyId(jwt), bearerToken(httpRequest));
         return ResponseEntity.noContent().build();
+    }
+
+    private static String bearerToken(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return authorization.substring(7).trim();
+        }
+        return null;
     }
 
     private static UUID extractUserId(Jwt jwt) {
@@ -187,5 +227,16 @@ public class PayrollController {
             return UUID.fromString(formatted);
         }
         return UUID.fromString(value);
+    }
+
+    private static UUID extractCompanyId(Jwt jwt) {
+        if (jwt == null) {
+            return null;
+        }
+        String companyId = jwt.getClaimAsString("companyId");
+        if (companyId == null || companyId.isBlank()) {
+            return null;
+        }
+        return parseFlexibleUUID(companyId.trim());
     }
 }

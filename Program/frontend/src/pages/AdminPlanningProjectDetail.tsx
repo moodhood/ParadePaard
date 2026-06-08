@@ -5,6 +5,7 @@ import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
+import PlanningLocationPicker from "../components/planning/PlanningLocationPicker";
 import {
     UserServices,
     type PlanningClientCompanyDTO,
@@ -58,6 +59,7 @@ type ShiftDraft = {
     functionName: string;
     breakMinutes: string;
     location: string;
+    savedLocationId: string | null;
     peopleNeeded: string;
 };
 
@@ -149,6 +151,7 @@ function buildInitialShiftDraft(project: PlanningProjectDTO): ShiftDraft {
         functionName: "",
         breakMinutes: "0",
         location: project.location?.trim() || "",
+        savedLocationId: null,
         peopleNeeded: "1",
     };
 }
@@ -161,6 +164,7 @@ function buildProjectDraft(project: PlanningProjectDTO): PlanningProjectSaveDTO 
         projectTimezone: project.projectTimezone ?? getBrowserTimeZone(),
         clientCompanyId: project.clientCompanyId ?? "",
         location: project.location ?? "",
+        savedLocationId: null,
         internalDescription: project.internalDescription ?? "",
         externalDescription: project.externalDescription ?? "",
         defaultStartTime: getDefaultTime(project.defaultStartTime, ""),
@@ -184,6 +188,7 @@ function buildShiftDraftFromRecord(day: string, shift: PlanningShiftDTO, project
         functionName: shift.functionName,
         breakMinutes: String(shift.breakMinutes ?? 0),
         location: shift.location?.trim() || project.location?.trim() || "",
+        savedLocationId: null,
         peopleNeeded: String(shift.peopleNeeded ?? 1),
     };
 }
@@ -344,6 +349,7 @@ export default function AdminPlanningProjectDetail() {
         functionName: "",
         breakMinutes: "0",
         location: "",
+        savedLocationId: null,
         peopleNeeded: "1",
     });
     const [editShiftDraft, setEditShiftDraft] = useState<ShiftDraft>({
@@ -355,6 +361,7 @@ export default function AdminPlanningProjectDetail() {
         functionName: "",
         breakMinutes: "0",
         location: "",
+        savedLocationId: null,
         peopleNeeded: "1",
     });
     const [projectDraft, setProjectDraft] = useState<PlanningProjectSaveDTO>({
@@ -364,6 +371,7 @@ export default function AdminPlanningProjectDetail() {
         projectTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
+        savedLocationId: null,
         internalDescription: "",
         externalDescription: "",
         defaultStartTime: "",
@@ -681,6 +689,7 @@ export default function AdminPlanningProjectDetail() {
             projectTimezone: normalizedProjectTimezone,
             clientCompanyId: projectDraft.clientCompanyId?.toString().trim() ? projectDraft.clientCompanyId : null,
             location: projectDraft.location?.toString().trim() || null,
+            savedLocationId: projectDraft.savedLocationId ?? null,
             internalDescription: projectDraft.internalDescription?.toString().trim() || null,
             externalDescription: projectDraft.externalDescription?.toString().trim() || null,
             defaultStartTime,
@@ -788,6 +797,7 @@ export default function AdminPlanningProjectDetail() {
                 functionName: shiftDraft.functionName.trim(),
                 breakMinutes,
                 location: shiftDraft.location.trim() || null,
+                savedLocationId: shiftDraft.savedLocationId ?? null,
                 peopleNeeded,
             });
             setIsCreateShiftOpen(false);
@@ -838,6 +848,7 @@ export default function AdminPlanningProjectDetail() {
                 functionName: editShiftDraft.functionName.trim(),
                 breakMinutes,
                 location: editShiftDraft.location.trim() || null,
+                savedLocationId: editShiftDraft.savedLocationId ?? null,
                 peopleNeeded,
             });
             setEditingShiftId(null);
@@ -1489,16 +1500,18 @@ export default function AdminPlanningProjectDetail() {
                         </label>
                     </div>
 
-                    <label className="planningDetailModalField">
-                        <span className="planningDetailModalLabel">Location</span>
-                        <input
-                            className="modal_input"
-                            value={shiftDraft.location}
-                            onChange={(inputEvent) => setShiftDraft((current) => ({ ...current, location: inputEvent.target.value }))}
-                            placeholder="Optional"
-                            disabled={savingShift}
-                        />
-                    </label>
+                    <PlanningLocationPicker
+                        label="Location"
+                        value={shiftDraft.location}
+                        savedLocationId={shiftDraft.savedLocationId}
+                        clientCompanyId={project?.clientCompanyId ?? null}
+                        clientCompanyName={selectedClient?.name ?? null}
+                        disabled={savingShift}
+                        onChange={({ value, savedLocationId }) => {
+                            setShiftDraft((current) => ({ ...current, location: value, savedLocationId }));
+                            if (createShiftError) setCreateShiftError(null);
+                        }}
+                    />
 
                     {createShiftError ? <div className="planningDetailModalAlert">{createShiftError}</div> : null}
 
@@ -1664,16 +1677,18 @@ export default function AdminPlanningProjectDetail() {
                         </label>
                     </div>
 
-                    <label className="planningDetailModalField">
-                        <span className="planningDetailModalLabel">Location</span>
-                        <input
-                            className="modal_input"
-                            value={editShiftDraft.location}
-                            onChange={(inputEvent) => setEditShiftDraft((current) => ({ ...current, location: inputEvent.target.value }))}
-                            placeholder="Optional"
-                            disabled={savingShift}
-                        />
-                    </label>
+                    <PlanningLocationPicker
+                        label="Location"
+                        value={editShiftDraft.location}
+                        savedLocationId={editShiftDraft.savedLocationId}
+                        clientCompanyId={project?.clientCompanyId ?? null}
+                        clientCompanyName={selectedClient?.name ?? null}
+                        disabled={savingShift}
+                        onChange={({ value, savedLocationId }) => {
+                            setEditShiftDraft((current) => ({ ...current, location: value, savedLocationId }));
+                            if (editShiftError) setEditShiftError(null);
+                        }}
+                    />
 
                     {editShiftError ? <div className="planningDetailModalAlert">{editShiftError}</div> : null}
 
@@ -1854,19 +1869,18 @@ export default function AdminPlanningProjectDetail() {
                         </span>
                     </label>
 
-                    <label className="planningDetailModalField">
-                        <span className="planningDetailModalLabel">Location</span>
-                        <input
-                            className="modal_input"
-                            value={projectDraft.location ?? ""}
-                            onChange={(inputEvent) => {
-                                setProjectDraft((current) => ({ ...current, location: inputEvent.target.value }));
-                                if (projectSaveError) setProjectSaveError(null);
-                            }}
-                            placeholder="Optional"
-                            disabled={savingProject}
-                        />
-                    </label>
+                    <PlanningLocationPicker
+                        label="Location"
+                        value={projectDraft.location ?? ""}
+                        savedLocationId={projectDraft.savedLocationId ?? null}
+                        clientCompanyId={projectDraft.clientCompanyId ?? null}
+                        clientCompanyName={selectedDraftClient?.name ?? null}
+                        disabled={savingProject}
+                        onChange={({ value, savedLocationId }) => {
+                            setProjectDraft((current) => ({ ...current, location: value, savedLocationId }));
+                            if (projectSaveError) setProjectSaveError(null);
+                        }}
+                    />
 
                     <div className="planningDetailModalGrid">
                         <label className="planningDetailModalField">

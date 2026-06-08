@@ -20,6 +20,9 @@ public class JobApplicationResponseDTO {
     private boolean workedForUsBefore;
     private boolean contactConsent;
     private boolean informationAccurate;
+    private String profilePictureFileName;
+    private String profilePictureContentType;
+    private boolean hasProfilePicture;
     private String cvFileName;
     private String cvContentType;
     private String status;
@@ -181,6 +184,30 @@ public class JobApplicationResponseDTO {
 
     public void setInformationAccurate(boolean informationAccurate) {
         this.informationAccurate = informationAccurate;
+    }
+
+    public String getProfilePictureFileName() {
+        return profilePictureFileName;
+    }
+
+    public void setProfilePictureFileName(String profilePictureFileName) {
+        this.profilePictureFileName = profilePictureFileName;
+    }
+
+    public String getProfilePictureContentType() {
+        return profilePictureContentType;
+    }
+
+    public void setProfilePictureContentType(String profilePictureContentType) {
+        this.profilePictureContentType = profilePictureContentType;
+    }
+
+    public boolean isHasProfilePicture() {
+        return hasProfilePicture;
+    }
+
+    public void setHasProfilePicture(boolean hasProfilePicture) {
+        this.hasProfilePicture = hasProfilePicture;
     }
 
     public String getCvFileName() {

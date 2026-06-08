@@ -31,6 +31,33 @@ class AuthSeedPermissionsTest {
         assertThat(adminAssignment).contains("CAN_MANAGE_PAYROLL_FINANCE");
     }
 
+    @Test
+    void seedCreatesDeleteUserPermissionAndAssignsItToAdmin() throws IOException {
+        String sql = readSeedSql();
+        int adminAssignmentStart = sql.indexOf("-- assign permissions to ADMIN role");
+        int userAssignmentStart = sql.indexOf("-- assign permissions to USER role");
+
+        assertThat(sql).contains("CAN_DELETE_USERS");
+        assertThat(adminAssignmentStart).isGreaterThanOrEqualTo(0);
+        assertThat(userAssignmentStart).isGreaterThan(adminAssignmentStart);
+
+        String adminAssignment = sql.substring(adminAssignmentStart, userAssignmentStart);
+        String userAssignment = sql.substring(userAssignmentStart);
+
+        assertThat(adminAssignment).contains("CAN_DELETE_USERS");
+        assertThat(userAssignment).doesNotContain("CAN_DELETE_USERS");
+    }
+
+    @Test
+    void seedCreatesPlatformAdminPermissionAndSeededPlatformAdminUser() throws IOException {
+        String sql = readSeedSql();
+
+        assertThat(sql).contains("CAN_MANAGE_PLATFORM");
+        assertThat(sql).contains("super.admin");
+        assertThat(sql).contains("super.admin@example.com");
+        assertThat(sql).contains("SUPER_ADMIN");
+    }
+
     private static String readSeedSql() throws IOException {
         try (InputStream input = AuthSeedPermissionsTest.class.getClassLoader().getResourceAsStream("data.sql")) {
             assertThat(input).isNotNull();

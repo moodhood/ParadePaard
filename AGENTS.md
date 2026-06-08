@@ -107,7 +107,7 @@ Codex should aim for a polished result across the full screen, not only a techni
 
 ## Git requirements
 
-Codex must run these commands:
+Codex must run the Git commands from the project root folder:
 
 ```bash
 git status

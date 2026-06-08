@@ -2,15 +2,15 @@
 
 ## Main instruction
 
-When Codex changes the frontend UI in this project, Codex must not only look at the single element that was changed.
+When Claude changes the frontend UI in this project, Claude must not only look at the single element that was changed.
 
-Codex must also review the full surrounding UI and general page presentation so the result fits the rest of the product.
+Claude must also review the full surrounding UI and general page presentation so the result fits the rest of the product.
 
-This means Codex must check the whole visible experience, not just the direct feature request.
+This means Claude must check the whole visible experience, not just the direct feature request.
 
 ## UI review requirement
 
-For every frontend UI change, Codex must inspect and think through all of the following:
+For every frontend UI change, Claude must inspect and think through all of the following:
 
 1. General layout
    - page structure
@@ -99,17 +99,17 @@ For every frontend UI change, Codex must inspect and think through all of the fo
 
 ## Expected behavior
 
-Codex must not treat a UI request as a tiny isolated patch.
+Claude must not treat a UI request as a tiny isolated patch.
 
-If one UI element is changed, Codex must also check whether nearby layout, spacing, styling, hierarchy, and consistency need adjustment.
+If one UI element is changed, Claude must also check whether nearby layout, spacing, styling, hierarchy, and consistency need adjustment.
 
-Codex should aim for a polished result across the full screen, not only a technically correct local fix.
+Claude should aim for a polished result across the full screen, not only a technically correct local fix.
 
 ## Git requirement
 
-After finishing the requested work and updating the rundown file, Codex must push the changes to GitHub.
+After finishing the requested work and updating the rundown file, Claude must push the changes to GitHub.
 
-Codex must run these commands:
+After making changes, Claude must run the Git commands from the project root folder.:
 
 ```bash
 git status

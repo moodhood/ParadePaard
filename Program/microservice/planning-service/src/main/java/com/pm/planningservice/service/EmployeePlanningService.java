@@ -1,7 +1,10 @@
 package com.pm.planningservice.service;
 
+import com.pm.planningservice.dto.AuditLogCreateRequestDTO;
+import com.pm.planningservice.dto.AuditLogMessagePartDTO;
 import com.pm.planningservice.dto.EmployeePlanningAssignmentDTO;
 import com.pm.planningservice.dto.TravelClaimSummaryDTO;
+import com.pm.planningservice.integration.AuditLogClient;
 import com.pm.planningservice.integration.UserDirectoryClient;
 import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
@@ -13,6 +16,7 @@ import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
 import com.pm.planningservice.repository.TravelClaimRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -38,6 +42,8 @@ public class EmployeePlanningService {
     private final TravelClaimRepository travelClaimRepository;
     private final PlanningTimesheetExportService planningTimesheetExportService;
     private final UserDirectoryClient userDirectoryClient;
+    @Autowired(required = false)
+    private AuditLogClient auditLogClient;
 
     public EmployeePlanningService(
             ScheduleEntryRepository scheduleEntryRepository,
@@ -180,12 +186,25 @@ public class EmployeePlanningService {
             TravelClaimStatus status,
             String rejectionNote
     ) {
+        return reviewTravelClaim(companyId, reviewerUserId, scheduleEntryId, status, rejectionNote, null);
+    }
+
+    @Transactional
+    public EmployeePlanningAssignmentDTO reviewTravelClaim(
+            UUID companyId,
+            UUID reviewerUserId,
+            UUID scheduleEntryId,
+            TravelClaimStatus status,
+            String rejectionNote,
+            String accessToken
+    ) {
         if (status != TravelClaimStatus.APPROVED && status != TravelClaimStatus.REJECTED) {
             throw new IllegalArgumentException("Travel claim review must approve or reject the claim");
         }
         ScheduleEntry entry = scheduleEntryRepository.findById(scheduleEntryId)
                 .orElseThrow(() -> new IllegalArgumentException("Travel claim assignment not found"));
-        requireShift(entry.getShiftId(), companyId);
+        Shift shift = requireShift(entry.getShiftId(), companyId);
+        Project project = requireProject(shift.getProjectId(), companyId);
 
         TravelClaim claim = travelClaimRepository.findByScheduleEntryId(scheduleEntryId)
                 .orElseThrow(() -> new IllegalArgumentException("Travel claim not found"));
@@ -202,7 +221,65 @@ public class EmployeePlanningService {
             planningTimesheetExportService.exportScheduleEntries(companyId, List.of(entry));
         }
 
+        recordTravelClaimAudit(accessToken, actionFor(status), entry, shift, project);
+
         return mapAssignment(entry);
+    }
+
+    private void recordTravelClaimAudit(
+            String accessToken,
+            String action,
+            ScheduleEntry entry,
+            Shift shift,
+            Project project
+    ) {
+        if (auditLogClient == null || accessToken == null || accessToken.isBlank()) {
+            return;
+        }
+        AuditLogCreateRequestDTO request = new AuditLogCreateRequestDTO();
+        request.setCategory("TRAVEL_CLAIMS");
+        request.setAction(action);
+        request.setEntityType("TRAVEL_CLAIM");
+        request.setEntityId(entry.getScheduleEntryId() == null ? null : entry.getScheduleEntryId().toString());
+        request.setMessageParts(List.of(
+                textPart("APPROVED".equals(action) ? " approved travel claim for " : " rejected travel claim for "),
+                userLink(entry.getUserId()),
+                textPart(" on "),
+                shiftLink(project, shift)
+        ));
+        auditLogClient.record(accessToken, request);
+    }
+
+    private static String actionFor(TravelClaimStatus status) {
+        return status == TravelClaimStatus.APPROVED ? "APPROVED" : "REJECTED";
+    }
+
+    private static AuditLogMessagePartDTO textPart(String text) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("TEXT");
+        part.setText(text);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO userLink(UUID userId) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("USER");
+        part.setEntityId(userId == null ? null : userId.toString());
+        part.setRoute(userId == null ? null : "/management/users/" + userId);
+        return part;
+    }
+
+    private static AuditLogMessagePartDTO shiftLink(Project project, Shift shift) {
+        AuditLogMessagePartDTO part = new AuditLogMessagePartDTO();
+        part.setType("LINK");
+        part.setEntityType("SHIFT");
+        part.setEntityId(shift.getShiftId() == null ? null : shift.getShiftId().toString());
+        part.setLabel(shift.getName() == null || shift.getName().isBlank() ? shift.getFunctionName() : shift.getName());
+        if (project != null && project.getProjectId() != null && shift.getShiftId() != null) {
+            part.setRoute("/management/planning/projects/" + project.getProjectId() + "/shifts/" + shift.getShiftId());
+        }
+        return part;
     }
 
     @Transactional(readOnly = true)

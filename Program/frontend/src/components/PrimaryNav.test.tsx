@@ -14,15 +14,17 @@ vi.mock("../context/AuthContext", () => ({
 }));
 
 describe("PrimaryNav layout", () => {
-    it("keeps the desktop sidebar fixed while page content scrolls", () => {
+    it("keeps the desktop sidebar fixed while page content scrolls without adding a top gap below the navbar", () => {
         const primaryNavCss = readFileSync(new URL("../stylesheets/PrimaryNav.css", import.meta.url), "utf8");
         const pageShellCss = readFileSync(new URL("../stylesheets/PageShell.css", import.meta.url), "utf8");
 
         expect(primaryNavCss).toContain("position: fixed;");
-        expect(primaryNavCss).toContain("height: calc(100vh - var(--navbar-height) - var(--nav-gap));");
+        expect(primaryNavCss).toContain("top: var(--navbar-height);");
+        expect(primaryNavCss).toContain("height: calc(100vh - var(--navbar-height));");
         expect(pageShellCss).toContain(
             "padding-left: calc(var(--sidebar-collapsed-width, 76px) + 24px);"
         );
+        expect(pageShellCss).toContain("padding-top: var(--nav-gap);");
     });
 });
 
@@ -48,5 +50,18 @@ describe("PrimaryNav message badge", () => {
 
         expect(html).toContain('aria-label="Messages"');
         expect(html).not.toContain('class="primaryNavBadge"');
+    });
+
+    it("shows a Platform link for platform admins", () => {
+        permissions = ["CAN_MANAGE_PLATFORM"];
+
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <PrimaryNav messageUnreadCount={0} />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain('aria-label="Platform"');
+        expect(html).toContain(">Platform</span>");
     });
 });

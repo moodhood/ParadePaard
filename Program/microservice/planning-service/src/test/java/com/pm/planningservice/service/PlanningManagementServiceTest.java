@@ -1,12 +1,22 @@
 package com.pm.planningservice.service;
 
+import com.pm.planningservice.dto.AuditLogCreateRequestDTO;
 import com.pm.planningservice.dto.PlanningAssignmentMutationResponseDTO;
 import com.pm.planningservice.dto.PlanningAssignmentSaveRequestDTO;
+import com.pm.planningservice.dto.PlanningLocationDTO;
+import com.pm.planningservice.dto.PlanningLocationSaveRequestDTO;
+import com.pm.planningservice.dto.PlanningProjectSaveRequestDTO;
+import com.pm.planningservice.integration.AuditLogClient;
+import com.pm.planningservice.model.ClientCompany;
+import com.pm.planningservice.model.PlanningClientLocationUsage;
+import com.pm.planningservice.model.PlanningLocation;
 import com.pm.planningservice.model.Project;
 import com.pm.planningservice.model.ScheduleEntry;
 import com.pm.planningservice.model.ScheduleEntryStatus;
 import com.pm.planningservice.model.Shift;
 import com.pm.planningservice.repository.ClientCompanyRepository;
+import com.pm.planningservice.repository.PlanningClientLocationUsageRepository;
+import com.pm.planningservice.repository.PlanningLocationRepository;
 import com.pm.planningservice.repository.ProjectRepository;
 import com.pm.planningservice.repository.ScheduleEntryRepository;
 import com.pm.planningservice.repository.ShiftRepository;
@@ -16,14 +26,22 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.lang.reflect.Field;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -34,6 +52,12 @@ class PlanningManagementServiceTest {
     private ClientCompanyRepository clientCompanyRepository;
 
     @Mock
+    private PlanningLocationRepository planningLocationRepository;
+
+    @Mock
+    private PlanningClientLocationUsageRepository planningClientLocationUsageRepository;
+
+    @Mock
     private ProjectRepository projectRepository;
 
     @Mock
@@ -41,6 +65,9 @@ class PlanningManagementServiceTest {
 
     @Mock
     private ScheduleEntryRepository scheduleEntryRepository;
+
+    @Mock
+    private AuditLogClient auditLogClient;
 
     @InjectMocks
     private PlanningManagementService planningManagementService;
@@ -134,6 +161,7 @@ class PlanningManagementServiceTest {
         when(projectRepository.findByProjectIdAndCompanyId(projectId, companyId)).thenReturn(Optional.of(project));
         when(scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId)).thenReturn(Optional.empty());
         when(scheduleEntryRepository.save(any(ScheduleEntry.class))).thenReturn(savedEntry);
+        injectAuditLogClient();
 
         PlanningAssignmentMutationResponseDTO response =
                 planningManagementService.createAssignment(companyId, shiftId, request);
@@ -141,5 +169,217 @@ class PlanningManagementServiceTest {
         assertEquals(scheduleEntryId, response.getScheduleEntryId());
         assertEquals(shiftId, response.getShiftId());
         verify(scheduleEntryRepository).save(any(ScheduleEntry.class));
+    }
+
+    @Test
+    void createAssignmentRecordsAuditEntryWhenAccessTokenIsAvailable() {
+        UUID companyId = UUID.randomUUID();
+        UUID shiftId = UUID.randomUUID();
+        UUID projectId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID scheduleEntryId = UUID.randomUUID();
+
+        Shift shift = new Shift();
+        shift.setShiftId(shiftId);
+        shift.setProjectId(projectId);
+        shift.setName("Evening Bar Shift");
+        shift.setFunctionName("BAR");
+        shift.setStartTime(LocalDateTime.of(2026, 5, 1, 18, 0));
+        shift.setEndTime(LocalDateTime.of(2026, 5, 1, 23, 0));
+
+        Project project = new Project();
+        project.setProjectId(projectId);
+        project.setCompanyId(companyId);
+        project.setName("Summer Terrace");
+        project.setStartDate(LocalDate.of(2026, 5, 1));
+        project.setEndDate(LocalDate.of(2026, 5, 1));
+        project.setFinalized(false);
+
+        ScheduleEntry savedEntry = new ScheduleEntry();
+        savedEntry.setScheduleEntryId(scheduleEntryId);
+        savedEntry.setShiftId(shiftId);
+        savedEntry.setUserId(userId);
+        savedEntry.setStatus(ScheduleEntryStatus.ASSIGNED);
+
+        PlanningAssignmentSaveRequestDTO request = new PlanningAssignmentSaveRequestDTO();
+        request.setUserId(userId);
+
+        when(shiftRepository.findById(shiftId)).thenReturn(Optional.of(shift));
+        when(projectRepository.findByProjectIdAndCompanyId(projectId, companyId)).thenReturn(Optional.of(project));
+        when(scheduleEntryRepository.findFirstByShiftIdAndUserId(shiftId, userId)).thenReturn(Optional.empty());
+        when(scheduleEntryRepository.save(any(ScheduleEntry.class))).thenReturn(savedEntry);
+        injectAuditLogClient();
+
+        planningManagementService.createAssignment(companyId, shiftId, request, "access-token");
+
+        verify(auditLogClient).record(eq("access-token"), argThat((AuditLogCreateRequestDTO auditRequest) ->
+                auditRequest != null
+                        && "PLANNING".equals(auditRequest.getCategory())
+                        && "ASSIGNED".equals(auditRequest.getAction())
+                        && scheduleEntryId.toString().equals(auditRequest.getEntityId())
+        ));
+    }
+
+    @Test
+    void createClientCompanyIgnoresAuditFailures() {
+        UUID companyId = UUID.randomUUID();
+        UUID clientCompanyId = UUID.randomUUID();
+
+        var request = new com.pm.planningservice.dto.PlanningClientCompanySaveRequestDTO();
+        request.setName("Client Y");
+
+        ClientCompany savedClient = new ClientCompany();
+        savedClient.setClientCompanyId(clientCompanyId);
+        savedClient.setOwnerCompanyId(companyId);
+        savedClient.setName("Client Y");
+        savedClient.setCreatedAt(LocalDateTime.of(2026, 6, 7, 10, 0));
+
+        when(clientCompanyRepository.existsByOwnerCompanyIdAndNameIgnoreCase(companyId, "Client Y"))
+                .thenReturn(false);
+        when(clientCompanyRepository.save(any(ClientCompany.class))).thenReturn(savedClient);
+        doThrow(new RuntimeException("audit unavailable")).when(auditLogClient)
+                .record(eq("access-token"), any(AuditLogCreateRequestDTO.class));
+        injectAuditLogClient();
+
+        var response = assertDoesNotThrow(() ->
+                planningManagementService.createClientCompany(companyId, request, "access-token"));
+
+        assertEquals(clientCompanyId, response.getClientCompanyId());
+        assertEquals("Client Y", response.getName());
+        verify(auditLogClient).record(eq("access-token"), any(AuditLogCreateRequestDTO.class));
+    }
+
+    @Test
+    void listLocationsPrefersMostRecentlyUsedLocationForSelectedClient() {
+        UUID companyId = UUID.randomUUID();
+        UUID clientCompanyId = UUID.randomUUID();
+        UUID preferredLocationId = UUID.randomUUID();
+        UUID otherLocationId = UUID.randomUUID();
+
+        PlanningLocation preferredLocation = new PlanningLocation();
+        preferredLocation.setLocationId(preferredLocationId);
+        preferredLocation.setOwnerCompanyId(companyId);
+        preferredLocation.setName("Breda Warehouse");
+
+        PlanningLocation otherLocation = new PlanningLocation();
+        otherLocation.setLocationId(otherLocationId);
+        otherLocation.setOwnerCompanyId(companyId);
+        otherLocation.setName("Amsterdam Dock");
+
+        ClientCompany clientCompany = new ClientCompany();
+        clientCompany.setClientCompanyId(clientCompanyId);
+        clientCompany.setOwnerCompanyId(companyId);
+        clientCompany.setName("Client Y");
+
+        PlanningClientLocationUsage usage = new PlanningClientLocationUsage();
+        usage.setClientCompanyId(clientCompanyId);
+        usage.setLocationId(preferredLocationId);
+        usage.setLastUsedAt(LocalDateTime.of(2026, 6, 1, 10, 0));
+
+        when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId))
+                .thenReturn(Optional.of(clientCompany));
+        when(planningLocationRepository.findByOwnerCompanyIdOrderByNameAsc(companyId))
+                .thenReturn(List.of(otherLocation, preferredLocation));
+        when(planningClientLocationUsageRepository.findByClientCompanyIdAndLocationIdIn(clientCompanyId, List.of(otherLocationId, preferredLocationId)))
+                .thenReturn(List.of(usage));
+
+        List<PlanningLocationDTO> result = planningManagementService.listLocations(companyId, clientCompanyId);
+
+        assertEquals(List.of(preferredLocationId, otherLocationId), result.stream().map(PlanningLocationDTO::getLocationId).toList());
+        assertTrue(Boolean.TRUE.equals(result.get(0).getPreferredForClient()));
+        assertFalse(Boolean.TRUE.equals(result.get(1).getPreferredForClient()));
+    }
+
+    @Test
+    void createLocationPersistsSeparateAddressFields() {
+        UUID companyId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+
+        PlanningLocationSaveRequestDTO request = new PlanningLocationSaveRequestDTO();
+        request.setName("Rotterdam Hall");
+        request.setStreetName("Hoogstraat");
+        request.setHouseNumber("14");
+        request.setHouseNumberSuffix("A");
+        request.setPostalCode("3011 PV");
+        request.setCity("Rotterdam");
+        request.setNotes("Dock access");
+
+        when(planningLocationRepository.existsByOwnerCompanyIdAndNameIgnoreCase(companyId, "Rotterdam Hall"))
+                .thenReturn(false);
+        when(planningLocationRepository.save(any(PlanningLocation.class))).thenAnswer(invocation -> {
+            PlanningLocation location = invocation.getArgument(0);
+            location.setLocationId(locationId);
+            return location;
+        });
+
+        PlanningLocationDTO response = planningManagementService.createLocation(companyId, request);
+
+        assertEquals("Hoogstraat", response.getStreetName());
+        assertEquals("14", response.getHouseNumber());
+        assertEquals("A", response.getHouseNumberSuffix());
+        assertEquals("3011 PV", response.getPostalCode());
+        assertEquals("Rotterdam", response.getCity());
+        verify(planningLocationRepository).save(argThat(location ->
+                "Hoogstraat".equals(location.getStreetName())
+                        && "14".equals(location.getHouseNumber())
+                        && "A".equals(location.getHouseNumberSuffix())
+                        && "3011 PV".equals(location.getPostalCode())
+                        && "Rotterdam".equals(location.getCity())
+        ));
+    }
+
+    @Test
+    void createProjectRecordsSavedLocationUsageForClient() {
+        UUID companyId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID clientCompanyId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+
+        ClientCompany clientCompany = new ClientCompany();
+        clientCompany.setClientCompanyId(clientCompanyId);
+        clientCompany.setOwnerCompanyId(companyId);
+        clientCompany.setName("Client Y");
+
+        PlanningLocation savedLocation = new PlanningLocation();
+        savedLocation.setLocationId(locationId);
+        savedLocation.setOwnerCompanyId(companyId);
+        savedLocation.setName("Rotterdam Hall");
+
+        PlanningProjectSaveRequestDTO request = new PlanningProjectSaveRequestDTO();
+        request.setName("Project X");
+        request.setStartDate(LocalDate.of(2026, 6, 1));
+        request.setEndDate(LocalDate.of(2026, 6, 2));
+        request.setClientCompanyId(clientCompanyId);
+        request.setSavedLocationId(locationId);
+
+        Project savedProject = new Project();
+        savedProject.setProjectId(UUID.randomUUID());
+        savedProject.setCompanyId(companyId);
+        savedProject.setClientCompanyId(clientCompanyId);
+        savedProject.setName("Project X");
+        savedProject.setStartDate(LocalDate.of(2026, 6, 1));
+        savedProject.setEndDate(LocalDate.of(2026, 6, 2));
+
+        when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId))
+                .thenReturn(Optional.of(clientCompany));
+        when(planningLocationRepository.findByLocationIdAndOwnerCompanyId(locationId, companyId))
+                .thenReturn(Optional.of(savedLocation));
+        when(projectRepository.save(any(Project.class))).thenReturn(savedProject);
+        when(planningClientLocationUsageRepository.findByClientCompanyIdAndLocationId(clientCompanyId, locationId))
+                .thenReturn(Optional.empty());
+
+        planningManagementService.createProject(companyId, userId, request);
+
+        verify(planningClientLocationUsageRepository).save(any(PlanningClientLocationUsage.class));
+    }
+
+    private void injectAuditLogClient() {
+        try {
+            Field field = PlanningManagementService.class.getDeclaredField("auditLogClient");
+            field.setAccessible(true);
+            field.set(planningManagementService, auditLogClient);
+        } catch (ReflectiveOperationException ex) {
+            throw new AssertionError(ex);
+        }
     }
 }

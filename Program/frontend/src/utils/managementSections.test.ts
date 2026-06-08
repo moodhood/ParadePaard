@@ -21,11 +21,16 @@ describe("managementSections", () => {
                 to: "/management/horeca-payroll-rules",
                 permissions: ["CAN_MANAGE_COMPANY"],
             },
+            {
+                label: "Audit log",
+                to: "/management/audit-log",
+                permissions: ["CAN_MANAGE_COMPANY"],
+            },
         ];
 
         const sections = buildManagementSections(items);
 
-        expect(sections.map((section) => section.title)).toEqual(["People", "Planning", "Payroll", "Contracts"]);
+        expect(sections.map((section) => section.title)).toEqual(["People", "Planning", "Payroll", "Contracts", "Company"]);
         expect(sections[0]?.items.map((item) => item.label)).toEqual(["Users", "Onboarding", "Onboarding review"]);
         expect(sections[1]?.items.map((item) => item.label)).toEqual(["Planning", "Clients"]);
         expect(sections[2]?.items.map((item) => item.label)).toEqual(["All payslips"]);
@@ -33,6 +38,7 @@ describe("managementSections", () => {
             "Contracts",
             "Horeca Payroll and Contract Rules",
         ]);
+        expect(sections[4]?.items.map((item) => item.label)).toEqual(["Audit log"]);
     });
 
     it("keeps unrecognized management cards available under Other tools", () => {

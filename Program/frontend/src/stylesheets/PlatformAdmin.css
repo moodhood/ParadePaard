@@ -45,10 +45,16 @@
     white-space: nowrap;
 }
 
-.platformCompanyDetailGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 18px;
+.companyDetailActions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 4px;
+}
+
+.companyDetailMono {
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    letter-spacing: 0.02em;
 }
 
 .platformAdminFormCard {

@@ -14,6 +14,7 @@ const permissionLabelOverrides: Record<string, string> = {
     CAN_CREATE_ROLE: "Create roles",
     CAN_EDIT_ROLES: "Edit role definitions",
     CAN_DELETE_ROLES: "Delete roles",
+    CAN_DELETE_USERS: "Delete users",
     CAN_MANAGE_USERS: "Manage users",
     CAN_MANAGE_COMPANY: "Manage company profile",
     CAN_MANAGE_PLANNING: "Manage planning",
@@ -29,6 +30,7 @@ const permissionLabelOverrides: Record<string, string> = {
     CAN_FINALIZE_CONTRACT: "Finalize contracts",
     CAN_VIEW_PAYROLL_FINANCE: "View payroll finance",
     CAN_MANAGE_PAYROLL_FINANCE: "Manage payroll finance",
+    CAN_VIEW_EMPLOYEE_IDENTIFICATION: "View employee identification (BSN, ID document)",
 };
 
 const SECTION_DEFINITIONS: PermissionSectionDefinition[] = [
@@ -48,9 +50,11 @@ const SECTION_DEFINITIONS: PermissionSectionDefinition[] = [
         permissions: [
             "CAN_VIEW_USERS",
             "CAN_MANAGE_USERS",
+            "CAN_DELETE_USERS",
             "CAN_ONBOARD_USERS",
             "CAN_VIEW_ONBOARDING_QUEUE",
             "CAN_REVIEW_ONBOARDING",
+            "CAN_VIEW_EMPLOYEE_IDENTIFICATION",
         ],
     },
     {

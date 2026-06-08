@@ -60,6 +60,9 @@ public final class JobApplicationMapper {
         dto.setWorkedForUsBefore(application.isWorkedForUsBefore());
         dto.setContactConsent(application.isContactConsent());
         dto.setInformationAccurate(application.isInformationAccurate());
+        dto.setProfilePictureFileName(application.getProfilePictureFileName());
+        dto.setProfilePictureContentType(application.getProfilePictureContentType());
+        dto.setHasProfilePicture(application.getProfilePictureBytes() != null && application.getProfilePictureBytes().length > 0);
         dto.setCvFileName(application.getCvFileName());
         dto.setCvContentType(application.getCvContentType());
         dto.setStatus(application.getStatus().name());

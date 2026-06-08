@@ -16,7 +16,7 @@ vi.mock("../components/PrimaryNav", () => ({
 }));
 
 describe("HorecaPayrollRules", () => {
-    it("renders the required horeca payroll rule sections", () => {
+    it("renders the streamlined horeca payroll sections", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <HorecaPayrollRules />
@@ -24,65 +24,74 @@ describe("HorecaPayrollRules", () => {
         );
 
         [
-            "Overview",
-            "Horeca CAO source documents",
-            "Job presets",
-            "Contract settings",
             "Wage rules",
             "Tax and payroll rules",
             "Pension rules",
+            "Holiday and travel rules",
             "Example contract population",
-            "Payroll calculator",
+            "Horeca CAO source documents",
         ].forEach((sectionTitle) => {
             expect(html).toContain(sectionTitle);
         });
+
+        ["Overview", "Contract settings", "Payroll calculator", "Source details"].forEach((sectionTitle) => {
+            expect(html).not.toContain(sectionTitle);
+        });
     });
 
-    it("renders a job preset header action and icon-labelled row actions without the inline editor", () => {
+    it("renders section edit actions without the inline editor", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <HorecaPayrollRules />
             </MemoryRouter>
         );
 
-        expect(html).toContain('aria-label="Create job preset"');
-        expect(html).toContain('aria-label="Edit preset Bar employee"');
-        expect(html).toContain('aria-label="Disable preset Bar employee"');
-        expect(html).toContain('aria-label="Delete preset Bar employee"');
+        expect(html).toContain('aria-label="Edit wage rules"');
+        expect(html).toContain('aria-label="Edit tax and payroll rules"');
+        expect(html).toContain('aria-label="Edit pension rules"');
+        expect(html).toContain('aria-label="Edit holiday and travel rules"');
         expect(html).not.toContain("Clear form");
     });
 
-    it("shows important values with direct source labels", () => {
+    it("places the example contract population before the rule sections and source documents last", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <HorecaPayrollRules />
             </MemoryRouter>
         );
 
-        expect(html).toContain("Hourly wage");
-        expect(html).toContain("Source: Loontabel per 1 januari 2026, page 1");
-        expect(html).toContain("Gross hourly wage *");
-        expect(html).toContain("Manual wage override reason");
-        expect(html).toContain("Holiday allowance");
-        expect(html).toContain("Travel allowance rate");
-        expect(html).toContain("\u20ac\u00a00,23 per km");
-        expect(html).toContain("Source: Horeca cao 2025 2026, page 32");
+        const exampleIndex = html.indexOf("Example contract population");
+        const wageRulesIndex = html.indexOf("Wage rules");
+        const sourceDocumentsIndex = html.indexOf("Horeca CAO source documents");
+
+        expect(exampleIndex).toBeGreaterThanOrEqual(0);
+        expect(wageRulesIndex).toBeGreaterThan(exampleIndex);
+        expect(sourceDocumentsIndex).toBeGreaterThan(wageRulesIndex);
     });
 
-    it("renders a payroll calculator form instead of a fixed example table", () => {
+    it("replaces inline source-detail buttons with direct source links in the visible page content", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <HorecaPayrollRules />
             </MemoryRouter>
         );
 
-        expect(html).toContain("Employee date of birth");
-        expect(html).toContain("Hours per week");
-        expect(html).toContain("Loonheffingskorting");
-        expect(html).toContain("Generate output");
-        expect(html).toContain("Payroll tax withholding is estimated");
-        expect(html).not.toContain("Payroll tax withheld</span>");
-        expect(html).not.toContain("Employer AWf percentage");
-        expect(html).not.toContain("Example payroll calculation");
+        expect(html).toContain("href=\"https://static2.khn.nl/public/images/downloads/Loontabel-per-1-januari-20261.pdf\"");
+        expect(html).toContain("href=\"https://www.phenc.nl/werkgever/pensioen-bij-ons/pensioenadministratie/pensioenpremie\"");
+        expect(html).not.toContain("aria-label=\"Source details\"");
+    });
+
+    it("shows the wage rules as age-group and function-group rows instead of a single adult rate", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <HorecaPayrollRules />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Age group");
+        expect(html).toContain("Function group");
+        expect(html).toContain("Adult (21+)");
+        expect(html).toContain("I+II");
+        expect(html).toContain("managed wage rows");
     });
 });

@@ -5,6 +5,7 @@ import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
+import PlanningLocationPicker from "../components/planning/PlanningLocationPicker";
 import ShiftActionMenu from "../components/planning/ShiftActionMenu";
 import {
     UserServices,
@@ -500,6 +501,7 @@ export default function AdminPlanningOverview() {
         projectTimezone: browserTimeZone,
         clientCompanyId: "",
         location: "",
+        savedLocationId: null,
         internalDescription: "",
     });
     const visibleRange = useMemo(() => getVisibleDateRange(selectedDate, planningView), [planningView, selectedDate]);
@@ -682,6 +684,7 @@ export default function AdminPlanningOverview() {
             projectTimezone: browserTimeZone,
             clientCompanyId: "",
             location: "",
+            savedLocationId: null,
             internalDescription: "",
             defaultStartTime: "",
             defaultEndTime: "",
@@ -725,6 +728,7 @@ export default function AdminPlanningOverview() {
             projectTimezone: normalizedProjectTimezone,
             clientCompanyId: projectDraft.clientCompanyId?.trim() ? projectDraft.clientCompanyId : null,
             location: projectDraft.location?.trim() || null,
+            savedLocationId: projectDraft.savedLocationId ?? null,
             internalDescription: projectDraft.internalDescription?.trim() || null,
             defaultStartTime,
             defaultEndTime,
@@ -1692,19 +1696,21 @@ export default function AdminPlanningOverview() {
                                 </select>
                             </label>
 
-                            <label className="roleWizardField">
-                                <span className="roleWizardLabel">Location</span>
-                                <input
-                                    className="modal_input"
-                                    value={projectDraft.location ?? ""}
-                                    onChange={(event) => {
-                                        setProjectDraft((current) => ({ ...current, location: event.target.value }));
-                                        if (projectSaveError) setProjectSaveError(null);
-                                    }}
-                                    placeholder="Optional"
-                                    disabled={savingProject}
-                                />
-                            </label>
+                            <PlanningLocationPicker
+                                label="Location"
+                                value={projectDraft.location ?? ""}
+                                savedLocationId={projectDraft.savedLocationId ?? null}
+                                clientCompanyId={projectDraft.clientCompanyId ?? null}
+                                clientCompanyName={selectedClient?.name ?? null}
+                                disabled={savingProject}
+                                onChange={({ value, savedLocationId }) => {
+                                    setProjectDraft((current) => ({ ...current, location: value, savedLocationId }));
+                                    if (projectSaveError) setProjectSaveError(null);
+                                }}
+                                onDirty={() => {
+                                    if (projectSaveSuccess) setProjectSaveSuccess(null);
+                                }}
+                            />
 
                             {loadingClients ? (
                                 <div className="roleWizardMeta">Loading client companies...</div>

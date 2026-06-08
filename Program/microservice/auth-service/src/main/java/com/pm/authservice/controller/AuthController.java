@@ -55,6 +55,20 @@ public class AuthController {
         return authService.refreshToken(refreshToken);
     }
 
+    @Operation(summary = "Switch the scoped company for a platform admin session")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_PLATFORM')")
+    @PostMapping("/platform/company-scope")
+    public ResponseEntity<AuthResponseDTO> switchPlatformCompanyScope(
+            @RequestBody(required = false) PlatformCompanyScopeRequestDTO body,
+            Authentication authentication
+    ) {
+        UUID requestedCompanyId = null;
+        if (body != null && body.getCompanyId() != null && !body.getCompanyId().isBlank()) {
+            requestedCompanyId = UUID.fromString(body.getCompanyId().trim());
+        }
+        return authService.switchPlatformCompanyScope(authentication, requestedCompanyId);
+    }
+
     @Operation(summary = "Validate Token")
     @GetMapping({"/validate", "/validate/"})
     public ResponseEntity<Void> validateToken(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
@@ -93,6 +107,14 @@ public class AuthController {
     @PutMapping("/admin/users/{id}/enable")
     public ResponseEntity<Void> enableUser(@PathVariable("id") UUID userId) {
         authService.setUserDisabled(userId, false);
+        return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Delete user login credentials")
+    @PreAuthorize("hasAuthority('CAN_DELETE_USERS')")
+    @DeleteMapping("/admin/users/{id}")
+    public ResponseEntity<Void> deleteUserAccount(@PathVariable("id") UUID userId, Authentication authentication) {
+        authService.deleteUserAccount(userId, authentication);
         return ResponseEntity.noContent().build();
     }
 

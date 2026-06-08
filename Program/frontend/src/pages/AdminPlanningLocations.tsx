@@ -4,12 +4,17 @@ import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
 import Card from "../components/common/Card";
 import Modal from "../components/common/Modal";
+import PlanningLocationAddressFields from "../components/planning/PlanningLocationAddressFields";
 import {
     UserServices,
     type PlanningClientCompanyDTO,
     type PlanningLocationDTO,
     type PlanningLocationSaveDTO,
 } from "../services/user-service/UserServices";
+import {
+    buildPlanningLocationAddressLines,
+    buildPlanningLocationSearchText,
+} from "../utils/planningLocationAddress";
 import "../stylesheets/AdminDashboard.css";
 import "../stylesheets/AdminLists.css";
 import "../stylesheets/AdminUsers.css";
@@ -18,7 +23,11 @@ import "../stylesheets/AdminPlanningLocations.css";
 
 const EMPTY_LOCATION_DRAFT: PlanningLocationSaveDTO = {
     name: "",
-    address: "",
+    streetName: "",
+    houseNumber: "",
+    houseNumberSuffix: "",
+    postalCode: "",
+    city: "",
     notes: "",
     clientCompanyId: null,
 };
@@ -123,7 +132,7 @@ export default function AdminPlanningLocations() {
         if (!term) return locations;
 
         return locations.filter((location) =>
-            [location.name, location.address, location.notes]
+            [location.name, buildPlanningLocationSearchText(location), location.notes]
                 .filter(Boolean)
                 .some((value) => value!.toLowerCase().includes(term))
         );
@@ -147,7 +156,11 @@ export default function AdminPlanningLocations() {
         setEditingLocation(location);
         setDraft({
             name: location.name ?? "",
-            address: location.address ?? "",
+            streetName: location.streetName ?? "",
+            houseNumber: location.houseNumber ?? "",
+            houseNumberSuffix: location.houseNumberSuffix ?? "",
+            postalCode: location.postalCode ?? "",
+            city: location.city ?? "",
             notes: location.notes ?? "",
             clientCompanyId: location.preferredForClient ? sortClientId || null : null,
         });
@@ -172,7 +185,11 @@ export default function AdminPlanningLocations() {
 
         const payload: PlanningLocationSaveDTO = {
             name: draft.name.trim(),
-            address: draft.address?.trim() || null,
+            streetName: draft.streetName?.trim() || null,
+            houseNumber: draft.houseNumber?.trim() || null,
+            houseNumberSuffix: draft.houseNumberSuffix?.trim() || null,
+            postalCode: draft.postalCode?.trim() || null,
+            city: draft.city?.trim() || null,
             notes: draft.notes?.trim() || null,
             clientCompanyId: draft.clientCompanyId?.trim() || null,
         };
@@ -256,7 +273,7 @@ export default function AdminPlanningLocations() {
                                             type="search"
                                             value={searchTerm}
                                             onChange={(event) => setSearchTerm(event.target.value)}
-                                            placeholder="Search location, address, or notes"
+                                            placeholder="Search location, city, postal code, or notes"
                                             disabled={loading}
                                         />
                                         <select
@@ -314,7 +331,10 @@ export default function AdminPlanningLocations() {
 
                                 {showGrid ? (
                                     <div className="planningLocationsGrid">
-                                        {visibleLocations.map((location) => (
+                                        {visibleLocations.map((location) => {
+                                            const addressLines = buildPlanningLocationAddressLines(location);
+
+                                            return (
                                             <article className="planningLocationsCard" key={location.locationId}>
                                                 <div className="planningLocationsCardHeader">
                                                     <div className="planningLocationsCardHeading">
@@ -361,8 +381,21 @@ export default function AdminPlanningLocations() {
                                                 <dl className="planningLocationsMetaList">
                                                     <div>
                                                         <dt>Address</dt>
-                                                        <dd className={location.address?.trim() ? "" : "planningLocationsMuted"}>
-                                                            {location.address?.trim() || "No address added"}
+                                                        <dd
+                                                            className={
+                                                                addressLines.line1 || addressLines.line2
+                                                                    ? "planningLocationsAddressValue"
+                                                                    : "planningLocationsMuted"
+                                                            }
+                                                        >
+                                                            {addressLines.line1 || addressLines.line2 ? (
+                                                                <>
+                                                                    {addressLines.line1 ? <span>{addressLines.line1}</span> : null}
+                                                                    {addressLines.line2 ? <span>{addressLines.line2}</span> : null}
+                                                                </>
+                                                            ) : (
+                                                                "No address added"
+                                                            )}
                                                         </dd>
                                                     </div>
                                                     <div>
@@ -373,7 +406,8 @@ export default function AdminPlanningLocations() {
                                                     </div>
                                                 </dl>
                                             </article>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 ) : null}
                             </Card>
@@ -399,8 +433,7 @@ export default function AdminPlanningLocations() {
                 onClose={closeModal}
                 title={editingLocation ? "Edit location" : "Add location"}
                 hideDefaultFooter
-                maxHeight={620}
-                height={620}
+                maxHeight={720}
             >
                 <form className="planningLocationsModal" onSubmit={(event) => void handleSave(event)}>
                     <label className="planningLocationsModalField">
@@ -416,19 +449,14 @@ export default function AdminPlanningLocations() {
                             disabled={saving}
                         />
                     </label>
-                    <label className="planningLocationsModalField">
-                        <span>Address</span>
-                        <input
-                            className="modal_input"
-                            value={draft.address ?? ""}
-                            onChange={(event) => {
-                                setDraft((current) => ({ ...current, address: event.target.value }));
-                                if (saveError) setSaveError(null);
-                            }}
-                            placeholder="Optional"
-                            disabled={saving}
-                        />
-                    </label>
+                    <PlanningLocationAddressFields
+                        value={draft}
+                        onChange={(field, nextValue) => {
+                            setDraft((current) => ({ ...current, [field]: nextValue }));
+                            if (saveError) setSaveError(null);
+                        }}
+                        disabled={saving}
+                    />
                     <label className="planningLocationsModalField">
                         <span>Notes</span>
                         <textarea

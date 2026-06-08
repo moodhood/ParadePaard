@@ -23,10 +23,10 @@ private static final long serialVersionUID = 0L;
     function_ = "";
     hoursWorked_ = "";
     travelExpenses_ = "";
-    sourceEventId_ = "";
+    sourceProjectId_ = "";
     sourceShiftId_ = "";
     sourceScheduleEntryId_ = "";
-    eventName_ = "";
+    projectName_ = "";
     shiftName_ = "";
     shiftDate_ = "";
     shiftStartTime_ = "";
@@ -289,39 +289,39 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int SOURCEEVENTID_FIELD_NUMBER = 7;
+  public static final int SOURCEPROJECTID_FIELD_NUMBER = 7;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object sourceEventId_ = "";
+  private volatile java.lang.Object sourceProjectId_ = "";
   /**
-   * <code>string sourceEventId = 7;</code>
-   * @return The sourceEventId.
+   * <code>string sourceProjectId = 7;</code>
+   * @return The sourceProjectId.
    */
   @java.lang.Override
-  public java.lang.String getSourceEventId() {
-    java.lang.Object ref = sourceEventId_;
+  public java.lang.String getSourceProjectId() {
+    java.lang.Object ref = sourceProjectId_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      sourceEventId_ = s;
+      sourceProjectId_ = s;
       return s;
     }
   }
   /**
-   * <code>string sourceEventId = 7;</code>
-   * @return The bytes for sourceEventId.
+   * <code>string sourceProjectId = 7;</code>
+   * @return The bytes for sourceProjectId.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getSourceEventIdBytes() {
-    java.lang.Object ref = sourceEventId_;
+      getSourceProjectIdBytes() {
+    java.lang.Object ref = sourceProjectId_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      sourceEventId_ = b;
+      sourceProjectId_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -406,39 +406,39 @@ private static final long serialVersionUID = 0L;
     }
   }
 
-  public static final int EVENTNAME_FIELD_NUMBER = 10;
+  public static final int PROJECTNAME_FIELD_NUMBER = 10;
   @SuppressWarnings("serial")
-  private volatile java.lang.Object eventName_ = "";
+  private volatile java.lang.Object projectName_ = "";
   /**
-   * <code>string eventName = 10;</code>
-   * @return The eventName.
+   * <code>string projectName = 10;</code>
+   * @return The projectName.
    */
   @java.lang.Override
-  public java.lang.String getEventName() {
-    java.lang.Object ref = eventName_;
+  public java.lang.String getProjectName() {
+    java.lang.Object ref = projectName_;
     if (ref instanceof java.lang.String) {
       return (java.lang.String) ref;
     } else {
       com.google.protobuf.ByteString bs = 
           (com.google.protobuf.ByteString) ref;
       java.lang.String s = bs.toStringUtf8();
-      eventName_ = s;
+      projectName_ = s;
       return s;
     }
   }
   /**
-   * <code>string eventName = 10;</code>
-   * @return The bytes for eventName.
+   * <code>string projectName = 10;</code>
+   * @return The bytes for projectName.
    */
   @java.lang.Override
   public com.google.protobuf.ByteString
-      getEventNameBytes() {
-    java.lang.Object ref = eventName_;
+      getProjectNameBytes() {
+    java.lang.Object ref = projectName_;
     if (ref instanceof java.lang.String) {
       com.google.protobuf.ByteString b = 
           com.google.protobuf.ByteString.copyFromUtf8(
               (java.lang.String) ref);
-      eventName_ = b;
+      projectName_ = b;
       return b;
     } else {
       return (com.google.protobuf.ByteString) ref;
@@ -722,8 +722,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(travelExpenses_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 6, travelExpenses_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceEventId_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 7, sourceEventId_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceProjectId_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 7, sourceProjectId_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceShiftId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 8, sourceShiftId_);
@@ -731,8 +731,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceScheduleEntryId_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 9, sourceScheduleEntryId_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(eventName_)) {
-      com.google.protobuf.GeneratedMessageV3.writeString(output, 10, eventName_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(projectName_)) {
+      com.google.protobuf.GeneratedMessageV3.writeString(output, 10, projectName_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(shiftName_)) {
       com.google.protobuf.GeneratedMessageV3.writeString(output, 11, shiftName_);
@@ -782,8 +782,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(travelExpenses_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(6, travelExpenses_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceEventId_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, sourceEventId_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceProjectId_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(7, sourceProjectId_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceShiftId_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(8, sourceShiftId_);
@@ -791,8 +791,8 @@ private static final long serialVersionUID = 0L;
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(sourceScheduleEntryId_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(9, sourceScheduleEntryId_);
     }
-    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(eventName_)) {
-      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(10, eventName_);
+    if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(projectName_)) {
+      size += com.google.protobuf.GeneratedMessageV3.computeStringSize(10, projectName_);
     }
     if (!com.google.protobuf.GeneratedMessageV3.isStringEmpty(shiftName_)) {
       size += com.google.protobuf.GeneratedMessageV3.computeStringSize(11, shiftName_);
@@ -843,14 +843,14 @@ private static final long serialVersionUID = 0L;
         .equals(other.getHoursWorked())) return false;
     if (!getTravelExpenses()
         .equals(other.getTravelExpenses())) return false;
-    if (!getSourceEventId()
-        .equals(other.getSourceEventId())) return false;
+    if (!getSourceProjectId()
+        .equals(other.getSourceProjectId())) return false;
     if (!getSourceShiftId()
         .equals(other.getSourceShiftId())) return false;
     if (!getSourceScheduleEntryId()
         .equals(other.getSourceScheduleEntryId())) return false;
-    if (!getEventName()
-        .equals(other.getEventName())) return false;
+    if (!getProjectName()
+        .equals(other.getProjectName())) return false;
     if (!getShiftName()
         .equals(other.getShiftName())) return false;
     if (!getShiftDate()
@@ -888,14 +888,14 @@ private static final long serialVersionUID = 0L;
     hash = (53 * hash) + getHoursWorked().hashCode();
     hash = (37 * hash) + TRAVELEXPENSES_FIELD_NUMBER;
     hash = (53 * hash) + getTravelExpenses().hashCode();
-    hash = (37 * hash) + SOURCEEVENTID_FIELD_NUMBER;
-    hash = (53 * hash) + getSourceEventId().hashCode();
+    hash = (37 * hash) + SOURCEPROJECTID_FIELD_NUMBER;
+    hash = (53 * hash) + getSourceProjectId().hashCode();
     hash = (37 * hash) + SOURCESHIFTID_FIELD_NUMBER;
     hash = (53 * hash) + getSourceShiftId().hashCode();
     hash = (37 * hash) + SOURCESCHEDULEENTRYID_FIELD_NUMBER;
     hash = (53 * hash) + getSourceScheduleEntryId().hashCode();
-    hash = (37 * hash) + EVENTNAME_FIELD_NUMBER;
-    hash = (53 * hash) + getEventName().hashCode();
+    hash = (37 * hash) + PROJECTNAME_FIELD_NUMBER;
+    hash = (53 * hash) + getProjectName().hashCode();
     hash = (37 * hash) + SHIFTNAME_FIELD_NUMBER;
     hash = (53 * hash) + getShiftName().hashCode();
     hash = (37 * hash) + SHIFTDATE_FIELD_NUMBER;
@@ -1047,10 +1047,10 @@ private static final long serialVersionUID = 0L;
       function_ = "";
       hoursWorked_ = "";
       travelExpenses_ = "";
-      sourceEventId_ = "";
+      sourceProjectId_ = "";
       sourceShiftId_ = "";
       sourceScheduleEntryId_ = "";
-      eventName_ = "";
+      projectName_ = "";
       shiftName_ = "";
       shiftDate_ = "";
       shiftStartTime_ = "";
@@ -1110,7 +1110,7 @@ private static final long serialVersionUID = 0L;
         result.travelExpenses_ = travelExpenses_;
       }
       if (((from_bitField0_ & 0x00000040) != 0)) {
-        result.sourceEventId_ = sourceEventId_;
+        result.sourceProjectId_ = sourceProjectId_;
       }
       if (((from_bitField0_ & 0x00000080) != 0)) {
         result.sourceShiftId_ = sourceShiftId_;
@@ -1119,7 +1119,7 @@ private static final long serialVersionUID = 0L;
         result.sourceScheduleEntryId_ = sourceScheduleEntryId_;
       }
       if (((from_bitField0_ & 0x00000200) != 0)) {
-        result.eventName_ = eventName_;
+        result.projectName_ = projectName_;
       }
       if (((from_bitField0_ & 0x00000400) != 0)) {
         result.shiftName_ = shiftName_;
@@ -1218,8 +1218,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000020;
         onChanged();
       }
-      if (!other.getSourceEventId().isEmpty()) {
-        sourceEventId_ = other.sourceEventId_;
+      if (!other.getSourceProjectId().isEmpty()) {
+        sourceProjectId_ = other.sourceProjectId_;
         bitField0_ |= 0x00000040;
         onChanged();
       }
@@ -1233,8 +1233,8 @@ private static final long serialVersionUID = 0L;
         bitField0_ |= 0x00000100;
         onChanged();
       }
-      if (!other.getEventName().isEmpty()) {
-        eventName_ = other.eventName_;
+      if (!other.getProjectName().isEmpty()) {
+        projectName_ = other.projectName_;
         bitField0_ |= 0x00000200;
         onChanged();
       }
@@ -1328,7 +1328,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 50
             case 58: {
-              sourceEventId_ = input.readStringRequireUtf8();
+              sourceProjectId_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000040;
               break;
             } // case 58
@@ -1343,7 +1343,7 @@ private static final long serialVersionUID = 0L;
               break;
             } // case 74
             case 82: {
-              eventName_ = input.readStringRequireUtf8();
+              projectName_ = input.readStringRequireUtf8();
               bitField0_ |= 0x00000200;
               break;
             } // case 82
@@ -1831,73 +1831,73 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object sourceEventId_ = "";
+    private java.lang.Object sourceProjectId_ = "";
     /**
-     * <code>string sourceEventId = 7;</code>
-     * @return The sourceEventId.
+     * <code>string sourceProjectId = 7;</code>
+     * @return The sourceProjectId.
      */
-    public java.lang.String getSourceEventId() {
-      java.lang.Object ref = sourceEventId_;
+    public java.lang.String getSourceProjectId() {
+      java.lang.Object ref = sourceProjectId_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        sourceEventId_ = s;
+        sourceProjectId_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
       }
     }
     /**
-     * <code>string sourceEventId = 7;</code>
-     * @return The bytes for sourceEventId.
+     * <code>string sourceProjectId = 7;</code>
+     * @return The bytes for sourceProjectId.
      */
     public com.google.protobuf.ByteString
-        getSourceEventIdBytes() {
-      java.lang.Object ref = sourceEventId_;
+        getSourceProjectIdBytes() {
+      java.lang.Object ref = sourceProjectId_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        sourceEventId_ = b;
+        sourceProjectId_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
     /**
-     * <code>string sourceEventId = 7;</code>
-     * @param value The sourceEventId to set.
+     * <code>string sourceProjectId = 7;</code>
+     * @param value The sourceProjectId to set.
      * @return This builder for chaining.
      */
-    public Builder setSourceEventId(
+    public Builder setSourceProjectId(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      sourceEventId_ = value;
+      sourceProjectId_ = value;
       bitField0_ |= 0x00000040;
       onChanged();
       return this;
     }
     /**
-     * <code>string sourceEventId = 7;</code>
+     * <code>string sourceProjectId = 7;</code>
      * @return This builder for chaining.
      */
-    public Builder clearSourceEventId() {
-      sourceEventId_ = getDefaultInstance().getSourceEventId();
+    public Builder clearSourceProjectId() {
+      sourceProjectId_ = getDefaultInstance().getSourceProjectId();
       bitField0_ = (bitField0_ & ~0x00000040);
       onChanged();
       return this;
     }
     /**
-     * <code>string sourceEventId = 7;</code>
-     * @param value The bytes for sourceEventId to set.
+     * <code>string sourceProjectId = 7;</code>
+     * @param value The bytes for sourceProjectId to set.
      * @return This builder for chaining.
      */
-    public Builder setSourceEventIdBytes(
+    public Builder setSourceProjectIdBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      sourceEventId_ = value;
+      sourceProjectId_ = value;
       bitField0_ |= 0x00000040;
       onChanged();
       return this;
@@ -2047,73 +2047,73 @@ private static final long serialVersionUID = 0L;
       return this;
     }
 
-    private java.lang.Object eventName_ = "";
+    private java.lang.Object projectName_ = "";
     /**
-     * <code>string eventName = 10;</code>
-     * @return The eventName.
+     * <code>string projectName = 10;</code>
+     * @return The projectName.
      */
-    public java.lang.String getEventName() {
-      java.lang.Object ref = eventName_;
+    public java.lang.String getProjectName() {
+      java.lang.Object ref = projectName_;
       if (!(ref instanceof java.lang.String)) {
         com.google.protobuf.ByteString bs =
             (com.google.protobuf.ByteString) ref;
         java.lang.String s = bs.toStringUtf8();
-        eventName_ = s;
+        projectName_ = s;
         return s;
       } else {
         return (java.lang.String) ref;
       }
     }
     /**
-     * <code>string eventName = 10;</code>
-     * @return The bytes for eventName.
+     * <code>string projectName = 10;</code>
+     * @return The bytes for projectName.
      */
     public com.google.protobuf.ByteString
-        getEventNameBytes() {
-      java.lang.Object ref = eventName_;
+        getProjectNameBytes() {
+      java.lang.Object ref = projectName_;
       if (ref instanceof String) {
         com.google.protobuf.ByteString b = 
             com.google.protobuf.ByteString.copyFromUtf8(
                 (java.lang.String) ref);
-        eventName_ = b;
+        projectName_ = b;
         return b;
       } else {
         return (com.google.protobuf.ByteString) ref;
       }
     }
     /**
-     * <code>string eventName = 10;</code>
-     * @param value The eventName to set.
+     * <code>string projectName = 10;</code>
+     * @param value The projectName to set.
      * @return This builder for chaining.
      */
-    public Builder setEventName(
+    public Builder setProjectName(
         java.lang.String value) {
       if (value == null) { throw new NullPointerException(); }
-      eventName_ = value;
+      projectName_ = value;
       bitField0_ |= 0x00000200;
       onChanged();
       return this;
     }
     /**
-     * <code>string eventName = 10;</code>
+     * <code>string projectName = 10;</code>
      * @return This builder for chaining.
      */
-    public Builder clearEventName() {
-      eventName_ = getDefaultInstance().getEventName();
+    public Builder clearProjectName() {
+      projectName_ = getDefaultInstance().getProjectName();
       bitField0_ = (bitField0_ & ~0x00000200);
       onChanged();
       return this;
     }
     /**
-     * <code>string eventName = 10;</code>
-     * @param value The bytes for eventName to set.
+     * <code>string projectName = 10;</code>
+     * @param value The bytes for projectName to set.
      * @return This builder for chaining.
      */
-    public Builder setEventNameBytes(
+    public Builder setProjectNameBytes(
         com.google.protobuf.ByteString value) {
       if (value == null) { throw new NullPointerException(); }
       checkByteStringIsUtf8(value);
-      eventName_ = value;
+      projectName_ = value;
       bitField0_ |= 0x00000200;
       onChanged();
       return this;

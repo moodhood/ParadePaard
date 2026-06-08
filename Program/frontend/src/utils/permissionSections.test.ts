@@ -63,4 +63,12 @@ describe("permissionSections", () => {
         expect(formatPermission("CAN_VIEW_PAYROLL_FINANCE")).toBe("View payroll finance");
         expect(formatPermission("CAN_MANAGE_PAYROLL_FINANCE")).toBe("Manage payroll finance");
     });
+
+    it("labels delete-user permission in the people section", () => {
+        const sections = buildPermissionSections(["CAN_DELETE_USERS"]);
+
+        expect(sections.map((section) => section.title)).toEqual(["People"]);
+        expect(sections[0]?.permissions).toEqual(["CAN_DELETE_USERS"]);
+        expect(formatPermission("CAN_DELETE_USERS")).toBe("Delete users");
+    });
 });

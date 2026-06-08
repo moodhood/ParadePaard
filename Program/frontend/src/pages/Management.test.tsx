@@ -3,10 +3,12 @@ import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 import Management from "./Management";
 
+const mockedUseAuth = vi.fn(() => ({
+    permissions: ["CAN_VIEW_USERS", "CAN_ONBOARD_USERS", "CAN_MANAGE_COMPANY"],
+}));
+
 vi.mock("../context/AuthContext", () => ({
-    useAuth: () => ({
-        permissions: ["CAN_VIEW_USERS", "CAN_ONBOARD_USERS", "CAN_MANAGE_COMPANY"],
-    }),
+    useAuth: () => mockedUseAuth(),
 }));
 
 vi.mock("../components/Navbar", () => ({
@@ -56,7 +58,23 @@ describe("Management", () => {
         expect(html).not.toContain("CAO Templates");
     });
 
+    it("renders the audit log card for company managers", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <Management />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Audit log");
+        expect(html).toContain("Inspect the app-wide history of approvals");
+        expect(html).toContain("/management/audit-log");
+    });
+
     it("renders the payroll finance card for company managers", () => {
+        mockedUseAuth.mockReturnValueOnce({
+            permissions: ["CAN_MANAGE_COMPANY", "CAN_VIEW_PAYROLL_FINANCE"],
+        });
+
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <Management />
@@ -66,5 +84,21 @@ describe("Management", () => {
         expect(html).toContain("Payroll Finance");
         expect(html).toContain("View shift billing, employer costs, client charges, and payroll margin.");
         expect(html).toContain("/management/payroll-finance");
+    });
+
+    it("renders the locations card for planning managers", () => {
+        mockedUseAuth.mockReturnValueOnce({
+            permissions: ["CAN_MANAGE_PLANNING"],
+        });
+
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <Management />
+            </MemoryRouter>
+        );
+
+        expect(html).toContain("Locations");
+        expect(html).toContain("/management/locations");
+        expect(html).toContain("Manage reusable planning locations");
     });
 });

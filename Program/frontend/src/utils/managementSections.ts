@@ -47,6 +47,7 @@ const SECTION_BY_LABEL: Record<string, ManagementSectionKey> = {
     "Onboarding review": "people",
     Planning: "planning",
     Clients: "planning",
+    Locations: "planning",
     "Work history": "payroll",
     "Travel claims": "payroll",
     "All payslips": "payroll",
@@ -54,6 +55,7 @@ const SECTION_BY_LABEL: Record<string, ManagementSectionKey> = {
     "Payroll Finance": "payroll",
     Contracts: "contracts",
     "Horeca Payroll and Contract Rules": "contracts",
+    "Audit log": "company",
     "Company settings": "company",
 };
 

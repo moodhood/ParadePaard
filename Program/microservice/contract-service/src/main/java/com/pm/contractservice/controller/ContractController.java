@@ -7,6 +7,8 @@ import com.pm.contractservice.dto.ContractReviewRequestDTO;
 import com.pm.contractservice.dto.ContractViewDTO;
 import com.pm.contractservice.dto.FunctionRequestDTO;
 import com.pm.contractservice.dto.FunctionResponseDTO;
+import com.pm.contractservice.dto.RuleReplacementContractRequestDTO;
+import com.pm.contractservice.dto.RuleReplacementContractResponseDTO;
 import com.pm.contractservice.dto.SignContractRequestDTO;
 import com.pm.contractservice.dto.validators.CreateContractValidationGroup;
 import com.pm.contractservice.dto.validators.CreateFunctionValidationGroup;
@@ -21,6 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -43,8 +46,8 @@ public class ContractController {
     @GetMapping
     @Operation(summary = "Get contracts admin only")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_CONTRACTS')")
-    public ResponseEntity<List<ContractResponseDTO>> getContracts(){
-        List<ContractResponseDTO> contracts = contractService.getContracts();
+    public ResponseEntity<List<ContractResponseDTO>> getContracts(Authentication authentication){
+        List<ContractResponseDTO> contracts = contractService.getContracts(requireCompanyId(authentication));
         return ResponseEntity.ok().body(contracts);
     }
 
@@ -56,7 +59,7 @@ public class ContractController {
             return ResponseEntity.status(401).build();
         }
         UUID userId = UUID.fromString(authentication.getName());
-        return ResponseEntity.ok(contractService.getContractsForUser(userId));
+        return ResponseEntity.ok(contractService.getContractsForUser(userId, requireCompanyId(authentication)));
     }
 
     @GetMapping("/me/current")
@@ -72,7 +75,8 @@ public class ContractController {
         UUID userId = UUID.fromString(authentication.getName());
         ContractResponseDTO contract = contractService.getCurrentContract(
                 userId,
-                date == null || date.isBlank() ? null : java.time.LocalDate.parse(date)
+                date == null || date.isBlank() ? null : java.time.LocalDate.parse(date),
+                requireCompanyId(authentication)
         );
         return ResponseEntity.ok(contract);
     }
@@ -80,8 +84,8 @@ public class ContractController {
     @GetMapping("/user/{userId}")
     @Operation(summary = "Get contracts for one user admin only")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_CONTRACTS')")
-    public ResponseEntity<List<ContractResponseDTO>> getContractsForUser(@PathVariable UUID userId) {
-        return ResponseEntity.ok(contractService.getContractsForUser(userId));
+    public ResponseEntity<List<ContractResponseDTO>> getContractsForUser(@PathVariable UUID userId, Authentication authentication) {
+        return ResponseEntity.ok(contractService.getContractsForUser(userId, requireCompanyId(authentication)));
     }
 
     @GetMapping("/user/{userId}/current")
@@ -89,11 +93,13 @@ public class ContractController {
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_CONTRACTS')")
     public ResponseEntity<ContractResponseDTO> getCurrentContractForUser(
             @PathVariable UUID userId,
-            @RequestParam(required = false) String date
+            @RequestParam(required = false) String date,
+            Authentication authentication
     ) {
         ContractResponseDTO contract = contractService.getCurrentContract(
                 userId,
-                date == null || date.isBlank() ? null : java.time.LocalDate.parse(date)
+                date == null || date.isBlank() ? null : java.time.LocalDate.parse(date),
+                requireCompanyId(authentication)
         );
         return ResponseEntity.ok(contract);
     }
@@ -101,32 +107,65 @@ public class ContractController {
     @PostMapping
     @Operation(summary = "Create new contract admin only")
     @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
-    public ResponseEntity<ContractResponseDTO> createContract(@Validated({Default.class, CreateContractValidationGroup.class}) @RequestBody ContractRequestDTO contractRequestDTO){
-        ContractResponseDTO contractResponseDTO = contractService.createContract(contractRequestDTO);
+    public ResponseEntity<ContractResponseDTO> createContract(
+            @Validated({Default.class, CreateContractValidationGroup.class}) @RequestBody ContractRequestDTO contractRequestDTO,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ){
+        ContractResponseDTO contractResponseDTO = contractService.createContract(
+                contractRequestDTO,
+                requireCompanyId(authentication),
+                bearerToken(httpRequest)
+        );
         return ResponseEntity.ok().body(contractResponseDTO);
+    }
+
+    @PostMapping("/rule-replacement")
+    @Operation(summary = "Create a forward replacement draft contract from a published rule change")
+    @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
+    public ResponseEntity<RuleReplacementContractResponseDTO> createRuleReplacementDraft(
+            @RequestBody RuleReplacementContractRequestDTO request,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ) {
+        return ResponseEntity.ok(contractService.createRuleReplacementDraft(
+                request,
+                requireCompanyId(authentication),
+                bearerToken(httpRequest)
+        ));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update contract admin only")
     @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
-    public ResponseEntity<ContractResponseDTO> updateContract(@PathVariable UUID id, @Validated({Default.class}) @RequestBody ContractRequestDTO contractRequestDTO){
-        ContractResponseDTO contractResponseDTO = contractService.updateContract(id, contractRequestDTO);
+    public ResponseEntity<ContractResponseDTO> updateContract(
+            @PathVariable UUID id,
+            @Validated({Default.class}) @RequestBody ContractRequestDTO contractRequestDTO,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ){
+        ContractResponseDTO contractResponseDTO = contractService.updateContract(
+                id,
+                contractRequestDTO,
+                requireCompanyId(authentication),
+                bearerToken(httpRequest)
+        );
         return ResponseEntity.ok().body(contractResponseDTO);
     }
 
     @GetMapping("/{id}/view")
     @Operation(summary = "Get contract view with user data")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_CONTRACTS')")
-    public ResponseEntity<ContractViewDTO> getContractView(@PathVariable UUID id) {
-        ContractViewDTO contractViewDTO = contractService.getContractView(id);
+    public ResponseEntity<ContractViewDTO> getContractView(@PathVariable UUID id, Authentication authentication) {
+        ContractViewDTO contractViewDTO = contractService.getContractView(id, requireCompanyId(authentication));
         return ResponseEntity.ok().body(contractViewDTO);
     }
 
     @GetMapping("/{id}/pdf")
     @Operation(summary = "Download contract PDF")
     @PreAuthorize("hasAuthority('CAN_VIEW_ALL_CONTRACTS') or @contractPermission.isOwner(#id, authentication)")
-    public ResponseEntity<byte[]> downloadContractPdf(@PathVariable UUID id) {
-        byte[] pdf = contractService.getContractPdf(id);
+    public ResponseEntity<byte[]> downloadContractPdf(@PathVariable UUID id, Authentication authentication) {
+        byte[] pdf = contractService.getContractPdf(id, requireCompanyId(authentication));
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_PDF)
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"contract-" + id + ".pdf\"")
@@ -136,28 +175,32 @@ public class ContractController {
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete contract admin only")
     @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
-    public ResponseEntity<Void> deleteContract(@PathVariable UUID id) {
-        contractService.deleteContract(id);
+    public ResponseEntity<Void> deleteContract(@PathVariable UUID id, Authentication authentication, HttpServletRequest httpRequest) {
+        contractService.deleteContract(id, requireCompanyId(authentication), bearerToken(httpRequest));
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/finalize")
     @Operation(summary = "Finalize contract for current user")
     @PreAuthorize("hasAuthority('CAN_FINALIZE_CONTRACT')")
-    public ResponseEntity<ContractResponseDTO> finalizeContract(Authentication authentication) {
+    public ResponseEntity<ContractResponseDTO> finalizeContract(Authentication authentication, HttpServletRequest httpRequest) {
         if (authentication == null || authentication.getName() == null) {
             return ResponseEntity.status(401).build();
         }
         UUID userId = UUID.fromString(authentication.getName());
-        ContractResponseDTO response = contractService.finalizeContract(userId);
+        ContractResponseDTO response = contractService.finalizeContract(userId, bearerToken(httpRequest));
         return ResponseEntity.ok().body(response);
     }
 
     @PostMapping("/{id}/send")
     @Operation(summary = "Send contract to employee")
     @PreAuthorize("hasAuthority('CAN_MANAGE_CONTRACTS')")
-    public ResponseEntity<ContractResponseDTO> sendContract(@PathVariable UUID id) {
-        return ResponseEntity.ok(contractService.sendContract(id));
+    public ResponseEntity<ContractResponseDTO> sendContract(
+            @PathVariable UUID id,
+            Authentication authentication,
+            HttpServletRequest httpRequest
+    ) {
+        return ResponseEntity.ok(contractService.sendContract(id, requireCompanyId(authentication), bearerToken(httpRequest)));
     }
 
     @PostMapping("/{id}/employer-signature")
@@ -179,7 +222,13 @@ public class ContractController {
         if (signature.getBrowserUserAgent() == null || signature.getBrowserUserAgent().isBlank()) {
             signature.setBrowserUserAgent(httpRequest.getHeader("User-Agent"));
         }
-        return ResponseEntity.ok(contractService.prepareEmployerSignature(id, managerUserId, signature));
+        return ResponseEntity.ok(contractService.prepareEmployerSignature(
+                id,
+                managerUserId,
+                requireCompanyId(authentication),
+                signature,
+                bearerToken(httpRequest)
+        ));
     }
 
     @PostMapping("/{id}/sign")
@@ -199,7 +248,7 @@ public class ContractController {
         if (signature.getBrowserUserAgent() == null || signature.getBrowserUserAgent().isBlank()) {
             signature.setBrowserUserAgent(httpRequest.getHeader("User-Agent"));
         }
-        return ResponseEntity.ok(contractService.signContract(id, userId, signature));
+        return ResponseEntity.ok(contractService.signContract(id, userId, signature, bearerToken(httpRequest)));
     }
 
     private static String clientIp(HttpServletRequest request) {
@@ -229,7 +278,13 @@ public class ContractController {
         if (signature.getBrowserUserAgent() == null || signature.getBrowserUserAgent().isBlank()) {
             signature.setBrowserUserAgent(httpRequest.getHeader("User-Agent"));
         }
-        return ResponseEntity.ok(contractService.finalizeContractById(id, managerUserId, signature));
+        return ResponseEntity.ok(contractService.finalizeContractById(
+                id,
+                managerUserId,
+                requireCompanyId(authentication),
+                signature,
+                bearerToken(httpRequest)
+        ));
     }
 
     @PostMapping("/{id}/reject")
@@ -237,9 +292,40 @@ public class ContractController {
     @PreAuthorize("hasAuthority('CAN_REVIEW_CONTRACTS')")
     public ResponseEntity<ContractResponseDTO> rejectContract(
             @PathVariable UUID id,
-            @RequestBody ContractReviewRequestDTO request
+            @RequestBody ContractReviewRequestDTO request,
+            Authentication authentication,
+            HttpServletRequest httpRequest
     ) {
-        return ResponseEntity.ok(contractService.rejectContract(id, request.getComment()));
+        return ResponseEntity.ok(contractService.rejectContract(
+                id,
+                requireCompanyId(authentication),
+                request.getComment(),
+                bearerToken(httpRequest)
+        ));
+    }
+
+    private static UUID requireCompanyId(Authentication authentication) {
+        if (authentication instanceof JwtAuthenticationToken jwtAuthenticationToken) {
+            String claim = jwtAuthenticationToken.getToken().getClaimAsString("companyId");
+            if (claim != null && !claim.isBlank()) {
+                return UUID.fromString(claim.trim());
+            }
+        }
+        return null;
+    }
+
+    private static String bearerToken(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String authorization = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if (authorization == null || authorization.isBlank()) {
+            return null;
+        }
+        if (authorization.regionMatches(true, 0, "Bearer ", 0, 7)) {
+            return authorization.substring(7).trim();
+        }
+        return null;
     }
 
     @GetMapping("/function")

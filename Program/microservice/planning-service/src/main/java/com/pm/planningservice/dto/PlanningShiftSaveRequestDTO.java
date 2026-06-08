@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 public class PlanningShiftSaveRequestDTO {
     @NotNull
@@ -17,6 +18,8 @@ public class PlanningShiftSaveRequestDTO {
     private Integer breakMinutes;
 
     private String location;
+
+    private UUID savedLocationId;
 
     private Integer peopleNeeded;
 
@@ -61,6 +64,14 @@ public class PlanningShiftSaveRequestDTO {
 
     public void setLocation(String location) {
         this.location = location;
+    }
+
+    public UUID getSavedLocationId() {
+        return savedLocationId;
+    }
+
+    public void setSavedLocationId(UUID savedLocationId) {
+        this.savedLocationId = savedLocationId;
     }
 
     public Integer getPeopleNeeded() {

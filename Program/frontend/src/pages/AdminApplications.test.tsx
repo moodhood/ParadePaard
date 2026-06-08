@@ -40,6 +40,8 @@ const submittedApplication: JobApplicationResponseDTO = {
     workedForUsBefore: false,
     contactConsent: true,
     informationAccurate: true,
+    hasProfilePicture: true,
+    profilePictureFileName: "alex.png",
     cvFileName: "alex-cv.pdf",
     status: "APPLICATION_SUBMITTED",
     decisionEmailSent: false,
@@ -85,6 +87,9 @@ describe("AdminApplications", () => {
                     decision={decisionState}
                     cvLoading={false}
                     cvError={null}
+                    profilePictureUrl="blob:alex"
+                    profilePictureLoading={false}
+                    profilePictureError={null}
                     onDecisionNoteChange={() => undefined}
                     onAccept={() => undefined}
                     onDeny={() => undefined}
@@ -98,6 +103,7 @@ describe("AdminApplications", () => {
         expect(html).toContain("Accept application");
         expect(html).toContain("Deny application");
         expect(html).toContain("Review note");
+        expect(html).toContain("Applicant photo");
         expect(html).toContain("Download CV");
         expect(html).toContain("Decision email pending");
     });
@@ -123,6 +129,9 @@ describe("AdminApplications", () => {
                     decision={decisionState}
                     cvLoading={false}
                     cvError={null}
+                    profilePictureUrl="blob:alex"
+                    profilePictureLoading={false}
+                    profilePictureError={null}
                     onDecisionNoteChange={() => undefined}
                     onAccept={() => undefined}
                     onDeny={() => undefined}
@@ -161,6 +170,9 @@ describe("AdminApplications", () => {
                     decision={decisionState}
                     cvLoading={false}
                     cvError={null}
+                    profilePictureUrl="blob:alex"
+                    profilePictureLoading={false}
+                    profilePictureError={null}
                     onDecisionNoteChange={() => undefined}
                     onAccept={() => undefined}
                     onDeny={() => undefined}

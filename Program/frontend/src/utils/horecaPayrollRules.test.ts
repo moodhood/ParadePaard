@@ -4,6 +4,7 @@ import {
     calculatePayrollCalculator,
     calculateMonthlyHours,
     formatOnboardingReviewTravelAllowanceHelpText,
+    getManagedHorecaWageRules,
     getActiveHorecaJobPresets,
     getHorecaMinimumHourlyWage,
     getHorecaRequiredHourlyWage,
@@ -107,6 +108,44 @@ describe("horecaPayrollRules", () => {
             functionGroup: "I+II",
         });
         expect(lookup.minimumHourlyWage).toBeNull();
+    });
+
+    it("can resolve the minimum wage from backend-managed wage rule items", () => {
+        const managedRules = getManagedHorecaWageRules([
+            {
+                itemKey: "adultFunctionGroupI_IIHourlyWage",
+                name: "Adult function group I+II hourly wage",
+                valueNumber: 14.71,
+                valueType: "NUMBER",
+                functionGroup: "I+II",
+                ageGroup: "Adult",
+                documentName: "Loontabel per 1 januari 2026",
+                pageReference: "1",
+            },
+            {
+                itemKey: "age18FunctionGroupI_IIHourlyWage",
+                name: "Age 18 function group I+II hourly wage",
+                valueNumber: 9.56,
+                valueType: "NUMBER",
+                functionGroup: "I+II",
+                ageGroup: "18",
+                documentName: "Loontabel per 1 januari 2026",
+                pageReference: "1",
+            },
+        ]);
+
+        const lookup = getHorecaMinimumHourlyWage(
+            {
+                dateOfBirth: "2007-12-31",
+                referenceDate: "2026-01-01",
+                functionGroup: "I+II",
+            },
+            { wageRules: managedRules }
+        );
+
+        expect(lookup.ageGroup).toBe("18");
+        expect(lookup.minimumHourlyWage).toBe(9.56);
+        expect(lookup.sourceId).toBe("loontabel-2026-01-01");
     });
 
     it("requires a reason when the admin manually overrides the wage", () => {

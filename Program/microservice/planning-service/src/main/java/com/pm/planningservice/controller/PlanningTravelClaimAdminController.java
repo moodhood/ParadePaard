@@ -3,6 +3,7 @@ package com.pm.planningservice.controller;
 import com.pm.planningservice.dto.TravelClaimReviewRequestDTO;
 import com.pm.planningservice.security.PlanningAuthentication;
 import com.pm.planningservice.service.EmployeePlanningService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -40,7 +41,8 @@ public class PlanningTravelClaimAdminController {
     public ResponseEntity<?> reviewClaim(
             Authentication authentication,
             @PathVariable UUID scheduleEntryId,
-            @Valid @RequestBody TravelClaimReviewRequestDTO request
+            @Valid @RequestBody TravelClaimReviewRequestDTO request,
+            HttpServletRequest httpRequest
     ) {
         try {
             UUID companyId = PlanningAuthentication.requireCompanyId(authentication);
@@ -50,7 +52,8 @@ public class PlanningTravelClaimAdminController {
                     reviewerUserId,
                     scheduleEntryId,
                     request.getStatus(),
-                    request.getRejectionNote()
+                    request.getRejectionNote(),
+                    PlanningAuthentication.bearerToken(httpRequest)
             ));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
