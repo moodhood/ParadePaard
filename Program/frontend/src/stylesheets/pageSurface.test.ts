@@ -6,15 +6,23 @@ function stylesheetText(relativePath: string): string {
 }
 
 describe("shared page surface styling", () => {
-    it("uses the same shared background token for the sidebar and admin shell pages", () => {
+    it("uses the same shared background token for shell chrome and authenticated page roots", () => {
         const pageShellCss = stylesheetText("./PageShell.css");
         const primaryNavCss = stylesheetText("./PrimaryNav.css");
         const adminDashboardCss = stylesheetText("./AdminDashboard.css");
         const managementCss = stylesheetText("./Management.css");
+        const adminAuditLogCss = stylesheetText("./AdminAuditLog.css");
+        const messagesCss = stylesheetText("./Messages.css");
+        const payrollFinanceCss = stylesheetText("./PayrollFinance.css");
+        const horecaRulesCss = stylesheetText("./HorecaPayrollRules.css");
 
         expect(pageShellCss).toContain("--app-shell-background");
         expect(primaryNavCss).toContain("var(--app-shell-background");
         expect(adminDashboardCss).toContain("var(--app-shell-background");
         expect(managementCss).toContain("var(--app-shell-background");
+        expect(adminAuditLogCss).toContain("var(--app-shell-background");
+        expect(messagesCss).toContain("var(--app-shell-background");
+        expect(payrollFinanceCss).toContain("var(--app-shell-background");
+        expect(horecaRulesCss).toContain("var(--app-shell-background");
     });
 });

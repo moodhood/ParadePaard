@@ -416,6 +416,52 @@
     padding: 0;
 }
 
+/* Onboarding restart panel shown inside the Active contract card when there
+ * is no contract yet. Sits inline with the other card body content so it
+ * reads as a guided action rather than a separate form. */
+.contractRestartBox {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 20px 0;
+}
+
+.contractRestartIntro {
+    margin: 0;
+    color: #0f172a;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.contractRestartBody {
+    margin: 0;
+    color: #475569;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.contractRestartSteps {
+    margin: 0;
+    padding-left: 20px;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.contractRestartSteps li + li {
+    margin-top: 2px;
+}
+
+.contractRestartActions {
+    margin-top: 4px;
+    align-items: center;
+}
+
+.contractRestartActions .button {
+    text-decoration: none;
+}
+
 /* Inline hint shown under the gross hourly wage input that tells the admin
  * which horeca minimum wage applies to this employee's age. Kept small and
  * neutral so it reads as guidance rather than an error. */

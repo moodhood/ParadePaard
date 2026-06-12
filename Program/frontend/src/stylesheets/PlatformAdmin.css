@@ -61,13 +61,26 @@
     max-width: 820px;
 }
 
+/* Give the form a bit more horizontal breathing room than the default 24px
+ * card padding so the inputs don't run right up against the card edge.
+ * Keeps left and right padding identical so the form reads symmetrically. */
 .platformAdminFormCard .uiCardBody {
-    padding: 24px;
+    padding: 28px 40px;
+    box-sizing: border-box;
 }
 
 .platformAdminForm {
     display: grid;
     gap: 16px;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+@media (max-width: 640px) {
+    .platformAdminFormCard .uiCardBody {
+        padding: 22px 20px;
+    }
 }
 
 .platformAdminForm label {
@@ -75,14 +88,20 @@
     gap: 8px;
     color: #102a43;
     font-weight: 600;
+    margin: 0;
 }
 
 .platformAdminForm input {
+    /* box-sizing: border-box keeps the input's outer edges aligned with the
+     * label and grid, so the inner 14px text padding doesn't push the right
+     * edge further out than the left edge of the card body. */
     width: 100%;
+    box-sizing: border-box;
     min-height: 46px;
     border: 1px solid rgba(15, 23, 42, 0.12);
     border-radius: 14px;
     padding: 0 14px;
+    margin: 0;
     font: inherit;
     color: #102a43;
     background: #ffffff;

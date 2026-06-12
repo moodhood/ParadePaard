@@ -80,7 +80,9 @@ describe("Onboarding address layout", () => {
         expect(onboardingCss).toContain("align-self: center;");
         expect(onboardingCss).toContain("min-height: 86px;");
         expect(onboardingCss).toContain("@media (max-width: 640px)");
-        expect(onboardingCss).toContain(".onboardingDocumentUploadGrid {\n        grid-template-columns: 1fr;\n    }");
+        expect(onboardingCss).toMatch(
+            /@media \(max-width: 640px\)[\s\S]*\.onboardingDocumentUploadGrid\s*\{[\s\S]*grid-template-columns:\s*1fr;/
+        );
     });
 
     it("scopes onboarding error styles to the onboarding card", () => {
@@ -107,5 +109,15 @@ describe("Onboarding address layout", () => {
         expect(activeGuard).toContain("isContractSigningRoute");
         expect(activeGuard).toContain('location.pathname.startsWith("/contracts/")');
         expect(activeGuard).toContain('location.pathname.endsWith("/sign")');
+    });
+
+    it("shows the waiting-state management CTA and reuses management-access policy", () => {
+        const onboardingPage = readFileSync(new URL("./Onboarding.tsx", import.meta.url), "utf8");
+        const activeGuard = readFileSync(new URL("../components/RequireActiveUser.tsx", import.meta.url), "utf8");
+
+        expect(onboardingPage).toContain('navigate("/management")');
+        expect(onboardingPage).toContain("canAccessManagement(permissions)");
+        expect(activeGuard).toContain("canAccessManagement(permissions)");
+        expect(activeGuard).not.toContain("SELF_APPROVAL_PERMISSIONS");
     });
 });

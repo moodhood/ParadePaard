@@ -118,7 +118,10 @@
   border-top: 1px solid #eee;
   display: flex;
   justify-content: flex-end;
-  background: #fff;
+  /* Leave the footer transparent so action rows sit on whatever surrounds
+   * them (a translucent card, a coloured panel, etc.) instead of a solid
+   * white strip that breaks the card surface. */
+  background: transparent;
 }
 
 /* --- Specific Column Definitions --- */

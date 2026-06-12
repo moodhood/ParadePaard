@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { UserServices } from "../services/user-service/UserServices";
-import { normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
+import { formatDateInput, normalizeDateInput, parseDisplayDate } from "../utils/dateInput";
+import { canAccessManagement } from "../utils/permissionPolicy";
 import "../stylesheets/Onboarding.css";
 
 type Step = 1 | 2 | 3 | 4 | 5;
@@ -21,7 +22,8 @@ function hasValue(value: string) {
     return value.trim().length > 0;
 }
 
-function WaitingForReview() {
+function WaitingForReview({ canOpenManagement }: { canOpenManagement: boolean }) {
+    const navigate = useNavigate();
     return (
         <div className="onboarding-container">
             <div className="onboarding-card onboarding-card--waiting">
@@ -31,6 +33,13 @@ function WaitingForReview() {
                     Your onboarding details are awaiting internal review. You can return here to check the status,
                     and ParadePaard will continue the contract process after the review is complete.
                 </p>
+                {canOpenManagement ? (
+                    <div className="onboarding-actions onboarding-actions--waiting">
+                        <button type="button" onClick={() => navigate("/management")}>
+                            Go to management
+                        </button>
+                    </div>
+                ) : null}
             </div>
         </div>
     );
@@ -38,7 +47,8 @@ function WaitingForReview() {
 
 export default function Onboarding() {
     const navigate = useNavigate();
-    const { status, setStatus } = useAuth();
+    const { status, setStatus, permissions } = useAuth();
+    const canOpenManagement = canAccessManagement(permissions);
     const [step, setStep] = useState<Step>(1);
     const [showWaiting, setShowWaiting] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -71,6 +81,53 @@ export default function Onboarding() {
     const [emergencyContactRelationship, setEmergencyContactRelationship] = useState("");
     const [emergencyContactPhone, setEmergencyContactPhone] = useState("");
     const [emergencyContactEmail, setEmergencyContactEmail] = useState("");
+
+    // Pre-fill the form with whatever the user has on file. This is the
+    // "redo onboarding" case: when an admin sends the user back through the
+    // form, we don't want them to retype everything. They can review, change
+    // what is now wrong, and resubmit. ID document images are NOT pre-filled
+    // because file inputs can't carry an existing blob — the user has to
+    // upload again, and the prompt below makes that clear.
+    useEffect(() => {
+        let cancelled = false;
+        if (status === "PENDING_PROFILE_REVIEW" || showWaiting) return;
+        UserServices.getMe()
+            .then((me) => {
+                if (cancelled || !me) return;
+                if (me.street) setStreet(me.street);
+                if (me.houseNumber) setHouseNumber(me.houseNumber);
+                if (me.houseNumberSuffix) setHouseNumberSuffix(me.houseNumberSuffix);
+                if (me.postalCode) setPostalCode(me.postalCode);
+                if (me.city) setCity(me.city);
+                if (me.country) setCountry(me.country);
+                if (me.iban) setIban(me.iban);
+                if (me.bankAccountHolderName) setBankAccountHolderName(me.bankAccountHolderName);
+                if (me.employeeTaxProfile?.bsn) setBsn(me.employeeTaxProfile.bsn);
+                if (typeof me.employeeTaxProfile?.applyLoonheffingskorting === "boolean") {
+                    setApplyLoonheffingskorting(me.employeeTaxProfile.applyLoonheffingskorting);
+                }
+                if (me.employeeTaxProfile?.payrollNotes) setPayrollNotes(me.employeeTaxProfile.payrollNotes);
+                if (me.nationality) setNationality(me.nationality);
+                if (me.idDocumentType) setIdDocumentType(me.idDocumentType);
+                if (me.idDocumentNumber) setIdDocumentNumber(me.idDocumentNumber);
+                if (me.idIssueDate) setIdIssueDate(formatDateInput(me.idIssueDate));
+                if (me.idExpirationDate) setIdExpirationDate(formatDateInput(me.idExpirationDate));
+                if (me.idIssuingCountry) setIdIssuingCountry(me.idIssuingCountry);
+                if (me.emergencyContactName) setEmergencyContactName(me.emergencyContactName);
+                if (me.emergencyContactRelationship) {
+                    setEmergencyContactRelationship(me.emergencyContactRelationship);
+                }
+                if (me.emergencyContactPhone) setEmergencyContactPhone(me.emergencyContactPhone);
+                if (me.emergencyContactEmail) setEmergencyContactEmail(me.emergencyContactEmail);
+            })
+            .catch(() => {
+                // Silent fallback: leave the form blank so the user can still
+                // complete onboarding from scratch when prefill fails.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [status, showWaiting]);
 
     const canContinue = useMemo(() => {
         if (step === 1) {
@@ -186,14 +243,18 @@ export default function Onboarding() {
     };
 
     if (status === "PENDING_PROFILE_REVIEW" || showWaiting) {
-        return <WaitingForReview />;
+        return <WaitingForReview canOpenManagement={canOpenManagement} />;
     }
 
     return (
         <div className="onboarding-container">
             <div className="onboarding-card">
-                <h1>Finish Your Setup</h1>
-                <p className="onboarding-subtitle">Complete your private onboarding details for review.</p>
+                <h1>Complete your account setup</h1>
+                <p className="onboarding-subtitle">
+                    {status === "CHANGES_REQUESTED"
+                        ? "Review the details we already have on file, update anything that has changed, and submit them for review. Please re-upload your ID document images."
+                        : "Complete your required details so your account can be activated."}
+                </p>
 
                 <div className="step-indicator" aria-label="Onboarding sections">
                     {STEPS.map((stepNumber) => (

@@ -1,9 +1,7 @@
 .auditLogPage {
     min-height: calc(100vh - 64px);
     padding: 0 0 56px;
-    background:
-        radial-gradient(circle at top right, rgba(191, 223, 255, 0.28), transparent 32%),
-        linear-gradient(180deg, #f5f8fc 0%, #eef3f9 100%);
+    background: var(--app-shell-background, #f2f2f2);
 }
 
 .auditLogShell {

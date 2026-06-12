@@ -189,6 +189,12 @@
     margin-top: 18px;
 }
 
+/* Waiting-for-review variant: only one action (Continue to admin), so
+ * center it rather than spreading across the row. */
+.onboarding-actions--waiting {
+    justify-content: center;
+}
+
 .onboarding-actions button {
     padding: 10px 16px;
     border: none;

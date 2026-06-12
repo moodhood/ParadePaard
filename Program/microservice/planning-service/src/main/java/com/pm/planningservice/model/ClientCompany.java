@@ -10,7 +10,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.Lob;
 import jakarta.persistence.OrderColumn;
 import jakarta.persistence.Table;
 
@@ -43,7 +42,12 @@ public class ClientCompany {
     @Column(length = 4000)
     private String notes;
 
-    @Lob
+    // The Flyway schema stores this column as plain TEXT (a URL or remote
+    // reference, not a binary blob). Annotating it with @Lob made Hibernate
+    // think it should be a PostgreSQL `oid` (large object) and try to alter
+    // the column on every startup under update/create ddl-auto. columnDefinition
+    // pins it to TEXT so the entity matches the Flyway-owned schema.
+    @Column(columnDefinition = "text")
     private String profilePictureUrl;
 
     @ElementCollection(fetch = FetchType.EAGER)
