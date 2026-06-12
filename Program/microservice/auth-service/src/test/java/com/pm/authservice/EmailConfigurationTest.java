@@ -28,4 +28,15 @@ class EmailConfigurationTest {
                 .contains("email.from-address=${SES_FROM_EMAIL:noreply@lambdamanager.com}")
                 .doesNotContainIgnoringCase("mailersend");
     }
+
+    @Test
+    void dockerComposeRequiresSesSmtpCredentials() throws Exception {
+        String compose = Files.readString(Path.of("../docker-compose.yml"));
+
+        assertThat(compose)
+                .contains("SES_SMTP_USERNAME: \"${SES_SMTP_USERNAME:?SES_SMTP_USERNAME must be set}\"")
+                .contains("SES_SMTP_PASSWORD: \"${SES_SMTP_PASSWORD:?SES_SMTP_PASSWORD must be set}\"")
+                .doesNotContain("SES_SMTP_USERNAME: \"${SES_SMTP_USERNAME:-}\"")
+                .doesNotContain("SES_SMTP_PASSWORD: \"${SES_SMTP_PASSWORD:-}\"");
+    }
 }
