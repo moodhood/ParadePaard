@@ -80,8 +80,8 @@ services:
       PASSWORD_RESET_HMAC_SECRET: "${PASSWORD_RESET_HMAC_SECRET:-e3f6c9a4d1b0b7e8f2c0a61d7d4f9b3a8c1e5b0d9a7f3c6e2b8d1a4f0c9e7b2d6a1f4c8b0e3d9a2c7f6b1d0e5a8c3f9b2d7e1c4a0b9d6f2c8a1e3b7d0c5a9f1b4e8d2c6a0f3b9d1e7c2a5f0b8d4c9e1a6}"
       SES_SMTP_HOST: "${SES_SMTP_HOST:-email-smtp.eu-north-1.amazonaws.com}"
       SES_SMTP_PORT: "${SES_SMTP_PORT:-587}"
-      SES_SMTP_USERNAME: "${SES_SMTP_USERNAME:-}"
-      SES_SMTP_PASSWORD: "${SES_SMTP_PASSWORD:-}"
+      SES_SMTP_USERNAME: "${SES_SMTP_USERNAME:?SES_SMTP_USERNAME must be set}"
+      SES_SMTP_PASSWORD: "${SES_SMTP_PASSWORD:?SES_SMTP_PASSWORD must be set}"
       SES_FROM_EMAIL: "${SES_FROM_EMAIL:-noreply@lambdamanager.com}"
       
       SPRING_DATASOURCE_PASSWORD: "password"
@@ -141,8 +141,8 @@ services:
       CONTRACT_EMAIL_CONTRACT_URL: "http://localhost:5173/account/employment"
       SES_SMTP_HOST: "${SES_SMTP_HOST:-email-smtp.eu-north-1.amazonaws.com}"
       SES_SMTP_PORT: "${SES_SMTP_PORT:-587}"
-      SES_SMTP_USERNAME: "${SES_SMTP_USERNAME:-}"
-      SES_SMTP_PASSWORD: "${SES_SMTP_PASSWORD:-}"
+      SES_SMTP_USERNAME: "${SES_SMTP_USERNAME:?SES_SMTP_USERNAME must be set}"
+      SES_SMTP_PASSWORD: "${SES_SMTP_PASSWORD:?SES_SMTP_PASSWORD must be set}"
       SES_FROM_EMAIL: "${SES_FROM_EMAIL:-noreply@lambdamanager.com}"
     depends_on: [contract-service-db, user-service, kafka]
 
