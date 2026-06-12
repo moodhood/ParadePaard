@@ -23,6 +23,8 @@ import com.pm.contractservice.repository.FunctionRepository;
 import com.pm.contractservice.service.events.ContractEventPublisher;
 import com.pm.contractservice.service.pdf.ContractPdfGenerator;
 import com.pm.contractservice.validation.ContractValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +40,7 @@ import java.util.UUID;
 
 @Service
 public class ContractService {
+    private static final Logger log = LoggerFactory.getLogger(ContractService.class);
 
     private final ContractRepository contractRepository;
     private final ContractValidator contractValidator;
@@ -650,7 +653,16 @@ public class ContractService {
         request.setEntityType("CONTRACT");
         request.setEntityId(contract.getContractId() == null ? null : contract.getContractId().toString());
         request.setMessageParts(messageParts);
-        auditLogClient.record(accessToken, request);
+        try {
+            auditLogClient.record(accessToken, request);
+        } catch (RuntimeException ex) {
+            log.warn(
+                    "Audit log recording failed for contract {} action {}",
+                    request.getEntityId(),
+                    action,
+                    ex
+            );
+        }
     }
 
     private static AuditLogMessagePartDTO textPart(String text) {
