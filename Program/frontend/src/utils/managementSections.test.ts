@@ -6,7 +6,6 @@ describe("managementSections", () => {
     it("groups allowed management cards into visible work areas and omits empty sections", () => {
         const items: NavItem[] = [
             { label: "Users", to: "/management/users", permissions: ["CAN_VIEW_USERS"] },
-            { label: "Onboarding", to: "/management/onboarding", permissions: ["CAN_ONBOARD_USERS"] },
             {
                 label: "Onboarding review",
                 to: "/management/onboarding-review",
@@ -31,7 +30,7 @@ describe("managementSections", () => {
         const sections = buildManagementSections(items);
 
         expect(sections.map((section) => section.title)).toEqual(["People", "Planning", "Payroll", "Contracts", "Company"]);
-        expect(sections[0]?.items.map((item) => item.label)).toEqual(["Users", "Onboarding", "Onboarding review"]);
+        expect(sections[0]?.items.map((item) => item.label)).toEqual(["Users", "Onboarding review"]);
         expect(sections[1]?.items.map((item) => item.label)).toEqual(["Planning", "Clients"]);
         expect(sections[2]?.items.map((item) => item.label)).toEqual(["All payslips"]);
         expect(sections[3]?.items.map((item) => item.label)).toEqual([

@@ -101,4 +101,15 @@ describe("Management", () => {
         expect(html).toContain("/management/locations");
         expect(html).toContain("Manage reusable planning locations");
     });
+
+    it("does not render the retired onboarding card on the management page", () => {
+        const html = renderToStaticMarkup(
+            <MemoryRouter>
+                <Management />
+            </MemoryRouter>
+        );
+
+        expect(html).not.toContain(">Onboarding<");
+        expect(html).not.toContain("/management/onboarding");
+    });
 });

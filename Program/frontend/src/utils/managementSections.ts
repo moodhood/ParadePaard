@@ -13,7 +13,7 @@ const SECTION_DETAILS: Record<ManagementSectionKey, Omit<ManagementSection, "ite
     people: {
         key: "people",
         title: "People",
-        description: "Employee records, profiles, and onboarding.",
+        description: "Employee records, profiles, applications, and review work.",
     },
     planning: {
         key: "planning",
@@ -43,7 +43,6 @@ const SECTION_BY_LABEL: Record<string, ManagementSectionKey> = {
     Users: "people",
     Messages: "people",
     Applications: "people",
-    Onboarding: "people",
     "Onboarding review": "people",
     Planning: "planning",
     Clients: "planning",

@@ -21,6 +21,7 @@ describe("permissionPolicy", () => {
 
     it("treats management access as any management permission", () => {
         expect(canAccessManagement([])).toBe(false);
+        expect(canAccessManagement(["CAN_ONBOARD_USERS"])).toBe(false);
         expect(canAccessManagement(["CAN_VIEW_PAYSLIPS"])).toBe(false);
         expect(canAccessManagement(["CAN_MANAGE_PLANNING"])).toBe(true);
         expect(canAccessManagement(["CAN_REVIEW_PAYSLIPS"])).toBe(true);
@@ -91,6 +92,10 @@ describe("permissionPolicy", () => {
                 expect.objectContaining({ label: "Applications", to: "/management/applications" }),
             ])
         );
+    });
+
+    it("keeps onboarding permission out of the management nav", () => {
+        expect(getManagementNavItems(["CAN_ONBOARD_USERS"])).toEqual([]);
     });
 
     it("keeps company managers on horeca rules and company settings without CAO templates", () => {

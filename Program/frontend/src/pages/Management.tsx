@@ -53,10 +53,6 @@ const cardDetails: Record<string, { description: string; meta: string }> = {
         description: "Open the employee directory, inspect profiles, and review access details.",
         meta: "Employee directory",
     },
-    Onboarding: {
-        description: "Invite a new employee and start their account and contract setup.",
-        meta: "New employee setup",
-    },
     Applications: {
         description: "Review public job applications and accept or deny applicants.",
         meta: "Application review",

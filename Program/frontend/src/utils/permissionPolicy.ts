@@ -69,7 +69,6 @@ export const MANAGEMENT_PERMISSIONS = [
     "CAN_VIEW_USERS",
     "CAN_MANAGE_USERS",
     DELETE_USERS_PERMISSION,
-    "CAN_ONBOARD_USERS",
     "CAN_MANAGE_PLANNING",
     "CAN_VIEW_ALL_TIMESHEETS",
     "CAN_MANAGE_TIMESHEETS",
@@ -93,7 +92,6 @@ export const MANAGEMENT_NAV_ITEMS: NavItem[] = [
         to: "/management/applications",
         permissions: APPLICATION_REVIEW_PERMISSIONS,
     },
-    { label: "Onboarding", to: "/management/onboarding", permissions: ["CAN_ONBOARD_USERS"] },
     {
         label: "Onboarding review",
         to: "/management/onboarding-review",

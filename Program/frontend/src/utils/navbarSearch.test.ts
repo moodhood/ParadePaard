@@ -16,10 +16,10 @@ const pages: NavbarSearchPage[] = [
     },
     {
         kind: "page",
-        label: "Onboarding",
-        to: "/management/onboarding",
+        label: "Applications",
+        to: "/management/applications",
         section: "Management",
-        searchText: "onboarding management users",
+        searchText: "applications management applicants",
     },
 ];
 
@@ -39,9 +39,9 @@ describe("navbarSearch", () => {
     });
 
     it("keeps exact page-intent queries available without auto-selecting anything", () => {
-        const results = buildNavbarSearchResults("onboarding", pages, users);
+        const results = buildNavbarSearchResults("applications", pages, users);
 
-        expect(results.map((result) => result.label)).toEqual(["Onboarding"]);
+        expect(results.map((result) => result.label)).toEqual(["Applications"]);
     });
 
     it("cycles highlighted index through visible results with arrow keys", () => {

@@ -3,7 +3,7 @@ import { getSearchableNavbarPages } from "./navbarSearchPages";
 
 describe("navbarSearchPages", () => {
     it("returns direct pages the user can navigate to from the navbar and management nav", () => {
-        const pages = getSearchableNavbarPages(["CAN_ONBOARD_USERS", "CAN_MANAGE_TIMESHEETS"]).map((page) => ({
+        const pages = getSearchableNavbarPages(["CAN_VIEW_APPLICATIONS", "CAN_MANAGE_TIMESHEETS"]).map((page) => ({
             label: page.label,
             to: page.to,
             kind: page.kind,
@@ -13,7 +13,7 @@ describe("navbarSearchPages", () => {
         expect(pages).toEqual(
             expect.arrayContaining([
                 { label: "Dashboard", to: "/dashboard", kind: "page", section: "Main" },
-                { label: "Onboarding", to: "/management/onboarding", kind: "page", section: "Management" },
+                { label: "Applications", to: "/management/applications", kind: "page", section: "Management" },
                 { label: "Travel claims", to: "/management/travel-claims", kind: "page", section: "Management" },
                 { label: "Work history", to: "/work-history", kind: "page", section: "Main" },
             ])

@@ -21,6 +21,16 @@ class ApiGatewayRouteConfigurationTest {
         assertThat(route).doesNotContain("JwtValidation");
     }
 
+    @Test
+    void platformCompanyScopeRouteIsForwardedToAuthServiceWithJwtValidation() throws IOException {
+        String route = routeBlock("auth-service-protected");
+
+        assertThat(route).contains("uri: http://auth-service:4005");
+        assertThat(route).contains("/auth/platform/company-scope");
+        assertThat(route).contains("- StripPrefix=1");
+        assertThat(route).contains("- JwtValidation");
+    }
+
     private static String routeBlock(String routeId) throws IOException {
         List<String> lines = readApplicationYaml().lines().toList();
         int routeStart = -1;

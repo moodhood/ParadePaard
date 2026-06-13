@@ -99,7 +99,7 @@ spring:
             - id: auth-service-protected
               uri: http://auth-service:4005
               predicates:
-                - Path=/auth/is-admin,/auth/change-password,/auth/profile,/auth/me,/auth/permissions
+                - Path=/auth/is-admin,/auth/change-password,/auth/profile,/auth/me,/auth/permissions,/auth/platform/company-scope
               filters:
                 - StripPrefix=1
                 - JwtValidation
