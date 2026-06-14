@@ -9,7 +9,7 @@ export type PlanningLocationSaveDTO = {
     postalCode?: string | null;
     city?: string | null;
     notes?: string | null;
-    clientCompanyId?: string | null;
+    prioritizedClientCompanyIds?: string[];
 };
 
 async function unwrap<T>(promise: Promise<{ data: T; status: number }>, fallbackMessage: string): Promise<T> {

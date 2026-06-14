@@ -29,7 +29,7 @@ const EMPTY_LOCATION_DRAFT: PlanningLocationSaveDTO = {
     postalCode: "",
     city: "",
     notes: "",
-    clientCompanyId: null,
+    prioritizedClientCompanyIds: [],
 };
 
 function SuccessCheckIcon() {
@@ -82,6 +82,47 @@ type LocationDeleteConfirmationProps = {
     onCancel: () => void;
     onConfirm: () => void;
 };
+
+type LocationClientPriorityChecklistProps = {
+    clients: PlanningClientCompanyDTO[];
+    selectedClientIds: string[];
+    disabled: boolean;
+    onChange: (clientIds: string[]) => void;
+};
+
+export function LocationClientPriorityChecklist({
+    clients,
+    selectedClientIds,
+    disabled,
+    onChange,
+}: LocationClientPriorityChecklistProps) {
+    const selectedIds = new Set(selectedClientIds);
+
+    return (
+        <div className="planningLocationsClientChecklist">
+            {clients.length === 0 ? (
+                <span className="planningLocationsClientChecklistEmpty">No clients available.</span>
+            ) : clients.map((client) => {
+                const checked = selectedIds.has(client.clientCompanyId);
+                return (
+                    <label className="planningLocationsClientOption" key={client.clientCompanyId}>
+                        <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={disabled}
+                            onChange={() => {
+                                onChange(checked
+                                    ? selectedClientIds.filter((id) => id !== client.clientCompanyId)
+                                    : [...selectedClientIds, client.clientCompanyId]);
+                            }}
+                        />
+                        <span>{client.name}</span>
+                    </label>
+                );
+            })}
+        </div>
+    );
+}
 
 export function LocationDeleteConfirmation({
     locationName,
@@ -211,7 +252,7 @@ export default function AdminPlanningLocations() {
     function resetDraft(nextClientId?: string | null) {
         setDraft({
             ...EMPTY_LOCATION_DRAFT,
-            clientCompanyId: nextClientId ?? (sortClientId || null),
+            prioritizedClientCompanyIds: nextClientId ? [nextClientId] : (sortClientId ? [sortClientId] : []),
         });
     }
 
@@ -232,7 +273,7 @@ export default function AdminPlanningLocations() {
             postalCode: location.postalCode ?? "",
             city: location.city ?? "",
             notes: location.notes ?? "",
-            clientCompanyId: location.preferredForClient ? sortClientId || null : null,
+            prioritizedClientCompanyIds: location.prioritizedClientCompanyIds ?? [],
         });
         setSaveError(null);
         setIsModalOpen(true);
@@ -261,7 +302,7 @@ export default function AdminPlanningLocations() {
             postalCode: draft.postalCode?.trim() || null,
             city: draft.city?.trim() || null,
             notes: draft.notes?.trim() || null,
-            clientCompanyId: draft.clientCompanyId?.trim() || null,
+            prioritizedClientCompanyIds: draft.prioritizedClientCompanyIds ?? [],
         };
 
         try {
@@ -593,28 +634,20 @@ export default function AdminPlanningLocations() {
                             disabled={saving}
                         />
                     </label>
-                    <label className="planningLocationsModalField">
-                        <span>Prioritize for client</span>
-                        <select
-                            className="modal_input"
-                            value={draft.clientCompanyId ?? ""}
-                            onChange={(event) => {
-                                setDraft((current) => ({ ...current, clientCompanyId: event.target.value || null }));
+                    <fieldset className="planningLocationsModalField planningLocationsClientField">
+                        <legend>Prioritize for clients</legend>
+                        <LocationClientPriorityChecklist
+                            clients={clients}
+                            selectedClientIds={draft.prioritizedClientCompanyIds ?? []}
+                            disabled={saving}
+                            onChange={(prioritizedClientCompanyIds) => {
+                                setDraft((current) => ({ ...current, prioritizedClientCompanyIds }));
                                 if (saveError) setSaveError(null);
                             }}
-                            disabled={saving}
-                        >
-                            <option value="">No specific client</option>
-                            {clients.map((client) => (
-                                <option key={client.clientCompanyId} value={client.clientCompanyId}>
-                                    {client.name}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                        />
+                    </fieldset>
                     <div className="planningLocationsModalHint">
-                        Choosing a client pushes this location to the top of that client&apos;s picker the next time a
-                        project or shift is created.
+                        Selected clients see this location first. Unselected clients can still search for and choose it.
                     </div>
                     {saveError ? <div className="planningLocationsError">{saveError}</div> : null}
                     <div className="planningLocationsModalActions">

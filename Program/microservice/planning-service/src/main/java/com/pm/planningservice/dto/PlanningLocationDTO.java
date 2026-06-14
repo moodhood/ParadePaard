@@ -1,6 +1,8 @@
 package com.pm.planningservice.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class PlanningLocationDTO {
@@ -12,6 +14,7 @@ public class PlanningLocationDTO {
     private String postalCode;
     private String city;
     private String notes;
+    private List<UUID> prioritizedClientCompanyIds = new ArrayList<>();
     private Boolean preferredForClient;
     private LocalDateTime lastUsedAtForClient;
     private LocalDateTime createdAt;
@@ -79,6 +82,16 @@ public class PlanningLocationDTO {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public List<UUID> getPrioritizedClientCompanyIds() {
+        return prioritizedClientCompanyIds;
+    }
+
+    public void setPrioritizedClientCompanyIds(List<UUID> prioritizedClientCompanyIds) {
+        this.prioritizedClientCompanyIds = prioritizedClientCompanyIds == null
+                ? new ArrayList<>()
+                : new ArrayList<>(prioritizedClientCompanyIds);
     }
 
     public Boolean getPreferredForClient() {

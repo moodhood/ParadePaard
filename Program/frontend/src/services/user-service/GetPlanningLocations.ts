@@ -9,6 +9,7 @@ export type PlanningLocationDTO = {
     postalCode?: string | null;
     city?: string | null;
     notes?: string | null;
+    prioritizedClientCompanyIds?: string[];
     preferredForClient?: boolean | null;
     lastUsedAtForClient?: string | null;
     createdAt?: string | null;
