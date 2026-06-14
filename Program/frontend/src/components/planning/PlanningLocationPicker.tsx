@@ -127,7 +127,7 @@ export default function PlanningLocationPicker({
                 postalCode: createDraft.postalCode.trim() || null,
                 city: createDraft.city.trim() || null,
                 notes: createDraft.notes.trim() || null,
-                clientCompanyId,
+                prioritizedClientCompanyIds: clientCompanyId ? [clientCompanyId] : [],
             });
             const refreshed = await UserServices.getPlanningLocations(clientCompanyId);
             setLocations(refreshed);

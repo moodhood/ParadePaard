@@ -49,7 +49,7 @@ describe("planning location services", () => {
             postalCode: "3011 PV",
             city: "Rotterdam",
             notes: "Dock access",
-            clientCompanyId: "client-123",
+            prioritizedClientCompanyIds: ["client-123", "client-456"],
         });
 
         expect(axios.post).toHaveBeenCalledWith(
@@ -62,7 +62,7 @@ describe("planning location services", () => {
                 postalCode: "3011 PV",
                 city: "Rotterdam",
                 notes: "Dock access",
-                clientCompanyId: "client-123",
+                prioritizedClientCompanyIds: ["client-123", "client-456"],
             },
             expect.objectContaining({
                 headers: { "Content-Type": "application/json" },
@@ -89,7 +89,7 @@ describe("planning location services", () => {
             postalCode: null,
             city: null,
             notes: null,
-            clientCompanyId: null,
+            prioritizedClientCompanyIds: [],
         });
         await DeletePlanningLocation("http://localhost:4004", "loc-1");
 
@@ -103,7 +103,7 @@ describe("planning location services", () => {
                 postalCode: null,
                 city: null,
                 notes: null,
-                clientCompanyId: null,
+                prioritizedClientCompanyIds: [],
             },
             expect.objectContaining({
                 headers: { "Content-Type": "application/json" },

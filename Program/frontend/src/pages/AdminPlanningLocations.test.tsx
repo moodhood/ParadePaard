@@ -1,7 +1,10 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import AdminPlanningLocations, { LocationDeleteConfirmation } from "./AdminPlanningLocations";
+import AdminPlanningLocations, {
+    LocationClientPriorityChecklist,
+    LocationDeleteConfirmation,
+} from "./AdminPlanningLocations";
 
 vi.mock("../components/Navbar", () => ({
     default: function MockNavbar() {
@@ -55,5 +58,24 @@ describe("AdminPlanningLocations", () => {
         expect(html).toContain("This action cannot be undone");
         expect(html).toContain("Cancel");
         expect(html).toContain("Delete location");
+    });
+
+    it("renders multiple selected clients as checkboxes", () => {
+        const html = renderToStaticMarkup(
+            <LocationClientPriorityChecklist
+                clients={[
+                    { clientCompanyId: "client-1", name: "Client One", contacts: [] },
+                    { clientCompanyId: "client-2", name: "Client Two", contacts: [] },
+                ]}
+                selectedClientIds={["client-1", "client-2"]}
+                disabled={false}
+                onChange={() => undefined}
+            />
+        );
+
+        expect(html).toContain("Client One");
+        expect(html).toContain("Client Two");
+        expect(html.match(/type=\"checkbox\"/g)).toHaveLength(2);
+        expect(html.match(/checked=\"\"/g)).toHaveLength(2);
     });
 });
