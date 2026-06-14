@@ -15,6 +15,7 @@ describe("shared page surface styling", () => {
         const messagesCss = stylesheetText("./Messages.css");
         const payrollFinanceCss = stylesheetText("./PayrollFinance.css");
         const horecaRulesCss = stylesheetText("./HorecaPayrollRules.css");
+        const profileCss = stylesheetText("./Profile.css");
 
         expect(pageShellCss).toContain("--app-shell-background");
         expect(primaryNavCss).toContain("var(--app-shell-background");
@@ -24,5 +25,6 @@ describe("shared page surface styling", () => {
         expect(messagesCss).toContain("var(--app-shell-background");
         expect(payrollFinanceCss).toContain("var(--app-shell-background");
         expect(horecaRulesCss).toContain("var(--app-shell-background");
+        expect(profileCss).toContain("background: var(--app-shell-background, #f2f2f2);");
     });
 });
