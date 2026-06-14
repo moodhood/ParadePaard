@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type KeyboardEvent } from "react";
 import Navbar from "../components/Navbar";
 import PageBack from "../components/PageBack";
 import PrimaryNav from "../components/PrimaryNav";
@@ -60,6 +60,63 @@ function LocationPinIcon() {
     );
 }
 
+function WarningIcon() {
+    return (
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path
+                d="M12 3.5 21 19H3L12 3.5Z"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinejoin="round"
+            />
+            <path d="M12 9v4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            <circle cx="12" cy="16.7" r="1" fill="currentColor" />
+        </svg>
+    );
+}
+
+type LocationDeleteConfirmationProps = {
+    locationName: string;
+    deleting: boolean;
+    error: string | null;
+    onCancel: () => void;
+    onConfirm: () => void;
+};
+
+export function LocationDeleteConfirmation({
+    locationName,
+    deleting,
+    error,
+    onCancel,
+    onConfirm,
+}: LocationDeleteConfirmationProps) {
+    return (
+        <div className="planningLocationsDeletePrompt">
+            <div className="planningLocationsDeletePromptIcon">
+                <WarningIcon />
+            </div>
+            <div className="planningLocationsDeletePromptContent">
+                <p className="planningLocationsDeletePromptTitle">
+                    Delete <strong>{locationName}</strong>?
+                </p>
+                <p className="planningLocationsDeletePromptText">
+                    This action cannot be undone. The saved location will no longer be available when creating or
+                    editing projects and shifts.
+                </p>
+            </div>
+            {error ? <div className="planningLocationsError planningLocationsDeletePromptError">{error}</div> : null}
+            <div className="planningLocationsDeletePromptActions">
+                <button type="button" className="buttonSecondary" onClick={onCancel} disabled={deleting}>
+                    Cancel
+                </button>
+                <button type="button" className="buttonDanger" onClick={onConfirm} disabled={deleting}>
+                    {deleting ? "Deleting..." : "Delete location"}
+                </button>
+            </div>
+        </div>
+    );
+}
+
 function formatLastUsed(value?: string | null): string | null {
     if (!value) return null;
     const date = new Date(value);
@@ -69,6 +126,16 @@ function formatLastUsed(value?: string | null): string | null {
         month: "short",
         year: "numeric",
     }).format(date);
+}
+
+function formatLocationStatus(location: PlanningLocationDTO): string {
+    const lastUsed = formatLastUsed(location.lastUsedAtForClient);
+    const parts = [
+        location.preferredForClient ? "Top for client" : null,
+        lastUsed ? `Last used ${lastUsed}` : null,
+    ].filter(Boolean);
+
+    return parts.length > 0 ? parts.join(" | ") : "No client ranking yet";
 }
 
 export default function AdminPlanningLocations() {
@@ -82,6 +149,9 @@ export default function AdminPlanningLocations() {
     const [searchTerm, setSearchTerm] = useState("");
     const [sortClientId, setSortClientId] = useState("");
     const [editingLocation, setEditingLocation] = useState<PlanningLocationDTO | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<PlanningLocationDTO | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [draft, setDraft] = useState<PlanningLocationSaveDTO>(EMPTY_LOCATION_DRAFT);
 
@@ -215,25 +285,43 @@ export default function AdminPlanningLocations() {
         }
     }
 
-    async function handleDelete(location: PlanningLocationDTO) {
-        const confirmed = window.confirm(`Delete location "${location.name}"?`);
-        if (!confirmed) return;
+    function openDeletePrompt(location: PlanningLocationDTO) {
+        setDeleteTarget(location);
+        setDeleteError(null);
+    }
+
+    function closeDeletePrompt() {
+        if (deleting) return;
+        setDeleteTarget(null);
+        setDeleteError(null);
+    }
+
+    async function handleDelete() {
+        if (!deleteTarget) return;
 
         try {
-            setSaving(true);
-            setError(null);
-            await UserServices.deletePlanningLocation(location.locationId);
+            setDeleting(true);
+            setDeleteError(null);
+            await UserServices.deletePlanningLocation(deleteTarget.locationId);
             setSaveSuccess("Location deleted.");
-            if (editingLocation?.locationId === location.locationId) {
+            if (editingLocation?.locationId === deleteTarget.locationId) {
                 setIsModalOpen(false);
                 setEditingLocation(null);
             }
+            setDeleteTarget(null);
             await loadLocations(sortClientId || null);
         } catch (err: unknown) {
             const message = err instanceof Error ? err.message : "Failed to delete location.";
-            setError(message);
+            setDeleteError(message);
         } finally {
-            setSaving(false);
+            setDeleting(false);
+        }
+    }
+
+    function handleLocationRowKeyDown(event: KeyboardEvent<HTMLDivElement>, location: PlanningLocationDTO) {
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openEditModal(location);
         }
     }
 
@@ -266,7 +354,7 @@ export default function AdminPlanningLocations() {
                                             {hasAnyLocations
                                                 ? `${visibleLocations.length} of ${locations.length} shown`
                                                 : "No locations yet"}
-                                            {selectedClient ? ` · ranked for ${selectedClient.name}` : ""}
+                                            {selectedClient ? ` | ranked for ${selectedClient.name}` : ""}
                                         </span>
                                         <input
                                             className="adminUsersSearchInput"
@@ -302,112 +390,131 @@ export default function AdminPlanningLocations() {
                                 )}
                             >
                                 {error ? <div className="planningLocationsError">{error}</div> : null}
-                                {loading ? (
-                                    <div className="planningLocationsState">Loading locations…</div>
-                                ) : null}
 
-                                {showEmpty ? (
-                                    <div className="planningLocationsEmpty">
-                                        <span className="planningLocationsEmptyIcon">
-                                            <LocationPinIcon />
-                                        </span>
-                                        <h3>
-                                            {hasAnyLocations
-                                                ? "No locations match this view"
-                                                : "No saved locations yet"}
-                                        </h3>
-                                        <p>
-                                            {hasAnyLocations
-                                                ? "Try a different search term or client filter."
-                                                : "Add a reusable location to speed up project and shift planning."}
-                                        </p>
-                                        {!hasAnyLocations ? (
-                                            <button type="button" className="button" onClick={openCreateModal}>
-                                                Add your first location
-                                            </button>
-                                        ) : null}
-                                    </div>
-                                ) : null}
+                                {!error ? (
+                                    <div className="listContainer planningLocationsListContainer">
+                                        <div className="listHeaderGrid gridPlanningLocations">
+                                            <div>Location</div>
+                                            <div>Address</div>
+                                            <div>Notes</div>
+                                            <div>Client status</div>
+                                            <div>Actions</div>
+                                        </div>
+                                        <div className="listScrollArea planningLocationsListScroll">
+                                            {loading ? (
+                                                <div className="planningLocationsState">Loading locations...</div>
+                                            ) : null}
 
-                                {showGrid ? (
-                                    <div className="planningLocationsGrid">
-                                        {visibleLocations.map((location) => {
-                                            const addressLines = buildPlanningLocationAddressLines(location);
-
-                                            return (
-                                            <article className="planningLocationsCard" key={location.locationId}>
-                                                <div className="planningLocationsCardHeader">
-                                                    <div className="planningLocationsCardHeading">
-                                                        <span className="planningLocationsCardPin" aria-hidden="true">
-                                                            <LocationPinIcon />
-                                                        </span>
-                                                        <h2>{location.name}</h2>
-                                                    </div>
-                                                    <div className="planningLocationsCardActions">
-                                                        <button
-                                                            type="button"
-                                                            className="buttonSecondary"
-                                                            onClick={() => openEditModal(location)}
-                                                            disabled={saving}
-                                                        >
-                                                            Edit
+                                            {showEmpty ? (
+                                                <div className="planningLocationsEmpty">
+                                                    <span className="planningLocationsEmptyIcon">
+                                                        <LocationPinIcon />
+                                                    </span>
+                                                    <h3>
+                                                        {hasAnyLocations
+                                                            ? "No locations match this view"
+                                                            : "No saved locations yet"}
+                                                    </h3>
+                                                    <p>
+                                                        {hasAnyLocations
+                                                            ? "Try a different search term or client filter."
+                                                            : "Add a reusable location to speed up project and shift planning."}
+                                                    </p>
+                                                    {!hasAnyLocations ? (
+                                                        <button type="button" className="button" onClick={openCreateModal}>
+                                                            Add your first location
                                                         </button>
-                                                        <button
-                                                            type="button"
-                                                            className="buttonDanger"
-                                                            onClick={() => void handleDelete(location)}
-                                                            disabled={saving}
-                                                        >
-                                                            Delete
-                                                        </button>
-                                                    </div>
+                                                    ) : null}
                                                 </div>
+                                            ) : null}
 
-                                                {location.preferredForClient || formatLastUsed(location.lastUsedAtForClient) ? (
-                                                    <div className="planningLocationsCardBadges">
-                                                        {location.preferredForClient ? (
-                                                            <span className="planningLocationsBadge planningLocationsBadge--preferred">
-                                                                Top for client
-                                                            </span>
-                                                        ) : null}
-                                                        {formatLastUsed(location.lastUsedAtForClient) ? (
-                                                            <span className="planningLocationsBadge">
-                                                                Last used {formatLastUsed(location.lastUsedAtForClient)}
-                                                            </span>
-                                                        ) : null}
-                                                    </div>
-                                                ) : null}
+                                            {showGrid
+                                                ? visibleLocations.map((location) => {
+                                                      const addressLines = buildPlanningLocationAddressLines(location);
+                                                      const hasAddress = Boolean(addressLines.line1 || addressLines.line2);
+                                                      const hasNotes = Boolean(location.notes?.trim());
+                                                      const status = formatLocationStatus(location);
+                                                      const isMutedStatus = status === "No client ranking yet";
 
-                                                <dl className="planningLocationsMetaList">
-                                                    <div>
-                                                        <dt>Address</dt>
-                                                        <dd
-                                                            className={
-                                                                addressLines.line1 || addressLines.line2
-                                                                    ? "planningLocationsAddressValue"
-                                                                    : "planningLocationsMuted"
-                                                            }
-                                                        >
-                                                            {addressLines.line1 || addressLines.line2 ? (
-                                                                <>
-                                                                    {addressLines.line1 ? <span>{addressLines.line1}</span> : null}
-                                                                    {addressLines.line2 ? <span>{addressLines.line2}</span> : null}
-                                                                </>
-                                                            ) : (
-                                                                "No address added"
-                                                            )}
-                                                        </dd>
-                                                    </div>
-                                                    <div>
-                                                        <dt>Notes</dt>
-                                                        <dd className={location.notes?.trim() ? "" : "planningLocationsMuted"}>
-                                                            {location.notes?.trim() || "No notes added"}
-                                                        </dd>
-                                                    </div>
-                                                </dl>
-                                            </article>
-                                            );
-                                        })}
+                                                      return (
+                                                          <div
+                                                              key={location.locationId}
+                                                              className="listRowGrid gridPlanningLocations clickableRow planningLocationsRow"
+                                                              role="button"
+                                                              tabIndex={0}
+                                                              onClick={() => openEditModal(location)}
+                                                              onKeyDown={(event) => handleLocationRowKeyDown(event, location)}
+                                                          >
+                                                              <div className="planningLocationsCell planningLocationsCell--name">
+                                                                  <span className="cellMain">{location.name}</span>
+                                                              </div>
+                                                              <div
+                                                                  className={`planningLocationsCell planningLocationsCell--address${
+                                                                      hasAddress ? "" : " planningLocationsCell--muted"
+                                                                  }`}
+                                                              >
+                                                                  {hasAddress ? (
+                                                                      <>
+                                                                          {addressLines.line1 ? (
+                                                                              <span className="planningLocationsCellLine">
+                                                                                  {addressLines.line1}
+                                                                              </span>
+                                                                          ) : null}
+                                                                          {addressLines.line2 ? (
+                                                                              <span className="planningLocationsCellLine">
+                                                                                  {addressLines.line2}
+                                                                              </span>
+                                                                          ) : null}
+                                                                      </>
+                                                                  ) : (
+                                                                      <span className="planningLocationsCellLine">No address added</span>
+                                                                  )}
+                                                              </div>
+                                                              <div
+                                                                  className={`planningLocationsCell planningLocationsCell--notes${
+                                                                      hasNotes ? "" : " planningLocationsCell--muted"
+                                                                  }`}
+                                                              >
+                                                                  <span className="planningLocationsCellLine">
+                                                                      {location.notes?.trim() || "No notes added"}
+                                                                  </span>
+                                                              </div>
+                                                              <div
+                                                                  className={`planningLocationsCell planningLocationsCell--status${
+                                                                      isMutedStatus ? " planningLocationsCell--muted" : ""
+                                                                  }`}
+                                                              >
+                                                                  <span className="planningLocationsCellLine">{status}</span>
+                                                              </div>
+                                                              <div className="planningLocationsActions">
+                                                                  <button
+                                                                      type="button"
+                                                                      className="buttonSecondary"
+                                                                      onClick={(event) => {
+                                                                          event.stopPropagation();
+                                                                          openEditModal(location);
+                                                                      }}
+                                                                      disabled={saving}
+                                                                  >
+                                                                      Edit
+                                                                  </button>
+                                                                  <button
+                                                                      type="button"
+                                                                      className="buttonDanger"
+                                                                      onClick={(event) => {
+                                                                          event.stopPropagation();
+                                                                          openDeletePrompt(location);
+                                                                      }}
+                                                                      disabled={saving || deleting}
+                                                                  >
+                                                                      Delete
+                                                                  </button>
+                                                              </div>
+                                                          </div>
+                                                      );
+                                                  })
+                                                : null}
+                                        </div>
                                     </div>
                                 ) : null}
                             </Card>
@@ -427,6 +534,22 @@ export default function AdminPlanningLocations() {
                     </div>
                 </div>
             ) : null}
+
+            <Modal
+                open={Boolean(deleteTarget)}
+                onClose={closeDeletePrompt}
+                title="Delete location"
+                hideDefaultFooter
+                maxHeight={440}
+            >
+                <LocationDeleteConfirmation
+                    locationName={deleteTarget?.name ?? "this location"}
+                    deleting={deleting}
+                    error={deleteError}
+                    onCancel={closeDeletePrompt}
+                    onConfirm={() => void handleDelete()}
+                />
+            </Modal>
 
             <Modal
                 open={isModalOpen}

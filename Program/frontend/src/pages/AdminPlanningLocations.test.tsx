@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
-import AdminPlanningLocations from "./AdminPlanningLocations";
+import AdminPlanningLocations, { LocationDeleteConfirmation } from "./AdminPlanningLocations";
 
 vi.mock("../components/Navbar", () => ({
     default: function MockNavbar() {
@@ -22,7 +22,7 @@ vi.mock("../components/PageBack", () => ({
 }));
 
 describe("AdminPlanningLocations", () => {
-    it("renders the planning locations workspace shell", () => {
+    it("renders the planning locations page as a standard row list shell", () => {
         const html = renderToStaticMarkup(
             <MemoryRouter>
                 <AdminPlanningLocations />
@@ -32,5 +32,28 @@ describe("AdminPlanningLocations", () => {
         expect(html).toContain("Planning locations");
         expect(html).toContain("Add location");
         expect(html).toContain("Saved locations");
+        expect(html).toContain("Location");
+        expect(html).toContain("Address");
+        expect(html).toContain("Notes");
+        expect(html).toContain("Client status");
+        expect(html).toContain("Actions");
+        expect(html).not.toContain("planningLocationsGrid");
+    });
+
+    it("renders a clear in-app confirmation before deleting a location", () => {
+        const html = renderToStaticMarkup(
+            <LocationDeleteConfirmation
+                locationName="Rotterdam Hall"
+                deleting={false}
+                error={null}
+                onCancel={() => undefined}
+                onConfirm={() => undefined}
+            />
+        );
+
+        expect(html).toContain("Rotterdam Hall");
+        expect(html).toContain("This action cannot be undone");
+        expect(html).toContain("Cancel");
+        expect(html).toContain("Delete location");
     });
 });

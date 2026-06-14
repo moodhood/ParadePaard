@@ -1,6 +1,5 @@
 /* src/stylesheets/AdminPlanningLocations.css */
 
-/* --- Toolbar (extends .adminUsersToolbar) --- */
 .planningLocationsToolbar {
   justify-content: flex-end;
 }
@@ -13,7 +12,6 @@
   min-width: 170px;
 }
 
-/* --- States --- */
 .planningLocationsError,
 .planningLocationsModalHint {
   border-radius: 12px;
@@ -35,6 +33,25 @@
   color: #64748b;
 }
 
+.planningLocationsListContainer {
+  min-height: 0;
+}
+
+.gridPlanningLocations {
+  grid-template-columns:
+    minmax(180px, 1.15fr)
+    minmax(220px, 1.35fr)
+    minmax(190px, 1.1fr)
+    minmax(180px, 0.95fr)
+    minmax(160px, auto);
+  min-width: 980px;
+}
+
+.planningLocationsListScroll {
+  max-height: 560px;
+  overflow: auto;
+}
+
 .planningLocationsState {
   padding: 28px 16px;
   text-align: center;
@@ -42,7 +59,44 @@
   font-size: 14px;
 }
 
-/* --- Empty state --- */
+.planningLocationsRow {
+  align-items: flex-start;
+}
+
+.planningLocationsCell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  color: #334155;
+}
+
+.planningLocationsCell--name {
+  padding-top: 1px;
+}
+
+.planningLocationsCell--muted {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.planningLocationsCellLine {
+  display: block;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.planningLocationsActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.planningLocationsActions > button {
+  min-width: 72px;
+}
+
 .planningLocationsEmpty {
   display: flex;
   flex-direction: column;
@@ -83,141 +137,6 @@
   color: #64748b;
 }
 
-/* --- Locations grid --- */
-.planningLocationsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-}
-
-.planningLocationsCard {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 18px;
-  border: 1px solid #e6e9f0;
-  border-radius: 14px;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-  transition: box-shadow 0.16s ease, border-color 0.16s ease, transform 0.16s ease;
-}
-
-.planningLocationsCard:hover {
-  border-color: #cdd7e6;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
-  transform: translateY(-1px);
-}
-
-.planningLocationsCardHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.planningLocationsCardHeading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-width: 0;
-}
-
-.planningLocationsCardPin {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: #eef4ff;
-  color: #2f6bff;
-}
-
-.planningLocationsCardPin svg {
-  width: 18px;
-  height: 18px;
-}
-
-.planningLocationsCardHeading h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 17px;
-  font-weight: 800;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.planningLocationsCardBadges,
-.planningLocationsCardActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.planningLocationsCardActions {
-  flex: 0 0 auto;
-}
-
-.planningLocationsBadge {
-  display: inline-flex;
-  align-items: center;
-  min-height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: #eef1f6;
-  color: #475569;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.planningLocationsBadge--preferred {
-  background: #d1fae5;
-  color: #047857;
-}
-
-/* --- Meta list --- */
-.planningLocationsMetaList {
-  display: grid;
-  gap: 12px;
-  margin: 0;
-  padding-top: 2px;
-  border-top: 1px solid #f0f2f7;
-}
-
-.planningLocationsMetaList div {
-  display: grid;
-  gap: 3px;
-}
-
-.planningLocationsMetaList dt {
-  color: #94a3b8;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.planningLocationsMetaList dd {
-  margin: 0;
-  color: #1f2937;
-  font-size: 14px;
-  line-height: 1.5;
-  word-break: break-word;
-}
-
-.planningLocationsAddressValue {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.planningLocationsMuted {
-  color: #9aa5b5;
-  font-style: italic;
-}
-
-/* --- Modal --- */
 .planningLocationsModal {
   display: flex;
   flex-direction: column;
@@ -247,7 +166,67 @@
   gap: 10px;
 }
 
-/* --- Success toast (matches app toast language) --- */
+.planningLocationsDeletePrompt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px 14px;
+}
+
+.planningLocationsDeletePromptIcon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: #fff1f2;
+  color: #be123c;
+}
+
+.planningLocationsDeletePromptIcon svg {
+  width: 22px;
+  height: 22px;
+}
+
+.planningLocationsDeletePromptContent {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.planningLocationsDeletePromptTitle,
+.planningLocationsDeletePromptText {
+  margin: 0;
+}
+
+.planningLocationsDeletePromptTitle {
+  color: #172033;
+  font-size: 16px;
+  line-height: 1.4;
+}
+
+.planningLocationsDeletePromptText {
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.planningLocationsDeletePromptError,
+.planningLocationsDeletePromptActions {
+  grid-column: 1 / -1;
+}
+
+.planningLocationsDeletePromptError {
+  margin-bottom: 0;
+}
+
+.planningLocationsDeletePromptActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 4px;
+}
+
 .planningLocationsToast {
   position: fixed;
   top: 24px;
@@ -318,29 +297,21 @@
   }
 }
 
-/* --- Responsive --- */
 @media (max-width: 900px) {
   .planningLocationsToolbar .adminUsersSearchInput {
     flex: 1 1 100%;
     min-width: 0;
   }
-
-  .planningLocationsCardHeader {
-    flex-direction: column;
-  }
-
-  .planningLocationsCardActions {
-    width: 100%;
-  }
-
-  .planningLocationsCardActions > button {
-    flex: 1 1 0;
-  }
 }
 
 @media (max-width: 640px) {
-  .planningLocationsModalActions {
+  .planningLocationsModalActions,
+  .planningLocationsDeletePromptActions {
     flex-direction: column-reverse;
+  }
+
+  .planningLocationsDeletePromptActions > button {
+    width: 100%;
   }
 
   .planningLocationsToast {
