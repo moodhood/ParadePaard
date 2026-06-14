@@ -54,7 +54,8 @@ class AuthSeedPermissionsTest {
 
         assertThat(sql).contains("CAN_MANAGE_PLATFORM");
         assertThat(sql).contains("super.admin");
-        assertThat(sql).contains("super.admin@example.com");
+        assertThat(sql).contains("pardepaardtestemail1@gmail.com");
+        assertThat(sql).doesNotContain("super.admin@example.com");
         assertThat(sql).contains("SUPER_ADMIN");
     }
 

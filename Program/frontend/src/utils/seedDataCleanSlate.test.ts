@@ -11,7 +11,8 @@ describe("development seed data clean slate", () => {
         const authSql = readProgramFile("microservice/auth-service/src/main/resources/data.sql");
 
         expect(authSql).toContain("super.admin");
-        expect(authSql).toContain("super.admin@example.com");
+        expect(authSql).toContain("pardepaardtestemail1@gmail.com");
+        expect(authSql).not.toContain("super.admin@example.com");
         expect(authSql).toContain("CAN_MANAGE_PLATFORM");
         expect(authSql).toContain("Platform Sandbox Company");
         [
@@ -30,7 +31,8 @@ describe("development seed data clean slate", () => {
     it("keeps only the seeded platform company and platform admin in user-service seeds and removes demo leave requests", () => {
         const userSql = readProgramFile("microservice/user-service/src/main/resources/data.sql");
 
-        expect(userSql).toContain("super.admin@example.com");
+        expect(userSql).toContain("pardepaardtestemail1@gmail.com");
+        expect(userSql).not.toContain("super.admin@example.com");
         expect(userSql).toContain("Platform Sandbox Company");
         expect(userSql).not.toContain("Default Company");
         expect(userSql).not.toContain("sanne.admin@example.com");

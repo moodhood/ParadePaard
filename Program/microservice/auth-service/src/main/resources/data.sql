@@ -111,7 +111,7 @@ VALUES (
     '8f3e44c2-0fb6-4f12-9d5b-8c1a0c72b001'::uuid,
     'Super',
     'Admin',
-    'super.admin@example.com',
+    'pardepaardtestemail1@gmail.com',
     'super.admin',
     '$2b$12$HQ6WGmIHSyW.zourNrcJVOygqwNoHHt.YH6M89rdidxxKd8HyG3w6',
     '00000000-0000-0000-0000-000000000001'::uuid,
