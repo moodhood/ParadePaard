@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useId, useMemo, useState, type KeyboardEvent } from "react";
 import Modal from "../common/Modal";
 import PlanningLocationAddressFields from "./PlanningLocationAddressFields";
 import { UserServices, type PlanningLocationDTO } from "../../services/user-service/UserServices";
+import {
+    buildPlanningLocationAddressLines,
+    buildPlanningLocationSearchText,
+} from "../../utils/planningLocationAddress";
 import "../../stylesheets/PlanningLocationPicker.css";
 
 type PlanningLocationPickerProps = {
@@ -36,9 +40,34 @@ const INITIAL_DRAFT: CreateLocationDraft = {
     notes: "",
 };
 
+export function filterPlanningLocationSuggestions(
+    locations: PlanningLocationDTO[],
+    query: string
+): PlanningLocationDTO[] {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return locations;
+
+    return locations.filter((location) =>
+        [location.name, buildPlanningLocationSearchText(location)]
+            .filter(Boolean)
+            .some((value) => value!.toLowerCase().includes(normalizedQuery))
+    );
+}
+
+export function movePlanningLocationSuggestionIndex(
+    currentIndex: number,
+    key: "ArrowDown" | "ArrowUp",
+    suggestionCount: number
+): number {
+    if (suggestionCount <= 0) return -1;
+    if (key === "ArrowDown") return (currentIndex + 1 + suggestionCount) % suggestionCount;
+    return (currentIndex - 1 + suggestionCount) % suggestionCount;
+}
+
 export default function PlanningLocationPicker({
     label,
     value,
+    savedLocationId = null,
     clientCompanyId = null,
     clientCompanyName = null,
     disabled = false,
@@ -53,6 +82,13 @@ export default function PlanningLocationPicker({
     const [createDraft, setCreateDraft] = useState<CreateLocationDraft>(INITIAL_DRAFT);
     const [createError, setCreateError] = useState<string | null>(null);
     const [savingCreate, setSavingCreate] = useState(false);
+    const [suggestionsOpen, setSuggestionsOpen] = useState(false);
+    const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+    const listboxId = useId();
+    const filteredLocations = useMemo(
+        () => filterPlanningLocationSuggestions(locations, value).slice(0, 10),
+        [locations, value]
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -88,13 +124,12 @@ export default function PlanningLocationPicker({
     }
 
     function handleValueChange(nextValue: string) {
-        const matchedLocation = locations.find(
-            (location) => location.name.trim().toLowerCase() === nextValue.trim().toLowerCase()
-        );
         onChange({
             value: nextValue,
-            savedLocationId: matchedLocation?.locationId ?? null,
+            savedLocationId: null,
         });
+        setSuggestionsOpen(true);
+        setActiveSuggestionIndex(-1);
         markDirty();
     }
 
@@ -103,7 +138,33 @@ export default function PlanningLocationPicker({
             value: location.name,
             savedLocationId: location.locationId,
         });
+        setSuggestionsOpen(false);
+        setActiveSuggestionIndex(-1);
         markDirty();
+    }
+
+    function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+        const navigationKey = event.key === "ArrowDown" || event.key === "ArrowUp" ? event.key : null;
+        if (navigationKey) {
+            event.preventDefault();
+            setSuggestionsOpen(true);
+            setActiveSuggestionIndex((currentIndex) =>
+                movePlanningLocationSuggestionIndex(currentIndex, navigationKey, filteredLocations.length)
+            );
+            return;
+        }
+        if (event.key === "Enter" && suggestionsOpen && activeSuggestionIndex >= 0) {
+            const selectedLocation = filteredLocations[activeSuggestionIndex];
+            if (selectedLocation) {
+                event.preventDefault();
+                handleSelectLocation(selectedLocation);
+            }
+            return;
+        }
+        if (event.key === "Escape") {
+            setSuggestionsOpen(false);
+            setActiveSuggestionIndex(-1);
+        }
     }
 
     function openCreateModal() {
@@ -147,13 +208,58 @@ export default function PlanningLocationPicker({
             <div className="planningLocationField">
                 <span className="planningLocationFieldLabel">{label}</span>
                 <div className="planningLocationFieldRow">
-                    <input
-                        className="modal_input"
-                        value={value}
-                        onChange={(event) => handleValueChange(event.target.value)}
-                        placeholder={placeholder}
-                        disabled={disabled}
-                    />
+                    <div className="planningLocationCombobox">
+                        <input
+                            className="modal_input"
+                            value={value}
+                            onChange={(event) => handleValueChange(event.target.value)}
+                            onFocus={() => setSuggestionsOpen(true)}
+                            onBlur={() => window.setTimeout(() => setSuggestionsOpen(false), 100)}
+                            onKeyDown={handleInputKeyDown}
+                            placeholder={placeholder}
+                            disabled={disabled}
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-expanded={suggestionsOpen}
+                            aria-controls={listboxId}
+                            aria-activedescendant={
+                                suggestionsOpen && activeSuggestionIndex >= 0
+                                    ? `${listboxId}-option-${activeSuggestionIndex}`
+                                    : undefined
+                            }
+                        />
+                        {suggestionsOpen && !loading ? (
+                            <div className="planningLocationSuggestions" id={listboxId} role="listbox">
+                                {filteredLocations.length > 0 ? filteredLocations.map((location, index) => {
+                                    const address = buildPlanningLocationAddressLines(location);
+                                    const addressText = [address.line1, address.line2].filter(Boolean).join(", ");
+                                    return (
+                                        <button
+                                            type="button"
+                                            id={`${listboxId}-option-${index}`}
+                                            className={`planningLocationSuggestion${
+                                                index === activeSuggestionIndex ? " planningLocationSuggestion--active" : ""
+                                            }`}
+                                            role="option"
+                                            aria-selected={location.locationId === savedLocationId}
+                                            key={location.locationId}
+                                            onMouseDown={(event) => {
+                                                event.preventDefault();
+                                                handleSelectLocation(location);
+                                            }}
+                                        >
+                                            <span className="planningLocationSuggestionName">{location.name}</span>
+                                            {addressText ? (
+                                                <span className="planningLocationSuggestionAddress">{addressText}</span>
+                                            ) : null}
+                                        </button>
+                                    );
+                                }) : (
+                                    <div className="planningLocationSuggestionEmpty">No matching saved locations.</div>
+                                )}
+                            </div>
+                        ) : null}
+                    </div>
                     <button
                         type="button"
                         className="planningLocationFieldAdd"
