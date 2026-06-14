@@ -293,6 +293,54 @@ class PlanningManagementServiceTest {
     }
 
     @Test
+    void listLocationsRanksManualPriorityBeforeRecentUsage() {
+        UUID companyId = UUID.randomUUID();
+        UUID clientCompanyId = UUID.randomUUID();
+        UUID manualLocationId = UUID.randomUUID();
+        UUID recentLocationId = UUID.randomUUID();
+
+        PlanningLocation manualLocation = new PlanningLocation();
+        manualLocation.setLocationId(manualLocationId);
+        manualLocation.setOwnerCompanyId(companyId);
+        manualLocation.setName("Manual Location");
+
+        PlanningLocation recentLocation = new PlanningLocation();
+        recentLocation.setLocationId(recentLocationId);
+        recentLocation.setOwnerCompanyId(companyId);
+        recentLocation.setName("Recent Location");
+
+        ClientCompany clientCompany = new ClientCompany();
+        clientCompany.setClientCompanyId(clientCompanyId);
+        clientCompany.setOwnerCompanyId(companyId);
+
+        PlanningClientLocationUsage manualUsage = new PlanningClientLocationUsage();
+        manualUsage.setClientCompanyId(clientCompanyId);
+        manualUsage.setLocationId(manualLocationId);
+        manualUsage.setManuallyPrioritized(true);
+
+        PlanningClientLocationUsage recentUsage = new PlanningClientLocationUsage();
+        recentUsage.setClientCompanyId(clientCompanyId);
+        recentUsage.setLocationId(recentLocationId);
+        recentUsage.setLastUsedAt(LocalDateTime.of(2026, 6, 14, 12, 0));
+
+        when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId))
+                .thenReturn(Optional.of(clientCompany));
+        when(planningLocationRepository.findByOwnerCompanyIdOrderByNameAsc(companyId))
+                .thenReturn(List.of(recentLocation, manualLocation));
+        when(planningClientLocationUsageRepository.findByLocationIdIn(List.of(recentLocationId, manualLocationId)))
+                .thenReturn(List.of(recentUsage, manualUsage));
+        when(planningClientLocationUsageRepository.findByClientCompanyIdAndLocationIdIn(
+                clientCompanyId,
+                List.of(recentLocationId, manualLocationId)
+        )).thenReturn(List.of(recentUsage, manualUsage));
+
+        List<PlanningLocationDTO> result = planningManagementService.listLocations(companyId, clientCompanyId);
+
+        assertEquals(List.of(manualLocationId, recentLocationId),
+                result.stream().map(PlanningLocationDTO::getLocationId).toList());
+    }
+
+    @Test
     void createLocationPersistsMultipleManualClientPriorities() {
         UUID companyId = UUID.randomUUID();
         UUID locationId = UUID.randomUUID();

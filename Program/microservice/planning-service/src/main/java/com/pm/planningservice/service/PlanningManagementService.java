@@ -206,10 +206,10 @@ public class PlanningManagementService {
                             PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
                             return usage != null && usage.isManuallyPrioritized();
                         }).reversed()
-                        .thenComparing((PlanningLocation location) -> {
-                            PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
-                            return usage != null && usage.getLastUsedAt() != null;
-                        }).reversed()
+                        .thenComparing(Comparator.comparing((PlanningLocation location) -> {
+                                PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
+                                return usage != null && usage.getLastUsedAt() != null;
+                            }).reversed())
                         .thenComparing(
                                 (PlanningLocation location) -> {
                                     PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
