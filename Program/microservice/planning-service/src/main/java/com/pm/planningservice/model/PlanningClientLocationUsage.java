@@ -29,8 +29,10 @@ public class PlanningClientLocationUsage {
     @Column(nullable = false)
     private UUID locationId;
 
+    private LocalDateTime lastUsedAt;
+
     @Column(nullable = false)
-    private LocalDateTime lastUsedAt = LocalDateTime.now();
+    private boolean manuallyPrioritized;
 
     public UUID getUsageId() {
         return usageId;
@@ -62,5 +64,13 @@ public class PlanningClientLocationUsage {
 
     public void setLastUsedAt(LocalDateTime lastUsedAt) {
         this.lastUsedAt = lastUsedAt;
+    }
+
+    public boolean isManuallyPrioritized() {
+        return manuallyPrioritized;
+    }
+
+    public void setManuallyPrioritized(boolean manuallyPrioritized) {
+        this.manuallyPrioritized = manuallyPrioritized;
     }
 }

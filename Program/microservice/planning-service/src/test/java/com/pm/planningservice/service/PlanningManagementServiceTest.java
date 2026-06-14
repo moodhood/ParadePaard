@@ -42,6 +42,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -275,6 +276,7 @@ class PlanningManagementServiceTest {
         usage.setClientCompanyId(clientCompanyId);
         usage.setLocationId(preferredLocationId);
         usage.setLastUsedAt(LocalDateTime.of(2026, 6, 1, 10, 0));
+        usage.setManuallyPrioritized(false);
 
         when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(clientCompanyId, companyId))
                 .thenReturn(Optional.of(clientCompany));
@@ -288,6 +290,85 @@ class PlanningManagementServiceTest {
         assertEquals(List.of(preferredLocationId, otherLocationId), result.stream().map(PlanningLocationDTO::getLocationId).toList());
         assertTrue(Boolean.TRUE.equals(result.get(0).getPreferredForClient()));
         assertFalse(Boolean.TRUE.equals(result.get(1).getPreferredForClient()));
+    }
+
+    @Test
+    void createLocationPersistsMultipleManualClientPriorities() {
+        UUID companyId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        UUID firstClientId = UUID.randomUUID();
+        UUID secondClientId = UUID.randomUUID();
+
+        ClientCompany firstClient = new ClientCompany();
+        firstClient.setClientCompanyId(firstClientId);
+        firstClient.setOwnerCompanyId(companyId);
+        ClientCompany secondClient = new ClientCompany();
+        secondClient.setClientCompanyId(secondClientId);
+        secondClient.setOwnerCompanyId(companyId);
+
+        PlanningLocationSaveRequestDTO request = new PlanningLocationSaveRequestDTO();
+        request.setName("Park Street 123");
+        request.setPrioritizedClientCompanyIds(List.of(firstClientId, secondClientId));
+
+        when(planningLocationRepository.existsByOwnerCompanyIdAndNameIgnoreCase(companyId, "Park Street 123"))
+                .thenReturn(false);
+        when(planningLocationRepository.save(any(PlanningLocation.class))).thenAnswer(invocation -> {
+            PlanningLocation location = invocation.getArgument(0);
+            location.setLocationId(locationId);
+            return location;
+        });
+        when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(firstClientId, companyId))
+                .thenReturn(Optional.of(firstClient));
+        when(clientCompanyRepository.findByClientCompanyIdAndOwnerCompanyId(secondClientId, companyId))
+                .thenReturn(Optional.of(secondClient));
+        when(planningClientLocationUsageRepository.findByLocationId(locationId)).thenReturn(List.of());
+        when(planningClientLocationUsageRepository.save(any(PlanningClientLocationUsage.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        PlanningLocationDTO response = planningManagementService.createLocation(companyId, request);
+
+        assertEquals(List.of(firstClientId, secondClientId), response.getPrioritizedClientCompanyIds());
+        verify(planningClientLocationUsageRepository).save(argThat(usage ->
+                firstClientId.equals(usage.getClientCompanyId()) && usage.isManuallyPrioritized()
+        ));
+        verify(planningClientLocationUsageRepository).save(argThat(usage ->
+                secondClientId.equals(usage.getClientCompanyId()) && usage.isManuallyPrioritized()
+        ));
+    }
+
+    @Test
+    void updateLocationClearsManualPriorityWithoutDeletingUsageHistory() {
+        UUID companyId = UUID.randomUUID();
+        UUID locationId = UUID.randomUUID();
+        UUID clientCompanyId = UUID.randomUUID();
+
+        PlanningLocation location = new PlanningLocation();
+        location.setLocationId(locationId);
+        location.setOwnerCompanyId(companyId);
+        location.setName("Park Street 123");
+
+        PlanningClientLocationUsage usage = new PlanningClientLocationUsage();
+        usage.setClientCompanyId(clientCompanyId);
+        usage.setLocationId(locationId);
+        usage.setLastUsedAt(LocalDateTime.of(2026, 6, 10, 12, 0));
+        usage.setManuallyPrioritized(true);
+
+        PlanningLocationSaveRequestDTO request = new PlanningLocationSaveRequestDTO();
+        request.setName("Park Street 123");
+        request.setPrioritizedClientCompanyIds(List.of());
+
+        when(planningLocationRepository.findByLocationIdAndOwnerCompanyId(locationId, companyId))
+                .thenReturn(Optional.of(location));
+        when(planningLocationRepository.save(location)).thenReturn(location);
+        when(planningClientLocationUsageRepository.findByLocationId(locationId)).thenReturn(List.of(usage));
+        when(planningClientLocationUsageRepository.save(usage)).thenReturn(usage);
+
+        PlanningLocationDTO response = planningManagementService.updateLocation(companyId, locationId, request);
+
+        assertFalse(usage.isManuallyPrioritized());
+        assertEquals(LocalDateTime.of(2026, 6, 10, 12, 0), usage.getLastUsedAt());
+        assertEquals(List.of(), response.getPrioritizedClientCompanyIds());
+        verify(planningClientLocationUsageRepository, never()).delete(usage);
     }
 
     @Test

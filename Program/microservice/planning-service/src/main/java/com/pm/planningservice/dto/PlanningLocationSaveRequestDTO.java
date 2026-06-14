@@ -1,5 +1,7 @@
 package com.pm.planningservice.dto;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class PlanningLocationSaveRequestDTO {
@@ -10,7 +12,7 @@ public class PlanningLocationSaveRequestDTO {
     private String postalCode;
     private String city;
     private String notes;
-    private UUID clientCompanyId;
+    private List<UUID> prioritizedClientCompanyIds = new ArrayList<>();
 
     public String getName() {
         return name;
@@ -68,11 +70,13 @@ public class PlanningLocationSaveRequestDTO {
         this.notes = notes;
     }
 
-    public UUID getClientCompanyId() {
-        return clientCompanyId;
+    public List<UUID> getPrioritizedClientCompanyIds() {
+        return prioritizedClientCompanyIds;
     }
 
-    public void setClientCompanyId(UUID clientCompanyId) {
-        this.clientCompanyId = clientCompanyId;
+    public void setPrioritizedClientCompanyIds(List<UUID> prioritizedClientCompanyIds) {
+        this.prioritizedClientCompanyIds = prioritizedClientCompanyIds == null
+                ? new ArrayList<>()
+                : new ArrayList<>(prioritizedClientCompanyIds);
     }
 }

@@ -42,9 +42,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -181,12 +183,17 @@ public class PlanningManagementService {
             return List.of();
         }
 
+        List<UUID> locationIds = locations.stream().map(PlanningLocation::getLocationId).toList();
+        Map<UUID, List<PlanningClientLocationUsage>> usagesByLocationId =
+                planningClientLocationUsageRepository.findByLocationIdIn(locationIds).stream()
+                        .collect(Collectors.groupingBy(PlanningClientLocationUsage::getLocationId));
+
         Map<UUID, PlanningClientLocationUsage> usageByLocationId;
         if (clientCompanyId != null) {
             requireClientCompany(companyId, clientCompanyId);
             usageByLocationId = planningClientLocationUsageRepository.findByClientCompanyIdAndLocationIdIn(
                             clientCompanyId,
-                            locations.stream().map(PlanningLocation::getLocationId).toList()
+                            locationIds
                     ).stream()
                     .collect(Collectors.toMap(PlanningClientLocationUsage::getLocationId, Function.identity()));
         } else {
@@ -195,7 +202,14 @@ public class PlanningManagementService {
 
         return locations.stream()
                 .sorted(Comparator
-                        .comparing((PlanningLocation location) -> usageByLocationId.containsKey(location.getLocationId())).reversed()
+                        .comparing((PlanningLocation location) -> {
+                            PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
+                            return usage != null && usage.isManuallyPrioritized();
+                        }).reversed()
+                        .thenComparing((PlanningLocation location) -> {
+                            PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
+                            return usage != null && usage.getLastUsedAt() != null;
+                        }).reversed()
                         .thenComparing(
                                 (PlanningLocation location) -> {
                                     PlanningClientLocationUsage usage = usageByLocationId.get(location.getLocationId());
@@ -204,7 +218,11 @@ public class PlanningManagementService {
                                 Comparator.nullsLast(Comparator.reverseOrder())
                         )
                         .thenComparing(PlanningLocation::getName, String.CASE_INSENSITIVE_ORDER))
-                .map(location -> toLocationDto(location, usageByLocationId.get(location.getLocationId())))
+                .map(location -> toLocationDto(
+                        location,
+                        usageByLocationId.get(location.getLocationId()),
+                        usagesByLocationId.getOrDefault(location.getLocationId(), List.of())
+                ))
                 .toList();
     }
 
@@ -230,7 +248,11 @@ public class PlanningManagementService {
         location.setCity(normalizeOptionalText(request.getCity()));
         location.setNotes(normalizeOptionalText(request.getNotes()));
         PlanningLocation saved = planningLocationRepository.save(location);
-        PlanningClientLocationUsage usage = touchLocationUsage(companyId, request.getClientCompanyId(), saved);
+        List<PlanningClientLocationUsage> usages = syncManualLocationPriorities(
+                companyId,
+                request.getPrioritizedClientCompanyIds(),
+                saved
+        );
         recordAudit(
                 accessToken,
                 "PLANNING",
@@ -239,7 +261,7 @@ public class PlanningManagementService {
                 saved.getLocationId(),
                 List.of(textPart(" created saved location "), locationLink(saved))
         );
-        return toLocationDto(saved, usage);
+        return toLocationDto(saved, null, usages);
     }
 
     @Transactional
@@ -263,7 +285,11 @@ public class PlanningManagementService {
         location.setCity(normalizeOptionalText(request.getCity()));
         location.setNotes(normalizeOptionalText(request.getNotes()));
         PlanningLocation saved = planningLocationRepository.save(location);
-        PlanningClientLocationUsage usage = touchLocationUsage(companyId, request.getClientCompanyId(), saved);
+        List<PlanningClientLocationUsage> usages = syncManualLocationPriorities(
+                companyId,
+                request.getPrioritizedClientCompanyIds(),
+                saved
+        );
         recordAudit(
                 accessToken,
                 "PLANNING",
@@ -272,7 +298,7 @@ public class PlanningManagementService {
                 saved.getLocationId(),
                 List.of(textPart(" updated saved location "), locationLink(saved))
         );
-        return toLocationDto(saved, usage);
+        return toLocationDto(saved, null, usages);
     }
 
     @Transactional
@@ -870,7 +896,11 @@ public class PlanningManagementService {
         return dto;
     }
 
-    private PlanningLocationDTO toLocationDto(PlanningLocation location, PlanningClientLocationUsage usage) {
+    private PlanningLocationDTO toLocationDto(
+            PlanningLocation location,
+            PlanningClientLocationUsage selectedClientUsage,
+            List<PlanningClientLocationUsage> usages
+    ) {
         PlanningLocationDTO dto = new PlanningLocationDTO();
         dto.setLocationId(location.getLocationId());
         dto.setName(location.getName());
@@ -880,11 +910,59 @@ public class PlanningManagementService {
         dto.setPostalCode(location.getPostalCode());
         dto.setCity(location.getCity());
         dto.setNotes(location.getNotes());
-        dto.setPreferredForClient(usage != null);
-        dto.setLastUsedAtForClient(usage != null ? usage.getLastUsedAt() : null);
+        dto.setPrioritizedClientCompanyIds(usages.stream()
+                .filter(PlanningClientLocationUsage::isManuallyPrioritized)
+                .map(PlanningClientLocationUsage::getClientCompanyId)
+                .toList());
+        dto.setPreferredForClient(selectedClientUsage != null
+                ? Boolean.TRUE
+                : usages.stream().anyMatch(PlanningClientLocationUsage::isManuallyPrioritized));
+        dto.setLastUsedAtForClient(selectedClientUsage != null ? selectedClientUsage.getLastUsedAt() : null);
         dto.setCreatedAt(location.getCreatedAt());
         dto.setUpdatedAt(location.getUpdatedAt());
         return dto;
+    }
+
+    private List<PlanningClientLocationUsage> syncManualLocationPriorities(
+            UUID companyId,
+            List<UUID> prioritizedClientCompanyIds,
+            PlanningLocation location
+    ) {
+        List<UUID> requestedIds = prioritizedClientCompanyIds == null
+                ? List.of()
+                : prioritizedClientCompanyIds.stream().filter(Objects::nonNull).distinct().toList();
+        requestedIds.forEach(clientCompanyId -> requireClientCompany(companyId, clientCompanyId));
+
+        List<PlanningClientLocationUsage> existing =
+                new ArrayList<>(planningClientLocationUsageRepository.findByLocationId(location.getLocationId()));
+        Map<UUID, PlanningClientLocationUsage> existingByClientId = existing.stream()
+                .collect(Collectors.toMap(PlanningClientLocationUsage::getClientCompanyId, Function.identity()));
+        Set<UUID> requestedIdSet = new HashSet<>(requestedIds);
+
+        for (PlanningClientLocationUsage usage : existing) {
+            boolean manuallyPrioritized = requestedIdSet.contains(usage.getClientCompanyId());
+            usage.setManuallyPrioritized(manuallyPrioritized);
+            if (!manuallyPrioritized && usage.getLastUsedAt() == null) {
+                planningClientLocationUsageRepository.delete(usage);
+            } else {
+                planningClientLocationUsageRepository.save(usage);
+            }
+        }
+
+        for (UUID clientCompanyId : requestedIds) {
+            if (existingByClientId.containsKey(clientCompanyId)) {
+                continue;
+            }
+            PlanningClientLocationUsage usage = new PlanningClientLocationUsage();
+            usage.setClientCompanyId(clientCompanyId);
+            usage.setLocationId(location.getLocationId());
+            usage.setManuallyPrioritized(true);
+            existing.add(planningClientLocationUsageRepository.save(usage));
+        }
+
+        return existing.stream()
+                .filter(usage -> usage.isManuallyPrioritized() || usage.getLastUsedAt() != null)
+                .toList();
     }
 
     private PlanningClientCompanyContactDTO toClientCompanyContactDto(ClientCompanyContact contact) {
